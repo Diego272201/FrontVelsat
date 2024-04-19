@@ -1,0 +1,6 @@
+:root {
+    --PrimaryBlue: #113EB9;
+    --PrimaryGradientBlue: linear-gradient(#1C5ED8, #061D99);
+    --PrimaryGradientOrange: linear-gradient(#FF6300, #F7931E);
+    --PrimaryOrange: #FB7B0F;
+}

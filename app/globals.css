@@ -1,0 +1,15 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+.scrollbarLogin {
+  overflow-y: auto;
+  height: 100vh;
+}
+.scrollbarLogin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbarLogin::-webkit-scrollbar-thumb {
+  background: #f77712;
+  border-radius: 10px;
+}
