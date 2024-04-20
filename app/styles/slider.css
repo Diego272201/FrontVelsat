@@ -1,3 +1,5 @@
+@import 'colors.css';
+
 .swiper {
     width: 100%;
     height: 100%;
@@ -22,5 +24,5 @@
   }
 
   .swiper-pagination-bullet{
-    background-color: #113eb6;
+    background-color: var(--PrimaryGray);
   }
