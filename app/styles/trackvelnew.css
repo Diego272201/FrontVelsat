@@ -1,0 +1,8 @@
+.trackvelnew{
+    background-image: url('/gps.jpg');
+    width: 100%;
+    height: 100vh;
+    position: absolute;
+    background-size: cover;
+    
+}
