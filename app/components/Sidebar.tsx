@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
+import { FiSearch } from 'react-icons/fi';
 
 import '@/app/styles/sidebar.css';
 
@@ -35,7 +36,7 @@ export default function Sidebar() {
           title="Despliega Menu"
         >
           <div className="nombreP">
-            <GrFormNext size={25}/>
+            <GrFormNext size={25} />
           </div>
         </label>
         <label
@@ -46,12 +47,13 @@ export default function Sidebar() {
         >
           <div className="nombreP">
             {' '}
-            <GrFormPrevious size={25}/>
+            <GrFormPrevious size={25} />
           </div>
         </label>
 
         <div className="menu">
           <div className="unidades">Total de unidades: 95 </div>
+          
         </div>
       </div>
     </div>

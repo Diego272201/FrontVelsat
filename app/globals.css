@@ -4,7 +4,7 @@
 
 
 body{
-  background: rgb(100, 99, 102);
+  background: rgb(201, 197, 197);
 }
 
 .scrollbarLogin {
@@ -19,3 +19,10 @@ body{
   border-radius: 10px;
 }
 
+.mainPruebas{
+  width: 100%;
+  position: absolute;
+  height: 100vh;
+  padding-top: 100px;
+
+}
