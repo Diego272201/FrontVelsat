@@ -1,0 +1,101 @@
+@import 'colors.css';
+
+* {
+  box-sizing: border-box;
+}
+
+.desplegable {
+  position: fixed;
+  top: 20%;
+  left: -300px;
+  width: 300px;
+  background-color: #f2f2f2;
+  transition: left 0.5s;
+  height: 100%;
+}
+
+label {
+  position: absolute;
+  top: 44%;
+  cursor: pointer;
+  transition:
+    background 0.5s,
+    color 0.5s;
+  clip-path: polygon(0 0, 90% 24%, 90% 76%, 0 100%);
+  left: 100%;
+  height: 12%;
+}
+
+.previos {
+  width: 20px;
+  padding-top: auto;
+}
+
+.nombreP {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--PrimaryBlue);
+}
+
+label[id*='muestra'] {
+  right: -20px;
+  color: #fff;
+}
+
+label[id*='muestra']:hover {
+  color: #e0dcd5;
+}
+
+label[id*='oculta'] {
+  right: -20px;
+  color: white;
+}
+label:hover[id*='oculta'] {
+  color: #e0dcd5;
+}
+
+input[name='opcion'],
+label[id^='label'] {
+  display: none;
+}
+
+#muestra:checked ~ .desplegable #label-muestra,
+#oculta:checked ~ .desplegable #label-oculta {
+  display: none;
+}
+
+#muestra:checked ~ .desplegable #label-oculta,
+#oculta:checked ~ .desplegable #label-muestra {
+  display: block;
+}
+
+#muestra:checked ~ .desplegable {
+  left: 0;
+}
+
+#oculta:checked ~ .desplegable {
+  left: -300px;
+}
+
+.menu {
+  position: relative;
+  left: 0px;
+  font-family: sans-serif;
+  font-weight: bolder;
+  color: #eaeaea;
+  height: 100%;
+  width: 300px;
+}
+
+.unidades {
+  width: 100%;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  background: var(--PrimaryBlue);
+  font-weight: 400;
+  color: #eceae5;
+}

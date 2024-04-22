@@ -2,6 +2,11 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+
+body{
+  background: rgb(100, 99, 102);
+}
+
 .scrollbarLogin {
   overflow-y: auto;
   height: 100vh;
@@ -13,3 +18,4 @@
   background: #f77712;
   border-radius: 10px;
 }
+
