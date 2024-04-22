@@ -52,8 +52,6 @@ export default function Sidebar() {
 
         <div className="menu">
           <div className="unidades">Total de unidades: 95 </div>
-
-      
         </div>
       </div>
     </div>

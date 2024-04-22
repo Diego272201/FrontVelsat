@@ -22,7 +22,7 @@ const Tollbar = () => {
       <div className="menu__bar">
         <a href="/trackvelnew" title="Logo" className="logo">
           <img src="/LogoWeb.png" alt="" />
-          <h2>TRACKVEL SYSTEM - </h2>
+          <h2>TRACKVEL SYSTEM -</h2>
           <h2 className="userInicio">Bienvenido Cgacela S.A.C</h2>
         </a>
 
