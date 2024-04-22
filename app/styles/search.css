@@ -1,0 +1,6 @@
+@import 'colors.css';
+
+.fondoInput{
+    background-color: var(--PrimaryOrange);
+    opacity: 0.91;
+}

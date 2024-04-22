@@ -1,5 +1,6 @@
 import './globals.css';
-import {kanit} from './ui/fonts';
+import { Providers } from './providers';
+import { kanit } from './ui/fonts';
 
 export default function RootLayout({
   children,
@@ -8,7 +9,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${kanit.className} antialiased`}>{children}</body>
+      <body className={`${kanit.className} antialiased`}>
+
+        <Providers>
+        {children}
+        </Providers>
+      </body>
     </html>
   );
 }
