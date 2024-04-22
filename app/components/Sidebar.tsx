@@ -53,19 +53,7 @@ export default function Sidebar() {
         </label>
 
         <div className="menu">
-          <div className="unidades">
-            Total de unidades: 95
-            <div className="imap">
-              <a href="#"><TbView360 size={23}/></a>
-            </div>
-          </div>
-
-            <div className="search">
-              <div className="iconS">
-                <FiSearch className='iconSearch'/>
-              </div>
-              <input className="input" type="search" placeholder="Buscar unidad"/>
-            </div>
+          <div className="unidades">Total de unidades: 95 </div>
         </div>
       </div>
     </div>
