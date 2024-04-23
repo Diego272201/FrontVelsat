@@ -8,13 +8,13 @@ import '@/app/styles/unidad.css';
 export default function Unidad() {
   return (
     <div className="lista-carros">
-      <div>
-        <input type="checkbox" id="input-1" className="check-input" />
-        <label htmlFor="input-1" className="checkbox">
-          <svg viewBox='0 0 22 16' fill='none'>
-            <path d='M1 6.85L8.09677 14L21 1'></path>
-          </svg>
-        </label>
+
+      <div className="checkStyle">
+
+        <div className="checkbox-wrapper-13">
+          <input type="checkbox" id="c1-13"/>
+        </div>
+        
       </div>
 
       <div className="img-listacarro">

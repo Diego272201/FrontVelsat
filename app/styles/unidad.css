@@ -4,49 +4,17 @@
 /*ESTILOS DE LA LISTA DE UNIDADES*/
 .lista-carros{
     display: flex;
-    background-color: #dcdcddcb;
+    background-color: #b1adaccb;
     justify-content: center;
     align-items: center;
     margin: 10px 0;
-  }
-  
-  .check-input{
-    display: none;
+    padding: 5px
   }
 
-  .checkbox{
-    margin-left: -10px;
-    position: relative;
-    width: 17px;
-    height: 17px;
-    border: 2px solid #0004;
-    border-radius: 60%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: 0.3s all;
-  }
-
-  .checkbox svg{
-    width: 25px;
-    height: 25px;
-  }
-
-  .check-input:checked + .checkbox{
-    background-color: var(--PrimaryBlue);
-    border: 2px solid #113EB9;
-    
-  }
-
-  .check-input:checked + .checkbox svg path{
-    stroke-dasharray: 500;
-    stroke-dashoffset: 500;
-    stroke: #fff;
-    stroke-width: 2;
-    animation: check 4s forwards;
-  }
-
+.checkBOX{
+  width: 30px;
+  height: 30px;
+}
 
   @keyframes check {
     to{
@@ -62,15 +30,18 @@
   
   .img-listacarro{
     width:55px;
-    margin-left: 10px;
+    margin-left: 2px;
   }
   
   .codigo-carro{
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--BlackText);
     margin-right: 2px;
-    margin-left: 4px;
+    margin-left: 2px;
+    width: 90px;
+    display: flex;
+    justify-content: center;
   }
   
   .velocidad-carro{
@@ -78,7 +49,7 @@
     font-weight: 400;
     color: var(--BlackText);
     text-align: center;
-    margin-left: 16px;
+    margin-left: 2px;
   }
   
   .luz-carro{
@@ -90,3 +61,132 @@
     color: #0008;
     margin: 0 -10px;
   }
+
+
+  /* ESTILOS DEL checkBOX */
+
+
+  /* Hide the default checkbox */
+
+  .checkStyle{
+    width: 30px;
+    height: 30px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+  }
+
+  @supports (-webkit-appearance: none) or (-moz-appearance: none) {
+    .checkbox-wrapper-13 input[type=checkbox] {
+      --active: #275EFE;
+      --active-inner: #fff;
+      --focus: 2px rgba(39, 94, 254, .3);
+      --border: #BBC1E1;
+      --border-hover: #275EFE;
+      --background: #fff;
+      --disabled: #F6F8FF;
+      --disabled-inner: #E1E6F9;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      height: 21px;
+      outline: none;
+      display: inline-block;
+      vertical-align: top;
+      position: relative;
+      margin: 0;
+      cursor: pointer;
+      border: 1px solid var(--bc, var(--border));
+      background: var(--b, var(--background));
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:after {
+      content: "";
+      display: block;
+      left: 0;
+      top: 0;
+      position: absolute;
+      transition: transform var(--d-t, 0.3s) var(--d-t-e, ease), opacity var(--d-o, 0.2s);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:checked {
+      --b: var(--active);
+      --bc: var(--active);
+      --d-o: .3s;
+      --d-t: .6s;
+      --d-t-e: cubic-bezier(.2, .85, .32, 1.2);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:disabled {
+      --b: var(--disabled);
+      cursor: not-allowed;
+      opacity: 0.9;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:disabled:checked {
+      --b: var(--disabled-inner);
+      --bc: var(--border);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:disabled + label {
+      cursor: not-allowed;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:hover:not(:checked):not(:disabled) {
+      --bc: var(--border-hover);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:focus {
+      box-shadow: 0 0 0 var(--focus);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+      width: 21px;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+      opacity: var(--o, 0);
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+      --o: 1;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox] + label {
+      display: inline-block;
+      vertical-align: middle;
+      cursor: pointer;
+      margin-left: 4px;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
+      border-radius: 50%;
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
+      width: 5px;
+      height: 9px;
+      border: 2px solid var(--active-inner);
+      border-top: 0;
+      border-left: 0;
+      left: 7px;
+      top: 4px;
+      transform: rotate(var(--r, 20deg));
+    }
+  
+    .checkbox-wrapper-13 input[type=checkbox]:not(.switch):checked {
+      --r: 43deg;
+    }
+  }
+  
+  .checkbox-wrapper-13 * {
+    box-sizing: inherit;
+  }
+  
+  .checkbox-wrapper-13 *:before,
+    .checkbox-wrapper-13 *:after {
+    box-sizing: inherit;
+  }
+  
+  
