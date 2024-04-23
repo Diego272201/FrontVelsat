@@ -148,3 +148,42 @@ label[id^='label'] {
 .iconSearch{
   fill: rgb(238, 233, 233);
 }
+
+/*ESTILOS DE LA LISTA DE UNIDADES*/
+.lista-carros{
+  display: flex;
+  background-color: red;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0 8px 0;
+  margin: 10px 0 10px 0;
+  gap: 5px;
+}
+
+.checkbox{
+  transform: scale(1.4);
+}
+
+.img-listacarro{
+  width:70px;
+}
+
+.codigo-carro{
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--BlackText);
+}
+
+.velocidad-carro{
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--BlackText);
+}
+
+.luz-carro{
+  color: rgb(42, 248, 42);
+}
+
+.detalles-carro{
+  color: #0008;
+}

@@ -4,8 +4,8 @@ import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
 import { TbView360 } from 'react-icons/tb';
 import { FiSearch } from 'react-icons/fi';
-
 import '@/app/styles/sidebar.css';
+import Unidad from './Unidad';
 
 export default function Sidebar() {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -66,11 +66,12 @@ export default function Sidebar() {
             <div className="iconS">
               <FiSearch className="iconSearch" />
             </div>
-            <input
-              className="input"
-              type="search"
-              placeholder="Buscar unidad"
-            />
+
+            <input className="input" type="search" placeholder="Buscar unidad"/>
+          </div>
+
+          <div>
+            <Unidad></Unidad>
           </div>
         </div>
       </div>

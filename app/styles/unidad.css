@@ -1,0 +1,92 @@
+@import 'colors.css';
+
+
+/*ESTILOS DE LA LISTA DE UNIDADES*/
+.lista-carros{
+    display: flex;
+    background-color: #dcdcddcb;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0;
+  }
+  
+  .check-input{
+    display: none;
+  }
+
+  .checkbox{
+    margin-left: -10px;
+    position: relative;
+    width: 17px;
+    height: 17px;
+    border: 2px solid #0004;
+    border-radius: 60%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s all;
+  }
+
+  .checkbox svg{
+    width: 25px;
+    height: 25px;
+  }
+
+  .check-input:checked + .checkbox{
+    background-color: var(--PrimaryBlue);
+    border: 2px solid #113EB9;
+    
+  }
+
+  .check-input:checked + .checkbox svg path{
+    stroke-dasharray: 500;
+    stroke-dashoffset: 500;
+    stroke: #fff;
+    stroke-width: 2;
+    animation: check 4s forwards;
+  }
+
+
+  @keyframes check {
+    to{
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes ripple {
+    to{
+      transform: scale(1);
+    }
+  }
+  
+  .img-listacarro{
+    width:55px;
+    margin-left: 10px;
+  }
+  
+  .codigo-carro{
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--BlackText);
+    margin-right: 2px;
+    margin-left: 4px;
+  }
+  
+  .velocidad-carro{
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--BlackText);
+    text-align: center;
+    margin-left: 16px;
+  }
+  
+  .luz-carro{
+    color: rgb(42, 248, 42);
+    margin-left: 1px;
+  }
+  
+  .detalles-carro{
+    color: #0008;
+    margin: 0 -10px;
+  }
