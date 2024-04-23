@@ -40,7 +40,11 @@ export default function RequestPage() {
         onLoad={onLoad}
         onUnmount={onUnmount}
         options={{
-          mapTypeControl:false
+          mapTypeControl:false,
+          fullscreenControl: true,
+          fullscreenControlOptions: {
+            position: google.maps.ControlPosition.BOTTOM_RIGHT
+          }
         }}
       >
         { /* Child components, such as markers, info windows, etc. */ }

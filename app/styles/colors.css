@@ -4,5 +4,7 @@
     --PrimaryGradientOrange: linear-gradient(#FF6300, #F7931E);
     --PrimaryGray: #e9ecef;
     --PrimaryOrange: #FB7B0F;
-    --BlackText: #0d0c1d;
+    --CodText: #495057;
+    --VelText: #6c757d;
+    --ColorPlaceHolder: #fff9;
 }

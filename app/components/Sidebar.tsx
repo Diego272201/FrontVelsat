@@ -66,7 +66,6 @@ export default function Sidebar() {
             <div className="iconS">
               <FiSearch className="iconSearch" />
             </div>
-
             <input className="input" type="search" placeholder="Buscar unidad"/>
           </div>
 

@@ -94,10 +94,10 @@ label[id^='label'] {
   height: 35px;
   display: flex;
   align-items: center;
-  padding-left: 15px;
+  padding-left: 12px;
   background: var(--PrimaryBlue);
   color: #eceae5;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 
@@ -113,6 +113,7 @@ label[id^='label'] {
   position: relative;
   width: 280px;
   margin: 10px 10px 0 10px;
+  font-weight: 600;
 }
 
 .input{
@@ -127,13 +128,12 @@ label[id^='label'] {
   background-color: var(--PrimaryOrange);
   color: var(--PrimaryGray);
   transition: 0.3s ease;
-  font-weight: 100;
   font-size: 14px;
 }
 
 .input::placeholder{
-  color: var(--PrimaryGray);
-  font-weight: 100;
+  color: var(--ColorPlaceHolder);
+  font-weight: 600;
   font-size: 14px;
   padding-left: 1px;
 }
@@ -149,7 +149,7 @@ label[id^='label'] {
   fill: rgb(238, 233, 233);
 }
 
-/*ESTILOS DE LA LISTA DE UNIDADES*/
+/*ESTILO DE LA LISTA CONTENEDORA*/
 .lista-carros{
   display: flex;
   background-color: red;
@@ -158,32 +158,4 @@ label[id^='label'] {
   padding: 8px 0 8px 0;
   margin: 10px 0 10px 0;
   gap: 5px;
-}
-
-.checkbox{
-  transform: scale(1.4);
-}
-
-.img-listacarro{
-  width:70px;
-}
-
-.codigo-carro{
-  font-size: 13px;
-  font-weight: 900;
-  color: var(--BlackText);
-}
-
-.velocidad-carro{
-  font-size: 12px;
-  font-weight: 900;
-  color: var(--BlackText);
-}
-
-.luz-carro{
-  color: rgb(42, 248, 42);
-}
-
-.detalles-carro{
-  color: #0008;
 }
