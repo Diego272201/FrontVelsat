@@ -4,42 +4,21 @@
 /*ESTILOS DE LA LISTA DE UNIDADES*/
 .lista-carros{
     display: flex;
-    background-color: #b1adaccb;
+    background-color: #dee2e6;
     justify-content: center;
     align-items: center;
-    margin: 10px 0;
-    padding: 5px
+    padding: 8px 0 5px 0;
   }
 
-.checkBOX{
-  width: 30px;
-  height: 30px;
-}
-
-  @keyframes check {
-    to{
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes ripple {
-    to{
-      transform: scale(1);
-    }
-  }
-  
   .img-listacarro{
     width:55px;
-    margin-left: 2px;
   }
   
   .codigo-carro{
     font-size: 12px;
     font-weight: 400;
     color: var(--BlackText);
-    margin-right: 2px;
-    margin-left: 2px;
-    width: 90px;
+    width: 80px;
     display: flex;
     justify-content: center;
   }
@@ -49,17 +28,14 @@
     font-weight: 400;
     color: var(--BlackText);
     text-align: center;
-    margin-left: 2px;
   }
   
   .luz-carro{
     color: rgb(42, 248, 42);
-    margin-left: 1px;
   }
   
   .detalles-carro{
     color: #0008;
-    margin: 0 -10px;
   }
 
 
@@ -161,7 +137,7 @@
     }
   
     .checkbox-wrapper-13 input[type=checkbox]:not(.switch) {
-      border-radius: 50%;
+      border-radius: 30%;
     }
   
     .checkbox-wrapper-13 input[type=checkbox]:not(.switch):after {
@@ -188,5 +164,3 @@
     .checkbox-wrapper-13 *:after {
     box-sizing: inherit;
   }
-  
-  

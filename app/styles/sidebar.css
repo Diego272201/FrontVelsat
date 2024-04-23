@@ -94,10 +94,10 @@ label[id^='label'] {
   height: 35px;
   display: flex;
   align-items: center;
-  padding-left: 20px;
+  padding-left: 15px;
   background: var(--PrimaryBlue);
-  font-weight: 400;
   color: #eceae5;
+  font-weight: 500;
 }
 
 

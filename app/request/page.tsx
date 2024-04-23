@@ -39,6 +39,9 @@ export default function RequestPage() {
         zoom={12}
         onLoad={onLoad}
         onUnmount={onUnmount}
+        options={{
+          mapTypeControl:false
+        }}
       >
         { /* Child components, such as markers, info windows, etc. */ }
         <></>
