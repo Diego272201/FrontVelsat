@@ -66,7 +66,7 @@
   flex-direction: row;
   list-style-type: none;
   align-items: center;
-  gap: 24px;
+  gap: 30px;
   padding: 0px;
 
 }
@@ -74,6 +74,11 @@
   background: #b6b5a6;
 }
 
+h2{
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+  font-size: 17px;
+}
 
 .userInicio{
   color: #fff;
@@ -162,7 +167,6 @@ font-size: 0.88rem;
   .logo{
     width: 90%;
     font-size: 10px;
-
   }
   
   .navigation {
@@ -188,6 +192,7 @@ font-size: 0.88rem;
       animation: fadein 0.3s forwards;
       z-index: 0;
   }
+
 
   @keyframes fadein {
       0% {
@@ -218,6 +223,167 @@ font-size: 0.88rem;
           height: 0;
       }
   }
+}
+
+.dropdown a{
+  position: relative;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.container{
+  background-color: transparent;
+  width: 144px;
+  height: 10px;
+  position: absolute;
+  margin-top: -10px;
+}
+
+.containerplan{
+  background-color: transparent;
+  width: 170px;
+  height: 10px;
+  position: absolute;
+  margin-top: -10px;
+}
+
+.containerope{
+  background-color: transparent;
+  width: 135px;
+  height: 10px;
+  position: absolute;
+  margin-top: -10px;
+}
+
+.containerEstad{
+  background-color: transparent;
+  width: 175px;
+  height: 10px;
+  position: absolute;
+  margin-top: -10px;
+}
+
+.dropdown-menue {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background-color: var(--primary-hover);
+  display: none;
+  margin-top: 8px;
+  z-index: 20;
+  border: none;
+  border-radius: 0 0 8px 8px;
 
 }
 
+.planificacion{
+  width: 170px;
+  margin-left: -76px;
+}
+
+.ope{
+  width: 135px;
+  margin-left: -43px;
+}
+
+.estad{
+  width: 175px;
+  margin-left: -87px;
+}
+
+.dropdown-menue li {
+  padding: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: right;
+  border-bottom: 2px solid #ff9c5a;
+}
+
+.dropdown-menue li:last-child {
+  border-bottom: none;
+    border-radius: 0 0 8px 8px;
+}
+
+@media (max-width: 1200px) {
+  .dropdown-menue{
+    margin-top: 0;
+  }
+  .dropdown-menue li {
+    text-align: left;
+    right: 0;
+    
+  }
+  .planificacion, .estad{
+    width: 170px;
+    margin-left: 0
+  }
+  .ope{
+    width: 140px;
+    margin-left: 0
+  }
+}
+
+/* Hover effect for dropdown items */
+.dropdown-menue li:hover {
+  background-color: #ff9c5a;
+}
+
+.dropdown-menue li a{
+  font-size: 12px;
+  color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.dropdown-menue a {
+  color: black;
+  text-decoration: none;
+  font-size: 16px; 
+}
+
+.dropdown-menue a:hover {
+  background-color: none;
+}
+
+/* Show the dropdown menu on hover */
+.dropdown:hover .dropdown-menue {
+  display: block;
+}
+
+.dropdown:hover + .dropdown-menue {
+  display: block;
+}
+
+/* Style the dropdown caret icon */
+.dropdown-iconn {
+  display: none;
+  position: absolute; 
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+
+}
+
+.dropdown:hover .dropdown-iconn {
+  display: block;
+  right: -15px;
+}
+
+.dropdown-icon {
+  display: inline-block; 
+  cursor: pointer;
+  margin-right: 5px;
+  margin-bottom: -2px;
+}
+
+@media (max-width: 1200px) {
+  .dropdown-icon {
+    position: absolute;
+    right: 25px;
+    top: 33.5%;
+    transform: rotate(180deg);
+  }
+}

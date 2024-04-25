@@ -1,6 +1,6 @@
 import './globals.css';
 import { Providers } from './providers';
-import { poppins} from './ui/fonts';
+// import { poppins} from './ui/fonts';
 
 export default function RootLayout({
   children,
@@ -9,7 +9,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${poppins.className} antialiased`}>{children}</body>
+      <body>{children}</body>
+      {/* <body className={`${poppins.className} antialiased`}>{children}</body> */}
     </html>
   );
 }
