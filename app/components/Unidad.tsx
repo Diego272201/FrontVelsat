@@ -5,7 +5,13 @@ import { CgMoreVerticalAlt } from 'react-icons/cg';
 import { TbPointFilled } from 'react-icons/tb';
 import '@/app/styles/unidad.css';
 
-export default function Unidad() {
+interface UnidadProps{
+  codigoUnidad: string;
+  velocidad: number
+}
+
+const  Unidad: React.FC<UnidadProps> = (props) => {
+  const { codigoUnidad, velocidad } = props
   return (
     <div className="lista-carros">
 
@@ -22,11 +28,11 @@ export default function Unidad() {
       </div>
 
       <div className="codigo-carro">
-        <p id="cod_unidad"> C121-A9I755 </p>
+        <p id="cod_unidad"> {codigoUnidad} </p>
       </div>
 
       <div className="velocidad-carro">
-        <p id="cod_unidad"> 20 Km/h </p>
+        <p id="cod_unidad">{velocidad} Km/h </p>
       </div>
 
       <div className="luz-carro">
@@ -41,3 +47,4 @@ export default function Unidad() {
     </div>
   );
 }
+export default Unidad;

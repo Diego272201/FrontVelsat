@@ -8,13 +8,13 @@
 
 /* -- SLIDER STARTS-- */
 .imgLogin{
-    width: 70%;
+    width: 75%;
     height: 100vh;
 }
 /* -- SLIDER ENDS-- */
 
 .formLogin{
-    width: 30%;
+    width: 25%;
     display: flex;
     justify-content: center;
     flex-direction: column;
