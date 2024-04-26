@@ -36,7 +36,7 @@ label {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--PrimaryBlue);
+  background-color: var(--PrimaryBlue);
 }
 
 label[id*='muestra'] {
@@ -110,7 +110,7 @@ label[id^='label'] {
   display: flex;
   align-items: center;
   padding-left: 12px;
-  background: var(--PrimaryBlue);
+  background-color: var(--PrimaryBlue);
   color: #eceae5;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 500;

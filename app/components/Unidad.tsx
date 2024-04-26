@@ -1,26 +1,39 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { CgMoreVerticalAlt } from 'react-icons/cg';
 import { TbPointFilled } from 'react-icons/tb';
 import '@/app/styles/unidad.css';
 
-interface UnidadProps{
+interface UnidadProps {
   codigoUnidad: string;
-  velocidad: number
+  velocidad: number;
 }
 
-const  Unidad: React.FC<UnidadProps> = (props) => {
-  const { codigoUnidad, velocidad } = props
+const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad }) => {
+  const [isChecked, setIsChecked] = useState(false); // State to track selection
+
+  const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { checked } = event.target;
+
+    // Check if another checkbox is already selected
+    if (checked && document.querySelectorAll('input[type="checkbox"]:checked').length > 1) {
+      event.preventDefault(); // Prevent checkbox state change
+      return;
+    }
+
+    setIsChecked(checked);
+  };
+
   return (
     <div className="lista-carros">
-
       <div className="checkStyle">
-
         <div className="checkbox-wrapper-13">
-          <input type="checkbox" id="c1-13"/>
+          <input
+            type="checkbox"
+            id="c1-13"
+            checked={isChecked}
+            onChange={handleCheckboxChange}
+          />
         </div>
-        
       </div>
 
       <div className="img-listacarro">
@@ -46,5 +59,6 @@ const  Unidad: React.FC<UnidadProps> = (props) => {
       </div>
     </div>
   );
-}
+};
+
 export default Unidad;

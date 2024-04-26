@@ -26,7 +26,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     axios
-      .get('https://localhost:7294/api/DataInicio/simplified/cgacela')
+      .get('https://localhost:7223/api/DeviceList/simplified/cgacela')
       .then((response) => {
         setUnidades(response.data);
       })
