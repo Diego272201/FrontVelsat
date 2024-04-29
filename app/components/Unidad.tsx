@@ -9,14 +9,14 @@ interface UnidadProps {
 }
 
 const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad }) => {
-  const [isChecked, setIsChecked] = useState(false); // State to track selection
+  const [isChecked, setIsChecked] = useState(false); 
 
   const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { checked } = event.target;
 
-    // Check if another checkbox is already selected
+
     if (checked && document.querySelectorAll('input[type="checkbox"]:checked').length > 1) {
-      event.preventDefault(); // Prevent checkbox state change
+      event.preventDefault(); 
       return;
     }
 
@@ -37,7 +37,7 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad }) => {
       </div>
 
       <div className="img-listacarro">
-        <img src="./list-car.png" alt="carrito" />
+        <img src="/list-car.png" alt="carrito" />
       </div>
 
       <div className="codigo-carro">

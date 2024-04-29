@@ -8,7 +8,7 @@ import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
 
-import { error } from 'console';
+import { urlAPISimplifid } from './urlsApi/urlApi';
 
 export default function Sidebar() {
   
@@ -18,15 +18,10 @@ export default function Sidebar() {
   }
   
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-
-
-  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     axios
-      .get('https://localhost:7223/api/DeviceList/simplified/cgacela')
+      .get(urlAPISimplifid)
       .then((response) => {
         setUnidades(response.data);
       })
@@ -34,6 +29,13 @@ export default function Sidebar() {
         console.error('Error al obtener los datos:', error);
       });
   });
+
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+
+  const [showDropdown, setShowDropdown] = useState(false);
+
 
   const showMenu = () => {
     setShowDropdown(true);

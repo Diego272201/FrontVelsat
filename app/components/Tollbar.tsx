@@ -4,12 +4,28 @@ import { TbLiveView } from 'react-icons/tb';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+
+import AppModal from './Modal';
 
 const Tollbar = () => {
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(null);
+
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
   const [isProgramacionMenuOpen, setIsProgramacionMenuOpen] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = () =>{
+    setIsModalOpen(true);
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
 
   const handleLinkClick = (index: any) => {
     setActiveLink(index);
@@ -69,7 +85,7 @@ const Tollbar = () => {
           />
 
           <li className="dropdown">
-            <a
+            <Link
               href="#"
               title=" Gestión de Servicios"
               className={activeLink === 0 ? 'active' : ''}
@@ -80,7 +96,7 @@ const Tollbar = () => {
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
-            </a>
+            </Link>
 
             <ul
               className={`dropdown-menue ${
@@ -159,7 +175,7 @@ const Tollbar = () => {
           </li>
 
           <li className="dropdown">
-            <a
+            <Link
               href="#"
               title="Planificación"
               className={activeLink === 1 ? 'active' : ''}
@@ -170,7 +186,7 @@ const Tollbar = () => {
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
-            </a>
+            </Link>
 
             <ul
               className={`dropdown-menue planificacion${
@@ -197,7 +213,7 @@ const Tollbar = () => {
           </li>
 
           <li className="dropdown">
-            <a
+            <Link
               href="#"
               title="Puntos de Interés"
               className={activeLink === 2 ? 'active' : ''}
@@ -205,10 +221,10 @@ const Tollbar = () => {
             >
               {' '}
               Puntos de Interés{' '}
-            </a>
+            </Link>
           </li>
           <li className="dropdown">
-            <a
+            <Link
               href="#"
               title="Operaciones"
               className={activeLink === 3 ? 'active' : ''}
@@ -218,8 +234,8 @@ const Tollbar = () => {
               Operaciones{' '}
               {/* <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
-              </i> */}
-            </a>
+              </i>
+            </Link>
 
             {/* <ul
               className={`dropdown-menue ope${
@@ -235,7 +251,7 @@ const Tollbar = () => {
             </ul> */}
           </li>
           <li className="dropdown">
-            <a
+            <Link
               href="#"
               title="Estadísticas"
               className={activeLink === 4 ? 'active' : ''}
@@ -248,7 +264,7 @@ const Tollbar = () => {
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
-            </a>
+            </Link>
 
             <ul
               className={`dropdown-menue estad${
@@ -267,12 +283,7 @@ const Tollbar = () => {
                 </a>
               </li>
               <li>
-                <a 
-                href="#" 
-                title="Reporte General" 
-                onClick={() =>
-                  handleReportesClick() //Agregar donde se necesite cerrar el menu (mobile)
-                }>
+                <a href="#" title="Reporte General">
                   Reporte General
                 </a>
               </li>
@@ -315,6 +326,8 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
+      <AppModal isOpen={isModalOpen} onClose={closeModal} />
+
     </div>
   );
 };
