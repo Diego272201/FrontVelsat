@@ -31,6 +31,13 @@ const Tollbar = () => {
     setIsProgramacionMenuOpen(!isProgramacionMenuOpen);
   };
 
+  const handleReportesClick = () => {
+    const menuIcon = document.querySelector(".menu-icon") as HTMLButtonElement;
+    if (menuIcon) {
+      menuIcon.click();
+    }
+  };
+
   return (
     <div className="tollbar menu__wrapper">
       <div className="tollbar-bg"></div>
@@ -209,12 +216,12 @@ const Tollbar = () => {
             >
               {' '}
               Operaciones{' '}
-              <i className="dropdown-iconn">
+              {/* <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
-              </i>
+              </i> */}
             </a>
 
-            <ul
+            {/* <ul
               className={`dropdown-menue ope${
                 isServicesMenuOpen ? 'dropdown-menu--show' : ''
               }`}
@@ -225,14 +232,16 @@ const Tollbar = () => {
                   Unidades Cercanas
                 </a>
               </li>
-            </ul>
+            </ul> */}
           </li>
           <li className="dropdown">
             <a
               href="#"
               title="Estadísticas"
               className={activeLink === 4 ? 'active' : ''}
-              onClick={() => handleLinkClick(4)}
+              onClick={() => 
+                handleLinkClick(4)
+              }
             >
               {' '}
               Estadísticas{' '}
@@ -258,7 +267,12 @@ const Tollbar = () => {
                 </a>
               </li>
               <li>
-                <a href="#" title="Reporte General">
+                <a 
+                href="#" 
+                title="Reporte General" 
+                onClick={() =>
+                  handleReportesClick() //Agregar donde se necesite cerrar el menu (mobile)
+                }>
                   Reporte General
                 </a>
               </li>

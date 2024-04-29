@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
+    "@internationalized/date": "^3.5.2",
+    "@nextui-org/date-picker": "^2.0.7",
     "@nextui-org/react": "^2.2.10",
     "@react-google-maps/api": "^2.19.3",
     "@tailwindcss/forms": "^0.5.7",
@@ -25,7 +27,7 @@
     "react-dom": "18.2.0",
     "react-icons": "^5.1.0",
     "swiper": "^11.1.1",
-    "tailwindcss": "3.3.3",
+    "tailwindcss": "^3.4.0",
     "typescript": "5.2.2",
     "zod": "^3.22.2"
   },
