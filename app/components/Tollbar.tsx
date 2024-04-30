@@ -9,7 +9,6 @@ import Link from 'next/link';
 import AppModal from './Modal';
 
 const Tollbar = () => {
-
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(null);
 
@@ -18,14 +17,13 @@ const Tollbar = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const openModal = () =>{
+  const openModal = () => {
     setIsModalOpen(true);
-  }
+  };
 
   const closeModal = () => {
     setIsModalOpen(false);
   };
-
 
   const handleLinkClick = (index: any) => {
     setActiveLink(index);
@@ -48,7 +46,7 @@ const Tollbar = () => {
   };
 
   const handleReportesClick = () => {
-    const menuIcon = document.querySelector(".menu-icon") as HTMLButtonElement;
+    const menuIcon = document.querySelector('.menu-icon') as HTMLButtonElement;
     if (menuIcon) {
       menuIcon.click();
     }
@@ -135,7 +133,7 @@ const Tollbar = () => {
                 >
                   <li>
                     <a href="#" title="Asignar Conductor/Unidad">
-                       Asignar Conductor/Unidad
+                      Asignar Conductor/Unidad
                     </a>
                   </li>
                   <li>
@@ -234,10 +232,10 @@ const Tollbar = () => {
               Operaciones{' '}
               {/* <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
-              </i>
+              </i> */}
             </Link>
-
-            {/* <ul
+{/* 
+            <ul
               className={`dropdown-menue ope${
                 isServicesMenuOpen ? 'dropdown-menu--show' : ''
               }`}
@@ -255,9 +253,7 @@ const Tollbar = () => {
               href="#"
               title="Estadísticas"
               className={activeLink === 4 ? 'active' : ''}
-              onClick={() => 
-                handleLinkClick(4)
-              }
+              onClick={() => handleLinkClick(4)}
             >
               {' '}
               Estadísticas{' '}
@@ -282,8 +278,13 @@ const Tollbar = () => {
                   Reporte de Paradas
                 </a>
               </li>
-              <li>
-                <a href="#" title="Reporte General">
+              <li onClick={openModal}>
+                <a
+                  title="Reporte General"
+                  onClick={
+                    () => handleReportesClick() //Agregar donde se necesite cerrar el menu (mobile)
+                  }
+                >
                   Reporte General
                 </a>
               </li>
@@ -327,7 +328,6 @@ const Tollbar = () => {
         </ul>
       </div>
       <AppModal isOpen={isModalOpen} onClose={closeModal} />
-
     </div>
   );
 };

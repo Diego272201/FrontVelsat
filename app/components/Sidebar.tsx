@@ -8,6 +8,7 @@ import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
 
+
 import { urlAPISimplifid } from './urlsApi/urlApi';
 
 export default function Sidebar() {
@@ -20,15 +21,25 @@ export default function Sidebar() {
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
 
   useEffect(() => {
-    axios
-      .get(urlAPISimplifid)
-      .then((response) => {
-        setUnidades(response.data);
-      })
-      .catch((error) => {
-        console.error('Error al obtener los datos:', error);
-      });
-  });
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(urlAPISimplifid);
+        const data = response.data;
+        const unis = data.map((item: any) => ({
+          deviceId: item.deviceId,
+          lastValidSpeed: item.lastValidSpeed
+        }));
+        
+        setUnidades(unis);
+      } catch (error){
+        console.error("Error al obtener datos:", error);
+      }
+    };
+
+    fetchData();
+
+  }, []);
 
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +82,7 @@ export default function Sidebar() {
             <GrFormNext size={25} />
           </div>
         </label>
+
         <label
           className="previos"
           htmlFor="oculta"

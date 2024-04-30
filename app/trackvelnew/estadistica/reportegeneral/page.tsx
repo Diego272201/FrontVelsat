@@ -1,4 +1,5 @@
 import Table from '@/app/components/table/Table';
+
 import React from 'react';
 
 export default function page() {
@@ -6,6 +7,7 @@ export default function page() {
     <div>
       <h2>Reporte general</h2>
       <div className="tablaReport">
+        
         <Table></Table>
       </div>
     </div>
