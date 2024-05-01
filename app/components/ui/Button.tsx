@@ -6,18 +6,20 @@ import axios from 'axios';
 export default function ButtonDownload() {
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [textColor,setTextColor] = useState('transparent');
+  
 
   const handleDownload = async () => {
     setLoading(true);
+    setTextColor('black')
 
-    const totalTime = 3000;
+    const totalTime = 3500;
     const increment = 100 / (totalTime / 100);
 
     let currentProgress = 0;
     const intervalId = setInterval(() => {
       if (currentProgress >= 100) {
         clearInterval(intervalId);
-        setLoading(false);
         return;
       }
 
@@ -45,6 +47,12 @@ export default function ButtonDownload() {
         document.body.appendChild(link);
         link.click();
 
+        link.onload = () => {
+          setLoading(false);
+          setTextColor('transparent');
+          setProgress(0); // Reinicia la barra de progreso
+        };
+
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       })
@@ -55,6 +63,7 @@ export default function ButtonDownload() {
 
     setProgress(0);
     setLoading(false);
+    setTextColor('transparent');
     console.log('Descarga simulada completada');
   };
 
@@ -84,7 +93,7 @@ export default function ButtonDownload() {
         ></div>
       </div>
       <div>
-        <span className="progressBarPercentage">{Math.round(progress)} %</span>
+        <span className={`progressBarPercentage ${loading ? 'black' : textColor}`}>{Math.round(progress)} %</span>
       </div>
     </div>
   );
