@@ -2,9 +2,9 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-
-body{
-  background: rgb(201, 197, 197);
+body {
+  background: rgb(241, 239, 239);
+  overflow-y: hidden;
 }
 
 .scrollbarLogin {
@@ -19,17 +19,131 @@ body{
   border-radius: 10px;
 }
 
-.mainPruebas{
+.mainPruebas {
   width: 100%;
   position: absolute;
   height: 100vh;
-  padding-top: 100px;
+  padding-top: 50px;
+}
+
+/* ESTILOS DE LA TABLA REPORTE GENERAL */
+
+.userReporte{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.locationColumn {
+  max-width: 700px;
+  white-space: nowrap; 
+  overflow: hidden; 
+
+}
+
+.locationColumnU{
+  max-width: 50px;
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
+
+}
+
+.lineHorizontal{
+    border: none; 
+    height: 0.5px; 
+    background-color: rgba(17, 62, 185,0.1); 
+    margin-top: 15px;
+  }
+
+.headerRG{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.tablaReport {
+  padding: 30px;
+}
+
+.alinearDate{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tablaReport {
+  overflow-y: auto;
+  height: 92vh;
+}
+.tablaReport::-webkit-scrollbar {
+  width: 4px;
+}
+.tablaReport::-webkit-scrollbar-thumb {
+  background: #f77712;
+  border-radius: 10px;
+}
+
+.headerColumT {
+  background: #fb7b0f;
+  color: #ffffff;
+  text-align: center;
+}
+
+.centerCell {
+  text-align: center;
+}
+.centerMap {
+display: flex;
+justify-content: center;
+
+}
+
+.datosReporting {
+  display: flex;
+}
+
+.resaltar{
+  color: #0d3b66;
+  font-weight: bold;
+}
+
+.fristData {
+  font-size: 14px;
+  font-weight: 400;
+  width: 50%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.textDat{
+  width: 200px;
+}
+.fristDataa {
+  font-family: monospace;
+  font-size: 15px;
+  width: 50%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
 
 }
 
 
-.tablaReport{
-  background: rebeccapurple;
-  margin: 20px;
-  padding: 20px;
+@media (max-width: 705px) {
+  .datosReporting {
+    flex-direction: column;
+  }
+
+  .fristData{
+    width: 100%;
+  }
+  .fristDataa{
+    width: 100%;
+    align-items: start;
+  }
 }
+
+
+/* ACA TERMINA LOS ESTILOS DEL REPORTE */

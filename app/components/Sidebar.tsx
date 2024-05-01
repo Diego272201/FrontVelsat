@@ -26,12 +26,8 @@ export default function Sidebar() {
       try {
         const response = await axios.get(urlAPISimplifid);
         const data = response.data;
-        const unis = data.map((item: any) => ({
-          deviceId: item.deviceId,
-          lastValidSpeed: item.lastValidSpeed
-        }));
-        
-        setUnidades(unis);
+     
+        setUnidades(data);
       } catch (error){
         console.error("Error al obtener datos:", error);
       }
