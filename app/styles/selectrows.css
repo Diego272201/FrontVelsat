@@ -1,3 +1,11 @@
 .custom-select {
     width: 140px;
+    margin: 10px;
 }
+
+.selecttitle{
+    font-size:12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+}
+

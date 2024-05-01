@@ -16,7 +16,6 @@ import SelectRows from '@/app/components/ui/SelectRows';
 export default function page() {
   return (
     <div className="tablaReport">
-            <SelectRows></SelectRows>
       <div className="headerRG">
         <h2 className="resaltar text-center">REPORTE GENERAL</h2>
         <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
@@ -51,7 +50,10 @@ export default function page() {
             <IoCalendar style={{ color: '#0d3b66' }} />
             <p className="textDat">Hasta: 26/07/2024 09:00</p>
           </div>
+          <SelectRows></SelectRows>
+
         </div>
+
       </div>
 
       <Table></Table>
