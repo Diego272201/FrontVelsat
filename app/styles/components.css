@@ -1,129 +1,121 @@
 /* ESTILOS DEL MODAL */
 
-.headerModal{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  
+.headerModal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.selectunitRange{
-    display: flex;
-    gap: 10px;
-
+.selectunitRange {
+  display: flex;
+  gap: 10px;
 }
 
-.contenidoM{
+.contenidoM {
   height: 68px;
 }
 
-
-.labelText{
-    width: 185px;
+.labelText {
+  width: 185px;
 }
 
-.footerModal{
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
+.footerModal {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
 }
 
-.btnAction{
-    display: flex;
-    gap: 20px;
+.btnAction {
+  display: flex;
+  gap: 20px;
 }
-
-
-
 
 @media (max-width: 576px) {
-    .selectunitRange {
-        flex-direction: column;
-        width: 100%;
-    }
-    .responsiveTime{
-      width: 100%;
-    }
+  .selectunitRange {
+    flex-direction: column;
+    width: 100%;
   }
-  
-  .button {
-    position: relative;
-    width: 150px;
-    height: 40px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    border: 1px solid #a3e635;
-    background-color: #a3e635;
-    overflow: hidden;
-    border-radius: 10px;
+  .responsiveTime {
+    width: 100%;
   }
-  
-  .button, .button__icon, .button__text {
-    transition: all 0.3s;
-  }
-  
-  .button .button__text {
-    transform: translateX(22px);
-    color: #292727;
-    font-weight: 500;
-    font-size: 15px;
-  }
-  
-  .button .button__icon {
-    position: absolute;
-    transform: translateX(109px);
-    height: 100%;
-    width: 39px;
-    background-color: #65a30d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .button .svg {
-    width: 20px;
-    fill: #fff;
-  }
-  
-  .button:hover {
-    background: #a3e635;
-  }
-  
-  .button:hover .button__text {
-    color: transparent;
-  }
-  
-  .button:hover .button__icon {
-    width: 148px;
-    transform: translateX(0);
-  }
-  
-  .button:active .button__icon {
-    background-color: #a3e635;
-  }
-  
-  .button:active {
-    border: 1px solid #a3e635;
-  }
+}
 
-  /*PROGRESS BAR STYLES*/
-  .progressBar{
-    position: relative;
-    overflow: hidden;
-    width: 150px;
-    height: 5px;
-    border-radius: 5px;
-    background-color: white;
-    margin-top: 10px;
-  }
+.button {
+  position: relative;
+  width: 150px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border: 1px solid #a3e635;
+  background-color: #a3e635;
+  overflow: hidden;
+  border-radius: 10px;
+}
 
-  .progressBarPercentage{
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: 600;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-  }
+.button,
+.button__icon,
+.button__text {
+  transition: all 0.3s;
+}
+
+.button .button__text {
+  transform: translateX(22px);
+  color: #292727;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.button .button__icon {
+  position: absolute;
+  transform: translateX(109px);
+  height: 100%;
+  width: 39px;
+  background-color: #65a30d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button .svg {
+  width: 20px;
+  fill: #fff;
+}
+
+.button:hover {
+  background: #a3e635;
+}
+
+.button:hover .button__text {
+  color: transparent;
+}
+
+.button:hover .button__icon {
+  width: 148px;
+  transform: translateX(0);
+}
+
+.button:active .button__icon {
+  background-color: #a3e635;
+}
+
+.button:active {
+  border: 1px solid #a3e635;
+}
+
+/*PROGRESS BAR STYLES*/
+.progressBar{
+  position: relative;
+  width: 100px;
+  height: 8px;
+  border-radius: 5px;
+  background-color: transparent;
+  left: 48px;
+  margin-top: 10px;
+}
+
+.progressBarPercentage{
+  position: absolute;
+  bottom: -2px;
+  margin-bottom: 10px;
+}
