@@ -10,7 +10,7 @@ export default function ButtonDownload() {
   const handleDownload = async () => {
     setLoading(true);
 
-    const totalTime = 4000;
+    const totalTime = 3000;
     const increment = 100 / (totalTime / 100);
 
     let currentProgress = 0;

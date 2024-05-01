@@ -28,6 +28,7 @@
 .btnAction {
   display: flex;
   gap: 20px;
+  margin-left: -140px;
 }
 
 @media (max-width: 576px) {
@@ -106,7 +107,7 @@
 /*PROGRESS BAR STYLES*/
 .progressBar{
   position: relative;
-  width: 100px;
+  width: 480px;
   height: 8px;
   border-radius: 5px;
   background-color: transparent;
