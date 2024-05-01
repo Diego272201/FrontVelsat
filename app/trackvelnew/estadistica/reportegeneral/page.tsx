@@ -1,3 +1,5 @@
+'use client';
+
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import { IoCalendarClearSharp } from 'react-icons/io5';
@@ -9,10 +11,12 @@ import Avatar from '@/app/components/ui/Avatar';
 import '@/app/styles/table.css'
 import { IoCarSport } from "react-icons/io5";
 import { FaUser } from "react-icons/fa6";
+import SelectRows from '@/app/components/ui/SelectRows';
 
 export default function page() {
   return (
     <div className="tablaReport">
+            <SelectRows></SelectRows>
       <div className="headerRG">
         <h2 className="resaltar text-center">REPORTE GENERAL</h2>
         <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
