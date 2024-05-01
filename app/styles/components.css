@@ -106,27 +106,39 @@
 
 /*PROGRESS BAR STYLES*/
 .progressBar{
-  position: relative;
-  width: 530px;
+  width: 100px;
   height: 10px;
   border-radius: 5px;
   background-color: transparent;
-  margin-top: 10px;
 }
 
 .progressBarPercentage{
-  position: absolute;
-  left: 285px;
-  bottom: 13px;
-  color: black;
   font-size: 10px;
   font-weight: bold;
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: left;
+  margin-left: 225px;
+  margin-top: 5px;
 }
 
 .progressBarPercentage.black {
-  color: rgb(231, 17, 17);
+  color: rgb(46, 44, 44);
 }
 
 .progressBarPercentage.transparent {
   color: transparent;
+}
+
+.progressContainer{
+  margin-left: 10px;
+  
+}
+
+
+.containerB{
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

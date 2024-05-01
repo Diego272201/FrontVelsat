@@ -50,7 +50,7 @@ export default function ButtonDownload() {
         link.onload = () => {
           setLoading(false);
           setTextColor('transparent');
-          setProgress(0); // Reinicia la barra de progreso
+          setProgress(0); 
         };
 
         document.body.removeChild(link);
@@ -68,7 +68,7 @@ export default function ButtonDownload() {
   };
 
   return (
-    <div>
+    <div className='containerB'>
       <button
         className="button"
         type="button"
@@ -80,7 +80,7 @@ export default function ButtonDownload() {
           <FaDownload color="#fff" />
         </span>
       </button>
-
+      <div className="progressContainer">
       <div className="progressBar">
         <div
           style={{
@@ -91,6 +91,7 @@ export default function ButtonDownload() {
             borderRadius: '5px',
           }}
         ></div>
+      </div>
       </div>
       <div>
         <span className={`progressBarPercentage ${loading ? 'black' : textColor}`}>{Math.round(progress)} %</span>
