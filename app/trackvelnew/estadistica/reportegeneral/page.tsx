@@ -6,6 +6,9 @@ import React from 'react';
 import ButtonDownload from '@/app/components/ui/Button';
 import { IoCalendar } from 'react-icons/io5';
 import Avatar from '@/app/components/ui/Avatar';
+import '@/app/styles/table.css'
+import { IoCarSport } from "react-icons/io5";
+import { FaUser } from "react-icons/fa6";
 
 export default function page() {
   return (
@@ -20,15 +23,16 @@ export default function page() {
       <div className="datosReporting">
         <div className="fristData">
           <div className="userReporte">
-            <Avatar></Avatar>
+          <FaUser style={{ color: '#0d3b66' }}  size={22}/>
             <p>
               <span className="resaltar"> USUARIO:</span> Corporación CGACELA
               S.AC.
             </p>
           </div>
           <div className="userReporte">
-            
-            <p style={{marginLeft:'40px'}}>
+          <IoCarSport style={{ color: '#0d3b66' }} size={22}/>
+
+            <p >
               <span className="resaltar">UNIDAD:</span> C125-B3K751
             </p>
           </div>
