@@ -26,6 +26,12 @@ body {
   padding-top: 50px;
 }
 
+.optionTables{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
 
 /* ACA TERMINA LOS ESTILOS DEL REPORTE */

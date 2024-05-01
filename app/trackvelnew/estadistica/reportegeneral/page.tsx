@@ -50,11 +50,19 @@ export default function page() {
             <IoCalendar style={{ color: '#0d3b66' }} />
             <p className="textDat">Hasta: 26/07/2024 09:00</p>
           </div>
-          <SelectRows></SelectRows>
+
+      
 
         </div>
 
       </div>
+
+      <div className='optionTables'>
+      <ButtonDownload></ButtonDownload>
+
+          <SelectRows></SelectRows>
+
+          </div>
 
       <Table></Table>
     </div>

@@ -6,9 +6,11 @@ import '@/app/styles/selectrows.css';
 export default function SelectRows() {
   return (
     <div>
-      <span className="selecttitle">
-            Filas por página
-      </span>
+      <div className="titleSelect">
+        {' '}
+        <span className="selecttitle">Filas por página</span>
+      </div>
+
       <Select defaultSelectedKeys={['15']} className="custom-select max-w-xs">
         {numbers.map((num) => (
           <SelectItem key={num.value} value={num.value}>
