@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import '@/app/styles/components.css';
 import axios from 'axios';
+import { CircularProgress } from '@nextui-org/react';
 
 export default function ButtonDownload() {
-  const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [textColor,setTextColor] = useState('transparent');
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [value, setValue] = useState(0);
 
   const handleDownload = async () => {
-    setLoading(true);
-    setTextColor('black')
+    setIsLoading(true);
 
     const totalTime = 3500;
     const increment = 100 / (totalTime / 100);
@@ -24,7 +22,7 @@ export default function ButtonDownload() {
       }
 
       currentProgress += increment;
-      setProgress(currentProgress);
+      setValue(currentProgress);
     }, 100);
 
     await axios
@@ -48,9 +46,8 @@ export default function ButtonDownload() {
         link.click();
 
         link.onload = () => {
-          setLoading(false);
-          setTextColor('transparent');
-          setProgress(0); 
+          setIsLoading(false);
+          setValue(0);
         };
 
         document.body.removeChild(link);
@@ -58,12 +55,10 @@ export default function ButtonDownload() {
       })
       .catch((error) => {
         console.error('Error al descargar el archivo:', error);
-        setLoading(false);
+        setIsLoading(false);
       });
-
-    setProgress(0);
-    setLoading(false);
-    setTextColor('transparent');
+    setValue(0);
+    setIsLoading(false);
     console.log('Descarga simulada completada');
   };
 
@@ -73,7 +68,7 @@ export default function ButtonDownload() {
         className="button"
         type="button"
         onClick={handleDownload}
-        disabled={loading}
+        disabled={isLoading}
       >
         <span className="button__text">Descargar</span>
         <span className="button__icon">
@@ -81,20 +76,15 @@ export default function ButtonDownload() {
         </span>
       </button>
       <div className="progressContainer">
-      <div className="progressBar">
-        <div
-          style={{
-            height: '100%',
-            width: `${progress}%`,
-            backgroundColor: '#a3e635',
-            transition: 'width 0.5s',
-            borderRadius: '5px',
-          }}
-        ></div>
-      </div>
-      </div>
-      <div>
-        <span className={`progressBarPercentage ${loading ? 'black' : textColor}`}>{Math.round(progress)} %</span>
+        <div className="progressBar">
+          <CircularProgress
+            aria-label="Loading..."
+            size="lg"
+            value={isLoading ? value : 0}
+            color="warning"
+            showValueLabel={true}
+          />
+        </div>
       </div>
     </div>
   );

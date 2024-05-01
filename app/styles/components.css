@@ -110,32 +110,12 @@
   height: 10px;
   border-radius: 5px;
   background-color: transparent;
-}
-
-.progressBarPercentage{
-  font-size: 10px;
-  font-weight: bold;
-  position: absolute;
-  left: 0;
-  right: 0;
-  text-align: left;
-  margin-left: 225px;
-  margin-top: 5px;
-}
-
-.progressBarPercentage.black {
-  color: rgb(46, 44, 44);
-}
-
-.progressBarPercentage.transparent {
-  color: transparent;
+  margin-top: -24px;
 }
 
 .progressContainer{
   margin-left: 10px;
-  
 }
-
 
 .containerB{
   display: flex;
