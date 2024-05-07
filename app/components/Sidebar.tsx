@@ -8,41 +8,45 @@ import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
 
-
 import { urlAPISimplifid } from './urlsApi/urlApi';
 
 export default function Sidebar() {
-  
   interface UnidadData {
     deviceId: string;
     lastValidSpeed: number;
   }
-  
+
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
 
+  //CÓDIGO PARA OCULTAR EL SIDEBAR EN LA VISTA DE LOS REPORTES
   useEffect(() => {
+    if (
+      window.location.pathname === '/trackvelnew/estadistica/reportegeneral'
+    ) {
+      const labelMuestra = document.getElementById('label-muestra');
+      if (labelMuestra) {
+        labelMuestra.style.display = 'none';
+      }
+    }
+    //
 
     const fetchData = async () => {
       try {
         const response = await axios.get(urlAPISimplifid);
         const data = response.data;
-     
+
         setUnidades(data);
-      } catch (error){
-        console.error("Error al obtener datos:", error);
+      } catch (error) {
+        console.error('Error al obtener datos:', error);
       }
     };
 
     fetchData();
-
   }, []);
-
 
   const [searchTerm, setSearchTerm] = useState('');
 
-
   const [showDropdown, setShowDropdown] = useState(false);
-
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -52,12 +56,12 @@ export default function Sidebar() {
     setShowDropdown(false);
   };
 
-  const filteredUnidades = unidades.filter(unidad =>
-    unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUnidades = unidades.filter((unidad) =>
+    unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
-    <div className='sidebarScroll'>
+    <div className="sidebarScroll">
       <input type="radio" name="opcion" id="muestra" onClick={showMenu} />
       <input
         type="radio"
@@ -114,8 +118,8 @@ export default function Sidebar() {
             />
           </div>
 
-          <div className='unidadesScroll'>
-          {filteredUnidades.map((unidad, index) => (
+          <div className="unidadesScroll">
+            {filteredUnidades.map((unidad, index) => (
               <Unidad
                 key={index}
                 codigoUnidad={unidad.deviceId.toUpperCase()}

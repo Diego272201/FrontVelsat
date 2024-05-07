@@ -13,6 +13,7 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import { urlReporteGeneral } from '../urlsApi/urlApi';
+import SelectRows from '@/app/components/ui/SelectRows';
 
 interface Row {
   item: number;
@@ -31,7 +32,7 @@ export default function App() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const rowsPerPage = 15;
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
   useEffect(() => {
     const fetcData = async () => {
@@ -49,16 +50,23 @@ export default function App() {
     fetcData();
   }, []);
 
-  const pages = Math.ceil(rows.length / rowsPerPage);
+  const handleSelectRowsChange = (value: string) => {
+    setSelectedRowsPerPage(parseInt(value, 10));
+    setPage(1);
+  };
+
+  const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
   const items = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
+    const start = (page - 1) * selectedRowsPerPage;
+    const end = start + selectedRowsPerPage;
 
     return rows.slice(start, end);
-  }, [page, rows]);
+  }, [page, rows, selectedRowsPerPage]);
 
   return (
+    <div>
+      <SelectRows onChange={handleSelectRowsChange} />
     <Table
       selectionMode="single"
       align='left'
@@ -90,7 +98,7 @@ export default function App() {
         <TableColumn key="speedKPH" className='headerColumT'>VELOCIDAD</TableColumn>
         <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
         <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
-        <TableColumn key="address" className='headerColumT'>UBICACION</TableColumn>
+        <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
         <TableColumn className='headerColumT'>VER MAPA</TableColumn>
       </TableHeader>
 
@@ -116,5 +124,6 @@ export default function App() {
         )}
       </TableBody>
     </Table>
+    </div>
   );
 }
