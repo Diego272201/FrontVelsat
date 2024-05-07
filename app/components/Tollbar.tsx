@@ -77,7 +77,7 @@ const Tollbar = () => {
         >
           <img
             className="menu-icon mobileicon"
-            src={isMobileMenuOpen ? '/cerrar.png' : 'menu.png'}
+            src={isMobileMenuOpen ? '/cerrar.png' : '/menu.png'}
             title="Burger Menu"
             alt="Burger Menu"
             onClick={toggleMenu}

@@ -13,6 +13,7 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import { urlReporteGeneral } from '../urlsApi/urlApi';
+import SelectRows from '@/app/components/ui/SelectRows';
 
 interface Row {
   item: number;
@@ -28,7 +29,6 @@ interface AppProps {
   url: string; 
 
 }
-
 
 export default function App({ url }: AppProps) {
   const [page, setPage] = React.useState(1);
@@ -70,6 +70,8 @@ export default function App({ url }: AppProps) {
   }, [page, rows, selectedRowsPerPage]);
 
   return (
+    <div>
+      <SelectRows onChange={handleSelectRowsChange} />
     <Table
       selectionMode="single"
       align='left'
@@ -127,5 +129,6 @@ export default function App({ url }: AppProps) {
         )}
       </TableBody>
     </Table>
+    </div>
   );
 }

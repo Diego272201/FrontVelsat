@@ -10,8 +10,14 @@ import { IoCarSport } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
-
+  
 export default function page() {
+  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState('15');
+
+  const handleSelectRowsChange = (value:any) => {
+    setSelectedRowsPerPage(value);
+  };
+
   const location = useLocation();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
@@ -35,14 +41,12 @@ export default function page() {
         <div className="fristData">
           <div className="userReporte">
             <FaUser style={{ color: '#0d3b66' }} size={22} />
-            <FaUser style={{ color: '#0d3b66' }} size={22} />
             <p>
               <span className="resaltar"> USUARIO:</span>
               CORPORACION CGACELA S.A.C
             </p>
           </div>
           <div className="userReporte">
-            <IoCarSport style={{ color: '#0d3b66' }} size={22} />
             <IoCarSport style={{ color: '#0d3b66' }} size={22} />
 
             <p>
@@ -69,7 +73,6 @@ export default function page() {
           endDate={endDate || ''}
           devideId={deviceId || ''}
         />
-        <SelectRows></SelectRows>
       </div>
 
       <Table url={tableUrl}></Table>

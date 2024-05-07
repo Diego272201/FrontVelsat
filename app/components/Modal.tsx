@@ -18,23 +18,15 @@ import ButtonDownload from './ui/Button';
 import { ZonedDateTime } from '@internationalized/date';
 import { ReportContext } from '../context/ReportProvider';
 
-
 interface AppModalProps {
   isOpen: boolean;
   onClose: () => void;
-
 }
 
-
-
 const AppModal: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
-
-
-
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
@@ -56,70 +48,61 @@ const AppModal: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
     setEndDate(formattedDate);
   };
 
-
   return (
-      <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque">
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="contenidoM flex flex-col gap-1">
-                <div className="headerModal">
-                  <img src="/gpsLogo.png" alt="" width={50} />
-                  <p>REPORTE GENERAL</p>
-                </div>
-              </ModalHeader>
-              <ModalBody>
-                <div className="selectunitRange">
-                  <Select onSelect={handleSelect}></Select>
+    <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque">
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader className="contenidoM flex flex-col gap-1">
+              <div className="headerModal">
+                <img src="/gpsLogo.png" alt="" width={50} />
+                <p>REPORTE GENERAL</p>
+              </div>
+            </ModalHeader>
+            <ModalBody>
+              <div className="selectunitRange">
+                <Select onSelect={handleSelect}></Select>
+              </div>
+
+              <div className="selectunitRange">
+                <App
+                  texto="Fecha Inicio"
+                  onDateSelect={handleStartDateSelect}
+                ></App>
+                <App texto="Fecha Fin" onDateSelect={handleEndDateSelect}></App>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <div className="footerModal">
+                <div className="download">
+                  <ButtonDownload
+                    startDate={startDate}
+                    endDate={endDate}
+                    devideId={selectedDeviceId}
+                  />
                 </div>
 
-                <div className="selectunitRange">
-                  <App
-                    texto="Fecha Inicio"
-                    onDateSelect={handleStartDateSelect}
-                  ></App>
-                  <App
-                    texto="Fecha Fin"
-                    onDateSelect={handleEndDateSelect}
-                  ></App>
+                <div className="btnAction">
+                  <Button color="danger" onPress={onClose}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    href={'/trackvelnew/estadistica/reportegeneral'}
+                    as={Link}
+                    color="primary"
+                    showAnchorIcon
+                    variant="solid"
+                  >
+                    Mostrar
+                  </Button>
                 </div>
-              </ModalBody>
-              <ModalFooter>
-                <div className="footerModal">
-                  <div className="download">
-                    <ButtonDownload
-                      startDate={startDate}
-                      endDate={endDate}
-                      devideId={selectedDeviceId}
-                    />
-                  </div>
-
-                  <div className="btnAction">
-                    <Button color="danger" onPress={onClose}>
-                      Cancelar
-                    </Button>
-                    <Button
-                      href={'/trackvelnew/estadistica/reportegeneral'}
-                      as={Link}
-                      color="primary"
-                      showAnchorIcon
-                      variant="solid"
-                    >
-                      Mostrar
-                    </Button>
-                  </div>
-                </div>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-      
+              </div>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
   );
 };
 
-
-
 export default AppModal;
-
-
