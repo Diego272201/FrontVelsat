@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import {Select, SelectItem} from "@nextui-org/react";
 import axios from "axios";
 import { urlAPISimplifid } from "../urlsApi/urlApi";
 
-export default function App() {
+
+interface SelectProps {
+  onSelect: (deviceId: string) => void; 
+}
+
+
+export default function App({onSelect}:SelectProps) {
 
   const [deviceIds, setDeviceIds] = useState<{ value: string; label: string }[]>([]);
 
@@ -27,12 +33,20 @@ export default function App() {
     
   }, []);
 
+
+  const handleSelectChange = (event:React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedDeviceId = event.target.value;
+    onSelect(selectedDeviceId);
+  };
+
+
   
   return (
     <Select
       items={deviceIds}
       placeholder="Seleccione Unidad"
       className="w-[100%]"
+      onChange={handleSelectChange}
     >
       {(deviceId) => <SelectItem key={deviceId.value}>{deviceId.value.toUpperCase()}</SelectItem>}
     </Select>

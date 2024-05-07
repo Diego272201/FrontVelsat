@@ -12,7 +12,6 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import { urlReporteGeneral } from '../urlsApi/urlApi';
 
 interface Row {
   item: number;
@@ -24,7 +23,13 @@ interface Row {
   address: string;
 }
 
-export default function App() {
+interface AppProps {
+  url: string; 
+
+}
+
+
+export default function App({ url }: AppProps) {
   const [page, setPage] = React.useState(1);
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -36,7 +41,7 @@ export default function App() {
   useEffect(() => {
     const fetcData = async () => {
       try {
-        const response = await axios.get(urlReporteGeneral);
+        const response = await axios.get(url);
         const data = response.data.listaTablas;
         setRows(data);
         setIsLoading(false);

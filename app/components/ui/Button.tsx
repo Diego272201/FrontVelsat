@@ -4,7 +4,14 @@ import '@/app/styles/components.css';
 import axios from 'axios';
 import { CircularProgress } from '@nextui-org/react';
 
-export default function ButtonDownload() {
+
+interface DownloadParameterProps {
+  startDate: string;
+  endDate: string;
+  devideId: string;
+}
+
+export default function ButtonDownload({startDate,endDate,devideId}: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [value, setValue] = useState(0);
 
@@ -27,7 +34,7 @@ export default function ButtonDownload() {
 
     await axios
       .get(
-        'http://63.251.107.133:8586/api/Reporting/downloadExcelG/2023-11-01T09:00/2023-11-01T23:00/c128-b6a726',
+        `http://63.251.107.133:8586/api/Reporting/downloadExcelG/${startDate}/${endDate}/${devideId}`,
         {
           responseType: 'arraybuffer',
         },

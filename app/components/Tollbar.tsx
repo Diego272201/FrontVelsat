@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 import AppModal from './Modal';
+import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
 
 const Tollbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -282,7 +283,7 @@ const Tollbar = () => {
                 <a
                   title="Reporte General"
                   onClick={
-                    () => handleReportesClick() //Agregar donde se necesite cerrar el menu (mobile)
+                    () => handleReportesClick() 
                   }
                 >
                   Reporte General
@@ -327,8 +328,9 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
-      <AppModal isOpen={isModalOpen} onClose={closeModal} />
+      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} />
     </div>
+
   );
 };
 
