@@ -1,17 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Select, SelectItem } from '@nextui-org/react';
 import { numbers } from './datarows';
 import '@/app/styles/selectrows.css';
 
-export default function SelectRows() {
+interface SelectRowsProps {
+  onChange: (value: string) => void;
+}
+
+export default function SelectRows({ onChange }: SelectRowsProps) {
+  const [selectedRows, setSelectedRows] = useState('15');
+
+  const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    setSelectedRows(value);
+    onChange(value);
+  };
+
   return (
-    <div>
+    <div className='selectrowstable'>
       <div className="titleSelect">
-        {' '}
         <span className="selecttitle">Filas por página</span>
       </div>
 
-      <Select defaultSelectedKeys={['15']} className="custom-select max-w-xs">
+      <Select
+        defaultSelectedKeys={[selectedRows]}
+        className="custom-select max-w-xs"
+        onChange={handleSelectChange}
+      >
         {numbers.map((num) => (
           <SelectItem key={num.value} value={num.value}>
             {num.label}

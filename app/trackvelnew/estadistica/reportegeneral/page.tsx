@@ -35,12 +35,14 @@ export default function page() {
         <div className="fristData">
           <div className="userReporte">
             <FaUser style={{ color: '#0d3b66' }} size={22} />
+            <FaUser style={{ color: '#0d3b66' }} size={22} />
             <p>
               <span className="resaltar"> USUARIO:</span>
               CORPORACION CGACELA S.A.C
             </p>
           </div>
           <div className="userReporte">
+            <IoCarSport style={{ color: '#0d3b66' }} size={22} />
             <IoCarSport style={{ color: '#0d3b66' }} size={22} />
 
             <p>

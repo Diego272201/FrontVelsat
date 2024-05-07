@@ -122,3 +122,14 @@
   align-items: center;
   justify-content: center;
 }
+
+@media (max-width: 639px) {
+  .containerB{
+    flex-direction: column;
+  }
+
+  .progressBar{
+    margin: 8px 0 28px 40px;
+  }
+
+}
