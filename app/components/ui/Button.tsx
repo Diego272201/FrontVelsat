@@ -18,7 +18,7 @@ export default function ButtonDownload({startDate,endDate,devideId}: DownloadPar
   const handleDownload = async () => {
     setIsLoading(true);
 
-    const totalTime = 3500;
+    const totalTime = 3000;
     const increment = 100 / (totalTime / 100);
 
     let currentProgress = 0;

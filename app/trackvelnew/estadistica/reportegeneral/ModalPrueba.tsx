@@ -1,4 +1,3 @@
-'use client';
 import React, { useContext, useState } from 'react';
 import {
   Modal,
@@ -8,13 +7,11 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  DateValue,
   Link,
 } from '@nextui-org/react';
 import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
 import ButtonDownload from '@/app/components/ui/Button';
-import { ZonedDateTime } from '@internationalized/date';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -23,28 +20,25 @@ interface AppModalProps {
 
 const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
   };
 
-  const handleStartDateSelect = (date: ZonedDateTime) => {
-    const isoString = date.toString();
-    const formattedDate = isoString.substring(0, 16);
-
-    console.log('Fecha de inicio seleccionada:', formattedDate);
-    setStartDate(formattedDate);
+  const handleStartDateSelect = (date: string) => {
+    if (date) {
+      setStartDate(date);
+    }
+  };
+  
+  const handleEndDateSelect = (date: string) => {
+    if (date) {
+      setEndDate(date);
+    }
   };
 
-  const handleEndDateSelect = (date: ZonedDateTime) => {
-    const isoString = date.toString();
-    const formattedDate = isoString.substring(0, 16);
-
-    console.log('Fecha de fin seleccionada:', formattedDate);
-    setEndDate(formattedDate);
-  };
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque">
@@ -62,12 +56,9 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
                 <Select onSelect={handleSelect}></Select>
               </div>
 
-              <div className="selectunitRange">
-                <App
-                  texto="Fecha Inicio"
-                  onDateSelect={handleStartDateSelect}
-                ></App>
-                <App texto="Fecha Fin" onDateSelect={handleEndDateSelect}></App>
+              <div className="selectdates">
+                <App onDateSelect={handleStartDateSelect} />
+                <App onDateSelect={handleEndDateSelect} />
               </div>
             </ModalBody>
             <ModalFooter>

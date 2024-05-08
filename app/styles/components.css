@@ -11,6 +11,11 @@
   gap: 10px;
 }
 
+.selectdates{
+  display: flex;
+  background-color: red;
+}
+
 .contenidoM {
   height: 68px;
 }

@@ -1,29 +1,25 @@
 import React, { useState } from 'react';
-import { DatePicker, DateValue } from '@nextui-org/react';
-import '@/app/styles/components.css';
-import {now, getLocalTimeZone, ZonedDateTime} from "@internationalized/date";
 
 interface AppProps {
-  texto: string;
-  onDateSelect: (date: ZonedDateTime) => void;
+  onDateSelect: (date: string) => void;
 }
 
 export default function App(props: AppProps) {
+  const [selectedDate, setSelectedDate] = useState('');
 
-  const handleDateSelect = (date: ZonedDateTime) => {
-    props.onDateSelect(date); 
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(event.target.value);
+    props.onDateSelect(event.target.value);
   };
 
   return (
     <div className="flex w-[50%] flex-row gap-4 responsiveTime">
-      <DatePicker
-        label={props.texto}
-        hideTimeZone
-        showMonthAndYearPickers
-        onChange={handleDateSelect}
-        defaultValue={null}
-        granularity="minute"
-        hourCycle={24}
+      <input
+        id="dateTimeInput"
+        type="datetime-local"
+        value={selectedDate}
+        onChange={handleDateChange}
+        // Considerar agregar atributos mínimos y máximos para restricciones de rango de fechas
       />
     </div>
   );
