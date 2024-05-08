@@ -13,14 +13,12 @@ export default function App(props: AppProps) {
   };
 
   return (
-    <div className="flex w-[50%] flex-row gap-4 responsiveTime">
       <input
         id="dateTimeInput"
         type="datetime-local"
         value={selectedDate}
         onChange={handleDateChange}
-        // Considerar agregar atributos mínimos y máximos para restricciones de rango de fechas
       />
-    </div>
+   
   );
 }

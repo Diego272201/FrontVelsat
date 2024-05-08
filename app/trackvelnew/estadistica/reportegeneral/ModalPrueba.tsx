@@ -32,13 +32,12 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
       setStartDate(date);
     }
   };
-  
+
   const handleEndDateSelect = (date: string) => {
     if (date) {
       setEndDate(date);
     }
   };
-
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque">
@@ -57,8 +56,16 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="selectdates">
-                <App onDateSelect={handleStartDateSelect} />
-                <App onDateSelect={handleEndDateSelect} />
+                <div className="dataLabel">
+                  <span className='spanLabel'>Fecha Inicial</span>
+
+                  <App onDateSelect={handleStartDateSelect} />
+                </div>
+
+                <div className="dataLabel">
+                  <span className='spanLabel'>Fecha Final</span>
+                  <App onDateSelect={handleEndDateSelect} />
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>

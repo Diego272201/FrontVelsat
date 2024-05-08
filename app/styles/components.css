@@ -13,7 +13,8 @@
 
 .selectdates{
   display: flex;
-  background-color: red;
+  justify-content: space-between;
+
 }
 
 .contenidoM {
@@ -137,4 +138,26 @@
     margin: 8px 0 28px 40px;
   }
 
+}
+#dateTimeInput{
+  outline: none;
+  border-radius: 8px;
+  padding: 5px;
+  background: #f4f4f5;
+  color: #71717a;
+  font-size: 15px;
+}
+
+
+.spanLabel{
+  font-size: 13px;
+  color: #71717a;
+  font-weight: bold;
+
+}
+
+.dataLabel{
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
 }
