@@ -79,7 +79,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="btnAction">
-                  <Button color="danger" onPress={onClose}>
+                  <Button color="danger" onPress={onClose} className='btn'>
                     Cancelar
                   </Button>
                   <Button
@@ -88,6 +88,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
                     color="primary"
                     showAnchorIcon
                     variant="solid"
+                    className='btn'
                   >
                     Mostrar
                   </Button>
