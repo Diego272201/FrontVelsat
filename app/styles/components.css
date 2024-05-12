@@ -49,7 +49,7 @@
 
 .button {
   position: relative;
-  width: 150px;
+  width: 175px;
   height: 40px;
   cursor: pointer;
   display: flex;
@@ -75,7 +75,7 @@
 
 .button .button__icon {
   position: absolute;
-  transform: translateX(109px);
+  transform: translateX(134px);
   height: 100%;
   width: 39px;
   background-color: #65a30d;
@@ -89,16 +89,21 @@
   fill: #fff;
 }
 
-.button:hover {
-  background: #a3e635;
-}
 
-.button:hover .button__text {
+.button__text {
   color: transparent;
 }
 
-.button:hover .button__icon {
-  width: 148px;
+.button__text{
+  display: flex;
+}
+
+.progressdownload{
+  margin-left: 5px;
+}
+
+.button__icon {
+  width: 173px;
   transform: translateX(0);
 }
 
@@ -137,6 +142,10 @@
   color: #71717a;
   font-size: 15px;
 }
+/* 
+#dateTimeInput:focus{
+  
+} */
 
 
 .spanLabel{
@@ -150,6 +159,10 @@
   display: flex;
   flex-direction: column;
   justify-content: end;
+}
+
+.btnActionHiddenDownload {
+  margin: auto;
 }
 
 @media screen and (max-width: 487px) {
