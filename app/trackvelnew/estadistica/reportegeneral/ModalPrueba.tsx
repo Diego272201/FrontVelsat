@@ -16,9 +16,10 @@ import ButtonDownload from '@/app/components/ui/Button';
 interface AppModalProps {
   isOpen: boolean;
   onClose: () => void;
+  tituloModal:string;
 }
 
-const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
+const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose ,tituloModal}) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -47,7 +48,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose }) => {
             <ModalHeader className="contenidoM flex flex-col gap-1">
               <div className="headerModal">
                 <img src="/gpsLogo.png" alt="" width={50} />
-                <p>REPORTE GENERAL 02</p>
+                <p>{tituloModal}</p>
               </div>
             </ModalHeader>
             <ModalBody>

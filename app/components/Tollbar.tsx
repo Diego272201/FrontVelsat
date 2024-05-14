@@ -18,6 +18,7 @@ const Tollbar = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+
   const openModal = () => {
     setIsModalOpen(true);
   };
@@ -328,7 +329,8 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
-      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} />
+      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} tituloModal='REPORTE GENERAL'/>
+
     </div>
 
   );
