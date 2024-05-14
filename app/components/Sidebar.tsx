@@ -21,7 +21,9 @@ export default function Sidebar() {
   //CÓDIGO PARA OCULTAR EL SIDEBAR EN LA VISTA DE LOS REPORTES
   useEffect(() => {
     if (
-      window.location.pathname === '/trackvelnew/estadistica/reportegeneral'
+      window.location.pathname === '/trackvelnew/estadistica/reportegeneral' ||
+      window.location.pathname === '/trackvelnew/estadistica/reporteparadas'
+
     ) {
       const labelMuestra = document.getElementById('label-muestra');
       if (labelMuestra) {

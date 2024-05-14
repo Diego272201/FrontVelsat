@@ -17,7 +17,8 @@ const Tollbar = () => {
   const [isProgramacionMenuOpen, setIsProgramacionMenuOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [isModalOpenStops, setIsModalOpenStops] = useState(false);
+  const [isModalOpenDetails, setIsModalOpenDetails] = useState(false);
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -27,6 +28,22 @@ const Tollbar = () => {
     setIsModalOpen(false);
   };
 
+  const openModalStops = () => {
+    setIsModalOpenStops(true);
+  };
+
+  const closeModalStops = () => {
+    setIsModalOpenStops(false);
+  };
+
+  const openModalDetails = () => {
+    setIsModalOpenDetails(true);
+  };
+
+  const closeModalDetails = () => {
+    setIsModalOpenDetails(false);
+  };
+
   const handleLinkClick = (index: any) => {
     setActiveLink(index);
 
@@ -34,6 +51,8 @@ const Tollbar = () => {
       setIsServicesMenuOpen(false);
     }
   };
+
+
 
   const toggleMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -275,11 +294,17 @@ const Tollbar = () => {
                   Reporte de Velocidad
                 </a>
               </li>
-              <li>
-                <a href="#" title="Reporte de Paradas">
+
+              <li onClick={openModalStops}>
+                <a title="Reporte de Paradas"
+                  onClick={
+                    () => handleReportesClick() 
+                  }
+                >
                   Reporte de Paradas
                 </a>
               </li>
+
               <li onClick={openModal}>
                 <a
                   title="Reporte General"
@@ -290,8 +315,13 @@ const Tollbar = () => {
                   Reporte General
                 </a>
               </li>
-              <li>
-                <a href="#" title="Detalle Recorrido">
+
+              <li onClick={openModalDetails}>
+                <a title="Detalle Recorrido"
+                  onClick={
+                    () => handleReportesClick() 
+                  }
+                >
                   Detalle Recorrido
                 </a>
               </li>
@@ -329,8 +359,7 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
-      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} tituloModal='REPORTE GENERAL'/>
-
+      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} />
     </div>
 
   );

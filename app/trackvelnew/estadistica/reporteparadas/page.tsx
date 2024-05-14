@@ -1,6 +1,6 @@
 'use client';
 
-import Table from '@/app/components/table/Table';
+import TableStops from '@/app/components/table/TableStops';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useContext, useEffect, useState } from 'react';
 import ButtonDownload from '@/app/components/ui/Button';
@@ -12,6 +12,7 @@ import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
   
 export default function page() {
+  
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState('15');
 
   const handleSelectRowsChange = (value:any) => {
@@ -23,10 +24,10 @@ export default function page() {
 
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
+  const endDate = searchParams.get('endDate'); 
   const deviceId = searchParams.get('deviceId');
 
-  const tableUrl = `http://63.251.107.133:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
+  const tableUrl = `http://63.251.107.133:8586/api/Reporting/stops/${startDate}/${endDate}/${deviceId}`;
 
   //FORMATEAR FECHA
   const formatDate = (dateString:any) => {
@@ -50,7 +51,7 @@ export default function page() {
   return (
     <div className="tablaReport">
       <div className="headerRG">
-        <h2 className="resaltar text-center">REPORTE GENERAL</h2>
+        <h2 className="resaltar text-center">REPORTE DE PARADAS</h2>
         <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
       </div>
 
@@ -91,11 +92,11 @@ export default function page() {
           startDate={startDate || ''}
           endDate={endDate || ''}
           devideId={deviceId || ''}
-          namedown='downloadExcelG'
+          namedown='downloadExcelS'
         />
       </div>
 
-      <Table url={tableUrl}></Table>
+      <TableStops url={tableUrl}></TableStops>
     </div>
   );
 }

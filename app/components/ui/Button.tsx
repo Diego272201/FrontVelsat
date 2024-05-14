@@ -2,97 +2,99 @@ import React, { useState } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import '@/app/styles/components.css';
 import axios from 'axios';
-import { CircularProgress } from '@nextui-org/react';
-
 
 interface DownloadParameterProps {
   startDate: string;
   endDate: string;
   devideId: string;
+  namedown: string;
 }
 
-export default function ButtonDownload({startDate,endDate,devideId}: DownloadParameterProps) {
+export default function ButtonDownload({
+  startDate,
+  endDate,
+  devideId,
+  namedown,
+}: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [value, setValue] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   const handleDownload = async () => {
     setIsLoading(true);
+    setProgress(0);
 
-    const totalTime = 3000;
-    const increment = 100 / (totalTime / 100);
+    try {
+      const interval = setInterval(() => {
+        setProgress((prevProgress) => {
+          const newProgress = prevProgress + 5;
+          return newProgress <= 100 ? newProgress : 100;
+        });
+      }, 150);
 
-    let currentProgress = 0;
-    const intervalId = setInterval(() => {
-      if (currentProgress >= 100) {
-        clearInterval(intervalId);
-        return;
-      }
-
-      currentProgress += increment;
-      setValue(currentProgress);
-    }, 100);
-
-    await axios
-      .get(
-        `http://63.251.107.133:8586/api/Reporting/downloadExcelG/${startDate}/${endDate}/${devideId}`,
+      const response = await axios.get(
+        `http://63.251.107.133:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
         {
           responseType: 'arraybuffer',
+          onDownloadProgress: (progressEvent) => {
+            if (progressEvent.total !== undefined) {
+              const progressPercent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              setProgress(progressPercent);
+            }
+          },
         },
-      )
-      .then((response) => {
-        const blob = new Blob([response.data], {
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        });
-        const url = window.URL.createObjectURL(blob);
+      );
 
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'reporte_gps.xlsx');
+      clearInterval(interval);
 
-        document.body.appendChild(link);
-        link.click();
-
-        link.onload = () => {
-          setIsLoading(false);
-          setValue(0);
-        };
-
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error('Error al descargar el archivo:', error);
-        setIsLoading(false);
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-    setValue(0);
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reporte_gps.xlsx');
+
+      link.addEventListener('load', () => {
+        setIsLoading(false);
+        setProgress(0);
+      });
+
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar el archivo:', error);
+      setIsLoading(false);
+      setProgress(0);
+    }
+    setProgress(0);
     setIsLoading(false);
-    console.log('Descarga simulada completada');
   };
 
   return (
-    <div className='containerB'>
+    <div className="containerB">
       <button
         className="button"
         type="button"
         onClick={handleDownload}
         disabled={isLoading}
       >
-        <span className="button__text">Descargar</span>
+        <span className="button__text">
+          Descargar
+          <div className="progressdownload">
+            {!isLoading && <span>0%</span>}
+            {isLoading && <span>{progress}%</span>}
+          </div>
+        </span>
         <span className="button__icon">
           <FaDownload color="#fff" />
         </span>
       </button>
-      <div className="progressContainer">
-        <div className="progressBar">
-          <CircularProgress
-            aria-label="Loading..."
-            size="lg"
-            value={isLoading ? value : 0}
-            color="warning"
-            showValueLabel={true}
-          />
-        </div>
-      </div>
     </div>
   );
 }

@@ -16,13 +16,18 @@ import ButtonDownload from '@/app/components/ui/Button';
 interface AppModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tituloModal:string;
+  titulo: string;
+  nameurl: string;
+  namedown: string;
+  showDownloadButton: boolean;
 }
 
-const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose ,tituloModal}) => {
+const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, nameurl, namedown, showDownloadButton }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
@@ -48,7 +53,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose ,tituloModal}
             <ModalHeader className="contenidoM flex flex-col gap-1">
               <div className="headerModal">
                 <img src="/gpsLogo.png" alt="" width={50} />
-                <p>{tituloModal}</p>
+                <p>{titulo}</p>
               </div>
             </ModalHeader>
             <ModalBody>
@@ -59,7 +64,6 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose ,tituloModal}
               <div className="selectdates">
                 <div className="dataLabel">
                   <span className='spanLabel'>Fecha Inicial</span>
-
                   <App onDateSelect={handleStartDateSelect} />
                 </div>
 
@@ -71,20 +75,23 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose ,tituloModal}
             </ModalBody>
             <ModalFooter>
               <div className="footerModal">
+              {showDownloadButton && (
                 <div className="download">
                   <ButtonDownload
                     startDate={startDate}
                     endDate={endDate}
                     devideId={selectedDeviceId}
+                    namedown={namedown}
                   />
                 </div>
-
-                <div className="btnAction">
+                )}
+                
+                <div className={`btnAction ${!showDownloadButton && 'btnActionHiddenDownload'}`}>
                   <Button color="danger" onPress={onClose} className='btn'>
                     Cancelar
                   </Button>
                   <Button
-                    href={`/trackvelnew/estadistica/reportegeneral?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`}
+                    href={`/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`}
                     as={Link}
                     color="primary"
                     showAnchorIcon
