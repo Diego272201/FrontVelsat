@@ -359,9 +359,7 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
-      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} titulo='REPORTE GENERAL' nameurl='reportegeneral' namedown='downloadExcelG' showDownloadButton={true}/>
-      <AppModalPrueba isOpen={isModalOpenStops} onClose={closeModalStops} titulo='REPORTE DE PARADAS' nameurl='reporteparadas' namedown='downloadExcelS' showDownloadButton={true}/>
-      <AppModalPrueba isOpen={isModalOpenDetails} onClose={closeModalDetails} titulo='DETALLE RECORRIDO' nameurl='detallerecorrido' namedown='' showDownloadButton={false}/>
+      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} />
     </div>
 
   );
