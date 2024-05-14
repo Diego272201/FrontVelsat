@@ -28,6 +28,25 @@ export default function page() {
 
   const tableUrl = `http://63.251.107.133:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
+  //FORMATEAR FECHA
+  const formatDate = (dateString:any) => {
+    if (!dateString) return '';
+  
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+  
+    const formattedDay = day < 10 ? `0${day}` : day;
+    const formattedMonth = month < 10 ? `0${month}` : month;
+    const formattedHours = hours < 10 ? `0${hours}` : hours;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+  
+    return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
+  };
+
   return (
     <div className="tablaReport">
       <div className="headerRG">
@@ -58,11 +77,11 @@ export default function page() {
         <div className="fristDataa">
           <div className="alinearDate">
             <IoCalendar style={{ color: '#0d3b66' }} />
-            <p className="textDat">Desde: {startDate}</p>
+            <p className="textDat">Desde: {formatDate(startDate)}</p>
           </div>
           <div className="alinearDate">
             <IoCalendar style={{ color: '#0d3b66' }} />
-            <p className="textDat">Hasta: {endDate}</p>
+            <p className="textDat">Hasta: {formatDate(endDate)}</p>
           </div>
         </div>
       </div>

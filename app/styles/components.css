@@ -163,6 +163,7 @@
 
 .btnActionHiddenDownload {
   margin: auto;
+  margin-right: 0;
 }
 
 @media screen and (max-width: 487px) {
