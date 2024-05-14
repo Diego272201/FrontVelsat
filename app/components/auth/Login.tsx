@@ -49,7 +49,6 @@ export default function Login() {
             }
             type={isVisible ? 'text' : 'password'}
           />
-
           <Button
             className="buttonLogin"
           >
