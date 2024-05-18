@@ -1,13 +1,24 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   GoogleMap,
   useJsApiLoader,
   Marker,
   InfoWindow,
+  Polyline,
 } from '@react-google-maps/api';
+import axios from 'axios';
+import '@/app/styles/markers.css';
 
 export default function RequestPageDetail() {
+
+  interface UnidadDetalleRecorrido {
+    longitude: number;
+    latitude: number;
+    date: string;
+    time: string;
+    speed: number;
+  }
 
   const containerStyle = {
     width: '100%',
@@ -19,18 +30,30 @@ export default function RequestPageDetail() {
     lng: -77.04689047482863,
   });
 
-  const markerPosition = {
-    lat: -12.050718080974354,
-    lng: -77.12488996041199,
-  };
+  const [markersData, setMarkersData] = useState<UnidadDetalleRecorrido[]>([]);
+  const [selectedMarker, setSelectedMarker] =
+    useState<UnidadDetalleRecorrido | null>(null);
+  const [map, setMap] = useState(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  const [map, setMap] = useState(null);
-  const [showInfoWindow, setShowInfoWindow] = useState(false);
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(
+        'http://63.251.107.133:8586/api/Reporting/details/2023-11-01T09:00/2023-11-01T23:00/c128-b6a726',
+      );
+      setMarkersData(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const onLoad = useCallback(function callback(map: any) {
     setMap(map);
@@ -40,9 +63,48 @@ export default function RequestPageDetail() {
     setMap(null);
   }, []);
 
-  const toggleInfoWindow = () => {
-    setShowInfoWindow(!showInfoWindow);
+  const handleMarkerClick = (markerData: UnidadDetalleRecorrido) => {
+    setSelectedMarker(markerData);
   };
+
+  const handleCloseInfoWindow = () => {
+    setSelectedMarker(null);
+  };
+
+  const getMarkerIcon = (speed: number) => {
+    if (speed === 0) {
+      return '/gps.png';
+    } else if (speed > 0 && speed < 11) {
+      return '/gpsyellow.png';
+    } else if (speed >= 11 && speed < 60) {
+      return '/gpsgreen.png';
+    } else {
+      return '/gpsblue.png';
+    }
+  };
+
+  const mapStyles = [
+    {
+      featureType: 'poi',
+      elementType: 'labels',
+      stylers: [{ visibility: 'off' }],
+    },
+    {
+      featureType: 'transit.station.bus',
+      elementType: 'labels.icon',
+      stylers: [{ visibility: 'off' }],
+    },
+    {
+      featureType: 'transit.station.rail',
+      elementType: 'labels.icon',
+      stylers: [{ visibility: 'off' }],
+    },
+  ];
+
+  const polylineCoordinates = markersData.map(markerData => ({
+    lat: markerData.latitude,
+    lng: markerData.longitude,
+  }));
 
   return isLoaded ? (
     <GoogleMap
@@ -57,30 +119,53 @@ export default function RequestPageDetail() {
         fullscreenControlOptions: {
           position: google.maps.ControlPosition.BOTTOM_RIGHT,
         },
+        styles: mapStyles,
       }}
     >
-      {/* Renderizar el marcador en las coordenadas personalizadas */}
-      <Marker
-        position={markerPosition}
-        onClick={toggleInfoWindow}
-        icon={{
-          url: '/greenmarker.png',
-          scaledSize: new window.google.maps.Size(40, 40),
+      {markersData.map((markerData, index) => (
+        <Marker
+          key={index}
+          position={{ lat: markerData.latitude, lng: markerData.longitude }}
+          onClick={() => handleMarkerClick(markerData)}
+          icon={{
+            url: getMarkerIcon(markerData.speed),
+            scaledSize: new window.google.maps.Size(40, 40),
+          }}
+          label={{
+            className: 'markerlabel',
+            text: (index + 1).toString(),
+            color: '#252424',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            fontFamily: 'Segoe UI',
+          }}
+        >
+          {selectedMarker === markerData && (
+            <InfoWindow onCloseClick={handleCloseInfoWindow}>
+              <div className="infoDetalleR">
+                <p>Fecha: {markerData.date}</p>
+                <p>Hora: {markerData.time}</p>
+                <p>Velocidad: {markerData.speed} Km/H</p>
+              </div>
+            </InfoWindow>
+          )}
+        </Marker>
+      ))}
+
+      <Polyline
+        path={polylineCoordinates}
+        options={{
+          strokeColor: '#FF0000',
+          strokeOpacity: 1,
+          strokeWeight: 2,
+          icons: [
+            {
+              icon: { path: window.google.maps.SymbolPath.FORWARD_OPEN_ARROW },
+              offset: '100%',
+            },
+          ],
         }}
-      >
-        {showInfoWindow && (
-          <InfoWindow
-            options={{ disableAutoPan: true }}
-            onCloseClick={toggleInfoWindow}
-          >
-            <div>
-              <p>Fecha: 01/11/2023</p>
-              <p>Hora: 21:18</p>
-              <p>Velocidad: 40 Km/H</p>
-            </div>
-          </InfoWindow>
-        )}
-      </Marker>
+      />
     </GoogleMap>
   ) : (
     <></>

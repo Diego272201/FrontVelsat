@@ -11,6 +11,7 @@ import axios from 'axios';
 import { urlAPISimplifid } from './urlsApi/urlApi';
 
 export default function Sidebar() {
+  
   interface UnidadData {
     deviceId: string;
     lastValidSpeed: number;

@@ -1,0 +1,10 @@
+.markerlabel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    margin-left: -0px;
+    margin-top: -10px;
+    color: #252424;
+    font-size: 10px;
+  }
