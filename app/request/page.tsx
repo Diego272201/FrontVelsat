@@ -64,7 +64,7 @@ export default function RequestPage() {
       }
     }
 
-    // First popup
+    // PRIMER POPUP
     const content1 = document.createElement('div');
     content1.innerHTML = '<div id="content">C128-B6A726</div>';
 
@@ -72,12 +72,30 @@ export default function RequestPage() {
     const popup1 = new Popup(position, content1);
     popup1.setMap(map);
 
-    // Second popup
+    // SEGUNDO POPUP
     const content2 = document.createElement('div');
-    content2.innerHTML = '<div id="content">Nuevo popup</div>';
+    content2.innerHTML = `
+      <div class="content-custom-popup">
+        <span>Unidad: C128-B6A726 </span>
+        <span>Velocidad: 0 Km/h </span>
+        <span>Estado: Estacionado </span>
+        <br>
+        <span>ÚLTIMO REPORTE </span>
+        <span>Fecha: 21/05/2024 Hora: 14:20 </span>
+        <span>Dirección: Norte </span>
+        <span>Ubicación: Callao, Callao, 07001, Perú </span>
+        <a href="#" class="follow-link">Seguir</a>
+        <button id="close-btn" class="popup-close-btn">X</button>
+      </div>
+    `;
     const popup2 = new Popup(position, content2);
+    const closeButton = content2.querySelector('#close-btn')!;
+    closeButton.addEventListener('click', () => {
+      setShowNewPopup(false);
+      popup2.setMap(null);
+    });
 
-    // Marker
+    // MARKER
     const marker = new google.maps.Marker({
       position,
       map,
@@ -88,7 +106,6 @@ export default function RequestPage() {
       }
     });
 
-    // Toggle the second popup on marker click
     marker.addListener('click', () => {
       setShowNewPopup((prevState) => {
         const newState = !prevState;
