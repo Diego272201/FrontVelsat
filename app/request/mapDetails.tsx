@@ -9,9 +9,21 @@ import {
 } from '@react-google-maps/api';
 import axios from 'axios';
 import '@/app/styles/markers.css';
+import { useLocation } from 'react-router-dom';
+
 
 export default function RequestPageDetail() {
 
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const deviceId = searchParams.get('deviceId');
+
+
+  const detailRecorrido = `http://63.251.107.133:8586/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
+  
   interface UnidadDetalleRecorrido {
     longitude: number;
     latitude: number;
@@ -43,7 +55,7 @@ export default function RequestPageDetail() {
   const fetchData = async () => {
     try {
       const response = await axios.get(
-        'http://63.251.107.133:8586/api/Reporting/details/2023-11-01T09:00/2023-11-01T23:00/c128-b6a726',
+        detailRecorrido,
       );
       setMarkersData(response.data);
     } catch (error) {
@@ -155,13 +167,16 @@ export default function RequestPageDetail() {
       <Polyline
         path={polylineCoordinates}
         options={{
-          strokeColor: '#ef233c',
-          strokeOpacity: 1,
-          strokeWeight: 2.5,
+          strokeColor: '#003049',
+          strokeOpacity: 0,
+          strokeWeight: 0.5,
           icons: [
             {
-              icon: { path: window.google.maps.SymbolPath.FORWARD_OPEN_ARROW },
-              offset: '100%',
+              icon: {   path: "M 0,-1 0,1",
+              strokeOpacity: 1,
+              scale: 3, },
+              offset: "0",
+              repeat: "20px",
             },
           ],
         }}
