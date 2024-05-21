@@ -155,9 +155,9 @@ export default function RequestPageDetail() {
       <Polyline
         path={polylineCoordinates}
         options={{
-          strokeColor: '#FF0000',
+          strokeColor: '#ef233c',
           strokeOpacity: 1,
-          strokeWeight: 2,
+          strokeWeight: 2.5,
           icons: [
             {
               icon: { path: window.google.maps.SymbolPath.FORWARD_OPEN_ARROW },

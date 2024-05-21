@@ -1,115 +1,137 @@
 'use client';
+import React, { useCallback, useState } from 'react';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import '@/app/styles/popup.css';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+const containerStyle = {
+  width: '100%',
+  height: '100vh'
+};
 
-interface LatLng {
-  lat: number;
-  lng: number;
-}
+const center = {
+  lat: -12.046591525826495,
+  lng: -77.04689047482863
+};
 
 export default function RequestPage() {
-
-  const { isLoaded, loadError } = useJsApiLoader({
+  const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string
   });
 
-  const containerStyle = {
-    width: '100%',
-    height: '100vh'
-  };
-  
-  const center: LatLng = {
-    lat: -12.046591525826495,
-    lng: -77.04689047482863
-  };
-
-  const centertwo: LatLng = {
-    lat: -12.017693333333334,
-    lng: -77.10883555555556
-  };
-
-  const centerthree: LatLng = {
-    lat: -12.034903,
-    lng: -77.027438
-  };
-
-  const centerfour: LatLng = {
-    lat: -12.023026666666668,
-    lng: -77.10560000000001
-  };
-
-  const centerfive: LatLng = {
-    lat: -12.048074444444444,
-    lng: -77.09848888888888
-  };
-
-  const centersix: LatLng = {
-    lat: -12.054253333333332,
-    lng: -77.09829333333333
-  };
-
-  const centerseven: LatLng = {
-    lat: -12.054056666666666,
-    lng: -77.0988
-  };
-
-  const centereight: LatLng = {
-    lat: -12.052733333333332,
-    lng: -77.09274666666667
-  };
-
-  const centernine: LatLng = {
-    lat:-12.051955555555557,
-    lng:-77.08822222222221
-  };
-
-  const directionsService = useRef<google.maps.DirectionsService | null>(null);
-  const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [showNewPopup, setShowNewPopup] = useState(false);
 
-  const onLoad = useCallback((map:any) => {
+  const onLoad = useCallback(function callback(map: google.maps.Map) {
     setMap(map);
 
-    directionsService.current = new window.google.maps.DirectionsService();
-    directionsRenderer.current = new window.google.maps.DirectionsRenderer({
-      map: map,
-    });
-  }, []);
+    class Popup extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      containerDiv: HTMLDivElement;
 
-  const onUnmount = useCallback(() => {
-    if (directionsRenderer.current) {
-      directionsRenderer.current.setMap(null);
-      directionsRenderer.current = null;
+      constructor(position: google.maps.LatLng, content: HTMLElement) {
+        super();
+        this.position = position;
+
+        content.classList.add('popup-bubble');
+
+        const bubbleAnchor = document.createElement('div');
+        bubbleAnchor.classList.add('popup-bubble-anchor');
+        bubbleAnchor.appendChild(content);
+
+        this.containerDiv = document.createElement('div');
+        this.containerDiv.classList.add('popup-container');
+        this.containerDiv.appendChild(bubbleAnchor);
+
+        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+      }
+
+      onAdd() {
+        this.getPanes()!.floatPane.appendChild(this.containerDiv);
+      }
+
+      onRemove() {
+        if (this.containerDiv.parentElement) {
+          this.containerDiv.parentElement.removeChild(this.containerDiv);
+        }
+      }
+
+      draw() {
+        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
+        this.containerDiv.style.left = divPosition.x + 'px';
+        this.containerDiv.style.top = divPosition.y + 'px';
+        this.containerDiv.style.display = 'block';
+      }
     }
-    directionsService.current = null;
+
+    // First popup
+    const content1 = document.createElement('div');
+    content1.innerHTML = '<div id="content">C128-B6A726</div>';
+
+    const position = new google.maps.LatLng(-12.046591525826495, -77.04689047482863);
+    const popup1 = new Popup(position, content1);
+    popup1.setMap(map);
+
+    // Second popup
+    const content2 = document.createElement('div');
+    content2.innerHTML = '<div id="content">Nuevo popup</div>';
+    const popup2 = new Popup(position, content2);
+
+    // Marker
+    const marker = new google.maps.Marker({
+      position,
+      map,
+      icon: {
+        url: '/right.png',
+        scaledSize: new google.maps.Size(42, 25),
+        anchor: new google.maps.Point(25, 50)
+      }
+    });
+
+    // Toggle the second popup on marker click
+    marker.addListener('click', () => {
+      setShowNewPopup((prevState) => {
+        const newState = !prevState;
+        if (newState) {
+          popup2.setMap(map);
+        } else {
+          popup2.setMap(null);
+        }
+        return newState;
+      });
+    });
+
+    marker.addListener('position_changed', () => {
+      const newPos = marker.getPosition();
+      if (newPos) {
+        popup1.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
+        popup1.draw();
+        if (showNewPopup) {
+          popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
+          popup2.draw();
+        }
+      }
+    });
+
+    map.addListener('zoom_changed', () => {
+      popup1.draw();
+      if (showNewPopup) {
+        popup2.draw();
+      }
+    });
+
+    map.addListener('center_changed', () => {
+      popup1.draw();
+      if (showNewPopup) {
+        popup2.draw();
+      }
+    });
+  }, [showNewPopup]);
+
+  const onUnmount = useCallback(function callback(map: google.maps.Map) {
     setMap(null);
   }, []);
 
-  
-  useEffect(() => {
-    if (map && directionsService.current && directionsRenderer.current) {
-      directionsService.current.route({
-        origin: center,
-        destination: centernine, 
-        waypoints: [
-          { location: centertwo, stopover: true },
-          { location: centerthree, stopover: true },
-          { location: centerfour, stopover: true },
-          { location: centerfive, stopover: true },
-          { location: centersix, stopover: true },
-          { location: centerseven, stopover: true },
-          { location: centereight, stopover: true }
-        ], 
-        travelMode: google.maps.TravelMode.DRIVING
-      }).then((response) => {
-        directionsRenderer.current!.setDirections(response);
-      }).catch((e) => window.alert("Directions request failed due to " + e));
-    }
-  }, [map, center, centertwo, centerthree, centerfour, centerfive, centersix, centerseven, centereight, centernine]);
-
-  if (loadError) return <div>Error loading map</div>;
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
@@ -121,9 +143,10 @@ export default function RequestPage() {
         mapTypeControl: false,
         fullscreenControl: true,
         fullscreenControlOptions: {
-          position: window.google.maps.ControlPosition.BOTTOM_RIGHT
+          position: google.maps.ControlPosition.BOTTOM_RIGHT
         }
       }}
-    />
+    >
+    </GoogleMap>
   ) : <></>;
 }
