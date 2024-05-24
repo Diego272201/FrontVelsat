@@ -1,6 +1,6 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import axios from 'axios';
 import { urlDeviceList } from '../components/urlsApi/urlApi';
@@ -19,169 +19,244 @@ interface DeviceList {
   deviceId: string;
   lastValidLatitude: number;
   lastValidLongitude: number;
+  lastValidSpeed: number;
   direccion: string;
+  fechaActual: string;
+  lastValidHeading: number;
 }
 
 export default function RequestPage() {
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
-
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [showNewPopup, setShowNewPopup] = useState(false);
 
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(urlDeviceList);
-        const data = response.data.datosDevice;
-        setDeviceList(data);
-      } catch (error) {
-        console.error('Error fetching data: ', error);
-      }
-    };
 
-    fetchData();
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const popupsRef = useRef<google.maps.OverlayView[]>([]);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const response = await axios.get(urlDeviceList);
+      const { fechaActual, datosDevice } = response.data;
+
+      const dataWithDate = datosDevice.map((device: DeviceList) => ({
+        ...device,
+        fechaActual
+      }));
+
+      setDeviceList(dataWithDate);
+    } catch (error) {
+      console.error('Error fetching data: ', error);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
+  const formatFecha = (fecha: string) => {
+    const date = new Date(fecha);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}`;
+  };
 
-  const onLoad = useCallback(
-    function callback(map: google.maps.Map) {
-      setMap(map);
+  const getDireccion = (heading:number) => {
+    if (heading >= 0 && heading <= 22.5) return "Norte";
+    if (heading>=22.51 && heading<=67.50) return "Noreste";
+    if (heading>=67.51 && heading<=112.50) return "Este";
+    if (heading>=112.51 && heading<=157.50 ) return "Sureste";
+    if (heading>=157.51 && heading<=202.50) return "Sur";
+    if (heading>=202.51 && heading<=247.50) return "Suroeste";
+    if (heading>=247.51 && heading<=292.50) return "Oeste";
+    if (heading>=292.51 && heading<=337.50) return "Noroeste";
+    if (heading>=337.51 && heading<=360.00) return "Norte";
+    return "Desconocido";
+  };
 
-      class Popup extends google.maps.OverlayView {
-        position: google.maps.LatLng;
-        containerDiv: HTMLDivElement;
+  const getMarkerIcon = (heading: number) => {
+    let url = '/unknown.png';
+    let scaledSize = new google.maps.Size(42, 25);
+  
+    if (heading >= 0 && heading <= 22.5) {
+      url = '/up.png';
+      scaledSize = new google.maps.Size(25, 35);
+    } else if (heading >= 22.51 && heading <= 67.50) {
+      url = '/topright.png';
+    } else if (heading >= 67.51 && heading <= 112.50) {
+      url = '/right.png';
+    } else if (heading >= 112.51 && heading <= 157.50) {
+      url = '/downright.png';
+    } else if (heading >= 157.51 && heading <= 202.50) {
+      url = '/down.png';
+      scaledSize = new google.maps.Size(25, 35);
+    } else if (heading >= 202.51 && heading <= 247.50) {
+      url = '/downleft.png';
+    } else if (heading >= 247.51 && heading <= 292.50) {
+      url = '/left.png';
+    } else if (heading >= 292.51 && heading <= 337.50) {
+      url = '/topleft.png';
+    } else if (heading >= 337.51 && heading <= 360.00) {
+      url = '/up.png';
+      scaledSize = new google.maps.Size(25, 35);
+    }
+  
+    return { url, scaledSize };
+  };
 
-        constructor(position: google.maps.LatLng, content: HTMLElement) {
-          super();
-          this.position = position;
+  const getEstado = (speed: number) => {
+    if(speed < 10){
+      return "Estacionado"
+    } else{
+      return "Movimiento"
+    }
+  };
 
-          content.classList.add('popup-bubble');
+  const createMarkersAndPopups = useCallback((map: google.maps.Map) => {
+    markersRef.current.forEach(marker => marker.setMap(null));
+    popupsRef.current.forEach(popup => popup.setMap(null));
 
-          const bubbleAnchor = document.createElement('div');
-          bubbleAnchor.classList.add('popup-bubble-anchor');
-          bubbleAnchor.appendChild(content);
+    markersRef.current = [];
+    popupsRef.current = [];
 
-          this.containerDiv = document.createElement('div');
-          this.containerDiv.classList.add('popup-container');
-          this.containerDiv.appendChild(bubbleAnchor);
+    class Popup extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      containerDiv: HTMLDivElement;
 
-          Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
-        }
+      constructor(position: google.maps.LatLng, content: HTMLElement) {
+        super();
+        this.position = position;
 
-        onAdd() {
-          this.getPanes()!.floatPane.appendChild(this.containerDiv);
-        }
+        content.classList.add('popup-bubble');
 
-        onRemove() {
-          if (this.containerDiv.parentElement) {
-            this.containerDiv.parentElement.removeChild(this.containerDiv);
-          }
-        }
+        const bubbleAnchor = document.createElement('div');
+        bubbleAnchor.classList.add('popup-bubble-anchor');
+        bubbleAnchor.appendChild(content);
 
-        draw() {
-          const divPosition = this.getProjection().fromLatLngToDivPixel(
-            this.position,
-          )!;
-          this.containerDiv.style.left = divPosition.x + 'px';
-          this.containerDiv.style.top = divPosition.y + 'px';
-          this.containerDiv.style.display = 'block';
+        this.containerDiv = document.createElement('div');
+        this.containerDiv.classList.add('popup-container');
+        this.containerDiv.appendChild(bubbleAnchor);
+
+        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+      }
+
+      onAdd() {
+        this.getPanes()!.floatPane.appendChild(this.containerDiv);
+      }
+
+      onRemove() {
+        if (this.containerDiv.parentElement) {
+          this.containerDiv.parentElement.removeChild(this.containerDiv);
         }
       }
 
-      deviceList.forEach((device) => {
-        const position = new google.maps.LatLng(
-          device.lastValidLatitude,
-          device.lastValidLongitude,
-        );
+      draw() {
+        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
+        this.containerDiv.style.left = `${divPosition.x}px`;
+        this.containerDiv.style.top = `${divPosition.y}px`;
+        this.containerDiv.style.display = 'block';
+      }
+    }
 
-        const content1 = document.createElement('div');
-        content1.innerHTML = `<div id="content">${device.deviceId}</div>`;
+    deviceList.forEach((device) => {
+      const position = new google.maps.LatLng(device.lastValidLatitude, device.lastValidLongitude);
 
-        const popup1 = new Popup(position, content1);
-        popup1.setMap(map);
+      const content1 = document.createElement('div');
+      content1.innerHTML = `<div id="content">${device.deviceId.toUpperCase()}</div>`;
+      const popup1 = new Popup(position, content1);
+      popup1.setMap(map);
+      popupsRef.current.push(popup1);
 
-        const content2 = document.createElement('div');
-        content2.innerHTML = `
-          <div class="content-custom-popup">
-            <span>Unidad: ${device.deviceId} </span>
-            <span>Velocidad: 0 Km/h </span>
-            <span>Estado: Estacionado </span>
-            <br>
-            <span>ÚLTIMO REPORTE </span>
-            <span>Fecha: 21/05/2024 Hora: 14:20 </span>
-            <span>Dirección: Norte </span>
-            <span>Ubicación: ${device.direccion} </span>
-            <a href="#" class="follow-link">Seguir</a>
-            <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
-          </div>
-        `;
+      const content2 = document.createElement('div');
+      content2.innerHTML = `
+        <div class="content-custom-popup">
+          <span>Unidad: ${device.deviceId.toUpperCase()} </span>
+          <span>Velocidad: ${device.lastValidSpeed} Km/h </span>
+          <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
+          <br>
+          <span>ÚLTIMO REPORTE </span>
+          <span>${formatFecha(device.fechaActual)} </span>
+          <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
+          <span>Ubicación: ${device.direccion} </span>
+          <a href="#" class="follow-link">Seguir</a>
+          <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
+        </div>
+      `;
+      const popup2 = new Popup(position, content2);
+      const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`)!;
+      closeButton.addEventListener('click', () => {
+        popup2.setMap(null);
+      });
 
-        const popup2 = new Popup(position, content2);
-        const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`)!;
-        closeButton.addEventListener('click', () => {
-          setShowNewPopup(false);
-          popup2.setMap(null);
-        });
+      const marker = new google.maps.Marker({
+        position,
+        map,
+        icon: {
+          url: getMarkerIcon(device.lastValidHeading).url,
+          scaledSize: getMarkerIcon(device.lastValidHeading).scaledSize,
+          anchor: new google.maps.Point(25, 50),
+        },
+      });
 
-        const marker = new google.maps.Marker({
-          position,
-          map,
-          icon: {
-            url: '/right.png',
-            scaledSize: new google.maps.Size(42, 25),
-            anchor: new google.maps.Point(25, 50),
-          },
-        });
-
-        marker.addListener('click', () => {
-          setShowNewPopup((prevState) => {
-            const newState = !prevState;
-            if (newState) {
-              popup2.setMap(map);
-            } else {
-              popup2.setMap(null);
-            }
-            return newState;
-          });
-        });
-
-        marker.addListener('position_changed', () => {
-          const newPos = marker.getPosition();
-          if (newPos) {
-            popup1.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
-            popup1.draw();
-            if (showNewPopup) {
-              popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
-              popup2.draw();
-            }
+      marker.addListener('click', () => {
+        setShowNewPopup((prevState) => {
+          const newState = !prevState;
+          if (newState) {
+            popup2.setMap(map);
+          } else {
+            popup2.setMap(null);
           }
-        });
-
-        map.addListener('zoom_changed', () => {
-          popup1.draw();
-          if (showNewPopup) {
-            popup2.draw();
-          }
-        });
-
-        map.addListener('center_changed', () => {
-          popup1.draw();
-          if (showNewPopup) {
-            popup2.draw();
-          }
+          return newState;
         });
       });
-    },
-    [deviceList, showNewPopup],
-  );
 
-  const onUnmount = useCallback(function callback(map: google.maps.Map) {
+      marker.addListener('position_changed', () => {
+        const newPos = marker.getPosition();
+        if (newPos) {
+          popup1.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
+          popup1.draw();
+          popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
+          popup2.draw();
+        }
+      });
+
+      map.addListener('zoom_changed', () => {
+        popup1.draw();
+        popup2.draw();
+      });
+
+      map.addListener('center_changed', () => {
+        popup1.draw();
+        popup2.draw();
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [deviceList]);
+
+  useEffect(() => {
+    if (map) {
+      createMarkersAndPopups(map);
+    }
+  }, [map, createMarkersAndPopups]);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback((map: google.maps.Map) => {
+    markersRef.current.forEach(marker => marker.setMap(null));
+    popupsRef.current.forEach(popup => popup.setMap(null));
+    markersRef.current = [];
+    popupsRef.current = [];
     setMap(null);
   }, []);
 
@@ -199,8 +274,10 @@ export default function RequestPage() {
           position: google.maps.ControlPosition.BOTTOM_RIGHT,
         },
       }}
-    ></GoogleMap>
+    />
   ) : (
     <></>
   );
 }
+
+
