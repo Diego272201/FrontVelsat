@@ -28,7 +28,6 @@ interface DeviceList {
 export default function RequestPage() {
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [showNewPopup, setShowNewPopup] = useState(false);
 
 
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -159,6 +158,10 @@ export default function RequestPage() {
       }
 
       draw() {
+        if (!this.getProjection() || !this.position || !this.containerDiv) {
+          return;
+        }
+        
         const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
         this.containerDiv.style.left = `${divPosition.x}px`;
         this.containerDiv.style.top = `${divPosition.y}px`;
@@ -207,15 +210,17 @@ export default function RequestPage() {
       });
 
       marker.addListener('click', () => {
-        setShowNewPopup((prevState) => {
-          const newState = !prevState;
-          if (newState) {
-            popup2.setMap(map);
-          } else {
-            popup2.setMap(null);
-          }
-          return newState;
-        });
+        // Mantiene el primer popup siempre visible
+        popup1.setMap(map);
+    
+        // Abre o cierra el segundo popup según su estado actual
+        if (popup2.getMap()) {
+          // Si el popup ya está abierto, ciérralo
+          popup2.setMap(null);
+        } else {
+          // Si el popup no está abierto, ábrelo
+          popup2.setMap(map);
+        }
       });
 
       marker.addListener('position_changed', () => {
