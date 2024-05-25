@@ -10,20 +10,31 @@ import axios from 'axios';
 
 import { urlAPISimplifid } from './urlsApi/urlApi';
 
-export default function Sidebar() {
+interface SidebarProps {
+  centerMap: () => void;
+  centerUnit: (coords: { latitud: number, longitud: number }) => void;
+
+}
+
+export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
   
   interface UnidadData {
     deviceId: string;
     lastValidSpeed: number;
+    lastValidLatitude: number;
+    lastValidLongitude: number;
   }
 
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
+  const [selectedUnitCoords, setSelectedUnitCoords] = useState<{ latitud: number, longitud: number } | null>(null);
+
 
   //CÓDIGO PARA OCULTAR EL SIDEBAR EN LA VISTA DE LOS REPORTES
   useEffect(() => {
     if (
       window.location.pathname === '/trackvelnew/estadistica/reportegeneral' ||
-      window.location.pathname === '/trackvelnew/estadistica/reporteparadas'
+      window.location.pathname === '/trackvelnew/estadistica/reporteparadas' ||
+      window.location.pathname === '/trackvelnew/seguirUnidad'
 
     ) {
       const labelMuestra = document.getElementById('label-muestra');
@@ -63,6 +74,11 @@ export default function Sidebar() {
     unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const handleSelectUnit = (coords: { latitud: number, longitud: number }) => {
+    setSelectedUnitCoords(coords);
+    centerUnit(coords); 
+  };
+  
   return (
     <div className="sidebarScroll">
       <input type="radio" name="opcion" id="muestra" onClick={showMenu} />
@@ -102,7 +118,7 @@ export default function Sidebar() {
           <div className="unidades">
             Total de unidades: {unidades.length}
             <div className="imap">
-              <a href="#">
+              <a href="#" onClick={centerMap}>
                 <TbView360 size={23} />
               </a>
             </div>
@@ -127,6 +143,9 @@ export default function Sidebar() {
                 key={index}
                 codigoUnidad={unidad.deviceId.toUpperCase()}
                 velocidad={unidad.lastValidSpeed}
+                latitud={unidad.lastValidLatitude}
+                longitud={unidad.lastValidLongitude}
+                onSelectUnit={handleSelectUnit}
               />
             ))}
           </div>

@@ -6,9 +6,12 @@ import '@/app/styles/unidad.css';
 interface UnidadProps {
   codigoUnidad: string;
   velocidad: number;
+  latitud: number;
+  longitud: number;
+  onSelectUnit: (coords: { latitud: number, longitud: number }) => void;
 }
 
-const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad }) => {
+const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit }) => {
   const [isChecked, setIsChecked] = useState(false); 
 
   const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,6 +24,9 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad }) => {
     }
 
     setIsChecked(checked);
+    if (checked) {
+      onSelectUnit({ latitud, longitud });
+    }
   };
 
   return (

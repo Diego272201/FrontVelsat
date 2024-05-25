@@ -4,6 +4,7 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import axios from 'axios';
 import { urlDeviceList } from '../components/urlsApi/urlApi';
+import Sidebar from '../components/Sidebar';
 
 const containerStyle = {
   width: '100%',
@@ -28,7 +29,6 @@ interface DeviceList {
 export default function RequestPage() {
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-
 
   const markersRef = useRef<google.maps.Marker[]>([]);
   const popupsRef = useRef<google.maps.OverlayView[]>([]);
@@ -210,15 +210,11 @@ export default function RequestPage() {
       });
 
       marker.addListener('click', () => {
-        // Mantiene el primer popup siempre visible
         popup1.setMap(map);
     
-        // Abre o cierra el segundo popup según su estado actual
         if (popup2.getMap()) {
-          // Si el popup ya está abierto, ciérralo
           popup2.setMap(null);
         } else {
-          // Si el popup no está abierto, ábrelo
           popup2.setMap(map);
         }
       });
@@ -246,6 +242,23 @@ export default function RequestPage() {
       markersRef.current.push(marker);
     });
   }, [deviceList]);
+
+  const centerMap = useCallback(() => {
+    if (map) {
+      map.setCenter(center);
+      map.setZoom(12);
+    }
+  }, [map]);
+
+  const centerUnit = useCallback((coords: { latitud: number; longitud: number }) => {
+    if (map) {
+      const centerCoords = { lat: coords.latitud, lng: coords.longitud };
+      map.setCenter(centerCoords);
+      map.setZoom(17);
+      
+    }
+  }, [map]);
+
 
   useEffect(() => {
     if (map) {
@@ -279,7 +292,9 @@ export default function RequestPage() {
           position: google.maps.ControlPosition.BOTTOM_RIGHT,
         },
       }}
-    />
+    >
+      <Sidebar centerMap={centerMap} centerUnit={centerUnit}/>
+    </GoogleMap>
   ) : (
     <></>
   );
