@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CgMoreVerticalAlt } from 'react-icons/cg';
 import { TbPointFilled } from 'react-icons/tb';
 import '@/app/styles/unidad.css';
@@ -9,22 +9,33 @@ interface UnidadProps {
   latitud: number;
   longitud: number;
   onSelectUnit: (coords: { latitud: number, longitud: number }) => void;
+  lastCheckedId: string | null;
+  onCheckboxChange: (id: string) => void;
 }
 
-const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit }) => {
+const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit, lastCheckedId, onCheckboxChange }) => {
   const [isChecked, setIsChecked] = useState(false); 
+
+  useEffect(() => {
+    if (codigoUnidad === lastCheckedId) {
+      setIsChecked(true);
+    } else {
+      setIsChecked(false);
+    }
+  }, [codigoUnidad, lastCheckedId]);
 
   const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { checked } = event.target;
 
+    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
+      checkbox.checked = false;
+    });
 
-    if (checked && document.querySelectorAll('input[type="checkbox"]:checked').length > 1) {
-      event.preventDefault(); 
-      return;
-    }
+    event.target.checked = checked;
 
     setIsChecked(checked);
     if (checked) {
+      onCheckboxChange(codigoUnidad);
       onSelectUnit({ latitud, longitud });
     }
   };

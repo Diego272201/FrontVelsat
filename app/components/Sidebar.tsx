@@ -1,4 +1,3 @@
-'use client';
 import React, { useEffect, useState } from 'react';
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
@@ -13,11 +12,10 @@ import { urlAPISimplifid } from './urlsApi/urlApi';
 interface SidebarProps {
   centerMap: () => void;
   centerUnit: (coords: { latitud: number, longitud: number }) => void;
-
 }
 
-export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
-  
+export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
+
   interface UnidadData {
     deviceId: string;
     lastValidSpeed: number;
@@ -28,22 +26,9 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
 
-  //CÓDIGO PARA OCULTAR EL SIDEBAR EN LA VISTA DE LOS REPORTES
   useEffect(() => {
-    if (
-      window.location.pathname === '/trackvelnew/estadistica/reportegeneral' ||
-      window.location.pathname === '/trackvelnew/estadistica/reporteparadas' ||
-      window.location.pathname === '/trackvelnew/seguirUnidad'
-
-    ) {
-      const labelMuestra = document.getElementById('label-muestra');
-      if (labelMuestra) {
-        labelMuestra.style.display = 'none';
-      }
-    }
-    //
-
     const fetchData = async () => {
       try {
         const response = await axios.get(urlAPISimplifid);
@@ -66,14 +51,18 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
     setShowDropdown(false);
   };
 
+  const handleSelectUnit = (coords: { latitud: number, longitud: number }) => {
+    centerUnit(coords);
+  };
+
+  const handleCheckboxChange = (id: string) => {
+    setLastCheckedId(id);
+  };
+
   const filteredUnidades = unidades.filter((unidad) =>
     unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleSelectUnit = (coords: { latitud: number, longitud: number }) => {
-    centerUnit(coords); 
-  };
-  
   return (
     <div className="sidebarScroll">
       <input type="radio" name="opcion" id="muestra" onClick={showMenu} />
@@ -141,6 +130,8 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
                 latitud={unidad.lastValidLatitude}
                 longitud={unidad.lastValidLongitude}
                 onSelectUnit={handleSelectUnit}
+                lastCheckedId={lastCheckedId}
+                onCheckboxChange={handleCheckboxChange}
               />
             ))}
           </div>
