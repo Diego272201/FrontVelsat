@@ -6,6 +6,7 @@ import axios from 'axios';
 import { urlDeviceList } from '../components/urlsApi/urlApi';
 import Sidebar from '../components/Sidebar';
 
+
 const containerStyle = {
   width: '100%',
   height: '100vh',
@@ -32,6 +33,7 @@ export default function RequestPage() {
 
   const markersRef = useRef<google.maps.Marker[]>([]);
   const popupsRef = useRef<google.maps.OverlayView[]>([]);
+  const popupsRef2 = useRef<{ [key: string]: google.maps.OverlayView }>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -123,6 +125,7 @@ export default function RequestPage() {
     markersRef.current.forEach(marker => marker.setMap(null));
     popupsRef.current.forEach(popup => popup.setMap(null));
 
+
     markersRef.current = [];
     popupsRef.current = [];
 
@@ -193,6 +196,7 @@ export default function RequestPage() {
           <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
         </div>
       `;
+
       const popup2 = new Popup(position, content2);
       const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`)!;
       closeButton.addEventListener('click', () => {
@@ -211,7 +215,7 @@ export default function RequestPage() {
 
       marker.addListener('click', () => {
         popup1.setMap(map);
-    
+
         if (popup2.getMap()) {
           popup2.setMap(null);
         } else {
@@ -240,6 +244,7 @@ export default function RequestPage() {
       });
 
       markersRef.current.push(marker);
+      popupsRef2.current[device.deviceId] = popup2;
     });
   }, [deviceList]);
 
@@ -256,8 +261,13 @@ export default function RequestPage() {
       map.setCenter(centerCoords);
       map.setZoom(17);
       
+      const deviceID = deviceList.find(device => device.lastValidLatitude === coords.latitud && device.lastValidLongitude === coords.longitud)?.deviceId;
+  
+      if (deviceID && popupsRef2.current[deviceID]) {
+        popupsRef2.current[deviceID].setMap(map);
+      }
     }
-  }, [map]);
+  }, [map, deviceList]);
 
 
   useEffect(() => {
@@ -299,5 +309,3 @@ export default function RequestPage() {
     <></>
   );
 }
-
-

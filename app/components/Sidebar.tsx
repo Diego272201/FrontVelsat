@@ -26,8 +26,8 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
   }
 
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
-  const [selectedUnitCoords, setSelectedUnitCoords] = useState<{ latitud: number, longitud: number } | null>(null);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   //CÓDIGO PARA OCULTAR EL SIDEBAR EN LA VISTA DE LOS REPORTES
   useEffect(() => {
@@ -58,10 +58,6 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
     fetchData();
   }, []);
 
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const [showDropdown, setShowDropdown] = useState(false);
-
   const showMenu = () => {
     setShowDropdown(true);
   };
@@ -75,7 +71,6 @@ export default function Sidebar({centerMap, centerUnit}:SidebarProps) {
   );
 
   const handleSelectUnit = (coords: { latitud: number, longitud: number }) => {
-    setSelectedUnitCoords(coords);
     centerUnit(coords); 
   };
   

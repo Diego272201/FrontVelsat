@@ -22,10 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <Router>
       <div style={{ display: 'flex', height: '100vh' }}>
         <div className="mainPruebas">{children}</div>
-        <Tollbar></Tollbar>
-        <Sidebar centerMap={centerMap} centerUnit={function (coords: { latitud: number; longitud: number; }): void {
-          throw new Error('Function not implemented.');
-        } }></Sidebar>
+        <Tollbar></Tollbar>      
       </div>
       </Router>
   );
