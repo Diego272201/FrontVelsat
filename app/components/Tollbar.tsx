@@ -2,14 +2,18 @@
 import '@/app/styles/tollbar.css';
 import { TbLiveView } from 'react-icons/tb';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
-
 import React, { useState } from 'react';
 import Link from 'next/link';
-
 import AppModal from './Modal';
 import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
+import { RiLogoutBoxLine } from "react-icons/ri";
+
+import { signOut, useSession } from 'next-auth/react';
+import { Button } from '@nextui-org/react';
 
 const Tollbar = () => {
+  const { data: session } = useSession();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(null);
 
@@ -52,8 +56,6 @@ const Tollbar = () => {
     }
   };
 
-
-
   const toggleMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
@@ -79,8 +81,11 @@ const Tollbar = () => {
       <div className="menu__bar">
         <a href="/trackvelnew" title="Logo" className="logo">
           <img src="/LogoWeb.png" alt="" />
-          <h2>TRACKVEL SYSTEM -</h2>
-          <h2 className="userInicio">Bienvenido Cgacela S.A.C</h2>
+          <div className='dataUser'>
+          <h3>TRACKVEL SYSTEM -</h3>
+          <h3 className="userInicio">Bienvenido Cgacela S.A.C</h3>
+          </div>
+       
         </a>
 
         <img
@@ -255,7 +260,7 @@ const Tollbar = () => {
                 <IoMdArrowDropdown />
               </i> */}
             </Link>
-{/* 
+            {/* 
             <ul
               className={`dropdown-menue ope${
                 isServicesMenuOpen ? 'dropdown-menu--show' : ''
@@ -296,10 +301,9 @@ const Tollbar = () => {
               </li>
 
               <li onClick={openModalStops}>
-                <a title="Reporte de Paradas"
-                  onClick={
-                    () => handleReportesClick() 
-                  }
+                <a
+                  title="Reporte de Paradas"
+                  onClick={() => handleReportesClick()}
                 >
                   Reporte de Paradas
                 </a>
@@ -308,19 +312,16 @@ const Tollbar = () => {
               <li onClick={openModal}>
                 <a
                   title="Reporte General"
-                  onClick={
-                    () => handleReportesClick() 
-                  }
+                  onClick={() => handleReportesClick()}
                 >
                   Reporte General
                 </a>
               </li>
 
               <li onClick={openModalDetails}>
-                <a title="Detalle Recorrido"
-                  onClick={
-                    () => handleReportesClick() 
-                  }
+                <a
+                  title="Detalle Recorrido"
+                  onClick={() => handleReportesClick()}
                 >
                   Detalle Recorrido
                 </a>
@@ -357,13 +358,46 @@ const Tollbar = () => {
               </li>
             </ul>
           </li>
+
+          <li className="dropdown">
+            {session?.user ? (
+              <Button
+                color="primary"
+                onClick={() => signOut({ callbackUrl: '/' })}
+              >
+                <RiLogoutBoxLine />
+
+                SALIR
+              </Button>
+            ) : null}
+          </li>
         </ul>
       </div>
-      <AppModalPrueba isOpen={isModalOpen} onClose={closeModal} titulo='REPORTE GENERAL' nameurl='reportegeneral' namedown='downloadExcelG' showDownloadButton={true}/>
-      <AppModalPrueba isOpen={isModalOpenStops} onClose={closeModalStops} titulo='REPORTE DE PARADAS' nameurl='reporteparadas' namedown='downloadExcelS' showDownloadButton={true}/>
-      <AppModalPrueba isOpen={isModalOpenDetails} onClose={closeModalDetails} titulo='DETALLE RECORRIDO' nameurl='detallerecorrido' namedown='' showDownloadButton={false}/>
+      <AppModalPrueba
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        titulo="REPORTE GENERAL"
+        nameurl="reportegeneral"
+        namedown="downloadExcelG"
+        showDownloadButton={true}
+      />
+      <AppModalPrueba
+        isOpen={isModalOpenStops}
+        onClose={closeModalStops}
+        titulo="REPORTE DE PARADAS"
+        nameurl="reporteparadas"
+        namedown="downloadExcelS"
+        showDownloadButton={true}
+      />
+      <AppModalPrueba
+        isOpen={isModalOpenDetails}
+        onClose={closeModalDetails}
+        titulo="DETALLE RECORRIDO"
+        nameurl="detallerecorrido"
+        namedown=""
+        showDownloadButton={false}
+      />
     </div>
-
   );
 };
 

@@ -1,3 +1,4 @@
+import SessionAuthProvider from '@/context/SessionAuthProvider';
 import './globals.css';
 import { Providers } from './providers';
 // import { poppins} from './ui/fonts';
@@ -9,7 +10,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SessionAuthProvider>
+          {children}
+        </SessionAuthProvider>
+      </body>
+
       {/* <body className={`${poppins.className} antialiased`}>{children}</body> */}
     </html>
   );

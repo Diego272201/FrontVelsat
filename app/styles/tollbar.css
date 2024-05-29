@@ -4,6 +4,10 @@
   --background: #261E5A;
   --navbar-height: 0px;
 }
+
+.dataUser{
+  display: flex;
+}
 .tollbar-bg{
   background: #113eb9;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 97% 100%, 95% 70%, 5% 70%, 3% 100%, 0 100%);
