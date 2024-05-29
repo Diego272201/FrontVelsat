@@ -34,6 +34,8 @@ export default function SeguirUnidad() {
   useEffect(() => {
     if (mapRef.current && unitList.length > 0) {
       createMarker(mapRef.current, unitList[0]);
+      centerMapOnUnit(unitList[0]);
+
     }
   }, [unitList]);
 
@@ -56,9 +58,9 @@ export default function SeguirUnidad() {
 
   const centerMapOnUnit = (unit: DeviceList) => {
     if (mapRef.current) {
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(new google.maps.LatLng(unit.lastValidLatitude, unit.lastValidLongitude));
-      mapRef.current.fitBounds(bounds);
+      const position = new google.maps.LatLng(unit.lastValidLatitude, unit.lastValidLongitude);
+      mapRef.current.setCenter(position);
+      mapRef.current.setZoom(17);
     }
   };
   
@@ -159,9 +161,9 @@ export default function SeguirUnidad() {
       constructor(position: google.maps.LatLng, content: HTMLElement) {
         super();
         this.position = position;
-        content.classList.add('popup-bubble');
+        content.classList.add('popup-bubble-unit');
         const bubbleAnchor = document.createElement('div');
-        bubbleAnchor.classList.add('popup-bubble-anchor');
+        bubbleAnchor.classList.add('popup-bubble-unit-anchor');
         bubbleAnchor.appendChild(content);
         this.containerDiv = document.createElement('div');
         this.containerDiv.classList.add('popup-container');
@@ -218,10 +220,11 @@ export default function SeguirUnidad() {
         </div>
       `;
       const popup2 = new Popup(position, content2);
-      popup2.setMap(map);
+
       const closeButton = content2.querySelector(
         `#close-btn-${unit.deviceId}`,
       )!;
+      
       closeButton.addEventListener('click', () => {
         popup2.setMap(null);
       });
@@ -267,11 +270,6 @@ export default function SeguirUnidad() {
     height: '100vh',
   };
 
-  const UbicarMapa = {
-    lat: -12.046591525826495,
-    lng: -77.04689047482863,
-  };
-
   const onLoad = React.useCallback((map: google.maps.Map) => {
     mapRef.current = map;
   }, []);
@@ -283,7 +281,6 @@ export default function SeguirUnidad() {
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={UbicarMapa}
       zoom={12}
       onLoad={onLoad}
       onUnmount={onUnmount}
