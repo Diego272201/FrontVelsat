@@ -6,7 +6,6 @@ import axios from 'axios';
 import { urlDeviceList } from '../components/urlsApi/urlApi';
 import Sidebar from '../components/Sidebar';
 
-
 const containerStyle = {
   width: '100%',
   height: '100vh',
@@ -29,8 +28,7 @@ interface DeviceList {
 
 export default function RequestPage() {
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-
+  const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const popupsRef = useRef<google.maps.OverlayView[]>([]);
   const popupsRef2 = useRef<{ [key: string]: google.maps.OverlayView }>({});
@@ -39,12 +37,10 @@ export default function RequestPage() {
     try {
       const response = await axios.get(urlDeviceList);
       const { fechaActual, datosDevice } = response.data;
-
       const dataWithDate = datosDevice.map((device: DeviceList) => ({
         ...device,
         fechaActual
       }));
-
       setDeviceList(dataWithDate);
     } catch (error) {
       console.error('Error fetching data: ', error);
@@ -84,48 +80,26 @@ export default function RequestPage() {
   };
 
   const getMarkerIcon = (heading: number) => {
-    let url = '/unknown.png';
-    let scaledSize = new google.maps.Size(42, 25);
-  
-    if (heading >= 0 && heading <= 22.5) {
-      url = '/up.png';
-      scaledSize = new google.maps.Size(25, 35);
-    } else if (heading >= 22.51 && heading <= 67.50) {
-      url = '/topright.png';
-    } else if (heading >= 67.51 && heading <= 112.50) {
-      url = '/right.png';
-    } else if (heading >= 112.51 && heading <= 157.50) {
-      url = '/downright.png';
-    } else if (heading >= 157.51 && heading <= 202.50) {
-      url = '/down.png';
-      scaledSize = new google.maps.Size(25, 35);
-    } else if (heading >= 202.51 && heading <= 247.50) {
-      url = '/downleft.png';
-    } else if (heading >= 247.51 && heading <= 292.50) {
-      url = '/left.png';
-    } else if (heading >= 292.51 && heading <= 337.50) {
-      url = '/topleft.png';
-    } else if (heading >= 337.51 && heading <= 360.00) {
-      url = '/up.png';
-      scaledSize = new google.maps.Size(25, 35);
-    }
-  
-    return { url, scaledSize };
+    const directions = [
+      { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
+      { range: [22.51, 67.50], url: '/topright.png', size: new google.maps.Size(42, 25) },
+      { range: [67.51, 112.50], url: '/right.png', size: new google.maps.Size(42, 25) },
+      { range: [112.51, 157.50], url: '/downright.png', size: new google.maps.Size(42, 25) },
+      { range: [157.51, 202.50], url: '/down.png', size: new google.maps.Size(25, 35) },
+      { range: [202.51, 247.50], url: '/downleft.png', size: new google.maps.Size(42, 25) },
+      { range: [247.51, 292.50], url: '/left.png', size: new google.maps.Size(42, 25) },
+      { range: [292.51, 337.50], url: '/topleft.png', size: new google.maps.Size(42, 25) },
+      { range: [337.51, 360.00], url: '/up.png', size: new google.maps.Size(25, 35) },
+    ];
+    const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
+    return direction ? { url: direction.url, scaledSize: direction.size } : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
   };
 
-  const getEstado = (speed: number) => {
-    if(speed < 10){
-      return "Estacionado"
-    } else{
-      return "Movimiento"
-    }
-  };
+  const getEstado = (speed: number) => speed < 10 ? "Estacionado" : "Movimiento";
 
   const createMarkersAndPopups = useCallback((map: google.maps.Map) => {
     markersRef.current.forEach(marker => marker.setMap(null));
     popupsRef.current.forEach(popup => popup.setMap(null));
-
-
     markersRef.current = [];
     popupsRef.current = [];
 
@@ -136,17 +110,13 @@ export default function RequestPage() {
       constructor(position: google.maps.LatLng, content: HTMLElement) {
         super();
         this.position = position;
-
         content.classList.add('popup-bubble');
-
         const bubbleAnchor = document.createElement('div');
         bubbleAnchor.classList.add('popup-bubble-anchor');
         bubbleAnchor.appendChild(content);
-
         this.containerDiv = document.createElement('div');
         this.containerDiv.classList.add('popup-container');
         this.containerDiv.appendChild(bubbleAnchor);
-
         Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
       }
 
@@ -161,10 +131,7 @@ export default function RequestPage() {
       }
 
       draw() {
-        if (!this.getProjection() || !this.position || !this.containerDiv) {
-          return;
-        }
-        
+        if (!this.getProjection() || !this.position || !this.containerDiv) return;
         const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
         this.containerDiv.style.left = `${divPosition.x}px`;
         this.containerDiv.style.top = `${divPosition.y}px`;
@@ -174,7 +141,6 @@ export default function RequestPage() {
 
     deviceList.forEach((device) => {
       const position = new google.maps.LatLng(device.lastValidLatitude, device.lastValidLongitude);
-
       const content1 = document.createElement('div');
       content1.innerHTML = `<div id="content">${device.deviceId.toUpperCase()}</div>`;
       const popup1 = new Popup(position, content1);
@@ -192,11 +158,10 @@ export default function RequestPage() {
           <span>${formatFecha(device.fechaActual)} </span>
           <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
           <span>Ubicación: ${device.direccion} </span>
-          <a href="#" class="follow-link">Seguir</a>
+          <a href="" class="follow-link" data-device-id="${device.deviceId}">Seguir</a>
           <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
         </div>
       `;
-
       const popup2 = new Popup(position, content2);
       const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`)!;
       closeButton.addEventListener('click', () => {
@@ -206,21 +171,12 @@ export default function RequestPage() {
       const marker = new google.maps.Marker({
         position,
         map,
-        icon: {
-          url: getMarkerIcon(device.lastValidHeading).url,
-          scaledSize: getMarkerIcon(device.lastValidHeading).scaledSize,
-          anchor: new google.maps.Point(25, 50),
-        },
+        icon: getMarkerIcon(device.lastValidHeading),
       });
 
       marker.addListener('click', () => {
         popup1.setMap(map);
-
-        if (popup2.getMap()) {
-          popup2.setMap(null);
-        } else {
-          popup2.setMap(map);
-        }
+        popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
       });
 
       marker.addListener('position_changed', () => {
@@ -248,44 +204,58 @@ export default function RequestPage() {
     });
   }, [deviceList]);
 
-  const centerMap = useCallback(() => {
-    if (map) {
-      map.setCenter(center);
-      map.setZoom(12);
+  const handleFollowLinkClick = useCallback((e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('follow-link')) {
+      e.preventDefault();
+      const deviceID = target.getAttribute('data-device-id');
+      const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
+      window.open(url, '_blank');
     }
-  }, [map]);
-
-  const centerUnit = useCallback((coords: { latitud: number; longitud: number }) => {
-    if (map) {
-      const centerCoords = { lat: coords.latitud, lng: coords.longitud };
-      map.setCenter(centerCoords);
-      map.setZoom(17);
-      
-      const deviceID = deviceList.find(device => device.lastValidLatitude === coords.latitud && device.lastValidLongitude === coords.longitud)?.deviceId;
-  
-      if (deviceID && popupsRef2.current[deviceID]) {
-        popupsRef2.current[deviceID].setMap(map);
-      }
-    }
-  }, [map, deviceList]);
-
-
-  useEffect(() => {
-    if (map) {
-      createMarkersAndPopups(map);
-    }
-  }, [map, createMarkersAndPopups]);
-
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
   }, []);
 
-  const onUnmount = useCallback((map: google.maps.Map) => {
+  useEffect(() => {
+    document.addEventListener('click', handleFollowLinkClick);
+    return () => {
+      document.removeEventListener('click', handleFollowLinkClick);
+    };
+  }, [handleFollowLinkClick]);
+
+  const centerMap = useCallback(() => {
+    if (mapRef.current) {
+      mapRef.current.setCenter(center);
+      mapRef.current.setZoom(12);
+    }
+  }, []);
+
+  const centerUnit = useCallback((coords: { latitud: number; longitud: number }) => {
+    if (mapRef.current) {
+      const centerCoords = { lat: coords.latitud, lng: coords.longitud };
+      mapRef.current.setCenter(centerCoords);
+      mapRef.current.setZoom(17);
+      const deviceID = deviceList.find(device => device.lastValidLatitude === coords.latitud && device.lastValidLongitude === coords.longitud)?.deviceId;
+      if (deviceID && popupsRef2.current[deviceID]) {
+        popupsRef2.current[deviceID].setMap(mapRef.current);
+      }
+    }
+  }, [deviceList]);
+
+  useEffect(() => {
+    if (mapRef.current) {
+      createMarkersAndPopups(mapRef.current);
+    }
+  }, [mapRef.current, createMarkersAndPopups]);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  const onUnmount = useCallback(() => {
     markersRef.current.forEach(marker => marker.setMap(null));
     popupsRef.current.forEach(popup => popup.setMap(null));
     markersRef.current = [];
     popupsRef.current = [];
-    setMap(null);
+    mapRef.current = null;
   }, []);
 
   return isLoaded ? (
@@ -305,7 +275,5 @@ export default function RequestPage() {
     >
       <Sidebar centerMap={centerMap} centerUnit={centerUnit}/>
     </GoogleMap>
-  ) : (
-    <></>
-  );
+  ) : <></>;
 }

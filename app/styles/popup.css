@@ -20,11 +20,27 @@
   .popup-bubble {
     /* Position the bubble centred-above its parent. */
     position: absolute;
-    top: -50px;
+    top: -35px;
     left: 0px;
     transform: translate(-50%, -100%);
     /* Style the bubble. */
     background-color: #f85454;
+    padding: 7px;
+    border-radius: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-y: auto;
+  }
+
+  .popup-bubble-unit {
+    /* Position the bubble centred-above its parent. */
+    position: absolute;
+    top: -35px;
+    left: 0px;
+    transform: translate(-50%, -100%);
+    /* Style the bubble. */
+    background-color: #fff;
     padding: 7px;
     border-radius: 5px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -78,8 +94,8 @@
   .popup-bubble-anchor::after {
     content: "";
     position: absolute;
-    top: -50px;
-    left: -12px;
+    top: -35px;
+    left: 0px;
     /* Center the tip horizontally. */
     transform: translate(-50%, 0);
     /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
@@ -91,6 +107,32 @@
     border-top: 8px solid #f85454;
   }
   
+  /* The parent of the bubble. A zero-height div at the top of the tip. */
+  .popup-bubble-unit-anchor {
+    /* Position the div a fixed distance above the tip. */
+    position: absolute;
+    width: 100%;
+    bottom: 8px;
+    left: 0;
+  }
+  
+  /* This element draws the tip. */
+  .popup-bubble-unit-anchor::after {
+    content: "";
+    position: absolute;
+    top: -35px;
+    left: 0px;
+    /* Center the tip horizontally. */
+    transform: translate(-50%, 0);
+    /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
+    width: 0;
+    height: 0;
+    /* The tip is 8px high, and 12px wide. */
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #fff;
+  }
+
   /* JavaScript will position this div at the bottom of the popup tip. */
   .popup-container {
     cursor: auto;
