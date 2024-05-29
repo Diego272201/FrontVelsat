@@ -20,7 +20,7 @@
   .popup-bubble {
     /* Position the bubble centred-above its parent. */
     position: absolute;
-    top: -50px;
+    top: -35px;
     left: 0px;
     transform: translate(-50%, -100%);
     /* Style the bubble. */
@@ -78,8 +78,8 @@
   .popup-bubble-anchor::after {
     content: "";
     position: absolute;
-    top: -50px;
-    left: -12px;
+    top: -35px;
+    left: 0px;
     /* Center the tip horizontally. */
     transform: translate(-50%, 0);
     /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
