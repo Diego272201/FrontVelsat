@@ -3,8 +3,9 @@
     --PrimaryGradientBlue: linear-gradient(#1C5ED8, #061D99);
     --PrimaryGradientOrange: linear-gradient(#FF6300, #F7931E);
     --PrimaryGray: #e9ecef;
+    
     --PrimaryOrange: #FB7B0F;
     --CodText: #495057;
     --VelText: #6c757d;
-    --ColorPlaceHolder: #fff9;
+    --ColorPlaceHolder: rgba(255, 255, 255, 0.815);
 }
