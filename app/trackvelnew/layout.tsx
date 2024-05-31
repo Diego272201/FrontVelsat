@@ -1,7 +1,6 @@
 'use client'
 import Sidebar from '../components/Sidebar';
 import Tollbar from '../components/Tollbar';
-import { ReportProvider } from '../context/ReportProvider';
 import SideNav from '../ui/dashboard/sidenav';
 import { BrowserRouter as Router } from 'react-router-dom';
 

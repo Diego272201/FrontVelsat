@@ -10,6 +10,7 @@
   "dependencies": {
     "@heroicons/react": "^2.0.18",
     "@internationalized/date": "^3.5.2",
+    "@microsoft/signalr": "^8.0.0",
     "@nextui-org/date-picker": "^2.0.7",
     "@nextui-org/react": "^2.2.10",
     "@react-google-maps/api": "^2.19.3",

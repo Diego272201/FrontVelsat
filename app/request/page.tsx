@@ -5,6 +5,10 @@ import '@/app/styles/popup.css';
 import axios from 'axios';
 import { urlDeviceList } from '../components/urlsApi/urlApi';
 import Sidebar from '../components/Sidebar';
+import * as signalR from '@microsoft/signalr';
+import { useSession } from 'next-auth/react';
+import { error } from 'console';
+
 
 const containerStyle = {
   width: '100%',
@@ -22,34 +26,53 @@ interface DeviceList {
   lastValidLongitude: number;
   lastValidSpeed: number;
   direccion: string;
-  fechaActual: string;
   lastValidHeading: number;
 }
 
+interface fechaActual {
+  fechaActual: string;
+}
+
 export default function RequestPage() {
+
+  const {data: session, status } = useSession();
+
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const popupsRef = useRef<google.maps.OverlayView[]>([]);
   const popupsRef2 = useRef<{ [key: string]: google.maps.OverlayView }>({});
 
-  const fetchData = useCallback(async () => {
-    try {
-      const response = await axios.get(urlDeviceList);
-      const { fechaActual, datosDevice } = response.data;
-      const dataWithDate = datosDevice.map((device: DeviceList) => ({
-        ...device,
-        fechaActual
-      }));
-      setDeviceList(dataWithDate);
-    } catch (error) {
-      console.error('Error fetching data: ', error);
-    }
-  }, []);
+  const [fechaActual, setFechaActual] = useState<fechaActual>();
 
+ 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+
+    if(status === 'authenticated' && session) {
+
+      const username = session.user.username;
+      const hubUrl = `http://63.251.107.133:8586/dataHubDevice?username=${username}`;
+
+      const connection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .build();
+
+      
+      connection.start()
+        .then(() => connection.invoke('UnirGrupo', username))
+        .then(() => {
+          console.log(`Conexión SiganlR establecida y unida al grupo: ${username}`)
+        })
+        .catch((error) => {
+          console.error('Error al conectar con SignalR: ', error);
+        });
+
+        connection.on('ActualizarDatos', (datos) => {
+          setFechaActual(datos.fechaActual);
+          setDeviceList(datos.datosDevice);
+        }); 
+    } 
+  }, [status,session]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -155,7 +178,7 @@ export default function RequestPage() {
           <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
           <br>
           <span>ÚLTIMO REPORTE </span>
-          <span>${formatFecha(device.fechaActual)} </span>
+          <span>${fechaActual} </span>
           <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
           <span>Ubicación: ${device.direccion} </span>
           <a href="" class="follow-link" data-device-id="${device.deviceId}">Seguir</a>
