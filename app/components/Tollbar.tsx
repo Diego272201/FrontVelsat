@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import AppModal from './Modal';
 import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
-import { RiLogoutBoxLine } from "react-icons/ri";
+import { RiLogoutBoxLine } from 'react-icons/ri';
 
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@nextui-org/react';
@@ -81,11 +81,12 @@ const Tollbar = () => {
       <div className="menu__bar">
         <a href="/trackvelnew" title="Logo" className="logo">
           <img src="/LogoWeb.png" alt="" />
-          <div className='dataUser'>
-          <h3>TRACKVEL SYSTEM -</h3>
-          <h3 className="userInicio">Bienvenido Cgacela S.A.C</h3>
+          <div className="dataUser">
+            <h3 className="userInicio">
+              TRACKVEL SYSTEM : BIENVENIDO{' '}
+              {session?.user.username.toUpperCase()}
+            </h3>
           </div>
-       
         </a>
 
         <img
@@ -361,14 +362,14 @@ const Tollbar = () => {
 
           <li className="dropdown">
             {session?.user ? (
-              <Button
+              <button
+                className="exitToolbar"
                 color="primary"
                 onClick={() => signOut({ callbackUrl: '/' })}
               >
-                <RiLogoutBoxLine />
-
-                SALIR
-              </Button>
+                <img src="/exit.png" alt="" width={25} />
+                Salir
+              </button>
             ) : null}
           </li>
         </ul>

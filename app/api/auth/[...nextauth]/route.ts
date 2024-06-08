@@ -1,3 +1,4 @@
+import { urlLogin } from '@/app/components/urlsApi/urlApi';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
@@ -10,7 +11,7 @@ const handler = NextAuth({
         clave: { label: 'Clave', type: 'password' },
       },
       async authorize(credentials, req) {
-        const res = await fetch('http://63.251.107.133:8586/api/Login/login', {
+        const res = await fetch(urlLogin, {
           method: 'POST',
           body: JSON.stringify({
             login: credentials?.login,

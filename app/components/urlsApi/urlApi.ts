@@ -1,7 +1,9 @@
- const urlAPISimplifid = 'http://63.251.107.133:8586/api/DeviceList/simplified/cgacela';
+const baseUrl = 'http://66.240.210.125:8586/api';
 
- const urlReporteGeneral = 'http://63.251.107.133:8586/api/Reporting/general/2023-11-01T09:00/2023-11-01T23:00/c128-b6a726'
+const getSimplifiedDeviceListUrl = (deviceGroup: string): string => `${baseUrl}/DeviceList/simplified/${deviceGroup}`;
 
-const urlDeviceList = 'http://63.251.107.133:8586/api/DeviceList/cgacela'
 
- export {urlAPISimplifid, urlReporteGeneral, urlDeviceList}
+const getDeviceListUrl = (deviceGroup: string): string => `${baseUrl}/DeviceList/${deviceGroup}`;
+const urlLogin = 'http://66.240.210.125:8586/api/Login/login';
+
+export { getSimplifiedDeviceListUrl, getDeviceListUrl, urlLogin };

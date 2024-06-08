@@ -6,32 +6,39 @@ import { FiSearch } from 'react-icons/fi';
 import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
-
-import { urlAPISimplifid } from './urlsApi/urlApi';
+import { getSimplifiedDeviceListUrl } from './urlsApi/urlApi';
+import { useSession } from 'next-auth/react';
+import { FcSearch } from "react-icons/fc";
 
 interface SidebarProps {
   centerMap: () => void;
   centerUnit: (coords: { latitud: number, longitud: number }) => void;
 }
 
+interface UnidadData {
+  deviceId: string;
+  lastValidSpeed: number;
+  lastValidLatitude: number;
+  lastValidLongitude: number;
+}
+
 export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
-  interface UnidadData {
-    deviceId: string;
-    lastValidSpeed: number;
-    lastValidLatitude: number;
-    lastValidLongitude: number;
-  }
-
+  const {data: session, status} = useSession();
+  
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
 
+  
   useEffect(() => {
+    if(status === 'authenticated' && session){
+      const username = session.user.username;
+
     const fetchData = async () => {
       try {
-        const response = await axios.get(urlAPISimplifid);
+        const response = await axios.get(getSimplifiedDeviceListUrl(username.toString()));
         const data = response.data;
 
         setUnidades(data);
@@ -39,9 +46,10 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
         console.error('Error al obtener datos:', error);
       }
     };
-
+  
     fetchData();
-  }, []);
+  }
+  }, [status, session]);
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -59,10 +67,10 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     setLastCheckedId(id);
   };
 
-  const filteredUnidades = unidades.filter((unidad) =>
+  const filteredUnidades = unidades.length > 0 ? unidades.filter((unidad) =>
     unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
+  ) : [];
+  
   return (
     <div className="sidebarScroll">
       <input type="radio" name="opcion" id="muestra" onClick={showMenu} />
@@ -110,7 +118,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
           <div className="search">
             <div className="iconS">
-              <FiSearch className="iconSearch" />
+              <FcSearch  className="iconSearch" />
             </div>
             <input
               className="input"

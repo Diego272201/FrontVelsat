@@ -22,7 +22,7 @@ export default function RequestPageDetail() {
   const deviceId = searchParams.get('deviceId');
 
 
-  const detailRecorrido = `http://63.251.107.133:8586/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
+  const detailRecorrido = `http://66.240.210.125:8586/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
   
   interface UnidadDetalleRecorrido {
     longitude: number;

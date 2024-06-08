@@ -12,7 +12,6 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import { urlReporteGeneral } from '../urlsApi/urlApi';
 import SelectRows from '@/app/components/ui/SelectRows';
 
 interface Row {

@@ -1,143 +1,141 @@
-/* 
- * Always set the map height explicitly to define the size of the div element
- * that contains the map. 
- */
- #map {
-    height: 100%;
-  }
-  
-  /* 
-   * Optional: Makes the sample page fill the window. 
-   */
-  html,
-  body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* The popup bubble styling. */
-  .popup-bubble {
-    /* Position the bubble centred-above its parent. */
-    position: absolute;
-    top: -35px;
-    left: 0px;
-    transform: translate(-50%, -100%);
-    /* Style the bubble. */
-    background-color: #f85454;
-    padding: 7px;
-    border-radius: 5px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    overflow-y: auto;
-  }
+#map {
+  height: 100%;
+}
 
-  .popup-bubble-unit {
-    /* Position the bubble centred-above its parent. */
-    position: absolute;
-    top: -35px;
-    left: 0px;
-    transform: translate(-50%, -100%);
-    /* Style the bubble. */
-    background-color: #fff;
-    padding: 7px;
-    border-radius: 5px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    overflow-y: auto;
-  }
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
-  .content-custom-popup{
-    display: flex;
-    flex-direction: column;
-    max-height: 180px;
-    min-width: 250px;
-  }
+.popup-bubble {
+  position: absolute;
+  top: -35px;
+  left: 0px;
+  transform: translate(-50%, -100%);
+  background-color: #fca311;
+  padding: 7px;
+  border-radius: 5px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-y: auto;
+}
 
-  .content-custom-popup .follow-link {
-    position: absolute;
-    top: 6px;
-    right: 5px;
-    color: #343a40;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 12px;
-    font-weight: 400;
-  }
+.popup-bubble-unit {
+  /* Position the bubble centred-above its parent. */
+  position: absolute;
+  top: -35px;
+  left: 0px;
+  transform: translate(-50%, -100%);
+  /* Style the bubble. */
+  background-color: #fff;
+  padding: 7px;
+  border-radius: 5px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-y: auto;
+}
 
-  .content-custom-popup .popup-close-btn {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    background-color: #ced4da;
-    color: #343a40;
-    border: none;
-    border-radius: 50%;
-    font-size: 10px;
-    width: 15px;
-    height: 15px;
-    cursor: pointer;
-  }
-  
-  /* The parent of the bubble. A zero-height div at the top of the tip. */
-  .popup-bubble-anchor {
-    /* Position the div a fixed distance above the tip. */
-    position: absolute;
-    width: 100%;
-    bottom: 8px;
-    left: 0;
-  }
-  
-  /* This element draws the tip. */
-  .popup-bubble-anchor::after {
-    content: "";
-    position: absolute;
-    top: -35px;
-    left: 0px;
-    /* Center the tip horizontally. */
-    transform: translate(-50%, 0);
-    /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
-    width: 0;
-    height: 0;
-    /* The tip is 8px high, and 12px wide. */
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 8px solid #f85454;
-  }
-  
-  /* The parent of the bubble. A zero-height div at the top of the tip. */
-  .popup-bubble-unit-anchor {
-    /* Position the div a fixed distance above the tip. */
-    position: absolute;
-    width: 100%;
-    bottom: 8px;
-    left: 0;
-  }
-  
-  /* This element draws the tip. */
-  .popup-bubble-unit-anchor::after {
-    content: "";
-    position: absolute;
-    top: -35px;
-    left: 0px;
-    /* Center the tip horizontally. */
-    transform: translate(-50%, 0);
-    /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
-    width: 0;
-    height: 0;
-    /* The tip is 8px high, and 12px wide. */
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 8px solid #fff;
-  }
+.content-custom-popup {
+  display: flex;
+  flex-direction: column;
+  max-height: 180px;
+  min-width: 250px;
+}
 
-  /* JavaScript will position this div at the bottom of the popup tip. */
-  .popup-container {
-    cursor: auto;
-    height: 0;
-    position: absolute;
-    /* The max width of the info window. */
-    width: 200px;
-  }
+.content-custom-popup .follow-link {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  color: #343a40;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.content-custom-popup .popup-close-btn {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: #ced4da;
+  color: #343a40;
+  border: none;
+  border-radius: 50%;
+  font-size: 10px;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* The parent of the bubble. A zero-height div at the top of the tip. */
+.popup-bubble-anchor {
+  /* Position the div a fixed distance above the tip. */
+  position: absolute;
+  width: 100%;
+  bottom: 8px;
+  left: 0;
+}
+
+/* This element draws the tip. */
+.popup-bubble-anchor::after {
+  content: '';
+  position: absolute;
+  top: -35px;
+  left: 0px;
+  /* Center the tip horizontally. */
+  transform: translate(-50%, 0);
+  /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
+  width: 0;
+  height: 0;
+  /* The tip is 8px high, and 12px wide. */
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #fca311;
+}
+
+/* The parent of the bubble. A zero-height div at the top of the tip. */
+.popup-bubble-unit-anchor {
+  /* Position the div a fixed distance above the tip. */
+  position: absolute;
+  width: 100%;
+  bottom: 8px;
+  left: 0;
+}
+
+/* This element draws the tip. */
+.popup-bubble-unit-anchor::after {
+  content: '';
+  position: absolute;
+  top: -35px;
+  left: 0px;
+  /* Center the tip horizontally. */
+  transform: translate(-50%, 0);
+  /* The tip is a https://css-tricks.com/snippets/css/css-triangle/ */
+  width: 0;
+  height: 0;
+  /* The tip is 8px high, and 12px wide. */
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #fff;
+}
+
+/* JavaScript will position this div at the bottom of the popup tip. */
+.popup-container {
+  cursor: auto;
+  height: 0;
+  position: absolute;
+  /* The max width of the info window. */
+  width: 200px;
+}
+
+.popup-bubble,
+.popup-bubble-unit,
+.content-custom-popup {
+  user-select: none; /* Standard */
+}
+
+

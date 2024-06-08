@@ -1,5 +1,4 @@
 'use client';
-
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useContext, useEffect, useState } from 'react';
@@ -26,7 +25,7 @@ export default function page() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
-  const tableUrl = `http://63.251.107.133:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
+  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   //FORMATEAR FECHA
   const formatDate = (dateString:any) => {

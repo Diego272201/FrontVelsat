@@ -416,3 +416,15 @@ font-size: 0.88rem;
     transform: rotate(180deg);
   }
 }
+
+.exitToolbar{
+  background: transparent;
+  color: white;
+  height: 85px;
+  padding-top: 28px;
+  width: 50px;
+  margin-right: -10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

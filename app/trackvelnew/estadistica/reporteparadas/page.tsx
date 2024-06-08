@@ -27,7 +27,7 @@ export default function page() {
   const endDate = searchParams.get('endDate'); 
   const deviceId = searchParams.get('deviceId');
 
-  const tableUrl = `http://63.251.107.133:8586/api/Reporting/stops/${startDate}/${endDate}/${deviceId}`;
+  const tableUrl = `http://66.240.210.125:8586/api/Reporting/stops/${startDate}/${endDate}/${deviceId}`;
 
   //FORMATEAR FECHA
   const formatDate = (dateString:any) => {

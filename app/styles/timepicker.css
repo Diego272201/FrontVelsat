@@ -1,0 +1,14 @@
+input{
+    background-color: #f4f4f5;
+    padding: 5px;
+    border-radius: 10px 0 0 10px;
+    color: #000000a9;
+}
+
+input:focus {
+    outline: none;
+}
+
+input:last-child{
+    border-radius: 0 10px 10px 0;
+}

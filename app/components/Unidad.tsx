@@ -62,7 +62,7 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
       </div>
 
       <div className="velocidad-carro">
-        <p id="cod_unidad">{velocidad} Km/h </p>
+        <p id="cod_unidad">{velocidad.toFixed(0)} Km/h </p>
       </div>
 
       <div className="luz-carro">

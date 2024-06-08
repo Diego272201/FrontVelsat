@@ -46,7 +46,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, name
   };
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque">
+    <Modal isOpen={isOpen} onOpenChange={onClose} size="xl" backdrop="opaque" className='modalEstilo'>
       <ModalContent>
         {(onClose) => (
           <>

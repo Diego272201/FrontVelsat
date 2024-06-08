@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import axios from 'axios';
-import { urlDeviceList } from '../components/urlsApi/urlApi';
+import { getDeviceListUrl } from '../components/urlsApi/urlApi';
 
 interface DeviceList {
   deviceId: string;
@@ -41,7 +41,7 @@ export default function SeguirUnidad() {
 
   const fetchUnitList = async (deviceId: string) => {
     try {
-      const response = await axios.get(urlDeviceList);
+      const response = await axios.get(getDeviceListUrl('cgacela'));
       const { fechaActual, datosDevice } = response.data;
       const dataWithDate = datosDevice.map((device: DeviceList) => ({
         ...device,
