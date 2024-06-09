@@ -118,7 +118,6 @@ export default function RequestPage() {
     const existingMarkers = markersRef.current;
     const existingPopups = popupsRef.current;
     
-      
     deviceList.forEach((device) => {
       const position = new google.maps.LatLng(device.lastValidLatitude, device.lastValidLongitude);
   
