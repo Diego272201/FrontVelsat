@@ -37,5 +37,9 @@ body {
   padding-bottom: 15px;
 }
 
+.popup-hidden {
+  display: none;
+}
+
 
 /* ACA TERMINA LOS ESTILOS DEL REPORTE */

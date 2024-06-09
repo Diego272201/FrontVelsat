@@ -139,3 +139,6 @@ body {
 }
 
 
+.popup-container {
+  display: none;
+}

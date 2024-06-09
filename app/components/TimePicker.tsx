@@ -25,6 +25,7 @@ export default function App(props: AppProps) {
     if (date && time) {
       const combinedDateTime = `${date}T${time}`;
       props.onDateSelect(combinedDateTime);
+
     }
   };
 
@@ -41,6 +42,8 @@ export default function App(props: AppProps) {
         type="time"
         value={selectedTime}
         onChange={handleTimeChange}
+        min="00:00"
+        max="23:59"
       />
     </div>
   );
