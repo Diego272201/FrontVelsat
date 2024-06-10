@@ -12,8 +12,8 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import { urlReporteGeneral } from '../urlsApi/urlApi';
 import SelectRows from '@/app/components/ui/SelectRows';
+import Image from 'next/image';
 
 interface Row {
   item: number;
@@ -126,7 +126,7 @@ export default function App({ url }: AppProps) {
             <TableCell >
               <div className='centerMap'>
               <a href="#" >
-                <img src="/map.png" alt="" width={25} />
+                <Image src="/map.png" alt="" width={25} height={'1000'}/>
               </a>
               </div>
    

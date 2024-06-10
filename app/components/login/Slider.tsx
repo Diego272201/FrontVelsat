@@ -8,6 +8,7 @@ import 'swiper/css/effect-fade';
 import '@/app/styles/slider.css';
 
 import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules';
+import Image from 'next/image';
 
 export default function Slider() {
   return (
@@ -29,13 +30,13 @@ export default function Slider() {
         effect={'fade'}
       >
         <SwiperSlide>
-          <img src="/slider1.jpg" alt="" />
+          <Image src="/slider1.jpg" alt="" width={'1000'} height={'1000'}/>
         </SwiperSlide>
         <SwiperSlide>
-          <img src="/slider2.jpg" alt="" />
+          <Image src="/slider2.jpg" alt="" width={'1000'} height={'1000'}/>
         </SwiperSlide>
         <SwiperSlide>
-          <img src="/slider3.jpg" alt="" />
+          <Image src="/slider3.jpg" alt="" width={'1000'} height={'1000'}/>
         </SwiperSlide>
       </Swiper>
     </>

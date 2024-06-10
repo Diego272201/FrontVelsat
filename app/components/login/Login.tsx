@@ -8,6 +8,7 @@ import { EyeFilledIcon } from './EyeSlashFilledIcon';
 import Slider from './Slider';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -49,7 +50,7 @@ export default function Login() {
 
       <div className="formLogin">
         <div className="imgCenter">
-          <img src="/velsatLogo.png" alt="LogoVelsat" />
+          <Image src="/velsatLogo.png" alt="LogoVelsat" width={'100'} height={'100'}/>
         </div>
 
         <h2>¡ Bienvenido de vuelta !</h2>

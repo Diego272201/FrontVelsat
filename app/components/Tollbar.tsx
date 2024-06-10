@@ -4,12 +4,12 @@ import { TbLiveView } from 'react-icons/tb';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import AppModal from './Modal';
 import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
 import { RiLogoutBoxLine } from 'react-icons/ri';
 
 import { signOut, useSession } from 'next-auth/react';
 import { Button } from '@nextui-org/react';
+import Image from 'next/image';
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -80,7 +80,7 @@ const Tollbar = () => {
       <div className="tollbar-bg"></div>
       <div className="menu__bar">
         <a href="/trackvelnew" title="Logo" className="logo">
-          <img src="/LogoWeb.png" alt="" />
+          <Image src="/LogoWeb.png" alt="" width={'1000'} height={'1000'}/>
           <div className="dataUser">
             <h3 className="userInicio">
               TRACKVEL SYSTEM : BIENVENIDO{' '}
@@ -89,24 +89,26 @@ const Tollbar = () => {
           </div>
         </a>
 
-        <img
+        <Image
           className="menu-icon"
           src={isMobileMenuOpen ? '/cerrar.png' : '/menu.png'}
           title="Burger Menu"
           alt="Burger Menu"
           onClick={toggleMenu}
+          width={'1000'} height={'1000'}
         />
         <ul
           className={`navigation ${
             isMobileMenuOpen ? 'navigation--mobile' : ''
           }`}
         >
-          <img
+          <Image
             className="menu-icon mobileicon"
             src={isMobileMenuOpen ? '/cerrar.png' : '/menu.png'}
             title="Burger Menu"
             alt="Burger Menu"
             onClick={toggleMenu}
+            width={'1000'} height={'1000'}
           />
 
           <li className="dropdown">
@@ -367,7 +369,7 @@ const Tollbar = () => {
                 color="primary"
                 onClick={() => signOut({ callbackUrl: '/' })}
               >
-                <img src="/exit.png" alt="" width={25} />
+                <Image src="/exit.png" alt="" width={25} height={'1000'}/>
                 Salir
               </button>
             ) : null}

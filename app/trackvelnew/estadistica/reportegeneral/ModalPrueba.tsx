@@ -12,6 +12,7 @@ import {
 import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
 import ButtonDownload from '@/app/components/ui/Button';
+import Image from 'next/image';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, name
           <>
             <ModalHeader className="contenidoM flex flex-col gap-1">
               <div className="headerModal">
-                <img src="/gpsLogo.png" alt="" width={50} />
+                <Image src="/gpsLogo.png" alt="" width={50} height={'1000'}/>
                 <p>{titulo}</p>
               </div>
             </ModalHeader>
