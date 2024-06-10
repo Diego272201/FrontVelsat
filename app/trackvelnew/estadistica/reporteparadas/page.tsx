@@ -11,16 +11,9 @@ import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
   
-export default function page() {
-  
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState('15');
-
-  const handleSelectRowsChange = (value:any) => {
-    setSelectedRowsPerPage(value);
-  };
+export default function Page() {
 
   const location = useLocation();
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
