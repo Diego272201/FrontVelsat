@@ -9,8 +9,10 @@ import { IoCarSport } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
+import { useSession } from 'next-auth/react';
   
 export default function Page() {
+  const { data: session } = useSession();
 
   const location = useLocation();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -55,8 +57,8 @@ export default function Page() {
           <div className="userReporte">
             <FaUser style={{ color: '#0d3b66' }} size={22} />
             <p>
-              <span className="resaltar"> USUARIO:</span>
-              CORPORACION CGACELA S.A.C
+              <span className="resaltar"> USUARIO: </span>
+              {session?.user.username.toUpperCase()}
             </p>
           </div>
           <div className="userReporte">
