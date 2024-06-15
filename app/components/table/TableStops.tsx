@@ -105,13 +105,18 @@ export default function App({ url }: AppProps) {
         <TableColumn key="fechafinal" className='headerColumT'>FECHA FINAL</TableColumn>
         <TableColumn key="horafinal" className='headerColumT'>HORA FINAL</TableColumn>
         <TableColumn key="speedKPH" className='headerColumT'>TIEMPO TOTAL</TableColumn>
-        <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
         <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
+        <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
         <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
         <TableColumn className='headerColumT'>VER MAPA</TableColumn>
       </TableHeader>
 
-      <TableBody emptyContent={<Spinner />} items={isLoading ? [] : items}>
+      <TableBody 
+          emptyContent={
+            isLoading ? <Spinner /> : <div>No hay datos para las fechas ingresadas</div>
+          } 
+          items={isLoading || rows.length === 0 ? [] : items}
+        >
         {(item) => (
           <TableRow key={item.item}>
             <TableCell className='centerCell'>{item.item}</TableCell>
@@ -120,8 +125,8 @@ export default function App({ url }: AppProps) {
             <TableCell className='centerCell'>{item.endDate}</TableCell>
             <TableCell className='centerCell'>{item.endTime}</TableCell>
             <TableCell className='centerCell'>{item.totalTime}</TableCell>
-            <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
             <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
+            <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
             <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
             <TableCell >
               <div className='centerMap'>

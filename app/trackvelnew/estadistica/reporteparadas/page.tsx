@@ -86,6 +86,7 @@ export default function Page() {
           endDate={endDate || ''}
           devideId={deviceId || ''}
           namedown='downloadExcelS'
+          namedesc="paradas"
         />
       </div>
 

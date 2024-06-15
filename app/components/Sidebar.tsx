@@ -28,7 +28,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
 
   
@@ -73,7 +73,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   
   return (
     <div className="sidebarScroll">
-      <input type="radio" name="opcion" id="muestra" onClick={showMenu} />
+      <input type="radio" name="opcion" id="muestra" onClick={showMenu} defaultChecked={showDropdown} />
       <input
         type="radio"
         name="opcion"

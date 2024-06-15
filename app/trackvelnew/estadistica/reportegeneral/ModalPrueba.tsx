@@ -20,10 +20,11 @@ interface AppModalProps {
   titulo: string;
   nameurl: string;
   namedown: string;
+  namedesc: string;
   showDownloadButton: boolean;
 }
 
-const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, nameurl, namedown, showDownloadButton }) => {
+const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, nameurl, namedown, namedesc, showDownloadButton }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -83,6 +84,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, name
                     endDate={endDate}
                     devideId={selectedDeviceId}
                     namedown={namedown}
+                    namedesc={namedesc}
                   />
                 </div>
                 )}

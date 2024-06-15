@@ -88,6 +88,7 @@ export default function Page() {
           endDate={endDate || ''}
           devideId={deviceId || ''}
           namedown='downloadExcelG'
+          namedesc="general"
         />
       </div>
 

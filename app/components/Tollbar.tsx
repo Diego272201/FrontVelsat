@@ -382,6 +382,7 @@ const Tollbar = () => {
         titulo="REPORTE GENERAL"
         nameurl="reportegeneral"
         namedown="downloadExcelG"
+        namedesc="general"
         showDownloadButton={true}
       />
       <AppModalPrueba
@@ -390,6 +391,7 @@ const Tollbar = () => {
         titulo="REPORTE DE PARADAS"
         nameurl="reporteparadas"
         namedown="downloadExcelS"
+        namedesc="paradas"
         showDownloadButton={true}
       />
       <AppModalPrueba
@@ -398,6 +400,7 @@ const Tollbar = () => {
         titulo="DETALLE RECORRIDO"
         nameurl="detallerecorrido"
         namedown=""
+        namedesc=""
         showDownloadButton={false}
       />
     </div>

@@ -30,13 +30,13 @@ export default function Slider() {
         effect={'fade'}
       >
         <SwiperSlide>
-          <Image src="/slider1.jpg" alt="" width={'1000'} height={'1000'}/>
+          <Image src="/slider1.jpg" alt="" width={'1000'} height={'1000'} priority/>
         </SwiperSlide>
         <SwiperSlide>
-          <Image src="/slider2.jpg" alt="" width={'1000'} height={'1000'}/>
+          <Image src="/slider2.jpg" alt="" width={'1000'} height={'1000'} priority/>
         </SwiperSlide>
         <SwiperSlide>
-          <Image src="/slider3.jpg" alt="" width={'1000'} height={'1000'}/>
+          <Image src="/slider3.jpg" alt="" width={'1000'} height={'1000'} priority/>
         </SwiperSlide>
       </Swiper>
     </>

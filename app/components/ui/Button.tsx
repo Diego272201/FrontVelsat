@@ -8,6 +8,7 @@ interface DownloadParameterProps {
   endDate: string;
   devideId: string;
   namedown: string;
+  namedesc: string
 }
 
 export default function ButtonDownload({
@@ -15,6 +16,7 @@ export default function ButtonDownload({
   endDate,
   devideId,
   namedown,
+  namedesc
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -52,10 +54,10 @@ export default function ButtonDownload({
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       const url = window.URL.createObjectURL(blob);
-
+      const fileName = `reporte_${namedesc}_gps_${devideId}.xlsx`;
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'reporte_gps.xlsx');
+      link.setAttribute('download', fileName);
 
       link.addEventListener('load', () => {
         setIsLoading(false);
