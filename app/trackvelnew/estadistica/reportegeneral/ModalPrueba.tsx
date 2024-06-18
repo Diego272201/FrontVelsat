@@ -100,6 +100,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({ isOpen, onClose, titulo, name
                     showAnchorIcon
                     variant="solid"
                     className='btn'
+                    target='_blank'
                   >
                     Mostrar
                   </Button>
