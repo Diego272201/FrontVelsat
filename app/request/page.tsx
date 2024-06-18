@@ -1,12 +1,10 @@
 'use client';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
-import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
-import { error } from 'console';
 
 const containerStyle = {
   width: '100%',
@@ -46,6 +44,8 @@ export default function RequestPage() {
 
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
+        .withAutomaticReconnect()
+        .configureLogging(signalR.LogLevel.Information)
         .build();
 
       connection.start()
@@ -61,6 +61,8 @@ export default function RequestPage() {
         setFechaActual(datos.fechaActual);
         setDeviceList(datos.datosDevice);
       });
+
+
     }
   }, [status,session]);
 
@@ -69,17 +71,18 @@ export default function RequestPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  const formatFecha = (fecha: any) => {
+  const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}`;
-  };
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}:${seconds}`;
+  }, []);
 
-  const getDireccion = (heading:number) => {
+  const getDireccion = useCallback ((heading:number) => {
     if (heading >= 0 && heading <= 22.5) return "Norte";
     if (heading>=22.51 && heading<=67.50) return "Noreste";
     if (heading>=67.51 && heading<=112.50) return "Este";
@@ -90,9 +93,9 @@ export default function RequestPage() {
     if (heading>=292.51 && heading<=337.50) return "Noroeste";
     if (heading>=337.51 && heading<=360.00) return "Norte";
     return "Desconocido";
-  };
+  }, []);
 
-  const getMarkerIcon = (heading: number) => {
+  const getMarkerIcon = useCallback ((heading: number) => {
     const directions = [
       { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
       { range: [22.51, 67.50], url: '/topright.png', size: new google.maps.Size(42, 25) },
@@ -105,16 +108,16 @@ export default function RequestPage() {
       { range: [337.51, 360.00], url: '/up.png', size: new google.maps.Size(25, 35) },
     ];
     const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
-    
     return direction ? { url: direction.url, scaledSize: direction.size } : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-  };
+  }, []);
 
+const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "Movimiento", []);
 
-
-  const getEstado = (speed: number) => speed < 10 ? "Estacionado" : "Movimiento";
-
+  
   const createMarkersAndPopups = useCallback((map: google.maps.Map) => {
-    
+
+    if (!map) return;
+
     const existingMarkers = markersRef.current;
     const existingPopups = popupsRef.current;
     
@@ -136,7 +139,7 @@ export default function RequestPage() {
               if (closeButton && !closeButton.hasAttribute('data-event-added')) {
                   closeButton.setAttribute('data-event-added', 'true');
                   closeButton.addEventListener('click', () => {
-                      existingPopups[device.deviceId].setMap(null);
+                  existingPopups[device.deviceId].setMap(null);
                   });
               }
           }
@@ -310,6 +313,14 @@ export default function RequestPage() {
     mapRef.current = null;
   }, []);
 
+  const memoizedMapOptions = useMemo(() => ({
+    mapTypeControl: false,
+    fullscreenControl: true,
+    fullscreenControlOptions: {
+      position: 4,
+    },
+  }), []);
+
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
@@ -317,13 +328,7 @@ export default function RequestPage() {
       zoom={12}
       onLoad={onLoad}
       onUnmount={onUnmount}
-      options={{
-        mapTypeControl: false,
-        fullscreenControl: true,
-        fullscreenControlOptions: {
-          position: google.maps.ControlPosition.BOTTOM_RIGHT,
-        },
-      }}
+      options={memoizedMapOptions}
     >
       <Sidebar centerMap={centerMap} centerUnit={centerUnit}/>
     </GoogleMap>

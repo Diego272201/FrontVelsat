@@ -1,15 +1,12 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import 'swiper/css/effect-fade';
 import '@/app/styles/slider.css';
-
 import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules';
 import Image from 'next/image';
-
 export default function Slider() {
   return (
     <>

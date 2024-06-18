@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
 import { TbView360 } from 'react-icons/tb';
-import { FiSearch } from 'react-icons/fi';
 import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
@@ -32,25 +31,23 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
 
   
+  const fetchData = useCallback(async (username: string) => {
+    try {
+      const response = await axios.get(getSimplifiedDeviceListUrl(username));
+      setUnidades(response.data);
+    } catch (error) {
+      console.error('Error al obtener datos:', error);
+    }
+  }, []);
+
   useEffect(() => {
-    if(status === 'authenticated' && session){
-      const username = session.user.username;
+    if (status === 'authenticated' && session) {
+      fetchData(session.user.username);
+    }
+  }, [status, session, fetchData]);
 
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(getSimplifiedDeviceListUrl(username.toString()));
-        const data = response.data;
 
-        setUnidades(data);
-      } catch (error) {
-        console.error('Error al obtener datos:', error);
-      }
-    };
   
-    fetchData();
-  }
-  }, [status, session]);
-
   const showMenu = () => {
     setShowDropdown(true);
   };
@@ -59,18 +56,25 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     setShowDropdown(false);
   };
 
-  const handleSelectUnit = (coords: { latitud: number, longitud: number }) => {
+  const handleSelectUnit = useCallback((coords: { latitud: number, longitud: number }) => {
     centerUnit(coords);
-  };
+  }, [centerUnit]);
 
-  const handleCheckboxChange = (id: string) => {
+
+  const handleCheckboxChange = useCallback((id: string) => {
     setLastCheckedId(id);
-  };
+  }, []);
 
-  const filteredUnidades = unidades.length > 0 ? unidades.filter((unidad) =>
-    unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
-  ) : [];
-  
+
+  const filteredUnidades = useMemo(() => 
+    unidades.filter((unidad) =>
+      unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase())
+    ), [unidades, searchTerm]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    };
+
   return (
     <div className="sidebarScroll">
       <input type="radio" name="opcion" id="muestra" onClick={showMenu} defaultChecked={showDropdown} />
@@ -125,7 +129,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
               type="search"
               placeholder="Buscar unidad"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
             />
           </div>
 
