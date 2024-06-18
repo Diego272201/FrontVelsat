@@ -72,6 +72,7 @@ export default function Login() {
                 className="focus:outline-none"
                 type="button"
                 onClick={toggleVisibility}
+                aria-label={isVisible ? "Ocultar contenido" : "Mostrar contenido"}
               >
                 {isVisible ? (
                   <EyeSlashFilledIcon className="pointer-events-none text-2xl text-default-400" />

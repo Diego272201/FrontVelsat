@@ -317,7 +317,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
     mapTypeControl: false,
     fullscreenControl: true,
     fullscreenControlOptions: {
-      position: 4,
+      position: 9,
     },
   }), []);
 
