@@ -8,6 +8,7 @@ import axios from 'axios';
 import { getSimplifiedDeviceListUrl } from './urlsApi/urlApi';
 import { useSession } from 'next-auth/react';
 import { FcSearch } from "react-icons/fc";
+import { Spinner } from '@nextui-org/react';
 
 interface SidebarProps {
   centerMap: () => void;
@@ -24,19 +25,24 @@ interface UnidadData {
 export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
   const {data: session, status} = useSession();
-  
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
+  const [idLoading, setIsLoading] = useState(false);
+
 
   
   const fetchData = useCallback(async (username: string) => {
+    setIsLoading(true);
+
     try {
       const response = await axios.get(getSimplifiedDeviceListUrl(username));
       setUnidades(response.data);
     } catch (error) {
       console.error('Error al obtener datos:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -130,11 +136,21 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
               placeholder="Buscar unidad"
               value={searchTerm}
               onChange={handleSearchChange}
-            />
+              style={{ borderRadius: '0px'}}
+              />
           </div>
 
           <div className="unidadesScroll">
-            {filteredUnidades.map((unidad, index) => (
+
+            {idLoading ? (
+              <div className="centerSpinner">
+              <Spinner /> 
+
+              </div>
+            
+            ) :( 
+
+            filteredUnidades.map((unidad, index) => (
               <Unidad
                 key={index}
                 codigoUnidad={unidad.deviceId.toUpperCase()}
@@ -145,7 +161,8 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
                 lastCheckedId={lastCheckedId}
                 onCheckboxChange={handleCheckboxChange}
               />
-            ))}
+            ))
+          )}
           </div>
         </div>
       </div>

@@ -10,8 +10,6 @@ import { Toaster, toast } from 'sonner';
 import { EyeFilledIcon } from './EyeSlashFilledIcon';
 import Slider from './Slider';
 
-
-
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
   const [login, setLogin] = useState('');
@@ -21,9 +19,12 @@ export default function Login() {
 
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
+
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+      const toastId = toast.loading('Autenticando...');
+
       setErrors([]);
       const responseNextAuth = await signIn('credentials', {
         login,
@@ -32,17 +33,21 @@ export default function Login() {
       });
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
-        return;
+        toast.error('Error: ' + responseNextAuth.error, { id: toastId });
+
+        
+      } else {
+        toast.success('¡Autenticación exitosa!', { id: toastId });
+        router.push('/trackvelnew');
+
       }
-      router.push('/trackvelnew');
     },
     [login, clave, router],
   );
   return (
     <div className="login">
       <div className="imgLogin">
-      <Slider />
-
+        <Slider />
       </div>
       <div className="formLogin">
         <div className="imgCenter">
@@ -60,13 +65,13 @@ export default function Login() {
             label="Usuario"
             placeholder="Ingresar usuario"
             value={login}
-            onChange={(event:any) => setLogin(event.target.value)}
+            onChange={(event: any) => setLogin(event.target.value)}
           />
           <Input
             label="Password"
             placeholder="Ingresar password"
             value={clave}
-            onChange={(event:any) => setClave(event.target.value)}
+            onChange={(event: any) => setClave(event.target.value)}
             endContent={
               <button
                 className="focus:outline-none"
@@ -82,20 +87,16 @@ export default function Login() {
             }
             type={isVisible ? 'text' : 'password'}
           />
-          <Button className="buttonLogin" type="submit">
+          <Button className="buttonLogin" type="submit"         
+        >
             Iniciar sesión
           </Button>
         </form>
       </div>
-      <button onClick={() => toast('My first toast')}>Give me a toast</button>
-      <Toaster></Toaster>
-      {errors.length > 0 && (
-        <div>
-          {errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </div>
-      )}
+
+      <Toaster closeButton richColors  ></Toaster>
+
+
     </div>
   );
 }

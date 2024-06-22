@@ -146,7 +146,7 @@ label[id^='label'] {
   padding: 0 1rem;
   padding-left: 2.3rem;
   border: 2px solid transparent;
-  border-radius: 6px;
+  border-radius: 0px;
   outline: none;
   background-color: var(--PrimaryOrange);
   color: white;
