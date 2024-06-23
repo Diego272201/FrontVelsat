@@ -34,11 +34,12 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
   
   const fetchData = useCallback(async (username: string) => {
-    setIsLoading(true);
+   
 
     try {
       const response = await axios.get(getSimplifiedDeviceListUrl(username));
       setUnidades(response.data);
+      setIsLoading(true);
     } catch (error) {
       console.error('Error al obtener datos:', error);
     } finally {
