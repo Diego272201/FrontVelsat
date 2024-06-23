@@ -5,6 +5,8 @@ import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
+import { Spinner } from '@nextui-org/react';
+import Loader from '../components/Loader';
 
 const containerStyle = {
   width: '100%',
@@ -36,6 +38,7 @@ export default function RequestPage() {
   const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
   const popupsRef = useRef<{ [key: string]: google.maps.OverlayView }>({});
   const [fechaActual, setFechaActual] = useState<fechaActual>();
+  const [markersLoaded, setMarkersLoaded] = useState(false);
 
   useEffect(() => {
     if(status === 'authenticated' && session) {
@@ -52,6 +55,8 @@ export default function RequestPage() {
         .then(() => connection.invoke('UnirGrupo', username))
         .then(() => {
           console.log(`Conexión SiganlR establecida y unida al grupo: ${username}`)
+          setMarkersLoaded(true);
+
         })
         .catch((error) => {
           console.error('Error al conectar con SignalR: ', error);
@@ -238,6 +243,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
       }
   });
   
+
   function getPopupContent(device: any) {
       return `
           <div class="content-custom-popup" id="content2-${device.deviceId}">
@@ -321,16 +327,24 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
     },
   }), []);
 
-  return isLoaded ? (
-    <GoogleMap
-      mapContainerStyle={containerStyle}
-      center={center}
-      zoom={12}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-      options={memoizedMapOptions}
-    >
-      <Sidebar centerMap={centerMap} centerUnit={centerUnit}/>
-    </GoogleMap>
-  ) : <></>;
+  return (
+    <>
+ {(!isLoaded || !markersLoaded) ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Loader  />
+        </div>
+      ) : (
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={center}
+          zoom={12}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={memoizedMapOptions}
+        >
+          <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
+        </GoogleMap>
+      )}
+    </>
+  );
 }

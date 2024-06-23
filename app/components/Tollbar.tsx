@@ -363,7 +363,7 @@ const Tollbar = () => {
           </li>
 
           <li className="dropdown">
-            {session?.user ? (
+         
               <button
                 className="exitToolbar"
                 color="primary"
@@ -372,7 +372,7 @@ const Tollbar = () => {
                 <Image src="/exit.png" alt="" width={25} height={'1000'}/>
                 Salir
               </button>
-            ) : null}
+   
           </li>
         </ul>
       </div>

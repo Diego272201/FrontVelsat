@@ -109,6 +109,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
                   <Button
                     href={`/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`}
                     as={Link}
+                    target='_blank'
                     color="primary"
                     showAnchorIcon
                     variant="solid"
