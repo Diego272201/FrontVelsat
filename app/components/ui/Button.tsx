@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import '@/app/styles/components.css';
 import axios from 'axios';
+import { toast } from 'sonner';
+import '@/app/styles/sonner.css';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -22,6 +24,23 @@ export default function ButtonDownload({
   const [progress, setProgress] = useState(0);
 
   const handleDownload = async () => {
+    const toastId = toast('Descarga en proceso...', {className:'toast-slide-in'});
+
+    if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
+      toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 3) {
+      toast.error('El límite de fechas es de 3 días', { id: toastId, className: 'toast-slide-in', richColors:true});
+      return;
+    }
+
     setIsLoading(true);
     setProgress(0);
 
@@ -69,6 +88,9 @@ export default function ButtonDownload({
 
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+
+      toast.success('Descarga completada', { id: toastId, className:'toast-slide-in', richColors:true});
+
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
       setIsLoading(false);

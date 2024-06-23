@@ -12,20 +12,29 @@ export default function App(props: AppProps) {
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = event.target.value;
     setSelectedDate(newDate);
-    combineDateTime(newDate, selectedTime);
+    if (!newDate) {
+      props.onDateSelect('');
+    } else {
+      combineDateTime(newDate, selectedTime);
+    }
   };
 
   const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = event.target.value;
     setSelectedTime(newTime);
-    combineDateTime(selectedDate, newTime);
+    if (!newTime) {
+      props.onDateSelect('');
+    } else {
+      combineDateTime(selectedDate, newTime);
+    }
   };
 
   const combineDateTime = (date: string, time: string) => {
     if (date && time) {
       const combinedDateTime = `${date}T${time}`;
       props.onDateSelect(combinedDateTime);
-
+    } else {
+      props.onDateSelect('');
     }
   };
 

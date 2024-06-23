@@ -1,0 +1,15 @@
+/* styles/animations.css */
+@keyframes slideInFromTop {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  .toast-slide-in {
+    animation: slideInFromTop 0.5s ease forwards;
+  }
