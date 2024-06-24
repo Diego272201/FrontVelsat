@@ -46,14 +46,12 @@ body {
   justify-content: center;
   align-items: center;
   height: 85%;
-
 }
 
 /* ACA TERMINA LOS ESTILOS DEL REPORTE */
 
 
 /* LOADER */
-
 
 .spinner {
   --size: 25px;

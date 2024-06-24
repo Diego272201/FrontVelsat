@@ -5,7 +5,6 @@ import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
-import { Spinner } from '@nextui-org/react';
 import Loader from '../components/Loader';
 
 const containerStyle = {
@@ -243,7 +242,6 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
       }
   });
   
-
   function getPopupContent(device: any) {
       return `
           <div class="content-custom-popup" id="content2-${device.deviceId}">
@@ -260,9 +258,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
           </div>
       `;
   }
-  
 
- 
   }, [deviceList]);
 
   const handleFollowLinkClick = useCallback((e: MouseEvent) => {
@@ -342,9 +338,11 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
           onUnmount={onUnmount}
           options={memoizedMapOptions}
         >
-          <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
         </GoogleMap>
       )}
+          <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
+
+
     </>
   );
 }
