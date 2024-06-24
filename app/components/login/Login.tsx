@@ -24,7 +24,7 @@ export default function Login() {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const toastId = toast.loading('Autenticando...');
-
+      
       setErrors([]);
       const responseNextAuth = await signIn('credentials', {
         login,

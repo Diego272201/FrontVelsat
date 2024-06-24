@@ -29,12 +29,11 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
-  const [idLoading, setIsLoading] = useState(false);
+  const [idLoading, setIsLoading] = useState(true);
 
 
   
   const fetchData = useCallback(async (username: string) => {
-   
 
     try {
       const response = await axios.get(getSimplifiedDeviceListUrl(username));
