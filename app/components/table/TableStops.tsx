@@ -29,17 +29,16 @@ interface Row {
 
 interface AppProps {
   url: string; 
-
+  selectedRowsPerPage: number;
+  onSelectedRowsPerPageChange: (value: number) => void;
 }
 
-export default function App({ url }: AppProps) {
+export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
   const [page, setPage] = React.useState(1);
 
   const [rows, setRows] = useState<Row[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
-
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
   useEffect(() => {
     const fetcData = async () => {
@@ -57,11 +56,6 @@ export default function App({ url }: AppProps) {
     fetcData();
   }, []);
 
-  const handleSelectRowsChange = (value: string) => {
-    setSelectedRowsPerPage(parseInt(value, 10));
-    setPage(1);
-  };
-
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
   const items = React.useMemo(() => {
@@ -73,7 +67,6 @@ export default function App({ url }: AppProps) {
 
   return (
     <div>
-      <SelectRows onChange={handleSelectRowsChange} />
     <Table
       selectionMode="single"
       align='left'

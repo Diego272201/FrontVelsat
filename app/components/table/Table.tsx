@@ -12,7 +12,6 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import SelectRows from '@/app/components/ui/SelectRows';
 import Image from 'next/image';
 
 interface Row {
@@ -27,17 +26,14 @@ interface Row {
 
 interface AppProps {
   url: string; 
-
+  selectedRowsPerPage: number;
+  onSelectedRowsPerPageChange: (value: number) => void;
 }
 
-export default function App({ url }: AppProps) {
+export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
   const [page, setPage] = React.useState(1);
-
   const [rows, setRows] = useState<Row[]>([]);
-
   const [isLoading, setIsLoading] = useState(true);
-
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
   useEffect(() => {
     const fetcData = async () => {
@@ -53,12 +49,7 @@ export default function App({ url }: AppProps) {
     };
 
     fetcData();
-  }, []);
-
-  const handleSelectRowsChange = (value: string) => {
-    setSelectedRowsPerPage(parseInt(value, 10));
-    setPage(1);
-  };
+  }, [url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
@@ -71,69 +62,68 @@ export default function App({ url }: AppProps) {
 
   return (
     <div>
-      <SelectRows onChange={handleSelectRowsChange} />
-    <Table
-      selectionMode="single"
-      align='left'
-      color="primary"
-      aria-label="Example table with client side pagination"
-      bottomContent={
-        <div className="flex w-full justify-center">
-          {rows.length > 0 && (
-            <Pagination
-              isCompact
-              showControls
-              showShadow
-              color="primary"
-              page={page}
-              total={pages}
-              onChange={(page) => setPage(page)}
-            />
-          )}
-        </div>
-      }
-      classNames={{
-        wrapper: 'min-h-[222px]',
-      }}
-    >
-      <TableHeader className='VERh'>
-        <TableColumn key="item" className='headerColumT'>ITEM</TableColumn>
-        <TableColumn key="fecha" className='headerColumT'>FECHA</TableColumn>
-        <TableColumn key="hora" className='headerColumT'>HORA</TableColumn>
-        <TableColumn key="speedKPH" className='headerColumT'>VELOCIDAD</TableColumn>
-        <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
-        <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
-        <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
-        <TableColumn className='headerColumT'>VER MAPA</TableColumn>
-      </TableHeader>
+      <Table
+        selectionMode="single"
+        align='left'
+        color="primary"
+        aria-label="Example table with client side pagination"
+        bottomContent={
+          <div className="flex w-full justify-center">
+            {rows.length > 0 && (
+              <Pagination
+                isCompact
+                showControls
+                showShadow
+                color="primary"
+                page={page}
+                total={pages}
+                onChange={(page) => setPage(page)}
+              />
+            )}
+          </div>
+        }
+        classNames={{
+          wrapper: 'min-h-[222px]',
+        }}
+      >
+        <TableHeader className='VERh'>
+          <TableColumn key="item" className='headerColumT'>ITEM</TableColumn>
+          <TableColumn key="fecha" className='headerColumT'>FECHA</TableColumn>
+          <TableColumn key="hora" className='headerColumT'>HORA</TableColumn>
+          <TableColumn key="speedKPH" className='headerColumT'>VELOCIDAD</TableColumn>
+          <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
+          <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
+          <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
+          <TableColumn className='headerColumT'>VER MAPA</TableColumn>
+        </TableHeader>
 
-      <TableBody 
-          emptyContent={
-            isLoading ? <Spinner /> : <div>No hay datos para las fechas ingresadas</div>
-          } 
-          items={isLoading || rows.length === 0 ? [] : items}
-        >
-        {(item) => (
-          <TableRow key={item.item}>
-            <TableCell className='centerCell'>{item.item}</TableCell>
-            <TableCell className='centerCell'>{item.fecha}</TableCell>
-            <TableCell className='centerCell'>{item.hora}</TableCell>
-            <TableCell className='centerCell'>{item.speedKPH}</TableCell>
-            <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
-            <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
-            <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
-            <TableCell >
-              <div className='centerMap'>
-              <a href="#" >
-                <Image src="/map.png" alt="" width={25} height={'1000'}/>
-              </a>
-              </div>
-   
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+        <TableBody 
+            emptyContent={
+              isLoading ? <Spinner /> : <div>No hay datos para las fechas ingresadas</div>
+            } 
+            items={isLoading || rows.length === 0 ? [] : items}
+          >
+          {(item) => (
+            <TableRow key={item.item}>
+              <TableCell className='centerCell'>{item.item}</TableCell>
+              <TableCell className='centerCell'>{item.fecha}</TableCell>
+              <TableCell className='centerCell'>{item.hora}</TableCell>
+              <TableCell className='centerCell'>{item.speedKPH}</TableCell>
+              <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
+              <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
+              <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
+              <TableCell >
+                <div className='centerMap'>
+                <a href="#" >
+                  <Image src="/map.png" alt="" width={25} height={'1000'}/>
+                </a>
+                </div>
+  
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

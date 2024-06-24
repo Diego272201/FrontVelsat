@@ -4,7 +4,7 @@ import { numbers } from './datarows';
 import '@/app/styles/selectrows.css';
 
 interface SelectRowsProps {
-  onChange: (value: string) => void;
+  onChange: (value: number) => void;
 }
 
 export default function SelectRows({ onChange }: SelectRowsProps) {
@@ -13,7 +13,7 @@ export default function SelectRows({ onChange }: SelectRowsProps) {
   const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
     setSelectedRows(value);
-    onChange(value);
+    onChange(Number(value));
   };
 
   return (

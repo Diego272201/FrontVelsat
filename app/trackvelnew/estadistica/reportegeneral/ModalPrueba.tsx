@@ -114,7 +114,6 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
                     showAnchorIcon
                     variant="solid"
                     className="btn"
-                    target="_blank"
                   >
                     Mostrar
                   </Button>

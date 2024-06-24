@@ -24,7 +24,7 @@ export default function ButtonDownload({
   const [progress, setProgress] = useState(0);
 
   const handleDownload = async () => {
-    const toastId = toast('Descarga en proceso...', {className:'toast-slide-in'});
+    const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in'});
 
     if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
       toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
