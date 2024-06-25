@@ -327,7 +327,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
     <>
  {(!isLoaded || !markersLoaded) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Loader  />
+          <Loader/>
         </div>
       ) : (
         <GoogleMap
@@ -341,7 +341,6 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
         </GoogleMap>
       )}
           <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
-
 
     </>
   );

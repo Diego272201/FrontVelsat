@@ -11,7 +11,8 @@ import {
 } from '@nextui-org/react';
 import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
+import '@/app/styles/sonner.css';
 import ButtonDownload from '@/app/components/ui/Button';
 import Image from 'next/image';
 
@@ -48,6 +49,25 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
 
   const handleEndDateSelect = (date: string) => {
     setEndDate(date);
+  };
+
+  const handleShowReport = () => {
+    if (!selectedDeviceId || !startDate || !endDate) {
+      toast.error('Rellenar campos necesarios', {className: 'toast-slide-in', richColors:true});
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 3) {
+      toast.error('El límite de fechas es de 3 días', {className: 'toast-slide-in', richColors:true});
+    } else {
+      const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
+      window.open(url, '_blank');
+    }
   };
 
   return (
@@ -88,8 +108,6 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
               <div className="footerModal">
                 {showDownloadButton && (
                   <div className="download">
-                    <Toaster />
-
                     <ButtonDownload
                       startDate={startDate}
                       endDate={endDate}
@@ -107,9 +125,8 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
                     Cancelar
                   </Button>
                   <Button
-                    href={`/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`}
+                    onPress={handleShowReport}
                     as={Link}
-                    target='_blank'
                     color="primary"
                     showAnchorIcon
                     variant="solid"
@@ -117,6 +134,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
                   >
                     Mostrar
                   </Button>
+                  <Toaster />
                 </div>
               </div>
             </ModalFooter>
