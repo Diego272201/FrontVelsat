@@ -43,8 +43,7 @@ export default function RequestPageDetail() {
   });
 
   const [markersData, setMarkersData] = useState<UnidadDetalleRecorrido[]>([]);
-  const [selectedMarker, setSelectedMarker] =
-    useState<UnidadDetalleRecorrido | null>(null);
+  const [selectedMarker, setSelectedMarker] = useState<UnidadDetalleRecorrido | null>(null);
   const [map, setMap] = useState(null);
   const [isMarkersLoaded, setIsMarkersLoaded] = useState(false);
 
@@ -58,8 +57,11 @@ export default function RequestPageDetail() {
       const response = await axios.get(detailRecorrido);
       if (response.data.length === 0) {
         toast.error('No hay datos para estas fechas', {
-          className:'toast-slide-in', richColors:true, duration:Infinity, position:'top-center'});
-          
+          className: 'toast-slide-in',
+          richColors: true,
+          duration: Infinity,
+          position: 'top-center',
+        });
       } else {
         setMarkersData(response.data);
         setIsMarkersLoaded(true); // Marcadores cargados
@@ -70,7 +72,10 @@ export default function RequestPageDetail() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+
     fetchData();
+    }
   }, []);
 
   const onLoad = useCallback(function callback(map: any) {
@@ -119,17 +124,24 @@ export default function RequestPageDetail() {
     },
   ];
 
-  const polylineCoordinates = markersData.map(markerData => ({
+  const polylineCoordinates = markersData.map((markerData) => ({
     lat: markerData.latitude,
     lng: markerData.longitude,
   }));
 
   return (
     <>
-      {(!isLoaded || !isMarkersLoaded) ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Loader/>
-          <Toaster/>
+      {!isLoaded || !isMarkersLoaded ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+          }}
+        >
+          <Loader />
+          <Toaster />
         </div>
       ) : (
         <GoogleMap
@@ -186,12 +198,12 @@ export default function RequestPageDetail() {
               icons: [
                 {
                   icon: {
-                    path: "M 0,-1 0,1",
+                    path: 'M 0,-1 0,1',
                     strokeOpacity: 1,
                     scale: 3,
                   },
-                  offset: "0",
-                  repeat: "20px",
+                  offset: '0',
+                  repeat: '20px',
                 },
               ],
             }}
