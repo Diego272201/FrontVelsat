@@ -72,10 +72,7 @@ export default function RequestPageDetail() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-
     fetchData();
-    }
   }, []);
 
   const onLoad = useCallback(function callback(map: any) {
