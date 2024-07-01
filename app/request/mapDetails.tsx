@@ -11,6 +11,8 @@ import axios from 'axios';
 import '@/app/styles/markers.css';
 import { useLocation } from 'react-router-dom';
 import Loader from '../components/Loader';
+import { Toaster, toast } from 'sonner';
+import '@/app/styles/sonner.css';
 
 export default function RequestPageDetail() {
   const location = useLocation();
@@ -54,8 +56,14 @@ export default function RequestPageDetail() {
   const fetchData = async () => {
     try {
       const response = await axios.get(detailRecorrido);
-      setMarkersData(response.data);
-      setIsMarkersLoaded(true); // Marcadores cargados
+      if (response.data.length === 0) {
+        toast.error('No hay datos para estas fechas', {
+          className:'toast-slide-in', richColors:true, duration:Infinity, position:'top-center'});
+          
+      } else {
+        setMarkersData(response.data);
+        setIsMarkersLoaded(true); // Marcadores cargados
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -120,7 +128,8 @@ export default function RequestPageDetail() {
     <>
       {(!isLoaded || !isMarkersLoaded) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Loader />
+          <Loader/>
+          <Toaster/>
         </div>
       ) : (
         <GoogleMap
