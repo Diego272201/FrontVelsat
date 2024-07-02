@@ -1,13 +1,11 @@
-'use client';
-import React, { useEffect } from 'react';
+import RequestPageDetail from '@/app/request/mapDetails'
+import React from 'react'
+import '@/app/styles/trackvelnew.css';
 
-export default function Page() {
-  useEffect(() => {
-    // Código que necesita `document` aquí.
-    console.log(document);
-  }, []);
-
+export default function page() {
   return (
-    <div>page</div>
-  );
+    <div className='trackvelnew'>
+        <RequestPageDetail></RequestPageDetail>
+    </div>
+  )
 }

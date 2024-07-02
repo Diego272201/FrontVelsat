@@ -1,16 +1,11 @@
-'use client';
-import React, { useEffect } from 'react';
+import React from 'react'
 
-export default function Page() {
-  useEffect(() => {
-    // Código que necesita `document` aquí.
-    console.log(document);
-  }, []);
-
+export default function page() {
   return (
+
     <div>
         <h1>Estadística</h1>
     </div>
-  );
-}
 
+  )
+}
