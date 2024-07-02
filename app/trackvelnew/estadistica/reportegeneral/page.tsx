@@ -22,17 +22,6 @@ export default function Page() {
       setLocation(window.location);
     }
   }, []);
-  if (!location) {
-    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
-    return <div>Cargando...</div>;
-  }
-
-  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const deviceId = searchParams.get('deviceId');
-
-  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
@@ -57,6 +46,18 @@ export default function Page() {
 
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
+
+  if (!location) {
+    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
+    return <div>Cargando...</div>;
+  }
+
+  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const deviceId = searchParams.get('deviceId');
+
+  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   return (
     <div className="tablaReport">
