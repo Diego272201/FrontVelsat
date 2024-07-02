@@ -1,26 +1,27 @@
 'use client';
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import ButtonDownload from '@/app/components/ui/Button';
 import { IoCalendar } from 'react-icons/io5';
 import '@/app/styles/table.css';
 import { IoCarSport } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
+import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 
 export default function Page() {
   const { data: session } = useSession();
 
-  const [location, setLocation] = useState<Location | null>(null);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const deviceId = searchParams.get('deviceId');
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLocation(window.location);
-    }
-  }, []);
+  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
@@ -45,18 +46,6 @@ export default function Page() {
 
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
-
-  if (!location) {
-    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
-    return <div>Cargando...</div>;
-  }
-
-  const searchParams = new URLSearchParams(location.search);
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const deviceId = searchParams.get('deviceId');
-
-  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   return (
     <div className="tablaReport">

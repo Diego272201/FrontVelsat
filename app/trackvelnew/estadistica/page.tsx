@@ -1,21 +1,11 @@
-'use client';
-import React, { useEffect } from 'react';
+import React from 'react'
 
-export default function Page() {
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Este código solo se ejecutará en el cliente
-      console.log('Running on the client side');
-    }
-  }, []);
-  if (!location) {
-    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
-    return <div>Cargando...</div>;
-  }
-
+export default function page() {
   return (
+
     <div>
-      <h1>Estadística</h1>
+        <h1>Estadística</h1>
     </div>
-  );
+
+  )
 }
