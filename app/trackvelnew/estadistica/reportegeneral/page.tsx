@@ -13,7 +13,6 @@ import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 
 export default function Page() {
-  if(typeof window !== "undefined"){
   const { data: session } = useSession();
 
   const location = useLocation();
@@ -48,6 +47,10 @@ export default function Page() {
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
 
+  if(typeof window === "undefined"){
+    return null;
+  }
+  
   return (
     <div className="tablaReport">
       <div className='stick'>
@@ -111,5 +114,4 @@ export default function Page() {
       </div>
     </div>
   );
-}
 }

@@ -13,7 +13,6 @@ import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 export default function Page() {
-  if(typeof window !== "undefined"){
   const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
@@ -47,6 +46,10 @@ export default function Page() {
 
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
+
+  if(typeof window === "undefined"){
+    return null;
+  }
 
   return (
     <div className="tablaReport">
@@ -111,5 +114,4 @@ export default function Page() {
       </div>
     </div>
   );
-}
 }
