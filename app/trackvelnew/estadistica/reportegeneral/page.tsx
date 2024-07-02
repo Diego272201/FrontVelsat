@@ -22,6 +22,10 @@ export default function Page() {
       setLocation(window.location);
     }
   }, []);
+  if (!location) {
+    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
+    return <div>Cargando...</div>;
+  }
 
   const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
   const startDate = searchParams.get('startDate');

@@ -8,6 +8,10 @@ export default function Page() {
       console.log('Running on the client side');
     }
   }, []);
+  if (!location) {
+    // Renderiza un estado de carga o un mensaje de espera mientras se obtiene la localización
+    return <div>Cargando...</div>;
+  }
 
   return (
     <div>
