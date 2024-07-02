@@ -3,7 +3,7 @@ import RequestPageDetail from '@/app/request/mapDetails'
 import React, { useEffect } from 'react';
 import '@/app/styles/trackvelnew.css';
 
-export default function page() {
+export default function Page() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Este código solo se ejecutará en el cliente
