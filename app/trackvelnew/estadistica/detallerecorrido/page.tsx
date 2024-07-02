@@ -1,8 +1,15 @@
+'use client';
 import RequestPageDetail from '@/app/request/mapDetails'
-import React from 'react'
+import React, { useEffect } from 'react';
 import '@/app/styles/trackvelnew.css';
 
 export default function page() {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Este código solo se ejecutará en el cliente
+      console.log('Running on the client side');
+    }
+  }, []);
   return (
     <div className='trackvelnew'>
         <RequestPageDetail></RequestPageDetail>
