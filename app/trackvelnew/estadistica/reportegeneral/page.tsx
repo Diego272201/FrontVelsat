@@ -47,10 +47,6 @@ export default function Page() {
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
 
-  if(typeof window === "undefined"){
-    return null;
-  }
-  
   return (
     <div className="tablaReport">
       <div className='stick'>
