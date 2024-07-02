@@ -13,15 +13,9 @@ import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 export default function Page() {
-  const [location, setLocation] = useState<Location | null>(null);
+  const location = useLocation();
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLocation(window.location);
-    }
-  }, []);
-
-  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
+  const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');

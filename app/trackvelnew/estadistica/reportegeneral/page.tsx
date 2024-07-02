@@ -1,7 +1,7 @@
 'use client';
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ButtonDownload from '@/app/components/ui/Button';
 import { IoCalendar } from 'react-icons/io5';
 import '@/app/styles/table.css';
@@ -15,15 +15,8 @@ import { Toaster } from 'sonner';
 export default function Page() {
   const { data: session } = useSession();
 
-  const [location, setLocation] = useState<Location | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setLocation(window.location);
-    }
-  }, []);
-
-  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
