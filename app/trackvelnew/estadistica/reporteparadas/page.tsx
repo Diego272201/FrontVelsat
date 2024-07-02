@@ -13,6 +13,7 @@ import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 export default function Page() {
+  if(typeof window !== "undefined"){
   const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
@@ -110,4 +111,5 @@ export default function Page() {
       </div>
     </div>
   );
+}
 }

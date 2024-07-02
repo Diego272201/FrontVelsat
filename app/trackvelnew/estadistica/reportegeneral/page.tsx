@@ -13,6 +13,7 @@ import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 
 export default function Page() {
+  if(typeof window !== "undefined"){
   const { data: session } = useSession();
 
   const location = useLocation();
@@ -110,4 +111,5 @@ export default function Page() {
       </div>
     </div>
   );
+}
 }

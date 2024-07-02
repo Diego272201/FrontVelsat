@@ -1,6 +1,7 @@
 import React from 'react'
 
 export default function page() {
+  if(typeof window !== "undefined"){
   return (
 
     <div>
@@ -8,4 +9,5 @@ export default function page() {
     </div>
 
   )
+}
 }
