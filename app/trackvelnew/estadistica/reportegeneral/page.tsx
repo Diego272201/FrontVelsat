@@ -8,7 +8,6 @@ import '@/app/styles/table.css';
 import { IoCarSport } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
-import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 
@@ -52,7 +51,7 @@ export default function Page() {
     return <div>Cargando...</div>;
   }
 
-  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
+  const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
