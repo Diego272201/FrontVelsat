@@ -15,9 +15,15 @@ import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
 
 export default function RequestPageDetail() {
-  const location = useLocation();
+  const [location, setLocation] = useState<Location | null>(null);
 
-  const searchParams = new URLSearchParams(location.search);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLocation(window.location);
+    }
+  }, []);
+
+  const searchParams = location ? new URLSearchParams(location.search) : new URLSearchParams();
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');

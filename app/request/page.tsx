@@ -40,6 +40,7 @@ export default function RequestPage() {
   const [markersLoaded, setMarkersLoaded] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
     if(status === 'authenticated' && session) {
       const username = session.user.username;
       const hubUrl = `http://66.240.210.125:8586/dataHubDevice?username=${username}`;
@@ -68,6 +69,7 @@ export default function RequestPage() {
 
 
     }
+  }
   }, [status,session]);
 
   const { isLoaded } = useJsApiLoader({
