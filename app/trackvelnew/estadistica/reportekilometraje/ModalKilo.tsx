@@ -9,11 +9,11 @@ import {
   useDisclosure,
   Link,
 } from '@nextui-org/react';
-import Select from '@/app/components/selectUI/Select';
+import Selectall from '@/app/components/selectUI/Selectall';
 import App from '@/app/components/TimePicker';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
-import ButtonDownload from '@/app/components/ui/Button';
+import ButtonDownloadKilom from '@/app/components/ui/ButtonKilo';
 import Image from 'next/image';
 
 interface AppModalProps {
@@ -26,7 +26,7 @@ interface AppModalProps {
   showDownloadButton: boolean;
 }
 
-const AppModalPrueba: React.FC<AppModalProps> = ({
+const ModalKilo: React.FC<AppModalProps> = ({
   isOpen,
   onClose,
   titulo,
@@ -35,12 +35,13 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   namedesc,
   showDownloadButton,
 }) => {
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
   const handleSelect = (deviceId: string) => {
-    setSelectedDeviceId(deviceId);
+    const deviceIds = deviceId.split(',').map(id => id.trim());
+    setSelectedDeviceIds(deviceIds);
   };
 
   const handleStartDateSelect = (date: string) => {
@@ -52,7 +53,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   };
 
   const handleShowReport = () => {
-    if (!selectedDeviceId || !startDate || !endDate) {
+    if (selectedDeviceIds.length === 0 || !startDate || !endDate) {
       toast.error('Rellenar campos necesarios', {className: 'toast-slide-in', richColors:true});
       return;
     }
@@ -65,7 +66,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
     if (diffDays > 3) {
       toast.error('El límite de fechas es de 3 días', {className: 'toast-slide-in', richColors:true});
     } else {
-      const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
+      const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceIds.join(','))}`;
       window.open(url, '_blank');
     }
   };
@@ -89,7 +90,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
             </ModalHeader>
             <ModalBody>
               <div className="selectunitRange">
-                <Select onSelect={handleSelect}></Select>
+              <Selectall onSelect={handleSelect}></Selectall>
               </div>
 
               <div className="selectdates">
@@ -108,10 +109,10 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
               <div className="footerModal">
                 {showDownloadButton && (
                   <div className="download">
-                    <ButtonDownload
+                    <ButtonDownloadKilom
                       startDate={startDate}
                       endDate={endDate}
-                      devideId={selectedDeviceId}
+                      devideIds={selectedDeviceIds}
                       namedown={namedown}
                       namedesc={namedesc}
                     />
@@ -145,4 +146,4 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   );
 };
 
-export default AppModalPrueba;
+export default ModalKilo;
