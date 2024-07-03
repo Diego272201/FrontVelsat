@@ -4,7 +4,7 @@ import { TbLiveView } from 'react-icons/tb';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 import React, { useState } from 'react';
 import Link from 'next/link';
-
+import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
 import { RiLogoutBoxLine } from 'react-icons/ri';
 
 import { signOut, useSession } from 'next-auth/react';
@@ -376,7 +376,33 @@ const Tollbar = () => {
           </li>
         </ul>
       </div>
-      
+      <AppModalPrueba
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        titulo="REPORTE GENERAL"
+        nameurl="reportegeneral"
+        namedown="downloadExcelG"
+        namedesc="general"
+        showDownloadButton={true}
+      />
+      <AppModalPrueba
+        isOpen={isModalOpenStops}
+        onClose={closeModalStops}
+        titulo="REPORTE DE PARADAS"
+        nameurl="reporteparadas"
+        namedown="downloadExcelS"
+        namedesc="paradas"
+        showDownloadButton={true}
+      />
+      <AppModalPrueba
+        isOpen={isModalOpenDetails}
+        onClose={closeModalDetails}
+        titulo="DETALLE RECORRIDO"
+        nameurl="detallerecorrido"
+        namedown=""
+        namedesc=""
+        showDownloadButton={false}
+      />
     </div>
   );
 };
