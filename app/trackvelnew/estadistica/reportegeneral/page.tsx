@@ -53,6 +53,8 @@ export default function Page() {
   return (
     <div className="tablaReport tablaReportMargen">
       <div className="stick">
+    <div className="tablaReport tablaReportMargen">
+      <div className="stick">
         <div className="headerRG">
           <h2 className="resaltar text-center">REPORTE GENERAL</h2>
           <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
@@ -114,6 +116,10 @@ export default function Page() {
         <Toaster />
       </div>
       <div>
+        <Table
+          url={tableUrl}
+          selectedRowsPerPage={selectedRowsPerPage}
+          onSelectedRowsPerPageChange={handleSelectRowsChange}
         <Table
           url={tableUrl}
           selectedRowsPerPage={selectedRowsPerPage}
