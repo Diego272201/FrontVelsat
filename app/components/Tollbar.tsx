@@ -4,6 +4,7 @@ import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
+import ModalKilo from '../trackvelnew/estadistica/reportekilometraje/ModalKilo';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
@@ -24,6 +25,7 @@ const Tollbar = () => {
   const [isModalOpenDetails, setIsModalOpenDetails] = useState(false);
 
   const [isModalOpenSpeed, setIsModalOpenSpeed] = useState(false);
+  const [isModalOpenKilometer, setIsModalOpenKilometers] = useState(false);
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -56,6 +58,14 @@ const Tollbar = () => {
   
   const openModalSpeed = () => {
     setIsModalOpenSpeed(true);
+  };
+
+  const openModalKilometers = () => {
+    setIsModalOpenKilometers(true)
+  }
+
+  const closeModalKilometers = () => {
+    setIsModalOpenKilometers(false);
   };
 
   const handleLinkClick = (index: any) => {
@@ -338,8 +348,10 @@ const Tollbar = () => {
                   Detalle Recorrido
                 </a>
               </li>
-              <li>
-                <a href="#" title="Reporte de Kilometraje">
+              <li onClick={openModalKilometers}>
+                <a title="Reporte de Kilometraje"
+                onClick={() => handleReportesClick()}
+                >
                   Reporte de Kilometraje
                 </a>
               </li>
@@ -423,6 +435,15 @@ const Tollbar = () => {
       showDownloadButton={true}
       />
 
+      <ModalKilo
+        isOpen={isModalOpenKilometer}
+        onClose={closeModalKilometers}
+        titulo="DETALLE DE KILOMETRAJE"
+        nameurl="reportekilometraje"
+        namedown="downloadExcelK"
+        namedesc="kilometraje"
+        showDownloadButton={true}
+      />
 
     </div>
   );
