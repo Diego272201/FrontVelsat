@@ -68,6 +68,7 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
   return (
     <div>
     <Table
+      isHeaderSticky
       selectionMode="single"
       align='left'
       color="primary"
@@ -88,6 +89,8 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
         </div>
       }
       classNames={{
+        base: "max-h-[78vh] overflow-scroll tablaReport",
+
         wrapper: 'min-h-[222px]',
       }}
     >

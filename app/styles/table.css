@@ -31,8 +31,9 @@
   align-items: center;
   gap: 10px;
 }
-.tablaReport {
-  padding: 0px 30px 50px;
+.tablaReportMargen {
+  padding-left: 20px;
+  padding-right: 20px;
 }
 
 .alinearDate {
@@ -41,9 +42,11 @@
   gap: 5px;
 }
 
+
 .tablaReport {
   overflow-y: auto;
   height: 92vh;
+  margin-top: -25px;
 }
 .tablaReport::-webkit-scrollbar {
   width: 4px;
@@ -67,9 +70,7 @@
   justify-content: center;
 }
 
-.datosReporting {
-  display: flex;
-}
+
 
 .resaltar {
   color: #0d3b66;
@@ -79,46 +80,153 @@
 .fristData {
   font-size: 14px;
   font-weight: 400;
-  width: 50%;
   padding: 10px;
   display: flex;
   flex-direction: column;
+  width: 22.5%;
+}
+
+.selectRows{
+  padding-top: 55px;
+  margin-right: -20px;
 }
 
 .textDat {
   width: 200px;
 }
+
 .fristDataa {
   font-family: monospace;
   font-size: 15px;
-  width: 50%;
   padding: 10px;
   display: flex;
   flex-direction: column;
-  align-items: end;
+  width: 22.5%;
+
 }
 
 .stick {
-  position: sticky;
+   position: sticky;
   top: 0;
   z-index: 1000;
-  background-color: #f8f9fa;
+  margin-top: 0px;
+  margin-bottom: 40px;
+  background: #f8f9fa;
+
 }
 
 
-@media (max-width: 705px) {
+@media (max-width: 1072px) {
   .datosReporting {
     flex-direction: column;
   }
 
   .fristData {
     width: 100%;
-    justify-content: center;
-    align-items: center;
+    justify-content: start;
+    align-items: start;
   }
   .fristDataa {
     width: 100%;
-    justify-content: center;
-    align-items: center;
+    justify-content: start;
+    align-items: start;
+  }
+  .selectRows{
+    width: 100%;
+
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .selectRows{
+    padding-top: 0;
+    width: 100%;
   }
 }
+
+
+
+
+
+.tablaBase{
+  margin-bottom: 50px;
+  height: 70vh;
+}
+
+.datosReporting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+.download-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-left: 5px;
+
+}
+.download-btn svg {
+  width: 25px;
+  height: 25px;
+  transition: all 0.3s ease;
+  margin-left: 10px;
+  fill: #011627;
+
+}
+
+.whatsapp-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background-color: #a3e635;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(179, 162, 162, 0.3);
+  animation: breathe 2s ease-in-out infinite;
+
+}
+
+.whatsapp-btn:hover{
+  background-color: #89c032;
+
+}
+
+
+
+@keyframes breathe {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes beat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+

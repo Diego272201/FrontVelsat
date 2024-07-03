@@ -11,8 +11,13 @@ import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import { FaCalendarCheck } from "react-icons/fa";
+import { useSession } from 'next-auth/react';
 
 export default function Page() {
+  const { data: session } = useSession();
+
   const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
@@ -48,22 +53,20 @@ export default function Page() {
   };
 
   return (
-    <div className="tablaReport">
-      <div className='stick'>
+    <div className="tablaReport tablaReportMargen">
+    <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE DE PARADAS</h2>
+          <h2 className="resaltar text-center">REPORTE PARADAS</h2>
           <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
         </div>
-
-        <hr className="lineHorizontal" />
 
         <div className="datosReporting">
           <div className="fristData">
             <div className="userReporte">
               <FaUser style={{ color: '#0d3b66' }} size={22} />
               <p>
-                <span className="resaltar"> USUARIO:</span>
-                CORPORACION CGACELA S.A.C
+                <span className="resaltar"> USUARIO: </span>
+                {session?.user.username.toUpperCase()}
               </p>
             </div>
             <div className="userReporte">
@@ -78,27 +81,39 @@ export default function Page() {
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p className="textDat">Desde: {formatDate(startDate)}</p>
+              <FaCalendarCheck  style={{ color: '#0d3b66' }} />
+              <p>
+                <span className="resaltar">DESDE: </span>
+                {formatDate(startDate)}
+              </p>
             </div>
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p className="textDat">Hasta: {formatDate(endDate)}</p>
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
+              <p>
+                <span className="resaltar">HASTA: </span>
+                {formatDate(endDate)}
+              </p>
             </div>
+          </div>
+
+          {/* <div className="optionTablesr">
+            <ButtonDownload
+              startDate={startDate || ''}
+              endDate={endDate || ''}
+              devideId={deviceId || ''}
+              namedown="downloadExcelG"
+              namedesc="general"
+            />
+          </div> */}
+          <div className="selectRows">
+            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
         </div>
 
-        <div className="optionTables">
-          <ButtonDownload
-            startDate={startDate || ''}
-            endDate={endDate || ''}
-            devideId={deviceId || ''}
-            namedown="downloadExcelS"
-            namedesc="paradas"
-          />
-        </div>
+
+        <ButtonDownloadFloat></ButtonDownloadFloat>
+
         <Toaster />
-        <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
       </div>
 
       <div>

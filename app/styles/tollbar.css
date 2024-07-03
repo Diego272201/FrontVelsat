@@ -115,6 +115,13 @@ h2{
   margin-right: 5px;
 
 }
+
+.optMenu{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
                   
 .navigation > li {
 display: flex;

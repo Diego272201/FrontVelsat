@@ -1,15 +1,14 @@
 'use client';
 import '@/app/styles/tollbar.css';
-import { TbLiveView } from 'react-icons/tb';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
-import { RiLogoutBoxLine } from 'react-icons/ri';
-
 import { signOut, useSession } from 'next-auth/react';
-import { Button } from '@nextui-org/react';
 import Image from 'next/image';
+import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
+import { TbReportSearch } from "react-icons/tb";
+import { RiGpsFill } from "react-icons/ri";
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -23,6 +22,8 @@ const Tollbar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalOpenStops, setIsModalOpenStops] = useState(false);
   const [isModalOpenDetails, setIsModalOpenDetails] = useState(false);
+
+  const [isModalOpenSpeed, setIsModalOpenSpeed] = useState(false);
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -48,6 +49,15 @@ const Tollbar = () => {
     setIsModalOpenDetails(false);
   };
 
+  const closeModalSpeed = () => {
+    setIsModalOpenSpeed(false);
+  }
+
+  
+  const openModalSpeed = () => {
+    setIsModalOpenSpeed(true);
+  };
+
   const handleLinkClick = (index: any) => {
     setActiveLink(index);
 
@@ -60,9 +70,7 @@ const Tollbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const toggleServicesMenu = () => {
-    setIsServicesMenuOpen(!isServicesMenuOpen);
-  };
+
 
   const toggleProgramacionMenu = () => {
     setIsProgramacionMenuOpen(!isProgramacionMenuOpen);
@@ -76,7 +84,7 @@ const Tollbar = () => {
   };
 
   return (
-    <div className="tollbar menu__wrapper">
+    <div className="tollbar menu__wrapper verTu">
       <div className="tollbar-bg"></div>
       <div className="menu__bar">
         <a href="/trackvelnew" title="Logo" className="logo">
@@ -208,8 +216,7 @@ const Tollbar = () => {
               className={activeLink === 1 ? 'active' : ''}
               onClick={() => handleLinkClick(1)}
             >
-              {' '}
-              Planificación{' '}
+              Planificación
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
@@ -246,8 +253,10 @@ const Tollbar = () => {
               className={activeLink === 2 ? 'active' : ''}
               onClick={() => handleLinkClick(2)}
             >
-              {' '}
-              Puntos de Interés{' '}
+              <div className="optMenu">
+              Puntos de Interés
+              <RiGpsFill />
+              </div>
             </Link>
           </li>
           <li className="dropdown">
@@ -257,7 +266,6 @@ const Tollbar = () => {
               className={activeLink === 3 ? 'active' : ''}
               onClick={() => handleLinkClick(3)}
             >
-              {' '}
               Operaciones{' '}
               {/* <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
@@ -284,8 +292,12 @@ const Tollbar = () => {
               className={activeLink === 4 ? 'active' : ''}
               onClick={() => handleLinkClick(4)}
             >
-              {' '}
-              Estadísticas{' '}
+              <div className="optMenu">
+              Reportes
+              <TbReportSearch />
+              </div>
+          
+
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
@@ -297,7 +309,7 @@ const Tollbar = () => {
               }`}
             >
               <div className="containerEstad"></div>
-              <li>
+              <li onClick={openModalSpeed}>
                 <a href="#" title="Reporte de Velocidad">
                   Reporte de Velocidad
                 </a>
@@ -306,7 +318,6 @@ const Tollbar = () => {
               <li onClick={openModalStops}>
                 <a
                   title="Reporte de Paradas"
-                  onClick={() => handleReportesClick()}
                 >
                   Reporte de Paradas
                 </a>
@@ -315,7 +326,6 @@ const Tollbar = () => {
               <li onClick={openModal}>
                 <a
                   title="Reporte General"
-                  onClick={() => handleReportesClick()}
                 >
                   Reporte General
                 </a>
@@ -324,7 +334,6 @@ const Tollbar = () => {
               <li onClick={openModalDetails}>
                 <a
                   title="Detalle Recorrido"
-                  onClick={() => handleReportesClick()}
                 >
                   Detalle Recorrido
                 </a>
@@ -403,6 +412,18 @@ const Tollbar = () => {
         namedesc=""
         showDownloadButton={false}
       />
+
+      <AppModalVelocidad
+      isOpen={isModalOpenSpeed}
+      onClose={closeModalSpeed}
+      titulo="REPORTE VELOCIDAD"
+      nameurl="reportevelocidad"
+      namedown=""
+      namedesc=""
+      showDownloadButton={true}
+      />
+
+
     </div>
   );
 };

@@ -19,16 +19,18 @@ export default function SelectRows({ onChange }: SelectRowsProps) {
   return (
     <div className='selectrowstable'>
       <div className="titleSelect">
-        <span className="selecttitle">Filas por página</span>
       </div>
 
       <Select
+      style={{background:'#d9dcd6'}}
         defaultSelectedKeys={[selectedRows]}
-        className="custom-select max-w-xs"
+        className="custom-select"
         onChange={handleSelectChange}
+        label="Filas por página" 
+
       >
         {numbers.map((num) => (
-          <SelectItem key={num.value} value={num.value}>
+          <SelectItem key={num.value} value={num.value} >
             {num.label}
           </SelectItem>
         ))}

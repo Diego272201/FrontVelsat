@@ -2,7 +2,7 @@
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useState } from 'react';
-import ButtonDownload from '@/app/components/ui/Button';
+import { FaCalendarCheck } from "react-icons/fa";
 import { IoCalendar } from 'react-icons/io5';
 import '@/app/styles/table.css';
 import { IoCarSport } from 'react-icons/io5';
@@ -11,6 +11,9 @@ import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
+import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import { FcCalendar } from "react-icons/fc";
+import ButtonDownload from '@/app/components/ui/Button';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -48,14 +51,12 @@ export default function Page() {
   };
 
   return (
-    <div className="tablaReport">
-      <div className='stick'>
+    <div className="tablaReport tablaReportMargen">
+      <div className="stick">
         <div className="headerRG">
           <h2 className="resaltar text-center">REPORTE GENERAL</h2>
           <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
         </div>
-
-        <hr className="lineHorizontal" />
 
         <div className="datosReporting">
           <div className="fristData">
@@ -78,34 +79,45 @@ export default function Page() {
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p className="textDat">Desde: {formatDate(startDate)}</p>
+              <FaCalendarCheck  style={{ color: '#0d3b66' }} />
+              <p>
+                <span className="resaltar">DESDE: </span>
+                {formatDate(startDate)}
+              </p>
             </div>
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p className="textDat">Hasta: {formatDate(endDate)}</p>
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
+              <p>
+                <span className="resaltar">HASTA: </span>
+                {formatDate(endDate)}
+              </p>
             </div>
+          </div>
+
+          {/* <div className="optionTablesr">
+            <ButtonDownload
+              startDate={startDate || ''}
+              endDate={endDate || ''}
+              devideId={deviceId || ''}
+              namedown="downloadExcelG"
+              namedesc="general"
+            />
+          </div> */}
+          <div className="selectRows">
+            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
         </div>
 
-        <div className="optionTables">
-          <ButtonDownload
-            startDate={startDate || ''}
-            endDate={endDate || ''}
-            devideId={deviceId || ''}
-            namedown="downloadExcelG"
-            namedesc="general"
-          />
-        </div>
-        <Toaster />
-        <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
-      </div>
 
+        <ButtonDownloadFloat></ButtonDownloadFloat>
+
+        <Toaster />
+      </div>
       <div>
-        <Table 
-          url={tableUrl} 
-          selectedRowsPerPage={selectedRowsPerPage} 
-          onSelectedRowsPerPageChange={handleSelectRowsChange} 
+        <Table
+          url={tableUrl}
+          selectedRowsPerPage={selectedRowsPerPage}
+          onSelectedRowsPerPageChange={handleSelectRowsChange}
         />
       </div>
     </div>

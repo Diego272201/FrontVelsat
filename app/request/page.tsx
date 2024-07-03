@@ -43,7 +43,6 @@ export default function RequestPage() {
     if(status === 'authenticated' && session) {
       const username = session.user.username;
       const hubUrl = `http://66.240.210.125:8586/dataHubDevice?username=${username}`;
-
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
         .withAutomaticReconnect()
@@ -90,7 +89,7 @@ export default function RequestPage() {
     if (heading >= 0 && heading <= 22.5) return "Norte";
     if (heading>=22.51 && heading<=67.50) return "Noreste";
     if (heading>=67.51 && heading<=112.50) return "Este";
-    if (heading>=112.51 && heading<=157.50 ) return "Sureste";
+    if (heading>=112.51 && heading<=157.50) return "Sureste";
     if (heading>=157.51 && heading<=202.50) return "Sur";
     if (heading>=202.51 && heading<=247.50) return "Suroeste";
     if (heading>=247.51 && heading<=292.50) return "Oeste";
@@ -134,24 +133,25 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
           existingMarkers[device.deviceId].setIcon(getMarkerIcon(device.lastValidHeading));
   
           // Actualiza la fecha actual en el contenido del popup
-          const popupContent2 = document.querySelector(`#content2-${device.deviceId}`) as HTMLElement;
-          if (popupContent2) {
-              popupContent2.innerHTML = getPopupContent(device);
+          // const popupContent2 = document.querySelector(`#content2-${device.deviceId}`) as HTMLElement;
+          // if (popupContent2) {
+          //     popupContent2.innerHTML = getPopupContent(device);
   
               // Asignar el evento de cierre si aún no está asignado
-              const closeButton = popupContent2.querySelector(`#close-btn-${device.deviceId}`);
-              if (closeButton && !closeButton.hasAttribute('data-event-added')) {
-                  closeButton.setAttribute('data-event-added', 'true');
-                  closeButton.addEventListener('click', () => {
-                  existingPopups[device.deviceId].setMap(null);
-                  });
-              }
-          }
+          //     const closeButton = popupContent2.querySelector(`#close-btn-${device.deviceId}`);
+          //     if (closeButton && !closeButton.hasAttribute('data-event-added')) {
+          //         closeButton.setAttribute('data-event-added', 'true');
+          //         closeButton.addEventListener('click', () => {
+          //         existingPopups[device.deviceId].setMap(null);
+          //         });
+          //     }
+          // }
   
           existingPopups[device.deviceId].draw();
       } else {
           // Crear un nuevo marcador y popup
           const content1 = document.createElement('div');
+
           content1.innerHTML = `<div id="content">${device.deviceId.toUpperCase()}</div>`;
           
           class Popup extends google.maps.OverlayView {
@@ -194,10 +194,10 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
           popup1.setMap(map);
           existingPopups[device.deviceId] = popup1;
   
-          const content2 = document.createElement('div');
-          content2.innerHTML = getPopupContent(device);
-          const popup2 = new Popup(position, content2);
-          existingPopups[device.deviceId] = popup2;
+          // const content2 = document.createElement('div');
+          // content2.innerHTML = getPopupContent(device);
+          // const popup2 = new Popup(position, content2);
+          // existingPopups[device.deviceId] = popup2;
   
           const marker = new google.maps.Marker({
               position,
@@ -207,7 +207,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
   
           marker.addListener('click', () => {
               popup1.setMap(map);
-              popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
+              // popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
           });
   
           marker.addListener('position_changed', () => {
@@ -215,49 +215,49 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
               if (newPos) {
                   popup1.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
                   popup1.draw();
-                  popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
-                  popup2.draw(); 
+                  // popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
+                  // popup2.draw(); 
               }
           });
   
           map.addListener('zoom_changed', () => {
               popup1.draw();
-              popup2.draw();
+              // popup2.draw();
           });
   
           map.addListener('center_changed', () => {
               popup1.draw();
-              popup2.draw();
+              // popup2.draw();
           });
   
           existingMarkers[device.deviceId] = marker;
   
           // Asignar el evento de cierre solo una vez al crear el popup
-          const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`);
-          if (closeButton) {
-              closeButton.addEventListener('click', () => {
-                  popup2.setMap(null);
-              });
-          }
+          // const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`);
+          // if (closeButton) {
+          //     closeButton.addEventListener('click', () => {
+          //         popup2.setMap(null);
+          //     });
+          // }
       }
   });
   
-  function getPopupContent(device: any) {
-      return `
-          <div class="content-custom-popup" id="content2-${device.deviceId}">
-              <span>Unidad: ${device.deviceId.toUpperCase()} </span>
-              <span>Velocidad: ${device.lastValidSpeed} Km/h </span>
-              <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
-              <br>
-              <span>ÚLTIMO REPORTE </span>
-              <span>${formatFecha(fechaActual)} </span>
-              <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
-              <span>Ubicación: ${device.direccion} </span>
-              <a href="" class="follow-link" data-device-id="${device.deviceId}">Seguir</a>
-              <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
-          </div>
-      `;
-  }
+  // function getPopupContent(device: any) {
+  //     return `
+  //         <div class="content-custom-popup" id="content2-${device.deviceId}">
+  //             <span>Unidad: ${device.deviceId.toUpperCase()} </span>
+  //             <span>Velocidad: ${device.lastValidSpeed} Km/h </span>
+  //             <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
+  //             <br>
+  //             <span>ÚLTIMO REPORTE </span>
+  //             <span>${formatFecha(fechaActual)} </span>
+  //             <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
+  //             <span>Ubicación: ${device.direccion} </span>
+  //             <a href="" class="follow-link" data-device-id="${device.deviceId}">Seguir</a>
+  //             <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
+  //         </div>
+  //     `;
+  // }
 
   }, [deviceList]);
 
@@ -305,14 +305,14 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-  }, []);
+    createMarkersAndPopups(map);
+  }, [createMarkersAndPopups]);
 
   const onUnmount = useCallback(() => {
     Object.values(markersRef.current).forEach(marker => marker.setMap(null));
     Object.values(popupsRef.current).forEach(popup => popup.setMap(null));
     markersRef.current = {};
     popupsRef.current = {};
-    mapRef.current = null;
   }, []);
 
   const memoizedMapOptions = useMemo(() => ({
@@ -345,4 +345,5 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
 
     </>
   );
+
 }

@@ -16,11 +16,11 @@ import Image from 'next/image';
 
 interface Row {
   item: number;
-  fecha: string;
-  hora: string;
   speedKPH: number;
-  longitude: number;
+  date: string;
+  time: string;
   latitude: number;
+  longitude: number;
   address: string;
 }
 
@@ -39,7 +39,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
     const fetcData = async () => {
       try {
         const response = await axios.get(url);
-        const data = response.data.listaTablas;
+        const data = response.data;
         setRows(data);
         setIsLoading(false);
       } catch (error) {
@@ -61,9 +61,8 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   }, [page, rows, selectedRowsPerPage]);
 
   return (
-
+    <div>
       <Table
-        isHeaderSticky
         selectionMode="single"
         align='left'
         color="primary"
@@ -84,15 +83,14 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           </div>
         }
         classNames={{
-          base: "max-h-[78vh] overflow-scroll tablaReport",
           wrapper: 'min-h-[222px]',
         }}
       >
         <TableHeader className='VERh'>
           <TableColumn key="item" className='headerColumT'>ITEM</TableColumn>
-          <TableColumn key="fecha" className='headerColumT'>FECHA</TableColumn>
-          <TableColumn key="hora" className='headerColumT'>HORA</TableColumn>
-          <TableColumn key="speedKPH" className='headerColumT'>VELOCIDAD</TableColumn>
+          <TableColumn key="fecha" className='headerColumT'>VELOCIDAD</TableColumn>
+          <TableColumn key="hora" className='headerColumT'>FECHA</TableColumn>
+          <TableColumn key="speedKPH" className='headerColumT'>HORA</TableColumn>
           <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
           <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
           <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
@@ -108,9 +106,9 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           {(item) => (
             <TableRow key={item.item}>
               <TableCell className='centerCell'>{item.item}</TableCell>
-              <TableCell className='centerCell'>{item.fecha}</TableCell>
-              <TableCell className='centerCell'>{item.hora}</TableCell>
               <TableCell className='centerCell'>{item.speedKPH}</TableCell>
+              <TableCell className='centerCell'>{item.date}</TableCell>
+              <TableCell className='centerCell'>{item.time}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
               <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
@@ -126,6 +124,6 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           )}
         </TableBody>
       </Table>
-
- );
+    </div>
+  );
 }
