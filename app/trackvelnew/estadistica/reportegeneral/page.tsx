@@ -52,8 +52,7 @@ export default function Page() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-      <div className="stick">
-    <div className="tablaReport tablaReportMargen">
+
       <div className="stick">
         <div className="headerRG">
           <h2 className="resaltar text-center">REPORTE GENERAL</h2>
@@ -96,7 +95,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* <div className="optionTablesr">
+         {/* <div className="optionTablesr">
             <ButtonDownload
               startDate={startDate || ''}
               endDate={endDate || ''}
@@ -105,10 +104,13 @@ export default function Page() {
               namedesc="general"
             />
           </div> */}
+
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
+          
         </div>
+
 
 
         <ButtonDownloadFloat></ButtonDownloadFloat>
@@ -120,12 +122,10 @@ export default function Page() {
           url={tableUrl}
           selectedRowsPerPage={selectedRowsPerPage}
           onSelectedRowsPerPageChange={handleSelectRowsChange}
-        <Table
-          url={tableUrl}
-          selectedRowsPerPage={selectedRowsPerPage}
-          onSelectedRowsPerPageChange={handleSelectRowsChange}
+     
         />
       </div>
     </div>
+      
   );
 }
