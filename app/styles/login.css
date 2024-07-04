@@ -51,11 +51,6 @@ h2{
     background: var(--PrimaryGradientBlue);
 }
 
-.custom-input label {
-    z-index: 100; 
-    position: absolute;
-  }
-
 @media screen and (max-width: 1000px){
     .login{
         flex-direction: column-reverse;
