@@ -260,7 +260,7 @@ export default function SeguirUnidadPage() {
         });
       }
     }
-  }, [device]);
+  }, [device, getMarkerIcon, getPopupContent]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

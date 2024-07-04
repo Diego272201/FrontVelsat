@@ -259,7 +259,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
   //     `;
   // }
 
-  }, [deviceList]);
+  }, [deviceList, getMarkerIcon]);
 
   const handleFollowLinkClick = useCallback((e: MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -301,7 +301,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
     if (mapRef.current) {
       createMarkersAndPopups(mapRef.current);
     }
-  }, [mapRef.current, createMarkersAndPopups]);
+  }, [createMarkersAndPopups]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
