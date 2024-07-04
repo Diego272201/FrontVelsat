@@ -11,23 +11,6 @@
 }
 /* -- SLIDER ENDS-- */
 
-.custom-input {
-    position: relative;
-    z-index: 1; /* Asegúrate de que el input esté por encima de otros elementos */
-  }
-  
-  /* Asegurar que el label esté correctamente posicionado */
-  .custom-input label {
-    z-index: 2;
-    position: relative;
-  }
-  
-  /* Asegurar que el input no tenga conflictos de z-index */
-  .custom-input input {
-    z-index: 1;
-    position: relative;
-  }
-
 .formLogin{
     width: 25%;
     display: flex;
