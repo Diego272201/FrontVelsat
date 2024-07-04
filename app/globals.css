@@ -9,6 +9,7 @@ body {
 
 .scrollbarLogin {
   overflow-y: auto;
+  overflow-x: hidden;
   height: 100vh;
 }
 .scrollbarLogin::-webkit-scrollbar {
