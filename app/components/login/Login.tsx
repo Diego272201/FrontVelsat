@@ -61,6 +61,7 @@ export default function Login() {
         <h2>¡ Bienvenido de vuelta !</h2>
         <form action="" className="inputsf" onSubmit={handleSubmit}>
           <Input
+            className="custom-input"
             type="text"
             label="Usuario"
             placeholder="Ingresar usuario"
@@ -68,6 +69,7 @@ export default function Login() {
             onChange={(event: any) => setLogin(event.target.value)}
           />
           <Input
+            className="custom-input"
             label="Password"
             placeholder="Ingresar password"
             value={clave}
