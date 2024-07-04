@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useCallback } from 'react';
-import "@/public/login.css";
+import "@/app/styles/login.css";
 import { Button, Input } from '@nextui-org/react';
 import { EyeSlashFilledIcon } from './EyeFilledIcon';
 import { signIn } from 'next-auth/react';
