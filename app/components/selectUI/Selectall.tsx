@@ -29,7 +29,7 @@ export default function App({ onSelect }: SelectProps) {
             label: item.deviceId,
           }));
 
-          ids.unshift({ value: 'Todas las unidades', label: 'Todas las unidades' });
+          ids.unshift({ value: 'Todas las unidades', label: 'all' });
 
           setDeviceIds(ids);
 
@@ -42,15 +42,12 @@ export default function App({ onSelect }: SelectProps) {
     }
   }, [status, session]);
 
+
   const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDeviceId = event.target.value;
-    if (selectedDeviceId === 'Todas las unidades') {
-      const allDeviceIds = deviceIds.map(device => device.value).join(',');
-      onSelect(allDeviceIds);
-    } else {
-      onSelect(selectedDeviceId);
-    }
+    onSelect(selectedDeviceId);
   };
+
 
   return (
     <Select
@@ -58,6 +55,7 @@ export default function App({ onSelect }: SelectProps) {
       placeholder="Seleccione Unidad"
       className="w-[100%]"
       onChange={handleSelectChange}
+
     >
       {(deviceId) => (
         <SelectItem key={deviceId.value}>
