@@ -10,21 +10,23 @@ interface DownloadParameterProps {
   endDate: string;
   devideId: string;
   namedown: string;
-  namedesc: string
+  namedesc: string;
+  speedCar: string;
 }
 
-export default function ButtonDownloadFloat({
+export default function ButtonDownloadSpeed({
   startDate,
   endDate,
   devideId,
   namedown,
-  namedesc
+  namedesc,
+  speedCar
 }: DownloadParameterProps) {
 
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in', position:'bottom-left'});
 
-    if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
+    if (!startDate || !endDate || !devideId || !namedown || !namedesc || !speedCar) {
       toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
       return;
     }
@@ -41,7 +43,7 @@ export default function ButtonDownloadFloat({
 
     try {
       const response = await axios.get(
-        `http://66.240.210.125:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `http://66.240.210.125:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}`,
         {
           responseType: 'arraybuffer',
         },

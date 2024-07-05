@@ -430,8 +430,8 @@ const Tollbar = () => {
       onClose={closeModalSpeed}
       titulo="REPORTE VELOCIDAD"
       nameurl="reportevelocidad"
-      namedown=""
-      namedesc=""
+      namedown="downloadExcelV"
+      namedesc="velocidad"
       showDownloadButton={true}
       />
 

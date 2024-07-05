@@ -66,6 +66,7 @@ export default function Login() {
             placeholder="Ingresar usuario"
             value={login}
             onChange={(event: any) => setLogin(event.target.value)}
+            className="custom-input"
           />
           <Input
             label="Password"

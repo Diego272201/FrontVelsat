@@ -12,7 +12,7 @@ import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
-import { FaCalendarCheck } from "react-icons/fa";
+import { FaCalendarCheck } from 'react-icons/fa';
 import { useSession } from 'next-auth/react';
 
 export default function Page() {
@@ -54,9 +54,9 @@ export default function Page() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-    <div className="stick">
+      <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE PARADAS</h2>
+          <h2 className="resaltar text-center">REPORTE DE PARADAS</h2>
           <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
         </div>
 
@@ -81,7 +81,7 @@ export default function Page() {
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <FaCalendarCheck  style={{ color: '#0d3b66' }} />
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
               <p>
                 <span className="resaltar">DESDE: </span>
                 {formatDate(startDate)}
@@ -110,8 +110,13 @@ export default function Page() {
           </div>
         </div>
 
-
-        <ButtonDownloadFloat></ButtonDownloadFloat>
+        <ButtonDownloadFloat
+          startDate={startDate || ''}
+          endDate={endDate || ''}
+          devideId={deviceId || ''}
+          namedown="downloadExcelS"
+          namedesc="paradas"
+        ></ButtonDownloadFloat>
 
         <Toaster />
       </div>

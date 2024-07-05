@@ -12,7 +12,7 @@ import {
 import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
 import { Toaster } from 'sonner';
-import ButtonDownload from '@/app/components/ui/Button';
+import ButtonSpeedModal from '@/app/components/ui/ButtonSpeedModal';
 import Image from 'next/image';
 import { Input } from '@nextui-org/react';
 import { IoSpeedometerSharp } from 'react-icons/io5';
@@ -114,10 +114,11 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                   <div className="download">
                     <Toaster />
 
-                    <ButtonDownload
+                    <ButtonSpeedModal
                       startDate={startDate}
                       endDate={endDate}
                       devideId={selectedDeviceId}
+                      speedCar={speedCar}
                       namedown={namedown}
                       namedesc={namedesc}
                     />
