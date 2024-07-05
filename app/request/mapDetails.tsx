@@ -52,7 +52,7 @@ export default function RequestPageDetail() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  const fetchData = async () => {
+  const fetchData = useCallback( async () => {
     try {
       const response = await axios.get(detailRecorrido);
       if (response.data.length === 0) {
@@ -69,11 +69,11 @@ export default function RequestPageDetail() {
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  };
+  },[detailRecorrido]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const onLoad = useCallback(function callback(map: any) {
     setMap(map);

@@ -79,7 +79,7 @@ export default function SeguirUnidadPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  const formatFecha = (fecha: any) => {
+  const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -87,9 +87,9 @@ export default function SeguirUnidadPage() {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}`;
-  };
+  }, []);
 
-  const getDireccion = (heading: number) => {
+  const getDireccion = useCallback((heading: number) => {
     if (heading >= 0 && heading <= 22.5) return "Norte";
     if (heading >= 22.51 && heading <= 67.50) return "Noreste";
     if (heading >= 67.51 && heading <= 112.50) return "Este";
@@ -100,9 +100,9 @@ export default function SeguirUnidadPage() {
     if (heading >= 292.51 && heading <= 337.50) return "Noroeste";
     if (heading >= 337.51 && heading <= 360.00) return "Norte";
     return "Desconocido";
-  };
+  }, []);
 
-  const getMarkerIcon = (heading: number) => {
+  const getMarkerIcon = useCallback((heading: number) => {
     const directions = [
       { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
       { range: [22.51, 67.50], url: '/topright.png', size: new google.maps.Size(42, 25) },
@@ -117,9 +117,13 @@ export default function SeguirUnidadPage() {
     const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
     
     return direction ? { url: direction.url, scaledSize: direction.size } : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-  };
+  }, []);
 
-  const getPopupContent = (device: Device) => {
+  const getEstado = useCallback((speed: number) => {
+    return speed > 0 ? 'En Movimiento' : 'Estacionado';
+  }, []);
+
+  const getPopupContent = useCallback((device: Device) => {
     return `
       <div class="content-custom-popup" id="content2-${device.deviceId}">
           <span>Unidad: ${device.deviceId.toUpperCase()} </span>
@@ -127,17 +131,13 @@ export default function SeguirUnidadPage() {
           <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
           <br>
           <span>ÚLTIMO REPORTE </span>
-          <span>${formatFecha(fechaActual)} </span>
+          <span>${formatFecha(fechaActual?.fechaActual || '')} </span>
           <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
           <span>Ubicación: ${device.direccion} </span>
           <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
       </div>
     `;
-  };
-
-  const getEstado = (speed: number) => {
-    return speed > 0 ? 'En Movimiento' : 'Estacionado';
-  };
+  }, [fechaActual, getDireccion, getEstado, formatFecha]);
 
   const createMarkerAndPopup = useCallback((map: google.maps.Map) => {
     if (!device) return;
@@ -147,7 +147,6 @@ export default function SeguirUnidadPage() {
     const position = new google.maps.LatLng(device.lastValidLatitude, device.lastValidLongitude);
 
     if (existingMarkers[device.deviceId]) {
-
       existingMarkers[device.deviceId].setPosition(position);
       existingMarkers[device.deviceId].setIcon(getMarkerIcon(device.lastValidHeading));
 
@@ -166,7 +165,6 @@ export default function SeguirUnidadPage() {
 
       existingPopups[device.deviceId].draw();
     } else {
-
       const content1 = document.createElement('div');
       content1.innerHTML = `<div id="content">${device.deviceId.toUpperCase()}</div>`;
 
@@ -260,7 +258,7 @@ export default function SeguirUnidadPage() {
         });
       }
     }
-  }, [device]);
+  }, [device, getMarkerIcon, getPopupContent]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;

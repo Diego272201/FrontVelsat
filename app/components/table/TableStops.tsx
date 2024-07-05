@@ -41,7 +41,7 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetcData = async () => {
+    const fetchData = async () => {
       try {
         const response = await axios.get(url);
         const data = response.data;
@@ -53,8 +53,8 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
       }
     };
 
-    fetcData();
-  }, []);
+    fetchData();
+  }, [url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
