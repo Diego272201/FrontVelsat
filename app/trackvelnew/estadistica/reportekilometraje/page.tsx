@@ -160,23 +160,19 @@ export default function Page() {
             </div>
           </div>
 
-          {/* <div className="optionTablesr">
-            <ButtonDownload
-              startDate={startDate || ''}
-              endDate={endDate || ''}
-              devideId={deviceId || ''}
-              namedown="downloadExcelG"
-              namedesc="general"
-            />
-          </div> */}
-
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
           
         </div>
 
-        <ButtonDownloadFloat></ButtonDownloadFloat>
+        <ButtonDownloadFloat
+        startDate={startDate || ''}
+        endDate={endDate || ''}
+        devideId={deviceId || ''}
+        namedown="downloadExcelK"
+        namedesc="kilometraje"
+        ></ButtonDownloadFloat>
 
         <Toaster />
       </div>
