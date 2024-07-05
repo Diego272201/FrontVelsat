@@ -1,17 +1,38 @@
 'use client';
-
-import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
-import React, { useState } from 'react';
-import ButtonDownload from '@/app/components/ui/Button';
-import { IoCalendar } from 'react-icons/io5';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FaCalendarCheck } from 'react-icons/fa';
+import { IoCarSport } from 'react-icons/io5';
 import '@/app/styles/table.css';
-import { FaUser } from 'react-icons/fa6';
+import { Tabs, Tab, Card, CardBody } from '@nextui-org/react';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
-import { FaDownload } from 'react-icons/fa';
+import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import { IoSpeedometer } from 'react-icons/io5';
+import { FaUser } from 'react-icons/fa6';
+
+import TableKilometer from '@/app/components/table/TableKilometer';
+import VistaUnidad from '@/app/components/ui/VistaUnidad';
+import axios from 'axios';
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Pagination,
+  getKeyValue,
+  Spinner,
+} from '@nextui-org/react';
+
+interface Row {
+  item: number;
+  deviceId: string;
+  kilometros: number;
+}
 
 export default function Page() {
   const { data: session } = useSession();
@@ -21,10 +42,57 @@ export default function Page() {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
+  const [rows, setRows] = useState<Row[]>([]);
+  const [page, setPage] = React.useState(1);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const tableUrl = `http://66.240.210.125:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
-
+  const [selectedUrl, setSelectedUrl] = useState('');
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
+  const [loading, setLoading] = useState(true);
+
+  const defaultTab = useMemo(() => {
+    return deviceId === 'Todas las unidades' ? 'tabla' : 'vista';
+  }, [deviceId]);
+
+  useEffect(() => {
+    if (session && session.user && session.user.username) {
+      const userName = session.user.username;
+      console.log('Username:', userName);
+
+      const tableUrlAll = `http://66.240.210.125:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
+      const tableUrlOnly = `http://66.240.210.125:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
+
+      const url =
+        deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
+
+      setSelectedUrl(url);
+      setLoading(false);
+
+      const fetcData = async () => {
+        try {
+          const response = await axios.get(url);
+          const data = response.data.listaKilometros;
+          setRows(data);
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          setIsLoading(false);
+        }
+      };
+      fetcData();
+
+      console.log('Selected URL:', url);
+    }
+  }, [session, startDate, endDate, deviceId]);
+
+  const pages = Math.ceil(rows.length / selectedRowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * selectedRowsPerPage;
+    const end = start + selectedRowsPerPage;
+
+    return rows.slice(start, end);
+  }, [page, rows, selectedRowsPerPage]);
 
   const handleSelectRowsChange = (value: number) => {
     setSelectedRowsPerPage(value);
@@ -49,11 +117,11 @@ export default function Page() {
   };
 
   return (
-    <div className="tablaReport">
-      <div className='stick'>
+    <div className="tablaReport tablaReportMargen">
+      <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE DE KILÓMETROS RECORRIDOS</h2>
-          <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
+          <h2 className="resaltar text-center">REPORTE KILOMETRAJE</h2>
+          <IoSpeedometer size={22} style={{ color: '#0d3b66' }} />
         </div>
 
         <div className="datosReporting">
@@ -62,65 +130,154 @@ export default function Page() {
               <FaUser style={{ color: '#0d3b66' }} size={22} />
               <p>
                 <span className="resaltar"> USUARIO: </span>
-                {session?.user.username.toUpperCase()}
+                {session?.user.username}
+              </p>
+            </div>
+            <div className="userReporte">
+              <IoCarSport style={{ color: '#0d3b66' }} size={22} />
+
+              <p>
+                <span className="resaltar">UNIDAD:</span>{' '}
+                {deviceId?.toUpperCase()}
               </p>
             </div>
           </div>
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
               <p>
-                {' '}
-                <span className="resaltar">Desde: </span>
+                <span className="resaltar">DESDE: </span>
                 {formatDate(startDate)}
               </p>
             </div>
             <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
               <p>
-                {' '}
-                <span className="resaltar">Hasta: </span>
+                <span className="resaltar">HASTA: </span>
                 {formatDate(endDate)}
               </p>
             </div>
           </div>
 
-          <div className="optionTablesr">
+          {/* <div className="optionTablesr">
             <ButtonDownload
               startDate={startDate || ''}
               endDate={endDate || ''}
               devideId={deviceId || ''}
-              namedown="downloadExcelK"
-              namedesc="kilometraje"
+              namedown="downloadExcelG"
+              namedesc="general"
             />
-          </div>
+          </div> */}
 
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
+          
         </div>
 
-        <div className="whatsapp">
-          <button className="download-btn">
-            <svg
-              id="download"
-              viewBox="0 0 24 24"
-              data-name="Layer 1"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M14.29,17.29,13,18.59V13a1,1,0,0,0-2,0v5.59l-1.29-1.3a1,1,0,0,0-1.42,1.42l3,3a1,1,0,0,0,.33.21.94.94,0,0,0,.76,0,1,1,0,0,0,.33-.21l3-3a1,1,0,0,0-1.42-1.42ZM18.42,6.22A7,7,0,0,0,5.06,8.11,4,4,0,0,0,6,16a1,1,0,0,0,0-2,2,2,0,0,1,0-4A1,1,0,0,0,7,9a5,5,0,0,1,9.73-1.61,1,1,0,0,0,.78.67,3,3,0,0,1,.24,5.84,1,1,0,1,0,.5,1.94,5,5,0,0,0,.17-9.62Z"></path>
-            </svg>
-          </button>
-        </div>
+        <ButtonDownloadFloat></ButtonDownloadFloat>
+
         <Toaster />
       </div>
       <div>
-        {/* <Table
-          url={tableUrl}
-          selectedRowsPerPage={selectedRowsPerPage}
-          onSelectedRowsPerPageChange={handleSelectRowsChange}
-        /> */}
+        <div className="flex w-full flex-col">
+          <Tabs
+            aria-label="Tabs variants"
+            variant="underlined"
+            defaultSelectedKey={defaultTab}
+          >
+            <Tab key="tabla" title="Tabla">
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <div>
+                  <Table
+                    selectionMode="single"
+                    align="left"
+                    color="primary"
+                    aria-label="Example table with client side pagination"
+                    bottomContent={
+                      <div className="flex w-full justify-center">
+                        {rows.length > 0 && (
+                          <Pagination
+                            isCompact
+                            showControls
+                            showShadow
+                            color="primary"
+                            page={page}
+                            total={pages}
+                            onChange={(page) => setPage(page)}
+                          />
+                        )}
+                      </div>
+                    }
+                    classNames={{
+                      wrapper: 'min-h-[222px]',
+                    }}
+                  >
+                    <TableHeader className="VERh">
+                      <TableColumn key="item" className="headerColumT">
+                        ITEM
+                      </TableColumn>
+                      <TableColumn key="fecha" className="headerColumT">
+                        UNIDAD
+                      </TableColumn>
+                      <TableColumn key="hora" className="headerColumT">
+                        KILÓMETROS
+                      </TableColumn>
+                    </TableHeader>
+
+                    <TableBody
+                      emptyContent={
+                        isLoading ? (
+                          <Spinner />
+                        ) : (
+                          <div>No hay datos para las fechas ingresadas</div>
+                        )
+                      }
+                      items={isLoading || rows.length === 0 ? [] : items}
+                    >
+                      {(item) => (
+                        <TableRow key={item.item}>
+                          <TableCell className="centerCell">
+                            {item.item}
+                          </TableCell>
+                          <TableCell className="centerCell">
+                            {item.deviceId}
+                          </TableCell>
+                          <TableCell className="centerCell">
+                            {item.kilometros}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </Tab>
+
+            <Tab key="vista" title="Vista Unidad">
+              {isLoading ? (
+                <div className="spinnerCenter">
+                    <Spinner />
+                </div>
+              
+              ) : rows.length === 0 ? (
+                <div>No hay datos para las fechas ingresadas</div>
+              ) : (
+                rows.map((row) => (
+                  <VistaUnidad
+                    key={row.item}
+                    item={row.item}
+                    deviceId={row.deviceId}
+                    kilometros={parseFloat(row.kilometros.toFixed(2))}
+                  ></VistaUnidad>
+                ))
+              )}
+            </Tab>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

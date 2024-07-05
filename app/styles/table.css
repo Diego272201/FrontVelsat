@@ -96,8 +96,9 @@
 }
 
 .fristDataa {
-  font-family: monospace;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 400;
+
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -229,4 +230,3 @@
     transform: scale(1);
   }
 }
-
