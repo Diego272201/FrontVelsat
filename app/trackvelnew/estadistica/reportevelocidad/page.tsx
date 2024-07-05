@@ -10,10 +10,8 @@ import { useLocation } from 'react-router-dom';
 import '@/app/styles/table.css';
 import TableSpeed from '@/app/components/table/TableSpeed';
 import SelectRows from '@/app/components/ui/SelectRows';
-import { FaCalendarCheck } from 'react-icons/fa';
-import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import ButtonDownloadSpeed from '@/app/components/ui/ButtonDownloadSpeed';
 import { Toaster } from 'sonner';
-import ProgressKilometer from '@/app/components/ui/ProgressKilometer';
 
 export default function ReporteVelocidad() {
   const { data: session } = useSession();
@@ -24,8 +22,6 @@ export default function ReporteVelocidad() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
   const speedCar = searchParams.get('speedCar');
-
-  const speedCarNumber = speedCar ? Number(speedCar) : 0;
 
   const tableUrl = `http://66.240.210.125:8586/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}`;
 
@@ -57,7 +53,7 @@ export default function ReporteVelocidad() {
     <div className="tablaReport tablaReportMargen">
       <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE VELOCIDAD</h2>
+          <h2 className="resaltar text-center">REPORTE DE VELOCIDAD</h2>
           <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
         </div>
 
@@ -82,32 +78,33 @@ export default function ReporteVelocidad() {
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
+              <IoCalendar style={{ color: '#0d3b66' }} />
               <p>
                 <span className="resaltar">DESDE: </span>
                 {formatDate(startDate)}
               </p>
             </div>
             <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
+              <IoCalendar style={{ color: '#0d3b66' }} />
               <p>
                 <span className="resaltar">HASTA: </span>
                 {formatDate(endDate)}
               </p>
             </div>
           </div>
-
-          <div className="fristData">
-            <ProgressKilometer speed={speedCarNumber}></ProgressKilometer>
-        
-          </div>
-
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
         </div>
 
-        <ButtonDownloadFloat></ButtonDownloadFloat>
+        <ButtonDownloadSpeed
+          startDate={startDate || ''}
+          endDate={endDate || ''}
+          devideId={deviceId || ''}
+          speedCar={speedCar || ''}
+          namedown="downloadExcelV"
+          namedesc="velocidad"
+        />
 
         <Toaster />
       </div>
