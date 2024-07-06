@@ -106,7 +106,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           {(item) => (
             <TableRow key={item.item}>
               <TableCell className='centerCell'>{item.item}</TableCell>
-              <TableCell className='centerCell'>{item.speedKPH}</TableCell>
+              <TableCell className='centerCell'>{item.speedKPH + ' Km/h'}</TableCell>
               <TableCell className='centerCell'>{item.date}</TableCell>
               <TableCell className='centerCell'>{item.time}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>

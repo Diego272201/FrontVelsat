@@ -9,11 +9,10 @@ import {
   useDisclosure,
   Link,
 } from '@nextui-org/react';
-import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
-import ButtonDownload from '@/app/components/ui/Button';
+import ButtonKilometerModal from '@/app/components/ui/ButtonKilometerModal';
 import Image from 'next/image';
 import Selectall from '@/app/components/selectUI/Selectall';
 
@@ -110,7 +109,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
               <div className="footerModal">
                 {showDownloadButton && (
                   <div className="download">
-                    <ButtonDownload
+                    <ButtonKilometerModal
                       startDate={startDate}
                       endDate={endDate}
                       devideId={selectedDeviceId}
