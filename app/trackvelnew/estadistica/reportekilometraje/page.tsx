@@ -68,8 +68,7 @@ export default function Page() {
       const tableUrlAll = `http://66.240.210.125:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
       const tableUrlOnly = `http://66.240.210.125:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
 
-      const url =
-        deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
+      const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
       setSelectedUrl(url);
       setLoading(false);
@@ -121,6 +120,9 @@ export default function Page() {
 
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
+
+  const namedown = deviceId === 'Todas las unidades' ? 'downloadExcelKall' : 'downloadExcelK';
+  const updatedDeviceId = deviceId === 'Todas las unidades' ? session?.user.username || '' : deviceId;
 
   return (
     <div className="tablaReport tablaReportMargen">
@@ -183,7 +185,13 @@ export default function Page() {
           )}
         </div>
 
-        <ButtonDownloadFloat></ButtonDownloadFloat>
+        <ButtonKilometerPage
+        startDate={startDate || ''}
+        endDate={endDate || ''}
+        devideId={updatedDeviceId || ''}
+        namedown={namedown}
+        namedesc="kilometraje"
+        ></ButtonKilometerPage>
 
         <Toaster />
       </div>
