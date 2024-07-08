@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import '@/app/styles/components.css';
 import axios from 'axios';
@@ -10,7 +10,7 @@ interface DownloadParameterProps {
   endDate: string;
   devideId: string;
   namedown: string;
-  namedesc: string
+  namedesc: string;
 }
 
 export default function ButtonKilometerPage({
@@ -18,14 +18,20 @@ export default function ButtonKilometerPage({
   endDate,
   devideId,
   namedown,
-  namedesc
+  namedesc,
 }: DownloadParameterProps) {
-
   const handleDownload = async () => {
-    const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in', position:'bottom-left'});
+    const toastId = toast.loading('Descarga en proceso...', {
+      className: 'toast-slide-in',
+      position: 'bottom-left',
+    });
 
     if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
-      toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
+      toast.error('Rellenar campos necesarios', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
@@ -35,7 +41,11 @@ export default function ButtonKilometerPage({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays > 5) {
-      toast.error('El límite de fechas es de 5 días', { id: toastId, className: 'toast-slide-in', richColors:true});
+      toast.error('El límite de fechas es de 5 días', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
@@ -62,8 +72,11 @@ export default function ButtonKilometerPage({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success('Descarga completada', { id: toastId, className:'toast-slide-in', richColors:true});
-
+      toast.success('Descarga completada', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
     }
@@ -71,9 +84,9 @@ export default function ButtonKilometerPage({
 
   return (
     <div className="whatsapp-btn">
-    <button className="download-btn" onClick={handleDownload}>
-      <FaDownload />
-    </button>
-  </div>
-  )
+      <button className="download-btn" onClick={handleDownload}>
+        <FaDownload />
+      </button>
+    </div>
+  );
 }

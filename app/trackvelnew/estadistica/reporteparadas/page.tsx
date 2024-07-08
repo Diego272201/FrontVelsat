@@ -109,17 +109,16 @@ export default function Page() {
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
         </div>
+        <Toaster />
+      </div>
 
-        <ButtonDownloadFloat
+      <ButtonDownloadFloat
           startDate={startDate || ''}
           endDate={endDate || ''}
           devideId={deviceId || ''}
           namedown="downloadExcelS"
           namedesc="paradas"
         ></ButtonDownloadFloat>
-
-        <Toaster />
-      </div>
 
       <div>
         <TableStops

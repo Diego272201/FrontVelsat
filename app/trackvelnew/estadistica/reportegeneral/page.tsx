@@ -2,7 +2,7 @@
 import Table from '@/app/components/table/Table';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useState } from 'react';
-import { FaCalendarCheck } from "react-icons/fa";
+import { FaCalendarCheck } from 'react-icons/fa';
 import '@/app/styles/table.css';
 import { IoCarSport } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
@@ -49,7 +49,6 @@ export default function Page() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-
       <div className="stick">
         <div className="headerRG">
           <h2 className="resaltar text-center">REPORTE GENERAL</h2>
@@ -77,7 +76,7 @@ export default function Page() {
 
           <div className="fristDataa">
             <div className="alinearDate">
-              <FaCalendarCheck  style={{ color: '#0d3b66' }} />
+              <FaCalendarCheck style={{ color: '#0d3b66' }} />
               <p>
                 <span className="resaltar">DESDE: </span>
                 {formatDate(startDate)}
@@ -95,28 +94,26 @@ export default function Page() {
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
-          
         </div>
 
-        <ButtonDownloadFloat
+        <Toaster />
+      </div>
+
+      <ButtonDownloadFloat
         startDate={startDate || ''}
         endDate={endDate || ''}
         devideId={deviceId || ''}
         namedown="downloadExcelG"
         namedesc="general"
-        />
+      />
 
-        <Toaster />
-      </div>
       <div>
         <Table
           url={tableUrl}
           selectedRowsPerPage={selectedRowsPerPage}
           onSelectedRowsPerPageChange={handleSelectRowsChange}
-     
         />
       </div>
     </div>
-      
   );
 }

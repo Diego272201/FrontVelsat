@@ -97,7 +97,10 @@ export default function ReporteVelocidad() {
           </div>
         </div>
 
-        <ButtonDownloadSpeed
+        <Toaster />
+      </div>
+
+      <ButtonDownloadSpeed
           startDate={startDate || ''}
           endDate={endDate || ''}
           devideId={deviceId || ''}
@@ -105,10 +108,7 @@ export default function ReporteVelocidad() {
           namedown="downloadExcelV"
           namedesc="velocidad"
         />
-
-        <Toaster />
-      </div>
-
+        
       <div>
         <TableSpeed
           url={tableUrl}

@@ -107,14 +107,12 @@
 }
 
 .stick {
-   position: sticky;
+  position: sticky;
   top: 0;
   margin-top: 0px;
   margin-bottom: 40px;
   background: #f8f9fa;
-
 }
-
 
 @media (max-width: 1072px) {
   .datosReporting {
