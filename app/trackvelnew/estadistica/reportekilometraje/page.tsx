@@ -9,7 +9,7 @@ import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
-import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import ButtonKilometerPage from '@/app/components/ui/ButtonKilometerPage';
 import { IoSpeedometer } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 
@@ -255,7 +255,7 @@ export default function Page() {
                             {item.deviceId}
                           </TableCell>
                           <TableCell className="centerCell">
-                            {item.kilometros}
+                            {item.kilometros.toFixed(2) + ' Km'}
                           </TableCell>
                         </TableRow>
                       )}

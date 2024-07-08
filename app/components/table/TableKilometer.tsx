@@ -98,7 +98,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
             <TableRow key={item.item}>
               <TableCell className='centerCell'>{item.item}</TableCell>
               <TableCell className='centerCell'>{item.deviceId}</TableCell>
-              <TableCell className='centerCell'>{item.kilometros}</TableCell>
+              <TableCell className='centerCell'>{item.kilometros.toFixed(2) + ' Km'}</TableCell>
 
             </TableRow>
           )}
