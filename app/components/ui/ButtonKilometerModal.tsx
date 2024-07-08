@@ -4,6 +4,7 @@ import '@/app/styles/components.css';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
+import { useSession } from 'next-auth/react';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -20,6 +21,7 @@ export default function ButtonKilometerModal({
   namedown,
   namedesc
 }: DownloadParameterProps) {
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -52,30 +54,33 @@ export default function ButtonKilometerModal({
         });
       }, 150);
 
-      const response = await axios.get(
-        `http://66.240.210.125:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`,
-        {
-          responseType: 'arraybuffer',
-          onDownloadProgress: (progressEvent) => {
-            if (progressEvent.total !== undefined) {
-              const progressPercent = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total,
-              );
-              setProgress(progressPercent);
-            }
-          },
+      let url = `http://66.240.210.125:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`;
+      if (devideId === 'Todas las unidades') {
+        const userName = session?.user?.username || '';
+        url = `http://66.240.210.125:8586/api/Kilometer/downloadExcelKall/${startDate}/${endDate}/${userName}`;
+      }
+
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        onDownloadProgress: (progressEvent) => {
+          if (progressEvent.total !== undefined) {
+            const progressPercent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setProgress(progressPercent);
+          }
         },
-      );
+      });
 
       clearInterval(interval);
 
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const fileName = `reporte_${namedesc}_gps_${devideId}.xlsx`;
       const link = document.createElement('a');
-      link.href = url;
+      link.href = downloadUrl;
       link.setAttribute('download', fileName);
 
       link.addEventListener('load', () => {
@@ -87,10 +92,13 @@ export default function ButtonKilometerModal({
       link.click();
 
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
 
-      toast.success('Descarga completada', { id: toastId, className:'toast-slide-in', richColors:true});
-
+      toast.success('Descarga completada', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
       setIsLoading(false);

@@ -109,7 +109,6 @@
 .stick {
    position: sticky;
   top: 0;
-  z-index: 1000;
   margin-top: 0px;
   margin-bottom: 40px;
   background: #f8f9fa;
