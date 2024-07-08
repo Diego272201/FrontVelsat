@@ -69,6 +69,8 @@ export default function Page() {
 
       const url =
         deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
+      const url =
+        deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
       setSelectedUrl(url);
       setLoading(false);
