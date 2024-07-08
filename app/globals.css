@@ -27,7 +27,7 @@ body {
   padding-top: 50px;
 }
 
-.optionTables{
+.optionTables {
   width: 100%;
   display: flex;
   align-items: center;
@@ -42,7 +42,7 @@ body {
   display: none;
 }
 
-.centerSpinner{
+.centerSpinner {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -51,89 +51,90 @@ body {
 
 /* ACA TERMINA LOS ESTILOS DEL REPORTE */
 
-
 /* LOADER */
 
 .spinner {
   --size: 25px;
-  --first-block-clr: #113EB9;
-  --second-block-clr: #FB7B0F;
+  --first-block-clr: #113eb9;
+  --second-block-clr: #fb7b0f;
   --clr: #111;
   width: 100px;
   height: 100px;
   position: relative;
- }
- 
- .spinner::after,.spinner::before {
+}
+
+.spinner::after,
+.spinner::before {
   box-sizing: border-box;
   position: absolute;
-  content: "";
+  content: '';
   width: var(--size);
   height: var(--size);
   top: 50%;
   animation: up 2.4s cubic-bezier(0, 0, 0.24, 1.21) infinite;
   left: 50%;
   background: var(--first-block-clr);
- }
- 
- .spinner::after {
+}
+
+.spinner::after {
   background: var(--second-block-clr);
   top: calc(50% - var(--size));
   left: calc(50% - var(--size));
   animation: down 2.4s cubic-bezier(0, 0, 0.24, 1.21) infinite;
- }
- 
- @keyframes down {
-  0%, 100% {
-   transform: none;
+}
+
+@keyframes down {
+  0%,
+  100% {
+    transform: none;
   }
- 
+
   25% {
-   transform: translateX(100%);
+    transform: translateX(100%);
   }
- 
+
   50% {
-   transform: translateX(100%) translateY(100%);
+    transform: translateX(100%) translateY(100%);
   }
- 
+
   75% {
-   transform: translateY(100%);
+    transform: translateY(100%);
   }
- }
- 
- @keyframes up {
-  0%, 100% {
-   transform: none;
+}
+
+@keyframes up {
+  0%,
+  100% {
+    transform: none;
   }
- 
+
   25% {
-   transform: translateX(-100%);
+    transform: translateX(-100%);
   }
- 
+
   50% {
-   transform: translateX(-100%) translateY(-100%);
+    transform: translateX(-100%) translateY(-100%);
   }
- 
+
   75% {
-   transform: translateY(-100%);
+    transform: translateY(-100%);
   }
- }
- 
- /* .stick{
+}
+
+/* .stick{
   border-radius: 10px;
   padding: 20px;
   box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
  } */
 
-
-.viewDevice{
+.viewDevice {
   display: flex;
   border: 10px;
   margin-bottom: 5px;
   border-radius: 5px;
 }
 
-.imgDevice{
+.imgDevice {
   width: 50%;
   display: flex;
   flex-direction: column;
@@ -143,8 +144,7 @@ body {
   border-radius: 5px 0px 0px 5px;
 }
 
-
-.odometroDiv{
+.odometroDiv {
   width: 50%;
   display: flex;
   justify-content: center;
@@ -152,43 +152,41 @@ body {
   flex-direction: column;
   background: #dee2e6;
   border-radius: 0px 5px 5px 0px;
-
 }
 
-.odometer{
+.odometer {
   font-size: 60px;
   border: solid 1px #003049;
 
   border-radius: 5px;
   color: #ced4da;
   text-align: center;
-  background: #113EB9;
+  background: #113eb9;
 }
 
-.deviceOnly{
+.deviceOnly {
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 20px;
   gap: 10px;
   color: #18191a;
-
 }
 
-.deviceId{
+.deviceId {
   background: #ffba08;
   padding: 5px;
   border-radius: 0px 0px 5px 5px;
 }
-.kmp{
+.kmp {
   padding: 5px;
 }
 
-.devicePadding{
+.devicePadding {
   padding-bottom: 20px;
 }
 
-.itemChip{
+.itemChip {
   border-radius: 5px;
   color: #101111;
   padding: 5px;
@@ -196,7 +194,20 @@ body {
   font-weight: 500;
 }
 
-.spinnerCenter{
+.spinnerCenter {
   display: flex;
   justify-content: center;
+}
+
+.listUnidad {
+  overflow-y: auto;
+  height: 70vh;
+}
+
+.listUnidad::-webkit-scrollbar {
+  width: 3px;
+}
+.listUnidad::-webkit-scrollbar-thumb {
+  background: #0547ac;
+  border-radius: 10px;
 }

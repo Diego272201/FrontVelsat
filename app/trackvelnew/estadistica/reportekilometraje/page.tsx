@@ -45,6 +45,7 @@ export default function Page() {
   const [rows, setRows] = useState<Row[]>([]);
   const [page, setPage] = React.useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   const [selectedUrl, setSelectedUrl] = useState('');
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
@@ -53,6 +54,11 @@ export default function Page() {
   const defaultTab = useMemo(() => {
     return deviceId === 'Todas las unidades' ? 'tabla' : 'vista';
   }, [deviceId]);
+
+  useEffect(() => {
+    setSelectedTab(defaultTab);
+  }, [defaultTab]);
+
 
   useEffect(() => {
     if (session && session.user && session.user.username) {
@@ -130,7 +136,7 @@ export default function Page() {
               <FaUser style={{ color: '#0d3b66' }} size={22} />
               <p>
                 <span className="resaltar"> USUARIO: </span>
-                {session?.user.username}
+                {session?.user.username.toUpperCase()}
               </p>
             </div>
             <div className="userReporte">
@@ -160,19 +166,24 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="selectRows">
-            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
-          </div>
-          
+          {/* <div className="optionTablesr">
+            <ButtonDownload
+              startDate={startDate || ''}
+              endDate={endDate || ''}
+              devideId={deviceId || ''}
+              namedown="downloadExcelG"
+              namedesc="general"
+            />
+          </div> */}
+
+          {selectedTab === 'tabla' && (
+            <div className="selectRows">
+              <SelectRows onChange={handleSelectRowsChange} />
+            </div>
+          )}
         </div>
 
-        <ButtonKilometerPage
-        startDate={startDate || ''}
-        endDate={endDate || ''}
-        devideId={deviceId || ''}
-        namedown="downloadExcelK"
-        namedesc="kilometraje"
-        ></ButtonKilometerPage>
+        <ButtonDownloadFloat></ButtonDownloadFloat>
 
         <Toaster />
       </div>
@@ -182,6 +193,7 @@ export default function Page() {
             aria-label="Tabs variants"
             variant="underlined"
             defaultSelectedKey={defaultTab}
+            onSelectionChange={(key) => setSelectedTab(key.toString())}
           >
             <Tab key="tabla" title="Tabla">
               {loading ? (
@@ -256,20 +268,21 @@ export default function Page() {
             <Tab key="vista" title="Vista Unidad">
               {isLoading ? (
                 <div className="spinnerCenter">
-                    <Spinner />
+                  <Spinner />
                 </div>
-              
               ) : rows.length === 0 ? (
                 <div>No hay datos para las fechas ingresadas</div>
               ) : (
-                rows.map((row) => (
-                  <VistaUnidad
-                    key={row.item}
-                    item={row.item}
-                    deviceId={row.deviceId}
-                    kilometros={parseFloat(row.kilometros.toFixed(2))}
-                  ></VistaUnidad>
-                ))
+                <div className="listUnidad">
+                  {rows.map((row) => (
+                    <VistaUnidad
+                      key={row.item}
+                      item={row.item}
+                      deviceId={row.deviceId}
+                      kilometros={parseFloat(row.kilometros.toFixed(2))}
+                    ></VistaUnidad>
+                  ))}
+                </div>
               )}
             </Tab>
           </Tabs>
