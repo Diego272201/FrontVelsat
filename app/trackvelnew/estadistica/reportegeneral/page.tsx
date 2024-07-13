@@ -21,7 +21,7 @@ export default function Page() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
-  const tableUrl = `http://66.240.210.125:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
+  const tableUrl = `http://66.240.210.107:8586/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 

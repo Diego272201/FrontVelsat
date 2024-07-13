@@ -64,8 +64,8 @@ export default function Page() {
       const userName = session.user.username;
       console.log('Username:', userName);
 
-      const tableUrlAll = `http://66.240.210.125:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
-      const tableUrlOnly = `http://66.240.210.125:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
+      const tableUrlAll = `http://66.240.210.107:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
+      const tableUrlOnly = `http://66.240.210.107:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
 
       const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 

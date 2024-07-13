@@ -42,7 +42,7 @@ export default function RequestPage() {
   useEffect(() => {
     if(status === 'authenticated' && session) {
       const username = session.user.username;
-      const hubUrl = `http://66.240.210.125:8586/dataHubDevice?username=${username}`;
+      const hubUrl = `http://66.240.210.107:8586/dataHubDevice?username=${username}`;
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
         .withAutomaticReconnect()
