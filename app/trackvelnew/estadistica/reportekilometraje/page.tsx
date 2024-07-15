@@ -169,16 +169,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* <div className="optionTablesr">
-            <ButtonDownload
-              startDate={startDate || ''}
-              endDate={endDate || ''}
-              devideId={deviceId || ''}
-              namedown="downloadExcelG"
-              namedesc="general"
-            />
-          </div> */}
-
           {selectedTab === 'tabla' && (
             <div className="selectRows">
               <SelectRows onChange={handleSelectRowsChange} />

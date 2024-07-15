@@ -95,16 +95,6 @@ export default function Page() {
               </p>
             </div>
           </div>
-
-          {/* <div className="optionTablesr">
-            <ButtonDownload
-              startDate={startDate || ''}
-              endDate={endDate || ''}
-              devideId={deviceId || ''}
-              namedown="downloadExcelG"
-              namedesc="general"
-            />
-          </div> */}
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
