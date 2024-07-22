@@ -96,8 +96,8 @@ export default function Page() {
           </div>
         </div>
 
-        <Toaster />
       </div>
+      <Toaster />
 
       <ButtonDownloadFloat
         startDate={startDate || ''}

@@ -202,12 +202,15 @@ body {
 .listUnidad {
   overflow-y: auto;
   height: 70vh;
+  position: relative; 
+  padding-right: 15px; 
 }
 
 .listUnidad::-webkit-scrollbar {
-  width: 3px;
+  width: 4px;
 }
 .listUnidad::-webkit-scrollbar-thumb {
-  background: #0547ac;
+  background: #474e58;
   border-radius: 10px;
 }
+

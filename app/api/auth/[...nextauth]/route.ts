@@ -1,4 +1,6 @@
-import { urlLogin } from '@/app/components/urlsApi/urlApi';
+import { useBaseUrl } from '@/app/BaseUrlContext';
+import { getBaseUrlForUser } from '@/app/components/urlsApi/apiService';
+import { getUrlLogin, setBaseUrl } from '@/app/components/urlsApi/urlApi';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
@@ -11,7 +13,14 @@ const handler = NextAuth({
         clave: { label: 'Clave', type: 'password' },
       },
       async authorize(credentials, req) {
-        const res = await fetch(urlLogin, {
+
+        const baseUrl = await getBaseUrlForUser(credentials?.login || '');
+        setBaseUrl(baseUrl);
+        
+        console.log('Base URL:', baseUrl);
+        
+
+        const res = await fetch(getUrlLogin(), {
           method: 'POST',
           body: JSON.stringify({
             login: credentials?.login,
@@ -38,6 +47,9 @@ const handler = NextAuth({
 
   callbacks: {
     async jwt({ token, user }) {
+      if (user) {
+        token.baseUrl = await getBaseUrlForUser(user.id);
+      }
       return { ...token, ...user };
     },
     async session({ session, token }) {

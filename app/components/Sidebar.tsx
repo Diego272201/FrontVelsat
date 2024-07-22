@@ -30,13 +30,17 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
-
+  
 
   
   const fetchData = useCallback(async (username: string) => {
 
     try {
+   
       const response = await axios.get(getSimplifiedDeviceListUrl(username));
+
+      console.log("La url es: " +getSimplifiedDeviceListUrl(username))
+
       setUnidades(response.data);
       setIsLoading(true);
     } catch (error) {
