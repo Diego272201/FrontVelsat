@@ -38,11 +38,13 @@ export default function RequestPage() {
   const popupsRef = useRef<{ [key: string]: google.maps.OverlayView }>({});
   const [fechaActual, setFechaActual] = useState<fechaActual>();
   const [markersLoaded, setMarkersLoaded] = useState(false);
+  const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
+
 
   useEffect(() => {
     if(status === 'authenticated' && session) {
       const username = session.user.username;
-      const hubUrl = `http://66.240.210.107:8586/dataHubDevice?username=${username}`;
+      const hubUrl = `http://66.240.210.125:8586/dataHubDevice?username=${username}`;
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
         .withAutomaticReconnect()
@@ -63,6 +65,7 @@ export default function RequestPage() {
       connection.on('ActualizarDatos', (datos) => {
         setFechaActual(datos.fechaActual);
         setDeviceList(datos.datosDevice);
+        setAllMarkersLoaded(true);
       });
 
 
@@ -325,7 +328,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
 
   return (
     <>
- {(!isLoaded || !markersLoaded) ? (
+ {(!isLoaded || !markersLoaded || !allMarkersLoaded) ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
           <Loader/>
         </div>
