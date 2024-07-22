@@ -24,7 +24,6 @@ export default function Login() {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const toastId = toast.loading('Autenticando...');
-      
       setErrors([]);
       const responseNextAuth = await signIn('credentials', {
         login,
@@ -34,8 +33,6 @@ export default function Login() {
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
         toast.error('Error: ' + responseNextAuth.error, { id: toastId });
-
-        
       } else {
         toast.success('¡Autenticación exitosa!', { id: toastId });
         router.push('/trackvelnew');
@@ -44,6 +41,8 @@ export default function Login() {
     },
     [login, clave, router],
   );
+
+  
   return (
     <div className="login">
       <div className="imgLogin">

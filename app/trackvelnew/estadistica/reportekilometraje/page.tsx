@@ -14,7 +14,10 @@ import { IoSpeedometer } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
 
 import TableKilometer from '@/app/components/table/TableKilometer';
-import VistaUnidad from '@/app/components/ui/VistaUnidad';
+
+const VistaUnidad = dynamic(() => import('@/app/components/ui/VistaUnidad'), {
+  ssr: false, 
+});
 import axios from 'axios';
 import {
   Table,
@@ -27,6 +30,7 @@ import {
   getKeyValue,
   Spinner,
 } from '@nextui-org/react';
+import dynamic from 'next/dynamic';
 
 interface Row {
   item: number;
@@ -97,6 +101,8 @@ export default function Page() {
 
     return rows.slice(start, end);
   }, [page, rows, selectedRowsPerPage]);
+  
+  
 
   const handleSelectRowsChange = (value: number) => {
     setSelectedRowsPerPage(value);
@@ -185,8 +191,8 @@ export default function Page() {
             </div>
           )}
         </div>
-        <Toaster />
       </div>
+      <Toaster />
 
       <ButtonKilometerPage
         startDate={startDate || ''}
