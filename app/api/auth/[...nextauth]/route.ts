@@ -1,8 +1,11 @@
-import { useBaseUrl } from '@/app/BaseUrlContext';
-import { getBaseUrlForUser } from '@/app/components/urlsApi/apiService';
-import { getUrlLogin, setBaseUrl } from '@/app/components/urlsApi/urlApi';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+
+const getServerUrl = async (username: string) => {
+  const res = await fetch(`http://66.240.210.125:8586/api/Server/${username}`);
+  const data = await res.json();
+  return data.servidor;
+};
 
 const handler = NextAuth({
   providers: [
@@ -13,14 +16,11 @@ const handler = NextAuth({
         clave: { label: 'Clave', type: 'password' },
       },
       async authorize(credentials, req) {
-
-        const baseUrl = await getBaseUrlForUser(credentials?.login || '');
-        setBaseUrl(baseUrl);
         
-        console.log('Base URL:', baseUrl);
-        
+        const serverUrl = await getServerUrl(credentials?.login);
+        const urlLogin = `${serverUrl}/api/Login/login`;
 
-        const res = await fetch(getUrlLogin(), {
+        const res = await fetch(urlLogin, {
           method: 'POST',
           body: JSON.stringify({
             login: credentials?.login,
@@ -38,9 +38,9 @@ const handler = NextAuth({
           throw new Error('Error de autenticación');
         }
         if (user) {
+          user.serverUrl = serverUrl; // Añadir serverUrl al usuario
           return user;
-        } 
-        
+        }
       },
     }),
   ],
@@ -48,23 +48,21 @@ const handler = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.baseUrl = await getBaseUrlForUser(user.id);
+        token.serverUrl = user.serverUrl;
       }
       return { ...token, ...user };
     },
     async session({ session, token }) {
       session.user = token as any;
+      session.user.serverUrl = token.serverUrl;
       return session;
     },
   },
 
   pages: {
     signIn: "/",
-    signOut: "/", 
+    signOut: "/",
   }
-
-
 });
-
 
 export { handler as GET, handler as POST };

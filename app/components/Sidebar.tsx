@@ -9,6 +9,7 @@ import { getSimplifiedDeviceListUrl } from './urlsApi/urlApi';
 import { useSession } from 'next-auth/react';
 import { FcSearch } from "react-icons/fc";
 import { Spinner } from '@nextui-org/react';
+import { useApi } from '@/context/ApiContext';
 
 interface SidebarProps {
   centerMap: () => void;
@@ -30,14 +31,15 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
-  
+  const { baseUrl, setBaseUrl } = useApi();
+
 
   
   const fetchData = useCallback(async (username: string) => {
 
     try {
    
-      const response = await axios.get(getSimplifiedDeviceListUrl(username));
+      const response = await axios.get(`${baseUrl}/DeviceList/simplified/${username}`);
 
       console.log("La url es: " +getSimplifiedDeviceListUrl(username))
 
@@ -54,7 +56,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     if (status === 'authenticated' && session) {
       fetchData(session.user.username);
     }
-  }, [status, session, fetchData]);
+  }, [status, session,setBaseUrl, fetchData]);
 
 
   
