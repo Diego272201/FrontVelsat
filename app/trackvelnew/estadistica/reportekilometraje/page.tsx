@@ -68,8 +68,8 @@ export default function Page() {
       const userName = session.user.username;
       console.log('Username:', userName);
 
-      const tableUrlAll = `http://66.240.210.125:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
-      const tableUrlOnly = `http://66.240.210.125:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
+      const tableUrlAll = `http://66.240.210.107:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
+      const tableUrlOnly = `http://66.240.210.107:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
 
       const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
@@ -174,16 +174,6 @@ export default function Page() {
               </p>
             </div>
           </div>
-
-          {/* <div className="optionTablesr">
-            <ButtonDownload
-              startDate={startDate || ''}
-              endDate={endDate || ''}
-              devideId={deviceId || ''}
-              namedown="downloadExcelG"
-              namedesc="general"
-            />
-          </div> */}
 
           {selectedTab === 'tabla' && (
             <div className="selectRows">

@@ -54,10 +54,10 @@ export default function ButtonKilometerModal({
         });
       }, 150);
 
-      let url = `http://66.240.210.125:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`;
+      let url = `http://66.240.210.107:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`;
       if (devideId === 'Todas las unidades') {
         const userName = session?.user?.username || '';
-        url = `http://66.240.210.125:8586/api/Kilometer/downloadExcelKall/${startDate}/${endDate}/${userName}`;
+        url = `http://66.240.210.107:8586/api/Kilometer/downloadExcelKall/${startDate}/${endDate}/${userName}`;
       }
 
       const response = await axios.get(url, {

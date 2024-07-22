@@ -43,7 +43,7 @@ export default function ButtonDownloadSpeed({
 
     try {
       const response = await axios.get(
-        `http://66.240.210.125:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}`,
+        `http://66.240.210.107:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}`,
         {
           responseType: 'arraybuffer',
         },
