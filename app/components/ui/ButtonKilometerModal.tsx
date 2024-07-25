@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useSession } from 'next-auth/react';
+import { useApi } from '@/context/ApiContext';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -24,6 +25,7 @@ export default function ButtonKilometerModal({
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { baseUrl, setBaseUrl } = useApi();
 
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in'});
@@ -54,10 +56,10 @@ export default function ButtonKilometerModal({
         });
       }, 150);
 
-      let url = `http://66.240.210.107:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`;
+      let url = `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`;
       if (devideId === 'Todas las unidades') {
         const userName = session?.user?.username || '';
-        url = `http://66.240.210.107:8586/api/Kilometer/downloadExcelKall/${startDate}/${endDate}/${userName}`;
+        url = `${baseUrl}/api/Kilometer/downloadExcelKall/${startDate}/${endDate}/${userName}`;
       }
 
       const response = await axios.get(url, {
@@ -103,9 +105,11 @@ export default function ButtonKilometerModal({
       console.error('Error al descargar el archivo:', error);
       setIsLoading(false);
       setProgress(0);
+      setBaseUrl;
     }
     setProgress(0);
     setIsLoading(false);
+    setBaseUrl;
   };
 
   return (

@@ -11,12 +11,12 @@ type ApiContextType = {
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
 export const ApiProvider = ({ children }: { children: ReactNode }) => {
-  const [baseUrl, setBaseUrl] = useState('http://66.240.210.125:8586/api');
+  const [baseUrl, setBaseUrl] = useState('http://66.240.210.125:8586');
   const { data: session } = useSession();
 
   useEffect(() => {
     if (session?.user?.serverUrl) {
-      setBaseUrl(`${session.user.serverUrl}/api`);
+      setBaseUrl(`${session.user.serverUrl}`);
     }
   }, [session]);
 

@@ -13,6 +13,8 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import Image from 'next/image';
+import { useApi } from '@/context/ApiContext';
+
 
 interface Row {
   item: number;
@@ -34,6 +36,8 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { setBaseUrl } = useApi();
+
 
   useEffect(() => {
     const fetcData = async () => {
@@ -42,6 +46,8 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
         const data = response.data;
         setRows(data);
         setIsLoading(false);
+        console.log(url)
+
       } catch (error) {
         console.error('Error fetching data:', error);
         setIsLoading(false);
@@ -49,7 +55,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
     };
 
     fetcData();
-  }, [url]);
+  }, [setBaseUrl]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
@@ -106,7 +112,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           {(item) => (
             <TableRow key={item.item}>
               <TableCell className='centerCell'>{item.item}</TableCell>
-              <TableCell className='centerCell'>{item.speedKPH + ' Km/h'}</TableCell>
+              <TableCell className='centerCell'>{item.speedKPH.toFixed(2) + ' Km/h'}</TableCell>
               <TableCell className='centerCell'>{item.date}</TableCell>
               <TableCell className='centerCell'>{item.time}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>

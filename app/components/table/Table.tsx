@@ -42,6 +42,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
         const data = response.data.listaTablas;
         setRows(data);
         setIsLoading(false);
+        console.log(url)
       } catch (error) {
         console.error('Error fetching data:', error);
         setIsLoading(false);

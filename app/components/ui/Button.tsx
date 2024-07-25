@@ -4,6 +4,7 @@ import '@/app/styles/components.css';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
+import { useApi } from '@/context/ApiContext';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -22,6 +23,7 @@ export default function ButtonDownload({
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { baseUrl, setBaseUrl } = useApi();
 
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in'});
@@ -53,7 +55,7 @@ export default function ButtonDownload({
       }, 150);
 
       const response = await axios.get(
-        `http://66.240.210.107:8586/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
         {
           responseType: 'arraybuffer',
           onDownloadProgress: (progressEvent) => {
@@ -95,9 +97,11 @@ export default function ButtonDownload({
       console.error('Error al descargar el archivo:', error);
       setIsLoading(false);
       setProgress(0);
+      setBaseUrl;
     }
     setProgress(0);
     setIsLoading(false);
+    setBaseUrl;
   };
 
   return (

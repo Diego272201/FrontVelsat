@@ -1,8 +1,8 @@
 import React, { ChangeEvent, useCallback, useEffect, useState } from 'react';
 import { Select, SelectItem } from '@nextui-org/react';
 import axios from 'axios';
-import { getSimplifiedDeviceListUrl } from '../urlsApi/urlApi';
 import { useSession } from 'next-auth/react';
+import { useApi } from '@/context/ApiContext';
 
 interface SelectProps {
   onSelect: (deviceId: string) => void;
@@ -10,6 +10,7 @@ interface SelectProps {
 
 export default function App({ onSelect }: SelectProps) {
   const { data: session, status } = useSession();
+  const { baseUrl, setBaseUrl } = useApi();
 
   const [deviceIds, setDeviceIds] = useState<
     { value: string; label: string }[]
@@ -20,9 +21,7 @@ export default function App({ onSelect }: SelectProps) {
       const username = session.user.username;
       const fetchData = async () => {
         try {
-          const response = await axios.get(
-            getSimplifiedDeviceListUrl(username),
-          );
+          const response = await axios.get(`${baseUrl}/api/DeviceList/simplified/${username}`);
           const data = response.data;
           const ids = data.map((item: { deviceId: string }) => ({
             value: item.deviceId,
@@ -37,7 +36,7 @@ export default function App({ onSelect }: SelectProps) {
 
       fetchData();
     }
-  }, [status, session]);
+  }, [status, session, setBaseUrl]);
 
   const handleSelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedDeviceId = event.target.value;

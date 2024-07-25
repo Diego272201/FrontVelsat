@@ -12,6 +12,8 @@ import TableSpeed from '@/app/components/table/TableSpeed';
 import SelectRows from '@/app/components/ui/SelectRows';
 import ButtonDownloadSpeed from '@/app/components/ui/ButtonDownloadSpeed';
 import { Toaster } from 'sonner';
+import { useApi } from '@/context/ApiContext';
+
 
 export default function ReporteVelocidad() {
   const { data: session } = useSession();
@@ -22,14 +24,17 @@ export default function ReporteVelocidad() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
   const speedCar = searchParams.get('speedCar');
+  const { baseUrl, setBaseUrl } = useApi();
 
-  const tableUrl = `http://66.240.210.107:8586/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}`;
+  const tableUrl = `${baseUrl}/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
   const handleSelectRowsChange = (value: number) => {
     setSelectedRowsPerPage(value);
   };
+
+  console.log("URL TAble "+tableUrl);
 
   const formatDate = (dateString: any) => {
     if (!dateString) return '';

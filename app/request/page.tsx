@@ -6,6 +6,7 @@ import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
+import { useApi } from '@/context/ApiContext';
 
 const containerStyle = {
   width: '100%',
@@ -39,12 +40,13 @@ export default function RequestPage() {
   const [fechaActual, setFechaActual] = useState<fechaActual>();
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
+  const { baseUrl, setBaseUrl } = useApi();
 
 
   useEffect(() => {
     if(status === 'authenticated' && session) {
       const username = session.user.username;
-      const hubUrl = `http://66.240.210.125:8586/dataHubDevice?username=${username}`;
+      const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
         .withAutomaticReconnect()
@@ -70,7 +72,7 @@ export default function RequestPage() {
 
 
     }
-  }, [status,session]);
+  }, [status,session, setBaseUrl]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',

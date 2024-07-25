@@ -4,6 +4,7 @@ import '@/app/styles/components.css';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
+import { useApi } from '@/context/ApiContext';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -20,6 +21,8 @@ export default function ButtonKilometerPage({
   namedown,
   namedesc,
 }: DownloadParameterProps) {
+  const { baseUrl, setBaseUrl } = useApi();
+
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {
       className: 'toast-slide-in',
@@ -51,7 +54,7 @@ export default function ButtonKilometerPage({
 
     try {
       const response = await axios.get(
-        `http://66.240.210.107:8586/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`,
         {
           responseType: 'arraybuffer',
         },
@@ -79,7 +82,9 @@ export default function ButtonKilometerPage({
       });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
+      setBaseUrl;
     }
+    setBaseUrl;
   };
 
   return (

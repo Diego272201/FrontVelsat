@@ -13,16 +13,17 @@ import { useLocation } from 'react-router-dom';
 import Loader from '../components/Loader';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
+import { useApi } from '@/context/ApiContext';
 
 export default function RequestPageDetail() {
   const location = useLocation();
-
+  const { baseUrl, setBaseUrl } = useApi();
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
-  const detailRecorrido = `http://66.240.210.107:8586/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
+  const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
 
   interface UnidadDetalleRecorrido {
     longitude: number;
@@ -69,7 +70,7 @@ export default function RequestPageDetail() {
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  },[detailRecorrido]);
+  },[detailRecorrido, setBaseUrl]);
 
   useEffect(() => {
     fetchData();
@@ -179,7 +180,7 @@ export default function RequestPageDetail() {
                   <div className="infoDetalleR">
                     <p>Fecha: {markerData.date}</p>
                     <p>Hora: {markerData.time}</p>
-                    <p>Velocidad: {markerData.speed} Km/H</p>
+                    <p>Velocidad: {markerData.speed.toFixed(2)} Km/H</p>
                   </div>
                 </InfoWindow>
               )}

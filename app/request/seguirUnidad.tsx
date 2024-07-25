@@ -4,6 +4,7 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
+import { useApi } from '@/context/ApiContext';
 
 const containerStyle = {
   width: '100%',
@@ -35,6 +36,7 @@ export default function SeguirUnidadPage() {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
   const popupsRef = useRef<{ [key: string]: any }>({});
+  const { baseUrl, setBaseUrl } = useApi();
 
   const getDeviceIdFromUrl = () => {
     if (typeof window !== 'undefined') {
@@ -49,7 +51,7 @@ export default function SeguirUnidadPage() {
 
     if (status === 'authenticated' && session && deviceId) {
       const username = session.user.username;
-      const hubUrl = `http://66.240.210.107:8586/dataHubDevice?username=${username}`;
+      const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
 
       const connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl)
@@ -72,7 +74,7 @@ export default function SeguirUnidadPage() {
         }
       });
     }
-  }, [status, session]);
+  }, [status, session, setBaseUrl]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',

@@ -1,5 +1,7 @@
+import { UrlLogin } from '@/app/components/urlsApi/urlApi';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+
 
 const getServerUrl = async (username: string) => {
   const res = await fetch(`http://66.240.210.125:8586/api/Server/${username}`);
@@ -16,9 +18,11 @@ const handler = NextAuth({
         clave: { label: 'Clave', type: 'password' },
       },
       async authorize(credentials, req) {
-        
-        const serverUrl = await getServerUrl(credentials?.login);
-        const urlLogin = `${serverUrl}/api/Login/login`;
+        if (!credentials?.login || !credentials.clave) {
+          throw new Error('Credenciales no proporcionadas');
+        }
+        const serverUrl = await getServerUrl(credentials.login);
+        const urlLogin = `${serverUrl}${UrlLogin}`;
 
         const res = await fetch(urlLogin, {
           method: 'POST',
@@ -59,7 +63,7 @@ const handler = NextAuth({
     },
   },
 
-  pages: {
+  pages: { 
     signIn: "/",
     signOut: "/",
   }

@@ -5,7 +5,6 @@ import { TbView360 } from 'react-icons/tb';
 import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
-import { getSimplifiedDeviceListUrl } from './urlsApi/urlApi';
 import { useSession } from 'next-auth/react';
 import { FcSearch } from "react-icons/fc";
 import { Spinner } from '@nextui-org/react';
@@ -32,16 +31,14 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
   const { baseUrl, setBaseUrl } = useApi();
-
-
   
   const fetchData = useCallback(async (username: string) => {
 
     try {
    
-      const response = await axios.get(`${baseUrl}/DeviceList/simplified/${username}`);
+      const response = await axios.get(`${baseUrl}/api/DeviceList/simplified/${username}`);
 
-      console.log("La url es: " +getSimplifiedDeviceListUrl(username))
+      console.log("La url es: " + `${baseUrl}`)
 
       setUnidades(response.data);
       setIsLoading(true);
@@ -56,10 +53,8 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     if (status === 'authenticated' && session) {
       fetchData(session.user.username);
     }
-  }, [status, session,setBaseUrl, fetchData]);
+  }, [status, session, setBaseUrl, fetchData]);
 
-
-  
   const showMenu = () => {
     setShowDropdown(true);
   };
@@ -76,7 +71,6 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const handleCheckboxChange = useCallback((id: string) => {
     setLastCheckedId(id);
   }, []);
-
 
   const filteredUnidades = useMemo(() => 
     unidades.filter((unidad) =>
