@@ -30,7 +30,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
-  const { baseUrl, setBaseUrl } = useApi();
+  const { baseUrl} = useApi();
   
   const fetchData = useCallback(async (username: string) => {
 
@@ -53,7 +53,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     if (status === 'authenticated' && session) {
       fetchData(session.user.username);
     }
-  }, [status, session, setBaseUrl, fetchData]);
+  }, [status, session, fetchData]);
 
   const showMenu = () => {
     setShowDropdown(true);

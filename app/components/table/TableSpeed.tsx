@@ -33,29 +33,38 @@ interface AppProps {
 }
 
 export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
+
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { setBaseUrl } = useApi();
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
 
   useEffect(() => {
-    const fetcData = async () => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
+
+    const fetchData = async () => {
       try {
-        const response = await axios.get(url);
+        console.log('La base es:' + baseUrl);
+        const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
         setRows(data);
-        setIsLoading(false);
-        console.log(url)
-
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    fetcData();
-  }, [setBaseUrl]);
+    fetchData();
+  }, [isBaseUrlReady, baseUrl, url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
