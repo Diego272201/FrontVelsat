@@ -13,6 +13,7 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import Image from 'next/image';
+import { useApi } from '@/context/ApiContext';
 
 interface Row {
   item: number;
@@ -34,23 +35,41 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
   useEffect(() => {
-    const fetcData = async () => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
+
+    const fetchData = async () => {
       try {
-        const response = await axios.get(url);
-        const data = response.data.listaTablas;
-        setRows(data);
-        setIsLoading(false);
-        console.log(url)
+        console.log('La base es:' + baseUrl);
+        console.log('La url es:' + url);
+        const response = await axios.get(`${baseUrl}${url}`);
+        const data = response.data;
+
+        if (data && Array.isArray(data.listaTablas)) {
+          setRows(data.listaTablas);
+        } else {
+          console.error('Error: Data is not in expected format', data);
+          setRows([]); // Opción para manejar el caso donde data no es un array
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setRows([]); // Manejo de errores
+      } finally {
         setIsLoading(false);
       }
     };
 
-    fetcData();
-  }, [url]);
+    fetchData();
+  }, [isBaseUrlReady, baseUrl, url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 

@@ -14,6 +14,7 @@ import {
 import axios from 'axios';
 import SelectRows from '@/app/components/ui/SelectRows';
 import Image from 'next/image';
+import { useApi } from '@/context/ApiContext';
 
 interface Row {
   item: number;
@@ -35,26 +36,36 @@ interface AppProps {
 
 export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
   const [page, setPage] = React.useState(1);
-
   const [rows, setRows] = useState<Row[]>([]);
-
   const [isLoading, setIsLoading] = useState(true);
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
   useEffect(() => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
+
     const fetchData = async () => {
       try {
-        const response = await axios.get(url);
+        console.log('La base es:' + baseUrl);
+        console.log('La url es:' + url);
+        const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
         setRows(data);
-        setIsLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [url]);
+  }, [isBaseUrlReady, baseUrl, url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 

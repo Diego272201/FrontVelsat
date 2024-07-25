@@ -11,7 +11,6 @@ import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
-import { useApi } from '@/context/ApiContext';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -21,9 +20,8 @@ export default function Page() {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
-  const { baseUrl, setBaseUrl } = useApi();
 
-  const tableUrl = `${baseUrl}/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
+  const tableUrl = `/api/Reporting/general/${startDate}/${endDate}/${deviceId}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
