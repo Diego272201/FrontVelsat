@@ -16,6 +16,7 @@ import ButtonSpeedModal from '@/app/components/ui/ButtonSpeedModal';
 import Image from 'next/image';
 import { Input } from '@nextui-org/react';
 import { IoSpeedometerSharp } from 'react-icons/io5';
+import { useSession } from 'next-auth/react';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -36,10 +37,12 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
   namedesc,
   showDownloadButton,
 }) => {
+  const { data: session } = useSession();  
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [speedCar, setSpeedCar] = useState<string>('');
+  const username = session?.user.username;
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
@@ -121,6 +124,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                       speedCar={speedCar}
                       namedown={namedown}
                       namedesc={namedesc}
+                      username={username || ''}
                     />
                   </div>
                 )}

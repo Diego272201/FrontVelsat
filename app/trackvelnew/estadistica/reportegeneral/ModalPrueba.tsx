@@ -15,6 +15,7 @@ import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import ButtonDownload from '@/app/components/ui/Button';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -38,6 +39,9 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const { data: session } = useSession();
+
+  const username = session?.user.username;
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
@@ -114,6 +118,7 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
                       devideId={selectedDeviceId}
                       namedown={namedown}
                       namedesc={namedesc}
+                      username={username || ''}
                     />
                   </div>
                 )}

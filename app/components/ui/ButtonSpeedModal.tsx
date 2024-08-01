@@ -13,6 +13,7 @@ interface DownloadParameterProps {
   namedown: string;
   namedesc: string;
   speedCar: string;
+  username: string;
 }
 
 export default function ButtonSpeedModal({
@@ -21,7 +22,8 @@ export default function ButtonSpeedModal({
   devideId,
   namedown,
   namedesc,
-  speedCar
+  speedCar,
+  username,
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -58,7 +60,7 @@ export default function ButtonSpeedModal({
       }, 150);
 
       const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}`,
+        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`,
         {
           responseType: 'arraybuffer',
           onDownloadProgress: (progressEvent) => {

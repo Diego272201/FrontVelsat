@@ -11,7 +11,8 @@ interface DownloadParameterProps {
   endDate: string;
   devideId: string;
   namedown: string;
-  namedesc: string
+  namedesc: string;
+  username: string;
 }
 
 export default function ButtonDownload({
@@ -19,7 +20,9 @@ export default function ButtonDownload({
   endDate,
   devideId,
   namedown,
-  namedesc
+  namedesc,
+  username,
+  
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -55,7 +58,7 @@ export default function ButtonDownload({
       }, 150);
 
       const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
         {
           responseType: 'arraybuffer',
           onDownloadProgress: (progressEvent) => {
