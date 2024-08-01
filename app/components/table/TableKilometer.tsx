@@ -13,6 +13,8 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import Image from 'next/image';
+import { useApi } from '@/context/ApiContext';
+
 
 interface Row {
   item: number;
@@ -30,22 +32,33 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
   useEffect(() => {
-    const fetcData = async () => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
+
+    const fetchData = async () => {
       try {
-        const response = await axios.get(url);
-        const data = response.data.listaKilometros;
+        console.log('La base es:' + baseUrl);
+        const response = await axios.get(`${baseUrl}${url}`);
+        const data = response.data;
         setRows(data);
-        setIsLoading(false);
       } catch (error) {
         console.error('Error fetching data:', error);
+      } finally {
         setIsLoading(false);
       }
     };
 
-    fetcData();
-  }, [url]);
+    fetchData();
+  }, [isBaseUrlReady, baseUrl, url]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 

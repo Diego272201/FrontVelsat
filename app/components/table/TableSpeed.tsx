@@ -40,7 +40,6 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
-
   useEffect(() => {
     if (baseUrl) {
       setIsBaseUrlReady(true);

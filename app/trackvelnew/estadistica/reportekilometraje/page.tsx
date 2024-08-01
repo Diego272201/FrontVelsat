@@ -31,6 +31,7 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import dynamic from 'next/dynamic';
+import { useApi } from '@/context/ApiContext';
 
 interface Row {
   item: number;
@@ -55,6 +56,9 @@ export default function Page() {
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
   const [loading, setLoading] = useState(true);
 
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+
   const defaultTab = useMemo(() => {
     return deviceId === 'Todas las unidades' ? 'tabla' : 'vista';
   }, [deviceId]);
@@ -64,34 +68,42 @@ export default function Page() {
   }, [defaultTab]);
 
   useEffect(() => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
+
     if (session && session.user && session.user.username) {
       const userName = session.user.username;
       console.log('Username:', userName);
 
-      const tableUrlAll = `http://66.240.210.107:8586/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
-      const tableUrlOnly = `http://66.240.210.107:8586/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
+      const tableUrlAll = `/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
+      const tableUrlOnly = `/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
 
       const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
       setSelectedUrl(url);
       setLoading(false);
 
-      const fetcData = async () => {
+      const fetchData = async () => {
         try {
-          const response = await axios.get(url);
+          const response = await axios.get(`${baseUrl}${url}`);
           const data = response.data.listaKilometros;
           setRows(data);
-          setIsLoading(false);
         } catch (error) {
           console.error('Error fetching data:', error);
+        } finally {
           setIsLoading(false);
         }
       };
-      fetcData();
+      fetchData();
 
       console.log('Selected URL:', url);
     }
-  }, [session, startDate, endDate, deviceId]);
+  }, [session, startDate, endDate, deviceId, isBaseUrlReady, baseUrl]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
@@ -101,8 +113,6 @@ export default function Page() {
 
     return rows.slice(start, end);
   }, [page, rows, selectedRowsPerPage]);
-  
-  
 
   const handleSelectRowsChange = (value: number) => {
     setSelectedRowsPerPage(value);
