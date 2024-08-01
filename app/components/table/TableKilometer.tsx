@@ -12,9 +12,7 @@ import {
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
-
 
 interface Row {
   item: number;
@@ -59,6 +57,14 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
 
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
+
+  // Preload images when data is fetched
+  useEffect(() => {
+    if (!isLoading && rows.length > 0) {
+      const img = new Image();
+      img.src = '/UnidadK.webp';
+    }
+  }, [isLoading, rows]);
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 

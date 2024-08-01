@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { SiPagespeedinsights } from 'react-icons/si';
 import { MdShutterSpeed } from "react-icons/md";
-import { Chip } from '@nextui-org/react';
 
 interface Props {
   item: number;
@@ -10,18 +9,46 @@ interface Props {
   kilometros: number;
 }
 
-export default function VistaUnidad({item, deviceId, kilometros}: Props) {
-  return (
-    <div className="viewDevice">
-      <div className="imgDevice">
-      <div className="itemChip">ITEM N° {item}</div>
+export default function VistaUnidad({ item, deviceId, kilometros }: Props) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-        <Image
-          src="/UnidadK.webp"
-          width={300}
-          height={300}
-          alt="Picture of the author"
-        ></Image>
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 } // Adjust threshold as needed
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="viewDevice" ref={ref}>
+      <div className="imgDevice">
+        <div className="itemChip">ITEM N° {item}</div>
+
+        {isVisible && (
+          <Image
+            src="/UnidadK.webp"
+            width={300}
+            height={300}
+            alt="Picture of the author"
+            loading="lazy"
+          />
+        )}
 
         <div className="deviceOnly devicePadding">
           <SiPagespeedinsights />
@@ -32,13 +59,12 @@ export default function VistaUnidad({item, deviceId, kilometros}: Props) {
       <div className="odometroDiv">
         <div className="odometer" id="odometer">
           <div className='kmp'>
-          {kilometros} KM
-
+            {kilometros} KM
           </div>
           <div className="deviceOnly deviceId">
-          <MdShutterSpeed />
-          KILOMETROS RECORRIDOS
-        </div>
+            <MdShutterSpeed />
+            KILOMETROS RECORRIDOS
+          </div>
         </div>
       </div>
     </div>

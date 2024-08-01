@@ -12,12 +12,6 @@ import { Toaster } from 'sonner';
 import ButtonKilometerPage from '@/app/components/ui/ButtonKilometerPage';
 import { IoSpeedometer } from 'react-icons/io5';
 import { FaUser } from 'react-icons/fa6';
-
-import TableKilometer from '@/app/components/table/TableKilometer';
-
-const VistaUnidad = dynamic(() => import('@/app/components/ui/VistaUnidad'), {
-  ssr: false, 
-});
 import axios from 'axios';
 import {
   Table,
@@ -27,11 +21,14 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
   Spinner,
 } from '@nextui-org/react';
 import dynamic from 'next/dynamic';
 import { useApi } from '@/context/ApiContext';
+
+const VistaUnidad = dynamic(() => import('@/app/components/ui/VistaUnidad'), {
+  ssr: false,
+});
 
 interface Row {
   item: number;
@@ -41,23 +38,21 @@ interface Row {
 
 export default function Page() {
   const { data: session } = useSession();
-
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
   const [rows, setRows] = useState<Row[]>([]);
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
-
   const [selectedUrl, setSelectedUrl] = useState('');
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
   const [loading, setLoading] = useState(true);
-
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+  const [imagesLoading, setImagesLoading] = useState(true);
 
   const defaultTab = useMemo(() => {
     return deviceId === 'Todas las unidades' ? 'tabla' : 'vista';
@@ -107,10 +102,9 @@ export default function Page() {
 
   const pages = Math.ceil(rows.length / selectedRowsPerPage);
 
-  const items = React.useMemo(() => {
+  const items = useMemo(() => {
     const start = (page - 1) * selectedRowsPerPage;
     const end = start + selectedRowsPerPage;
-
     return rows.slice(start, end);
   }, [page, rows, selectedRowsPerPage]);
 
@@ -136,10 +130,35 @@ export default function Page() {
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
 
-  const namedown =
-    deviceId === 'Todas las unidades' ? 'downloadExcelKall' : 'downloadExcelK';
-  const updatedDeviceId =
-    deviceId === 'Todas las unidades' ? session?.user.username || '' : deviceId;
+  const namedown = deviceId === 'Todas las unidades' ? 'downloadExcelKall' : 'downloadExcelK';
+  const updatedDeviceId = deviceId === 'Todas las unidades' ? session?.user.username || '' : deviceId;
+
+  useEffect(() => {
+    if (selectedTab === 'vista' && rows.length > 0) {
+      let loadedImages = 0;
+      const totalImages = rows.length;
+      setImagesLoading(true); // Start loading
+
+      const checkAllImagesLoaded = () => {
+        if (loadedImages === totalImages) {
+          setImagesLoading(false);
+        }
+      };
+
+      rows.forEach((row) => {
+        const img = new Image();
+        img.src = '/UnidadK.webp'; // Path to your image
+        img.onload = () => {
+          loadedImages += 1;
+          checkAllImagesLoaded();
+        };
+        img.onerror = () => {
+          loadedImages += 1;
+          checkAllImagesLoaded();
+        };
+      });
+    }
+  }, [selectedTab, rows]);
 
   return (
     <div className="tablaReport tablaReportMargen">
@@ -160,10 +179,8 @@ export default function Page() {
             </div>
             <div className="userReporte">
               <IoCarSport style={{ color: '#0d3b66' }} size={22} />
-
               <p>
-                <span className="resaltar">UNIDAD:</span>{' '}
-                {deviceId?.toUpperCase()}
+                <span className="resaltar">UNIDAD:</span> {deviceId?.toUpperCase()}
               </p>
             </div>
           </div>
@@ -281,7 +298,7 @@ export default function Page() {
             </Tab>
 
             <Tab key="vista" title="Vista Unidad">
-              {isLoading ? (
+              {isLoading || imagesLoading ? (
                 <div className="spinnerCenter">
                   <Spinner />
                 </div>
@@ -295,7 +312,7 @@ export default function Page() {
                       item={row.item}
                       deviceId={row.deviceId}
                       kilometros={parseFloat(row.kilometros.toFixed(2))}
-                    ></VistaUnidad>
+                    />
                   ))}
                 </div>
               )}

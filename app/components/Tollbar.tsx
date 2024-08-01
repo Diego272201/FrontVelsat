@@ -10,6 +10,10 @@ import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
 import { TbReportSearch } from "react-icons/tb";
 import { RiGpsFill } from "react-icons/ri";
+import { MdDisplaySettings } from "react-icons/md";
+import { GrPlan } from "react-icons/gr";
+import { GrServices } from "react-icons/gr";
+
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -136,11 +140,13 @@ const Tollbar = () => {
               className={activeLink === 0 ? 'active' : ''}
               onClick={() => handleLinkClick(0)}
             >
-              {' '}
-              Gestión de Servicios{' '}
+              <div className="optMenu">
+              Gestión de Servicios
+              <GrServices />
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
+              </div>
             </Link>
 
             <ul
@@ -226,10 +232,13 @@ const Tollbar = () => {
               className={activeLink === 1 ? 'active' : ''}
               onClick={() => handleLinkClick(1)}
             >
+              <div className="optMenu">
               Planificación
+              <GrPlan />
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
               </i>
+              </div>
             </Link>
 
             <ul
@@ -276,10 +285,10 @@ const Tollbar = () => {
               className={activeLink === 3 ? 'active' : ''}
               onClick={() => handleLinkClick(3)}
             >
-              Operaciones{' '}
-              {/* <i className="dropdown-iconn">
-                <IoMdArrowDropdown />
-              </i> */}
+              <div className="optMenu">
+              Operaciones
+              <MdDisplaySettings />
+              </div>
             </Link>
             {/* 
             <ul

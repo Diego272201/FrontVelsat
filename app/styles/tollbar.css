@@ -173,13 +173,14 @@ font-size: 0.88rem;
 .navigation > li > a.active::before {
   width: 100%;
 }
-@media (min-width: 1200px) {
+
+@media (min-width: 1355px) {
   .menu-icon {
       display: none;
   }
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1355px) {
   .logo{
     width: 90%;
     font-size: 10px;
