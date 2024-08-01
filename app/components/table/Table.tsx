@@ -35,11 +35,10 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
     const fetcData = async () => {
       try {
         const response = await axios.get(url);
-        const data = response.data.listaTablas;
+        const data = response.data.result.listaTablas;
         setRows(data);
         setIsLoading(false);
         console.log(url)
@@ -48,6 +47,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
         setIsLoading(false);
       }
     };
+  useEffect(() => {
 
     fetcData();
   }, [url]);

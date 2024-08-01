@@ -11,7 +11,8 @@ interface DownloadParameterProps {
   endDate: string;
   devideId: string;
   namedown: string;
-  namedesc: string
+  namedesc: string;
+  username: string;
 }
 
 export default function ButtonDownloadFloat({
@@ -19,9 +20,12 @@ export default function ButtonDownloadFloat({
   endDate,
   devideId,
   namedown,
-  namedesc
+  namedesc,
+  username
 }: DownloadParameterProps) {
+
   const { baseUrl, setBaseUrl } = useApi();
+
 
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in', position:'bottom-left'});
@@ -43,7 +47,7 @@ export default function ButtonDownloadFloat({
 
     try {
       const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
         {
           responseType: 'arraybuffer',
         },

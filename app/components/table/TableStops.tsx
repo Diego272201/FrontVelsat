@@ -44,7 +44,7 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
     const fetchData = async () => {
       try {
         const response = await axios.get(url);
-        const data = response.data;
+        const data = response.data.result;
         setRows(data);
         setIsLoading(false);
       } catch (error) {
