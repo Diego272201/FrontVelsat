@@ -23,12 +23,8 @@ import {
   Pagination,
   Spinner,
 } from '@nextui-org/react';
-import dynamic from 'next/dynamic';
+import VistaUnidad from '@/app/components/ui/VistaUnidad'; // Importación estática
 import { useApi } from '@/context/ApiContext';
-
-const VistaUnidad = dynamic(() => import('@/app/components/ui/VistaUnidad'), {
-  ssr: false,
-});
 
 interface Row {
   item: number;
