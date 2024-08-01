@@ -25,7 +25,10 @@ export default function Page() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
-  const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}`;
+  const username = session?.user.username;
+
+
+  const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}/${username}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 
@@ -108,6 +111,7 @@ export default function Page() {
           devideId={deviceId || ''}
           namedown="downloadExcelS"
           namedesc="paradas"
+          username= {username || ''}
         ></ButtonDownloadFloat>
 
       <div>

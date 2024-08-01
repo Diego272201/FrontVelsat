@@ -54,8 +54,8 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
 
-        if (data && Array.isArray(data.listaTablas)) {
-          setRows(data.listaTablas);
+        if (data && Array.isArray(data.result.listaTablas)) {
+          setRows(data.result.listaTablas);
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]); // Opción para manejar el caso donde data no es un array

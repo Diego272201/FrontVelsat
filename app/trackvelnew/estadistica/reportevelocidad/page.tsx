@@ -24,7 +24,9 @@ export default function ReporteVelocidad() {
   const deviceId = searchParams.get('deviceId');
   const speedCar = searchParams.get('speedCar');
 
-  const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}`;
+  const username = session?.user.username;
+
+  const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 

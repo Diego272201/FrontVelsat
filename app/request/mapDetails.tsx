@@ -14,8 +14,11 @@ import Loader from '../components/Loader';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
+import { useSession } from 'next-auth/react';
 
 export default function RequestPageDetail() {
+  const { data: session } = useSession();
+
   const location = useLocation();
   const { baseUrl, setBaseUrl } = useApi();
   const searchParams = new URLSearchParams(location.search);
@@ -23,7 +26,9 @@ export default function RequestPageDetail() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
-  const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}`;
+  const username = session?.user.username;
+
+  const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
 
   interface UnidadDetalleRecorrido {
     longitude: number;
@@ -56,7 +61,7 @@ export default function RequestPageDetail() {
   const fetchData = useCallback( async () => {
     try {
       const response = await axios.get(detailRecorrido);
-      if (response.data.length === 0) {
+      if (response.data.result.length === 0) {
         toast.error('No hay datos para estas fechas', {
           className: 'toast-slide-in',
           richColors: true,
@@ -64,7 +69,7 @@ export default function RequestPageDetail() {
           position: 'top-center',
         });
       } else {
-        setMarkersData(response.data);
+        setMarkersData(response.data.result);
         setIsMarkersLoaded(true); // Marcadores cargados
       }
     } catch (error) {
