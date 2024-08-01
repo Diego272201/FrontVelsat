@@ -23,7 +23,7 @@ export default function Page() {
 
   const username = session?.user.username;
 
-  const tableUrl = `${baseUrl}/api/Reporting/general/${startDate}/${endDate}/${deviceId}/${username}`;
+  const tableUrl = `/api/Reporting/general/${startDate}/${endDate}/${deviceId}/${username}`;
 
   const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
 

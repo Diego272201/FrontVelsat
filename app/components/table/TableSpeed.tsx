@@ -53,7 +53,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
       try {
         console.log('La base es:' + baseUrl);
         const response = await axios.get(`${baseUrl}${url}`);
-        const data = response.data;
+        const data = response.data.result;
         setRows(data);
       } catch (error) {
         console.error('Error fetching data:', error);
