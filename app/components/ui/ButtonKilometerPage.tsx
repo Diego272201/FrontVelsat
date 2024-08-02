@@ -7,7 +7,6 @@ import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 
-
 interface DownloadParameterProps {
   startDate: string;
   endDate: string;
@@ -57,12 +56,22 @@ export default function ButtonKilometerPage({
     }
 
     try {
-      const response = await axios.get(
-        `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
-        {
-          responseType: 'arraybuffer',
-        },
-      );
+      let response;
+      if (namedown === "downloadExcelKall") {
+        response = await axios.get(
+          `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${username}`,
+          {
+            responseType: 'arraybuffer',
+          },
+        );
+      } else {
+        response = await axios.get(
+          `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
+          {
+            responseType: 'arraybuffer',
+          },
+        );
+      }
 
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -86,7 +95,11 @@ export default function ButtonKilometerPage({
       });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
-      setBaseUrl;
+      toast.error('Error al descargar el archivo', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     }
     setBaseUrl;
   };
