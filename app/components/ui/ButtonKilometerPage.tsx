@@ -5,6 +5,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
+import { useSession } from 'next-auth/react';
+
 
 interface DownloadParameterProps {
   startDate: string;
@@ -21,7 +23,9 @@ export default function ButtonKilometerPage({
   namedown,
   namedesc,
 }: DownloadParameterProps) {
+  const { data: session } = useSession();
   const { baseUrl, setBaseUrl } = useApi();
+  const username = session?.user.username;
 
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {
@@ -54,7 +58,7 @@ export default function ButtonKilometerPage({
 
     try {
       const response = await axios.get(
-        `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}`,
+        `${baseUrl}/api/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
         {
           responseType: 'arraybuffer',
         },

@@ -72,7 +72,7 @@ export default function Page() {
       console.log('Username:', userName);
 
       const tableUrlAll = `/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
-      const tableUrlOnly = `/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}`;
+      const tableUrlOnly = `/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}/${userName}`;
 
       const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
@@ -82,7 +82,7 @@ export default function Page() {
       const fetchData = async () => {
         try {
           const response = await axios.get(`${baseUrl}${url}`);
-          const data = response.data.listaKilometros;
+          const data = response.data.result.listaKilometros;
           setRows(data);
         } catch (error) {
           console.error('Error fetching data:', error);
