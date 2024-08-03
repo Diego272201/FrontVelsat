@@ -14,6 +14,7 @@ interface DownloadParameterProps {
   namedown: string;
   namedesc: string;
   speedCar: string;
+  username: string;
 }
 
 export default function ButtonDownloadSpeed({
@@ -22,7 +23,8 @@ export default function ButtonDownloadSpeed({
   devideId,
   namedown,
   namedesc,
-  speedCar
+  speedCar,
+  username
 }: DownloadParameterProps) {
 
   const { baseUrl, setBaseUrl } = useApi();
@@ -30,7 +32,7 @@ export default function ButtonDownloadSpeed({
   const handleDownload = async () => {
     const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in', position:'bottom-left'});
 
-    if (!startDate || !endDate || !devideId || !namedown || !namedesc || !speedCar) {
+    if (!startDate || !endDate || !devideId || !namedown || !namedesc || !speedCar || !username) {
       toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
       return;
     }
@@ -47,7 +49,7 @@ export default function ButtonDownloadSpeed({
 
     try {
       const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}`,
+        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`,
         {
           responseType: 'arraybuffer',
         },

@@ -111,6 +111,7 @@ export default function ReporteVelocidad() {
           speedCar={speedCar || ''}
           namedown="downloadExcelV"
           namedesc="velocidad"
+          username={username || ''}
         />
         
       <div>
