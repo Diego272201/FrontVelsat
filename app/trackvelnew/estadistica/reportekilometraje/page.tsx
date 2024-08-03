@@ -67,7 +67,7 @@ export default function Page() {
   useEffect(() => {
     if (!isBaseUrlReady) return;
 
-    if (session && session.user && session.user.username) {
+    if (session) {
       const userName = session.user.username;
       console.log('Username:', userName);
 
