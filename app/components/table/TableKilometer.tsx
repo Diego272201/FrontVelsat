@@ -78,6 +78,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
   return (
     <div>
       <Table
+        isHeaderSticky
         selectionMode="single"
         align='left'
         color="primary"

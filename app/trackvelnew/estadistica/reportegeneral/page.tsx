@@ -46,7 +46,7 @@ export default function Page() {
     const formattedHours = hours < 10 ? `0${hours}` : hours;
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
-    return `${formattedDay}/${formattedMonth}/${year}${formattedHours}:${formattedMinutes}`;
+    return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
 
   return (

@@ -47,7 +47,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [baseUrl]);
 
   useEffect(() => {
     if (status === 'authenticated' && session) {

@@ -130,7 +130,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
               <TableCell className='centerCell'>{item.item}</TableCell>
               <TableCell className='centerCell'>{item.fecha}</TableCell>
               <TableCell className='centerCell'>{item.hora}</TableCell>
-              <TableCell className='centerCell'>{item.speedKPH}</TableCell>
+              <TableCell className='centerCell'>{item.speedKPH + " Km/h"}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
               <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
               <TableCell className='centerCell locationColumn'>{item.address}</TableCell>

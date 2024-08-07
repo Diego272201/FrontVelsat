@@ -45,7 +45,7 @@
 
 .tablaReport {
   overflow-y: auto;
-  height: 92vh;
+  height: 82vh;
   margin-top: -25px;
 }
 .tablaReport::-webkit-scrollbar {
@@ -143,10 +143,6 @@
     width: 100%;
   }
 }
-
-
-
-
 
 .tablaBase{
   margin-bottom: 50px;

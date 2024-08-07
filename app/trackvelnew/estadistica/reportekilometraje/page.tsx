@@ -29,7 +29,8 @@ import { useApi } from '@/context/ApiContext';
 interface Row {
   item: number;
   deviceId: string;
-  kilometros: number;
+  maximo: number;
+  minimo: number;
 }
 
 export default function Page() {
@@ -80,14 +81,18 @@ export default function Page() {
       setLoading(false);
 
       const fetchData = async () => {
-        try {
-          const response = await axios.get(`${baseUrl}${url}`);
-          const data = response.data.result.listaKilometros;
-          setRows(data);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        } finally {
-          setIsLoading(false);
+        let success = false;
+        while (!success) {
+          try {
+            const response = await axios.get(`${baseUrl}${url}`);
+            const data = response.data.result.listaKilometros;
+            setRows(data);
+            success = true;
+          } catch (error) {
+            console.error('Error fetching data:', error);
+          } finally {
+            setIsLoading(!success); // Mantener isLoading en true si no tuvo éxito
+          }
         }
       };
       fetchData();
@@ -283,7 +288,7 @@ export default function Page() {
                             {item.deviceId}
                           </TableCell>
                           <TableCell className="centerCell">
-                            {item.kilometros.toFixed(2) + ' Km'}
+                            {(item.maximo-item.minimo).toFixed(2) + ' Km'}
                           </TableCell>
                         </TableRow>
                       )}
@@ -307,7 +312,7 @@ export default function Page() {
                       key={row.item}
                       item={row.item}
                       deviceId={row.deviceId}
-                      kilometros={parseFloat(row.kilometros.toFixed(2))}
+                      kilometros={parseFloat((row.maximo - row.minimo).toFixed(2))}
                     />
                   ))}
                 </div>
