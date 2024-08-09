@@ -4,6 +4,11 @@
     align-items: end;
 }
 
+.custom-select label {
+    color: white;
+  }
+  
+
 .custom-select {
     width: 210px;
     margin: 0 20px 15px 0;

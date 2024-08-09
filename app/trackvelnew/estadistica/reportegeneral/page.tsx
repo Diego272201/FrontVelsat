@@ -4,13 +4,15 @@ import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useState } from 'react';
 import { FaCalendarCheck } from 'react-icons/fa';
 import '@/app/styles/table.css';
-import { IoCarSport } from 'react-icons/io5';
+import Image from 'next/image';
 import { FaUser } from 'react-icons/fa6';
 import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
+import { VscDebugBreakpointData } from 'react-icons/vsc';
+import { GrStatusDisabledSmall } from 'react-icons/gr';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -53,52 +55,64 @@ export default function Page() {
     <div className="tablaReport tablaReportMargen">
       <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE GENERAL</h2>
-          <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
+          <h2 className="resaltarT text-center">
+            REPORTE GENERAL DE LA UNIDAD: {deviceId?.toUpperCase()}
+          </h2>
+          <Image
+            src="/CarL.png"
+            width={60}
+            height={60}
+            alt="Picture of the author"
+          />
+
+          {/* <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} /> */}
         </div>
 
         <div className="datosReporting">
-          <div className="fristData">
-            <div className="userReporte">
-              <FaUser style={{ color: '#0d3b66' }} size={22} />
-              <p>
-                <span className="resaltar"> USUARIO: </span>
-                {session?.user.username.toUpperCase()}
+          <div
+            className="fristData"
+            style={{ background: '#fe7f2d', color: 'white' }}
+          >
+            <div className="alinearDate">
+              <p className="dateS">
+                <GrStatusDisabledSmall />
+
+                <span className="resaltar">
+                  &nbsp;FECHA DE INICIO :&nbsp; {formatDate(startDate)}
+                </span>
               </p>
             </div>
-            <div className="userReporte">
+
+            <div className="alinearDate">
+              <p className="dateS">
+                <GrStatusDisabledSmall />
+
+                <span className="resaltar">
+                  &nbsp;FECHA DE FIN :&nbsp; {formatDate(endDate)}
+                </span>
+              </p>
+            </div>
+
+            {/* <div className="userReporte">
               <IoCarSport style={{ color: '#0d3b66' }} size={22} />
 
               <p>
                 <span className="resaltar">UNIDAD:</span>{' '}
-                {deviceId?.toUpperCase()}
               </p>
-            </div>
-          </div>
-
-          <div className="fristDataa">
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">DESDE: </span>
-                {formatDate(startDate)}
-              </p>
-            </div>
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">HASTA: </span>
-                {formatDate(endDate)}
-              </p>
-            </div>
+            </div> */}
           </div>
 
           <div className="selectRows">
             <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
           </div>
-        </div>
 
+          {/* <div>
+            
+          </div> */}
+        </div>
+        <hr className="lineaH" />
       </div>
+
       <Toaster />
 
       <ButtonDownloadFloat

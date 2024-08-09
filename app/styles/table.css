@@ -1,5 +1,17 @@
 /* ESTILOS DE LA TABLA REPORTE GENERAL */
 
+.lineaH {
+  height: 2px; /* Grosor de la línea */
+  background: linear-gradient(to right, #FB7B0F, rgba(251, 123, 15, 0)); /* Degradado de izquierda a derecha */
+  border: none;
+  padding: 0; /* Sin padding */
+  margin-top: -12px;
+  margin-left: 10px;
+
+}
+
+
+
 .userReporte {
   display: flex;
   gap: 10px;
@@ -30,6 +42,7 @@
   justify-content: center;
   align-items: center;
   gap: 10px;
+  margin-top: -20px;
 }
 .tablaReportMargen {
   padding-left: 20px;
@@ -42,11 +55,17 @@
   gap: 5px;
 }
 
+.dateS{
+  display: flex;
+  align-items: center;
+  padding: 1px;
+}
+
 
 .tablaReport {
   overflow-y: auto;
-  height: 82vh;
-  margin-top: -25px;
+  height: 95vh;
+  margin-top: -51px;
 }
 .tablaReport::-webkit-scrollbar {
   width: 4px;
@@ -70,11 +89,14 @@
   justify-content: center;
 }
 
-
-
-.resaltar {
+.resaltarT {
   color: #0d3b66;
   font-weight: bold;
+}
+
+.resaltar {
+  color: #ffffff;
+  font-weight: 500;
 }
 
 .fristData {
@@ -83,7 +105,9 @@
   padding: 10px;
   display: flex;
   flex-direction: column;
-  width: 22.5%;
+  width: 25%;
+  border-radius: 10px;
+
 }
 
 .selectRows{
@@ -98,7 +122,6 @@
 .fristDataa {
   font-size: 14px;
   font-weight: 400;
-
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -110,13 +133,19 @@
   position: sticky;
   top: 0;
   margin-top: 0px;
-  margin-bottom: 40px;
-  background: #f8f9fa;
+  margin-bottom: 85px;
 }
 
-@media (max-width: 1072px) {
+@media (max-width: 1300px) {
+  .fristData {
+   width: 40%;
+  }
+}
+
+@media (max-width: 780px) {
   .datosReporting {
     flex-direction: column;
+    align-items: start;
   }
 
   .fristData {
@@ -124,25 +153,21 @@
     justify-content: start;
     align-items: start;
   }
-  .fristDataa {
-    width: 100%;
-    justify-content: start;
-    align-items: start;
-  }
-  .selectRows{
-    width: 100%;
-
-  }
-
-}
-
-@media (max-width: 768px) {
 
   .selectRows{
+    width: 100%;
     padding-top: 0;
-    width: 100%;
+    margin-right: 0px;
+    display: none;
+
   }
+    .lineaH {
+    display: none;
+  }
+
 }
+
+
 
 .tablaBase{
   margin-bottom: 50px;
