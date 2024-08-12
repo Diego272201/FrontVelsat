@@ -399,7 +399,7 @@ const Tollbar = () => {
                 color="primary"
                 onClick={() => signOut({ callbackUrl: '/' })}
               >
-                <Image src="/exit.png" alt="" width={25} height={'1000'}/>
+                <Image src="/exit.png" alt="" width={25} height={'90'}/>
                 Salir
               </button>
    
