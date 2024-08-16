@@ -45,19 +45,20 @@ height: 95vh;
     height: auto;
 
 } 
+.tableScrooll{
+    overflow-y: auto;
+    height: 85vh;
+}
 
-@media screen and (max-width: 1576px){
+@media screen and (max-width: 1176px){
     .contenetTurnos{
         flex-direction: column;
-        overflow-y: auto;
     }
     .ingreso{
         width: 100%;
-        overflow-y: auto;
     }
     .salida{
         width: 100%;
-        overflow-y: auto;
 
     }
 }
@@ -114,10 +115,11 @@ height: 95vh;
     font-weight: 500;
     color: rgb(39, 38, 38);
     height: 20px;
+    font-size: 11.5px;
 }
 
 .rowTable{
-    font-size: 12px;
+    font-size: 11.5px;
 }
 
 .totalItems{
