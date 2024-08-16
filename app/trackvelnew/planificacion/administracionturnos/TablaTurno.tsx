@@ -53,7 +53,7 @@ export default function App() {
     new Set(columns.map((c) => c.uid)),
   );
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = useState(19);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'n',
     direction: 'ascending',
