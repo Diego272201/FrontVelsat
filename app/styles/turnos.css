@@ -1,0 +1,127 @@
+.contenetTurnos{
+display: flex;
+padding: 20px;
+gap: 20px;
+overflow-y: auto;
+height: 95vh;
+}
+
+.tituloTunos{
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    font-size: 18px;
+    background: #dddedf;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+}
+
+.colorIcono{
+    color: rgb(23, 23, 24);
+}
+
+.titleModal{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.ingreso{
+    width: 50%;
+    background: rgb(255, 255, 255);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.salida{
+    width: 50%;
+    background: rgb(255, 255, 255);
+    border-radius: 10px;
+    padding: 10px;
+    height: auto;
+
+} 
+
+@media screen and (max-width: 1576px){
+    .contenetTurnos{
+        flex-direction: column;
+        overflow-y: auto;
+    }
+    .ingreso{
+        width: 100%;
+        overflow-y: auto;
+    }
+    .salida{
+        width: 100%;
+        overflow-y: auto;
+
+    }
+}
+
+
+#containerInput{
+    display: flex;
+    flex-direction: column;
+}
+
+.horaI{
+    font-size: 14px;
+    margin-top: -3px;
+    margin-bottom: 5px;
+
+}
+
+.inputHora{
+    height: 40px;
+    margin-left: 5px;
+    border-radius: 10px;
+}
+
+.mensajeIngreso{
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #636363;
+    padding-top: 5px;
+}
+
+
+.contenidoModal{
+    margin-top: -20px;
+ 
+}
+
+.btnEdit{
+    background: #d4eff5;
+    height: 30px;
+    width: 30px;
+}
+
+.btnDelete{
+    background: #fff0f3;
+    height: 30px;
+    width: 30px;
+
+}
+
+.headTabla{
+    background: #dddedf;
+    font-weight: 500;
+    color: rgb(39, 38, 38);
+    height: 20px;
+}
+
+.rowTable{
+    font-size: 12px;
+}
+
+.totalItems{
+    color: #003566;
+    font-weight: 400;
+}
+
