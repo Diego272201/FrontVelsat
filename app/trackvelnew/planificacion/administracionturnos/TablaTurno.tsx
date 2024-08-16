@@ -342,6 +342,7 @@ export default function App() {
 
   return (
     <Table
+    className='tableScrooll'
       isCompact
       removeWrapper
       aria-label="Example table with custom cells, pagination and sorting"
