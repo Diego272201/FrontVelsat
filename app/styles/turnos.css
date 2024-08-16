@@ -50,7 +50,7 @@ height: 95vh;
 } 
 .tableScrooll{
     overflow-y: auto;
-    height: 88vh;
+    height: 85vh;
 }
 
 @media screen and (max-width: 1176px){
@@ -117,7 +117,7 @@ height: 95vh;
     background: #dddedf;
     font-weight: 500;
     color: rgb(39, 38, 38);
-    height: 20px;
+    padding: -10px; 
     font-size: 10px;
 }
 

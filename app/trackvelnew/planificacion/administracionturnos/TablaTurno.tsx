@@ -42,7 +42,7 @@ const columns = [
   { name: 'SUB ÁREA', uid: 'subarea', sortable: true },
   { name: 'ROL', uid: 'rol' }, // Mapeado desde "codrl"
   { name: 'HORA', uid: 'hora' },
-  { name: 'PROGRAMACIÓN', uid: 'programacion', sortable: true },
+  { name: 'PRO', uid: 'programacion', sortable: true },
   { name: 'OPERACIONES', uid: 'operaciones' },
 ];
 
@@ -365,7 +365,8 @@ export default function App() {
     >
       <TableHeader columns={headerColumns} >
         {(column) => (
-          <TableColumn className='headTabla' key={column.uid} allowsSorting={column.sortable}>
+          <TableColumn className='headTabla' key={column.uid} allowsSorting={column.sortable} 
+        >
             {column.name}
           </TableColumn>
         )}
