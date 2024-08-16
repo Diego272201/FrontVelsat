@@ -19,7 +19,7 @@
 }
 
 .tollbar {
-  height: 70px;
+  height: 58px;
   width: 100%;
   position: relative;
   z-index:999;
@@ -52,7 +52,7 @@
   flex-direction: row;
   padding-right: 24px;
   gap: 32px;
-  height: 50px;
+  height: 40px;
   font-weight: 500;
 }
 
@@ -124,7 +124,7 @@ font-size: 0.88rem;
 }
 
 .navigation > li > a {
-  color: rgb(216, 214, 214);
+  color: #ffffff;
   border-bottom: 2px solid transparent;
   transition: all 0.3s ease;
   text-decoration: none;
@@ -137,13 +137,6 @@ font-size: 0.88rem;
   position: relative;
   transition: all 0.2s ease-in-out;
 }
-
-
-.navigation > li > a:hover {
-  color: #ffffff;
-
-}
-
 
 .navigation > li > a.active {
   color: #ffffff;
