@@ -8,21 +8,18 @@ import ModalKilo from '../trackvelnew/estadistica/reportekilometraje/ModalKilo';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
-import { TbReportSearch } from "react-icons/tb";
-import { RiGpsFill } from "react-icons/ri";
-import { MdDisplaySettings } from "react-icons/md";
-import { GrPlan } from "react-icons/gr";
-import { GrServices } from "react-icons/gr";
-
+import { RiFullscreenLine } from 'react-icons/ri';
+import { IoMdExit } from 'react-icons/io';
+import { FaUserAlt } from 'react-icons/fa';
 
 const Tollbar = () => {
   const { data: session } = useSession();
 
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(null);
 
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
   const [isProgramacionMenuOpen, setIsProgramacionMenuOpen] = useState(false);
+  const [isPlanificacionMenuOpen, setIsPlanificacionMenuOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalOpenStops, setIsModalOpenStops] = useState(false);
@@ -30,6 +27,8 @@ const Tollbar = () => {
 
   const [isModalOpenSpeed, setIsModalOpenSpeed] = useState(false);
   const [isModalOpenKilometer, setIsModalOpenKilometers] = useState(false);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -57,16 +56,15 @@ const Tollbar = () => {
 
   const closeModalSpeed = () => {
     setIsModalOpenSpeed(false);
-  }
+  };
 
-  
   const openModalSpeed = () => {
     setIsModalOpenSpeed(true);
   };
 
   const openModalKilometers = () => {
-    setIsModalOpenKilometers(true)
-  }
+    setIsModalOpenKilometers(true);
+  };
 
   const closeModalKilometers = () => {
     setIsModalOpenKilometers(false);
@@ -80,29 +78,44 @@ const Tollbar = () => {
     }
   };
 
-  const toggleMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-
-
   const toggleProgramacionMenu = () => {
     setIsProgramacionMenuOpen(!isProgramacionMenuOpen);
   };
 
-  const handleReportesClick = () => {
-    const menuIcon = document.querySelector('.menu-icon') as HTMLButtonElement;
-    if (menuIcon) {
-      menuIcon.click();
+  const togglePlanificacionMenu = () => {
+    setIsPlanificacionMenuOpen(!isPlanificacionMenuOpen);
+  };
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
-    <div className="tollbar menu__wrapper verTu">
+    <div className="tollbar menu__wrapper">
       <div className="tollbar-bg"></div>
       <div className="menu__bar">
+        <div className="mobile-only-button">
+          <button onClick={() => signOut({ callbackUrl: '/' })}>
+            <IoMdExit size={'26px'} />
+          </button>
+          <button>
+            <RiFullscreenLine onClick={toggleFullScreen} size={'24px'} />
+          </button>
+          <button onClick={toggleSidebar}>
+            <FaUserAlt size={'24px'} />
+          </button>
+        </div>
+
         <a href="/trackvelnew" title="Logo" className="logo">
-          <Image src="/LogoWeb.png" alt="" width={'1000'} height={'1000'}/>
+          <Image src="/LogoWeb.png" alt="" width={'1000'} height={'1000'} />
           <div className="dataUser">
             <h3 className="userInicio">
               TRACKVEL SYSTEM : BIENVENIDO{' '}
@@ -111,28 +124,7 @@ const Tollbar = () => {
           </div>
         </a>
 
-        <Image
-          className="menu-icon"
-          src={isMobileMenuOpen ? '/cerrar.png' : '/menu.png'}
-          title="Burger Menu"
-          alt="Burger Menu"
-          onClick={toggleMenu}
-          width={'1000'} height={'1000'}
-        />
-        <ul
-          className={`navigation ${
-            isMobileMenuOpen ? 'navigation--mobile' : ''
-          }`}
-        >
-          <Image
-            className="menu-icon mobileicon"
-            src={isMobileMenuOpen ? '/cerrar.png' : '/menu.png'}
-            title="Burger Menu"
-            alt="Burger Menu"
-            onClick={toggleMenu}
-            width={'1000'} height={'1000'}
-          />
-
+        <ul className="navigation">
           <li className="dropdown">
             <Link
               href="#"
@@ -141,11 +133,11 @@ const Tollbar = () => {
               onClick={() => handleLinkClick(0)}
             >
               <div className="optMenu">
-              Gestión de Servicios
-              <GrServices />
-              <i className="dropdown-iconn">
-                <IoMdArrowDropdown />
-              </i>
+                Gestión de Servicios
+                {/* <GrServices /> */}
+                <i className="dropdown-iconn">
+                  <IoMdArrowDropdown />
+                </i>
               </div>
             </Link>
 
@@ -233,11 +225,11 @@ const Tollbar = () => {
               onClick={() => handleLinkClick(1)}
             >
               <div className="optMenu">
-              Planificación
-              <GrPlan />
-              <i className="dropdown-iconn">
-                <IoMdArrowDropdown />
-              </i>
+                Planificación
+                {/* <GrPlan /> */}
+                <i className="dropdown-iconn">
+                  <IoMdArrowDropdown />
+                </i>
               </div>
             </Link>
 
@@ -273,8 +265,8 @@ const Tollbar = () => {
               onClick={() => handleLinkClick(2)}
             >
               <div className="optMenu">
-              Puntos de Interés
-              <RiGpsFill />
+                Puntos de Interés
+                {/* <RiGpsFill /> */}
               </div>
             </Link>
           </li>
@@ -286,23 +278,10 @@ const Tollbar = () => {
               onClick={() => handleLinkClick(3)}
             >
               <div className="optMenu">
-              Operaciones
-              <MdDisplaySettings />
+                Operaciones
+                {/* <MdDisplaySettings /> */}
               </div>
             </Link>
-            {/* 
-            <ul
-              className={`dropdown-menue ope${
-                isServicesMenuOpen ? 'dropdown-menu--show' : ''
-              }`}
-            >
-              <div className="containerope"></div>
-              <li>
-                <a href="#" title="Unidades Cercanas">
-                  Unidades Cercanas
-                </a>
-              </li>
-            </ul> */}
           </li>
           <li className="dropdown">
             <Link
@@ -312,10 +291,9 @@ const Tollbar = () => {
               onClick={() => handleLinkClick(4)}
             >
               <div className="optMenu">
-              Reportes
-              <TbReportSearch />
+                Reportes
+                {/* <TbReportSearch /> */}
               </div>
-          
 
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
@@ -335,32 +313,18 @@ const Tollbar = () => {
               </li>
 
               <li onClick={openModalStops}>
-                <a
-                  title="Reporte de Paradas"
-                >
-                  Reporte de Paradas
-                </a>
+                <a title="Reporte de Paradas">Reporte de Paradas</a>
               </li>
 
               <li onClick={openModal}>
-                <a
-                  title="Reporte General"
-                >
-                  Reporte General
-                </a>
+                <a title="Reporte General">Reporte General</a>
               </li>
 
               <li onClick={openModalDetails}>
-                <a
-                  title="Detalle Recorrido"
-                >
-                  Detalle Recorrido
-                </a>
+                <a title="Detalle Recorrido">Detalle Recorrido</a>
               </li>
               <li onClick={openModalKilometers}>
-                <a title="Reporte de Kilometraje"
-                onClick={() => handleReportesClick()}
-                >
+                <a href="#" title="Reporte de Kilometraje">
                   Reporte de Kilometraje
                 </a>
               </li>
@@ -393,16 +357,15 @@ const Tollbar = () => {
           </li>
 
           <li className="dropdown">
-         
-              <button
-                className="exitToolbar"
-                color="primary"
-                onClick={() => signOut({ callbackUrl: '/' })}
-              >
-                <Image src="/exit.png" alt="" width={25} height={'90'}/>
-                Salir
+            <div className="exitToolbar">
+              <button>
+                <RiFullscreenLine onClick={toggleFullScreen} size={'24px'} />
               </button>
-   
+
+              <button onClick={() => signOut({ callbackUrl: '/' })}>
+                <IoMdExit size={'27px'} />
+              </button>
+            </div>
           </li>
         </ul>
       </div>
@@ -435,13 +398,13 @@ const Tollbar = () => {
       />
 
       <AppModalVelocidad
-      isOpen={isModalOpenSpeed}
-      onClose={closeModalSpeed}
-      titulo="REPORTE VELOCIDAD"
-      nameurl="reportevelocidad"
-      namedown="downloadExcelV"
-      namedesc="velocidad"
-      showDownloadButton={true}
+        isOpen={isModalOpenSpeed}
+        onClose={closeModalSpeed}
+        titulo="REPORTE VELOCIDAD"
+        nameurl="reportevelocidad"
+        namedown="downloadExcelV"
+        namedesc="velocidad"
+        showDownloadButton={true}
       />
 
       <ModalKilo
@@ -454,6 +417,91 @@ const Tollbar = () => {
         showDownloadButton={true}
       />
 
+      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <button className="close-sidebar" onClick={toggleSidebar}>
+          &times;
+        </button>
+
+        <div className="sidebar-section">
+          <div className="menu_sidebar"> Menú </div>
+          <div
+            className="menu-item"
+            onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
+          >
+            <a href="#">Gestión de Servicios</a>
+            <i
+              className={`dropdown-icon ${isServicesMenuOpen ? 'rotate' : ''}`}
+            ></i>
+          </div>
+          {isServicesMenuOpen && (
+            <div className="submenu">
+              <a href="#" title="Conductores">
+                Conductores
+              </a>
+              <a href="#" title="Unidades">
+                Unidades
+              </a>
+
+              <a
+                href="#"
+                title="Programación"
+                onClick={toggleProgramacionMenu}
+              >
+                Programación
+                <i
+                  className={`dropdown-icon ${isProgramacionMenuOpen ? 'rotate' : ''}`}
+                >
+                </i>
+              </a>
+              {isProgramacionMenuOpen &&(
+                <div className="submenu-nested">
+                <a href="#" title="Asignar Conductor/Unidad">Asignar Conductor/Unidad</a>
+                <a href="#" title="Carga de Archivo">Carga de Archivo</a>
+                <a href="#" title="Carga de Servicios">Carga de Servicios</a>
+              </div>
+              )}
+
+              <a href="#" title="Control de Servicios">
+                Control de Servicios
+              </a>
+              <a href="#" title="Detalle de Servicios">
+                Detalle de Servicios
+              </a>
+              <a href="#" title="Control de Servicios">
+                Control LATAM
+              </a>
+              <a href="#" title="Detalle de Servicios">
+                Duración de Servicios
+              </a>
+            </div>
+          )}
+        </div>
+
+        <div className="sidebar-section">
+          <div
+            className="menu-item"
+            onClick={togglePlanificacionMenu}
+          >
+            <a href="#">Planificación</a>
+            <i
+              className={`dropdown-icon ${isPlanificacionMenuOpen ? 'rotate' : ''}`}
+            ></i>
+          </div>
+          {isPlanificacionMenuOpen && (
+            <div className="submenu">
+              <a href="#" title="Conductores">
+                Administración de Turnos
+              </a>
+              <a href="#" title="Unidades">
+                Planificación Servicios
+              </a>
+              <a href="#" title="Unidades">
+                Re-Planificación Servicios
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -40,8 +40,7 @@
   background: transparent;
   display: flex;
   justify-content: end;
-  margin-left: 100%;
-
+  margin-left: 90%;
 }
 
 .menu__bar {
@@ -55,12 +54,6 @@
   gap: 32px;
   height: 50px;
   font-weight: 500;
-}
-
-@media (max-width: 1200px) {
-  .menu__bar{
-    opacity: 0.9;
-  }
 }
 
 .menu-icon {
@@ -195,50 +188,51 @@ font-size: 0.88rem;
   }
 
   .navigation--mobile {
-      top: 0;
-      position: absolute;
-      right: 0px;
-      display: flex;
-      padding: 80px 60px;
-      height: 100%;
-      background-color: #000814;       
-      gap: 8px;
-      flex-direction: column;
-      align-items: flex-start;
-      opacity: 0.95;
-      animation: fadein 0.3s forwards;
-      z-index: 0;
+    top: 0;
+    position: absolute;
+    right: 0;
+    display: flex;
+    padding: 80px 20px;
+    width: 250px;
+    height: 100vh;
+    background-color: #113eb9;       
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    opacity: 0.95;
+    animation: fadein 0.3s forwards;
+    z-index: 0;
+    padding-top: 15px;
   }
 
-
   @keyframes fadein {
-      0% {
-          opacity: 0;
-          width: 0;
-          height: 0;
-      }
-      100% {
-          opacity: 1;
-          width: 100%;
-          height: calc(100vh - var(--navbar-height));
-      }
+    0% {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    100% {
+      opacity: 1;
+      width: 250px; /* Ancho del menú */
+      height: 100vh; /* Alto completo */
+    }
   }
 
   .navigation--mobile--fadeout {
-      animation: fadeout 300ms forwards;
+    animation: fadeout 300ms forwards;
   }
 
   @keyframes fadeout {
-      0% {
-          opacity: 1;
-          width: 100%;
-          height: calc(100vh - var(--navbar-height));
-      }
-      100% {
-          opacity: 0;
-          width: 0;
-          height: 0;
-      }
+    0% {
+      opacity: 1;
+      width: 250px;
+      height: 100vh;
+    }
+    100% {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
   }
 }
 
@@ -306,7 +300,7 @@ font-size: 0.88rem;
 
 .estad{
   width: 175px;
-  margin-left: -87px;
+  margin-left: -109px;
 }
 
 .dropdown-menue li {
@@ -429,10 +423,132 @@ font-size: 0.88rem;
   background: transparent;
   color: white;
   height: 85px;
-  padding-top: 28px;
   width: 50px;
-  margin-right: -10px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: end;
+  gap: 10px;
+  margin-right: -10px;
+}
+
+.mobile-only-button {
+  display: none;
+}
+
+@media (max-width: 1355px) {
+  .mobile-only-button {
+    color: #ffffff;
+    display: flex;
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    cursor: pointer;
+    gap: 10px;
+  }
+}
+
+/* Estilos para el sidebar */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 25%;
+  height: 100%;
+  background: #113eb9;
+  z-index: 1000;
+  transition: right 0.3s ease;
+}
+
+.sidebar.open {
+  right: 0;
+}
+
+.sidebar .close-sidebar {
+  position: absolute;
+  top: 45px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 30px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.sidebar div{
+  list-style: none;
+}
+
+.sidebar div div:first-child{
+  margin: 48px 0 0;
+}
+
+.sidebar div div{
+  margin: 25px 0;
+}
+
+.sidebar div div a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.2rem;
+  padding-left: 10px;
+}
+
+.menu_sidebar{
+  background-color: #FB7B0F;
+  color: #ffffff;
+  font-size: 30px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  padding-left: 10px;
+  font-weight: 500;
+}
+
+.sidebar-section {
+  margin-bottom: -25px;
+}
+
+.menu-item {
+  cursor: pointer;
+  display: flex;
+}
+
+.submenu {
+  display: block;
+  padding-left: 20px;
+}
+
+.submenu a {
+  display: block;
+  padding: 5px 0;
+  color: #ddd;
+  text-decoration: none;
+}
+
+.submenu a:hover {
+  color: #fff;
+  background-color: #DD946F;
+}
+
+.submenu-nested {
+  padding-left: 20px;
+  margin-top: 10px;
+}
+
+.submenu-nested a {
+  padding: 5px 0;
+  color: #ddd;
+}
+
+.submenu-nested a:hover {
+  color: #fff;
+  background-color: #DD946F;
+}
+
+/* Asegura que el botón FaUserAlt solo se muestre en móvil */
+.mobile-only-button {
+  display: none;
+}
+
+@media screen and (max-width: 1355px) {
+  .mobile-only-button {
+    display: flex;
+  }
 }
