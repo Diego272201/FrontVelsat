@@ -50,7 +50,7 @@ height: 95vh;
 } 
 .tableScrooll{
     overflow-y: auto;
-    height: 85vh;
+    height: 88vh;
 }
 
 @media screen and (max-width: 1176px){
