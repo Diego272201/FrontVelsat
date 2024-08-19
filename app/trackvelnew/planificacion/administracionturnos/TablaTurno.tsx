@@ -23,17 +23,13 @@ import {
   SelectItem,
   Tooltip,
 } from '@nextui-org/react';
-import { PlusIcon } from './PlusIcon';
-import { VerticalDotsIcon } from './VerticalDotsIcon';
+
 import { ChevronDownIcon } from './ChevronDownIcon';
 import { SearchIcon } from './SearchIcon';
 import { capitalize } from './utils';
 import ModalTurnos from './ModalTurnos';
-import { animals } from './data';
-import { EyeIcon } from '@/app/components/table/operaciones/EyeIcon';
 import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
-import { GrView } from 'react-icons/gr';
 
 const columns = [
   { name: 'N°', uid: 'n', sortable: true },
@@ -46,7 +42,23 @@ const columns = [
   { name: 'OPERACIONES', uid: 'operaciones' },
 ];
 
-export default function App() {
+interface User {
+  id: number;
+  empresa: string;
+  area: string;
+  subarea: string;
+  rol: string;
+  hora: string;
+  programacion: string;
+}
+
+interface TablaTurnoProps {
+  users: User[];
+  title: string;
+
+}
+
+export default function App({users, title}: TablaTurnoProps) {
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
@@ -59,40 +71,20 @@ export default function App() {
     direction: 'ascending',
   });
   const [page, setPage] = useState(1);
-  const [users, setUsers] = useState<any[]>([]);
   const [uniqueAreas, setUniqueAreas] = useState<string[]>([]);
 
   useEffect(() => {
     // Realizando ambas solicitudes a las APIs
-    axios
-      .all([
-        axios.get('http://66.240.210.125:8586/api/Turnos/movilbus'),
-        axios.get('http://66.240.210.125:8586/api/Turnos/area/movilbus'),
-      ])
-      .then(
-        axios.spread((turnosResponse, areasResponse) => {
-          // Procesando datos de la primera API (Turnos)
-          const data = turnosResponse.data.map((item: any, index: number) => ({
-            id: index + 1,
-            n: index + 1,
-            empresa: item.empresa,
-            area: item.area,
-            subarea: item.subarea,
-            rol: item.codrl, // Mapeo de "codrl" a "rol"
-            hora: item.hora,
-            programacion: item.programa,
-          }));
-          setUsers(data);
-
-          // Procesando datos de la segunda API (Áreas)
-          setUniqueAreas(areasResponse.data);
-        }),
-      )
+    axios.get('http://66.240.210.125:8586/api/Turnos/area/movilbus')
+      .then((response) => {
+        setUniqueAreas(response.data);
+      })
       .catch((error) => {
         console.error('Error fetching data:', error);
       });
   }, []);
 
+  
   const pages = Math.ceil(users.length / rowsPerPage);
   const hasSearchFilter = Boolean(filterValue);
 
@@ -267,7 +259,7 @@ export default function App() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <ModalTurnos></ModalTurnos>
+            <ModalTurnos titleM={title}></ModalTurnos>
           </div>
         </div>
         <div className="flex items-center justify-between">

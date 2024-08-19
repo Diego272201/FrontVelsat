@@ -1,132 +1,162 @@
-.contenetTurnos{
-display: flex;
-padding-top: 10px;
-padding-left: 20px;
-padding-bottom: 20px;
-padding-right: 20px;
-gap: 20px;
-overflow-y: auto;
-height: 95vh;
+.contenetTurnos {
+  display: flex;
+  padding-top: 10px;
+  padding-left: 20px;
+  padding-bottom: 20px;
+  padding-right: 20px;
+  gap: 20px;
+  overflow-y: auto;
+  height: 95vh;
 }
 
-.tituloTunos{
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-left: 5px;
-    padding-right: 5px;
-    font-size: 18px;
-    background: #dddedf;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
+.tituloTunos {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  font-size: 18px;
+  background: #dddedf;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.colorIcono{
-    color: rgb(23, 23, 24);
+.colorIcono {
+  color: rgb(23, 23, 24);
 }
 
-.titleModal{
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.titleModal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.ingreso{
-    width: 50%;
-    background: rgb(255, 255, 255);
+.ingreso {
+  width: 50%;
+  background: rgb(255, 255, 255);
+  border-radius: 10px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.salida {
+  width: 50%;
+  background: rgb(255, 255, 255);
+  border-radius: 10px;
+  padding: 10px;
+  height: auto;
+  overflow-y: auto;
+}
+
+.salida::-webkit-scrollbar {
+    width: 3px;
+  }
+  .salida::-webkit-scrollbar-thumb {
+    background: #F7931E;
     border-radius: 10px;
-    padding: 10px;
+  }
+
+.ingreso::-webkit-scrollbar {
+  width: 3px;
+}
+.ingreso::-webkit-scrollbar-thumb {
+  background: #F7931E;
+  border-radius: 10px;
 }
 
-.salida{
-    width: 50%;
-    background: rgb(255, 255, 255);
-    border-radius: 10px;
-    padding: 10px;
+.tableScrooll {
+  height: 85vh;
+  overflow-y: auto;
+}
+
+.tableScrooll::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+.tableScrooll::-webkit-scrollbar-thumb {
+  background: #a3a2a1;
+  border-radius: 10px;
+}
+
+@media screen and (max-width: 1176px) {
+  .contenetTurnos {
+    flex-direction: column;
     height: auto;
-
-} 
-.tableScrooll{
+    height: 95vh;
     overflow-y: auto;
-    height: 85vh;
-}
-
-@media screen and (max-width: 1176px){
-    .contenetTurnos{
-        flex-direction: column;
-    }
-    .ingreso{
-        width: 100%;
-    }
-    .salida{
-        width: 100%;
-
-    }
-}
-
-
-#containerInput{
+  }
+  .ingreso {
+    flex: 0 0 100vh;
     display: flex;
     flex-direction: column;
-}
-
-.horaI{
-    font-size: 14px;
-    margin-top: -3px;
-    margin-bottom: 5px;
-
-}
-
-.inputHora{
-    height: 40px;
-    margin-left: 5px;
-    border-radius: 10px;
-}
-
-.mensajeIngreso{
-    font-size: 15px;
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .salida {
+    width: 100%;
+    flex: 0 0 100vh;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #636363;
-    padding-top: 5px;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
 }
 
-
-.contenidoModal{
-    margin-top: -20px;
- 
+#containerInput {
+  display: flex;
+  flex-direction: column;
 }
 
-.btnEdit{
-    background: #d4eff5;
-    height: 25px;
-    width: 25px;
+.horaI {
+  font-size: 14px;
+  margin-top: -3px;
+  margin-bottom: 5px;
 }
 
-.btnDelete{
-    background: #fff0f3;
-    height: 25px;
-    width: 25px;
-
+.inputHora {
+  height: 40px;
+  margin-left: 5px;
+  border-radius: 10px;
 }
 
-.headTabla{
-    background: #dddedf;
-    font-weight: 500;
-    color: rgb(39, 38, 38);
-    padding: -10px; 
-    font-size: 10px;
+.mensajeIngreso {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #636363;
+  padding-top: 5px;
 }
 
-.rowTable{
-    font-size: 10px;
+.contenidoModal {
+  margin-top: -20px;
 }
 
-.totalItems{
-    color: #003566;
-    font-weight: 400;
+.btnEdit {
+  background: #d4eff5;
+  height: 25px;
+  width: 25px;
 }
 
+.btnDelete {
+  background: #fff0f3;
+  height: 25px;
+  width: 25px;
+}
+
+.headTabla {
+  background: #dddedf;
+  font-weight: 500;
+  color: rgb(39, 38, 38);
+  padding: -10px;
+  font-size: 10px;
+}
+
+.rowTable {
+  font-size: 10px;
+}
+
+.totalItems {
+  color: #003566;
+  font-weight: 400;
+}
