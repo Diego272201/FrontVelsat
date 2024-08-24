@@ -149,14 +149,41 @@
   font-weight: 500;
   color: rgb(39, 38, 38);
   padding: -10px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .rowTable {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .totalItems {
   color: #003566;
   font-weight: 400;
+}
+
+.mensajeR{
+  display: flex;
+  flex-direction: column;
+}
+.errorMesageUser{
+  margin-top: -15px;
+  font-size: x-small;
+  color: #c1121f;
+
+}
+
+.errorMesageUserI{
+  margin-top: 0px;
+  font-size: x-small;
+  color: #c1121f;
+
+}
+
+.anchoP{
+  width: 100%;
+}
+
+.contenidoEdit{
+  margin-top: 3px;
+  margin-bottom: 3px;
 }

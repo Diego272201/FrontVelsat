@@ -22,6 +22,7 @@ import {
   Select,
   SelectItem,
   Tooltip,
+  useDisclosure,
 } from '@nextui-org/react';
 
 import { ChevronDownIcon } from './ChevronDownIcon';
@@ -30,6 +31,7 @@ import { capitalize } from './utils';
 import ModalTurnos from './ModalTurnos';
 import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
+import ModalTurnoEdit from './ModalTurnoEdit';
 
 const columns = [
   { name: 'N°', uid: 'n', sortable: true },
@@ -44,6 +46,7 @@ const columns = [
 
 interface User {
   id: number;
+  codigo: string;
   empresa: string;
   area: string;
   subarea: string;
@@ -55,17 +58,16 @@ interface User {
 interface TablaTurnoProps {
   users: User[];
   title: string;
-
 }
 
-export default function App({users, title}: TablaTurnoProps) {
+export default function App({ users, title }: TablaTurnoProps) {
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
     new Set(columns.map((c) => c.uid)),
   );
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
-  const [rowsPerPage, setRowsPerPage] = useState(19);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'n',
     direction: 'ascending',
@@ -73,9 +75,10 @@ export default function App({users, title}: TablaTurnoProps) {
   const [page, setPage] = useState(1);
   const [uniqueAreas, setUniqueAreas] = useState<string[]>([]);
 
+
   useEffect(() => {
-    // Realizando ambas solicitudes a las APIs
-    axios.get('http://66.240.210.125:8586/api/Turnos/area/movilbus')
+    axios
+      .get('http://66.240.210.125:8586/api/Turnos/area/movilbus')
       .then((response) => {
         setUniqueAreas(response.data);
       })
@@ -84,7 +87,6 @@ export default function App({users, title}: TablaTurnoProps) {
       });
   }, []);
 
-  
   const pages = Math.ceil(users.length / rowsPerPage);
   const hasSearchFilter = Boolean(filterValue);
 
@@ -141,26 +143,27 @@ export default function App({users, title}: TablaTurnoProps) {
       case 'rol':
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-small capitalize rowTable">{cellValue}</p>
+            <p className="text-bold rowTable text-small capitalize">
+              {cellValue}
+            </p>
           </div>
         );
       case 'operaciones':
         return (
           <div className="relative flex items-center gap-3">
-            <Tooltip color="primary" content="Editar Turno">
-              <span className="cursor-pointer text-sm text-[#0d47a1] active:opacity-50">
-                <Button isIconOnly variant="light" color="primary" size="sm" className='btnEdit'>
-                  <EditIcon />
-                </Button>
-              </span>
-            </Tooltip>
+            <ModalTurnoEdit user={user} titleM="Ingreso" />
+
             <Tooltip color="danger" content="Eliminar Turno">
               <span className="cursor-pointer text-sm text-danger active:opacity-50">
-              <Button isIconOnly variant="light" color="danger" size="sm" className='btnDelete'>
-
-                <DeleteIcon />
+                <Button
+                  isIconOnly
+                  variant="light"
+                  color="danger"
+                  size="sm"
+                  className="btnDelete"
+                >
+                  <DeleteIcon />
                 </Button>
-
               </span>
             </Tooltip>
           </div>
@@ -263,13 +266,13 @@ export default function App({users, title}: TablaTurnoProps) {
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-small text-default-400 totalItems">
+          <span className="totalItems text-small text-default-400">
             Total {users.length} items
           </span>
-          <label className="flex items-center text-small text-default-400 totalItems">
+          <label className="totalItems flex items-center text-small text-default-400">
             Filas por página :
             <select
-              className="bg-transparent text-small text-default-400 outline-none totalItems"
+              className="totalItems bg-transparent text-small text-default-400 outline-none"
               onChange={onRowsPerPageChange}
             >
               <option value="5">5</option>
@@ -304,7 +307,7 @@ export default function App({users, title}: TablaTurnoProps) {
           variant="light"
           onChange={setPage}
         />
-        <span className="text-small text-default-400 totalItems">
+        <span className="totalItems text-small text-default-400">
           {selectedKeys === 'all'
             ? 'All items selected'
             : `${selectedKeys.size} of ${items.length} selected`}
@@ -334,7 +337,7 @@ export default function App({users, title}: TablaTurnoProps) {
 
   return (
     <Table
-    className='tableScrooll'
+      className="tableScrooll"
       isCompact
       removeWrapper
       aria-label="Example table with custom cells, pagination and sorting"
@@ -342,7 +345,8 @@ export default function App({users, title}: TablaTurnoProps) {
       bottomContentPlacement="outside"
       checkboxesProps={{
         classNames: {
-          wrapper: 'after:bg-[#FF6300] after:text-background text-background checkB',
+          wrapper:
+            'after:bg-[#FF6300] after:text-background text-background checkB',
         },
       }}
       classNames={classNames}
@@ -355,19 +359,24 @@ export default function App({users, title}: TablaTurnoProps) {
       onSelectionChange={setSelectedKeys}
       onSortChange={setSortDescriptor}
     >
-      <TableHeader columns={headerColumns} >
+      <TableHeader columns={headerColumns}>
         {(column) => (
-          <TableColumn className='headTabla' key={column.uid} allowsSorting={column.sortable} 
-        >
+          <TableColumn
+            className="headTabla"
+            key={column.uid}
+            allowsSorting={column.sortable}
+          >
             {column.name}
           </TableColumn>
         )}
       </TableHeader>
       <TableBody emptyContent={'No items found'} items={sortedItems}>
         {(item) => (
-          <TableRow key={item.id} >
+          <TableRow key={item.id}>
             {(columnKey) => (
-              <TableCell className='rowTable'>{renderCell(item, columnKey)}</TableCell>
+              <TableCell className="rowTable">
+                {renderCell(item, columnKey)}
+              </TableCell>
             )}
           </TableRow>
         )}
