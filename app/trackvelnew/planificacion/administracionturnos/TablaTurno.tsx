@@ -58,9 +58,11 @@ interface User {
 interface TablaTurnoProps {
   users: User[];
   title: string;
+  onSaveSuccess: () => void; 
 }
 
-export default function App({ users, title }: TablaTurnoProps) {
+export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
+
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
@@ -74,7 +76,6 @@ export default function App({ users, title }: TablaTurnoProps) {
   });
   const [page, setPage] = useState(1);
   const [uniqueAreas, setUniqueAreas] = useState<string[]>([]);
-
 
   useEffect(() => {
     axios
@@ -262,7 +263,7 @@ export default function App({ users, title }: TablaTurnoProps) {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <ModalTurnos titleM={title}></ModalTurnos>
+            <ModalTurnos titleM={title} onSaveSuccess={onSaveSuccess}></ModalTurnos>
           </div>
         </div>
         <div className="flex items-center justify-between">

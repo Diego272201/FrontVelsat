@@ -11,6 +11,8 @@ import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/Modal
 import { RiFullscreenLine } from 'react-icons/ri';
 import { IoMdExit } from 'react-icons/io';
 import { FaUserAlt } from 'react-icons/fa';
+import { FaRegUserCircle } from "react-icons/fa";
+import { MdChevronRight } from "react-icons/md";
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -20,6 +22,7 @@ const Tollbar = () => {
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
   const [isProgramacionMenuOpen, setIsProgramacionMenuOpen] = useState(false);
   const [isPlanificacionMenuOpen, setIsPlanificacionMenuOpen] = useState(false);
+  const [isReportesMenuOpen, setIsReportesMenuOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalOpenStops, setIsModalOpenStops] = useState(false);
@@ -86,6 +89,10 @@ const Tollbar = () => {
     setIsPlanificacionMenuOpen(!isPlanificacionMenuOpen);
   };
 
+  const toggleReportesMenu = () => {
+    setIsReportesMenuOpen(!isReportesMenuOpen);
+  };
+
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -104,13 +111,13 @@ const Tollbar = () => {
       <div className="menu__bar">
         <div className="mobile-only-button">
           <button onClick={() => signOut({ callbackUrl: '/' })}>
-            <IoMdExit size={'26px'} />
+            <IoMdExit size={'20px'} />
           </button>
           <button>
-            <RiFullscreenLine onClick={toggleFullScreen} size={'24px'} />
+            <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
           </button>
           <button onClick={toggleSidebar}>
-            <FaUserAlt size={'24px'} />
+            <FaUserAlt size={'18px'} />
           </button>
         </div>
 
@@ -359,11 +366,11 @@ const Tollbar = () => {
           <li className="dropdown">
             <div className="exitToolbar">
               <button>
-                <RiFullscreenLine onClick={toggleFullScreen} size={'24px'} />
+                <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
               </button>
 
               <button onClick={() => signOut({ callbackUrl: '/' })}>
-                <IoMdExit size={'27px'} />
+                <IoMdExit size={'22px'} />
               </button>
             </div>
           </li>
@@ -419,13 +426,16 @@ const Tollbar = () => {
 
       <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <button className="close-sidebar" onClick={toggleSidebar}>
-          &times;
+          <MdChevronRight />
         </button>
 
         <div className="sidebar-section">
-          <div className="menu_sidebar"> Menú </div>
+          <div className="menu_sidebar">
+            <div className='icon_menu'><FaUserAlt size={'18px'}/></div>
+            <div>Menu</div>
+          </div>
           <div
-            className="menu-item"
+            className="menu-item menu-item-first"
             onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
           >
             <a href="#">Gestión de Servicios</a>
@@ -454,7 +464,7 @@ const Tollbar = () => {
                 </i>
               </a>
               {isProgramacionMenuOpen &&(
-                <div className="submenu-nested">
+              <div className="submenu-nested">
                 <a href="#" title="Asignar Conductor/Unidad">Asignar Conductor/Unidad</a>
                 <a href="#" title="Carga de Archivo">Carga de Archivo</a>
                 <a href="#" title="Carga de Servicios">Carga de Servicios</a>
@@ -501,6 +511,69 @@ const Tollbar = () => {
             </div>
           )}
         </div>
+
+        <div className="sidebar-section">
+          <div
+            className="menu-item"
+          >
+            <a href="#">Punto de Interés</a>
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <div
+            className="menu-item"
+          >
+            <a href="#">Operaciones</a>
+          </div>
+        </div>
+
+        <div className="sidebar-section">
+          <div
+            className="menu-item"
+            onClick={toggleReportesMenu}
+          >
+            <a href="#">Reportes</a>
+            <i
+              className={`dropdown-icon ${isReportesMenuOpen ? 'rotate' : ''}`}
+            ></i>
+          </div>
+          {isReportesMenuOpen && (
+            <div className="submenu">
+              <a href="#" title="Reporte Velocidad">
+                Reporte de Velocidad
+              </a>
+              <a href="#" title="Reporte Paradas">
+                Reporte de Paradas
+              </a>
+              <a href="#" title="Reporte General">
+                Reporte General
+              </a>
+              <a href="#" title="Detalle Recorrido">
+                Detalle Recorrido
+              </a>
+              <a href="#" title="Reporte Kilometraje">
+                Reporte de Kilometraje
+              </a>
+              <a href="#" title="Paradas Bruscas">
+                Paradas Bruscas
+              </a>
+              <a href="#" title="Encendido Motor">
+                Encendido Motor
+              </a>
+              <a href="#" title="Desconexion Bateria">
+                Desconexión Batería
+              </a>
+              <a href="#" title="Graficas">
+                Gráficas
+              </a>
+              <a href="#" title="Reporte GeoVelocidad">
+                Reporte de GeoVelocidad
+              </a>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
