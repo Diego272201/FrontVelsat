@@ -138,6 +138,17 @@ export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
     });
   }, [sortDescriptor, items]);
 
+  const handleDelete = async (codigo: number) => {
+    try {
+      await axios.delete(`https://localhost:7223/api/Turnos/${codigo}`);
+      onSaveSuccess();  
+      console.log('Elimnado ...')
+    } catch (error) {
+      console.error('Error deleting record:', error);
+    }
+  };
+
+
   const renderCell = React.useCallback((user: any, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof typeof user];
     switch (columnKey) {
@@ -155,13 +166,15 @@ export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
             <ModalTurnoEdit user={user} titleM="Ingreso" />
 
             <Tooltip color="danger" content="Eliminar Turno">
-              <span className="cursor-pointer text-sm text-danger active:opacity-50">
+              <span className="cursor-pointer text-sm text-danger active:opacity-50"
+              >
                 <Button
                   isIconOnly
                   variant="light"
                   color="danger"
                   size="sm"
                   className="btnDelete"
+                  onClick={() => handleDelete(user.codigo)}
                 >
                   <DeleteIcon />
                 </Button>
