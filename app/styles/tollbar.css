@@ -129,7 +129,6 @@ font-size: 0.88rem;
   transition: all 0.3s ease;
   text-decoration: none;
   font-weight: 600;
-
   background-size: 200% 100%;
   background-position: -100%;
   display: inline-block;
@@ -432,10 +431,10 @@ font-size: 0.88rem;
     color: #ffffff;
     display: flex;
     position: absolute;
-    top: 12px;
-    right: 15px;
+    top: 9px;
+    right: 10px;
     cursor: pointer;
-    gap: 10px;
+    gap: 5px;
   }
 }
 
@@ -449,16 +448,17 @@ font-size: 0.88rem;
   background: #113eb9;
   z-index: 1000;
   transition: right 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar.open {
   right: 0;
 }
 
-.sidebar .close-sidebar {
+.close-sidebar {
   position: absolute;
-  top: 45px;
-  right: 20px;
+  right: 5px;
+  margin-top: 10px;
   background: none;
   border: none;
   font-size: 30px;
@@ -470,63 +470,88 @@ font-size: 0.88rem;
   list-style: none;
 }
 
-.sidebar div div:first-child{
-  margin: 48px 0 0;
-}
-
-.sidebar div div{
-  margin: 25px 0;
-}
-
 .sidebar div div a {
   color: #fff;
   text-decoration: none;
-  font-size: 1.2rem;
+  font-size: 1rem;
   padding-left: 10px;
+  transition: background-color 0.2s ease, padding-left 0.3s ease;
+}
+
+.sidebar a:hover {
+  background-color: transparent;
+  padding-left: 15px;
 }
 
 .menu_sidebar{
-  background-color: #FB7B0F;
   color: #ffffff;
-  font-size: 30px;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  padding-left: 10px;
+  font-size: 1.7rem;
+  font-family: sans-serif;
   font-weight: 500;
+  display: flex;
+  margin-top: 5px;
+}
+
+.icon_menu{
+  margin: 10px 10px 0 15px;
 }
 
 .sidebar-section {
   margin-bottom: -25px;
 }
 
+.menu-item-first{
+  margin-top: 10px;
+}
+
 .menu-item {
   cursor: pointer;
   display: flex;
+  margin-bottom: 30px;
+  padding: 5px;
+  width: fit-content;
+}
+
+.menu-item a {
+  width: 210px;
+}
+
+.menu-item:hover{
+  background-color: #FB7B0F;
+  margin-left: 20px;
+  border-radius: 8px;
 }
 
 .submenu {
   display: block;
-  padding-left: 20px;
+  padding-left: 30px;
+  margin-top: -25px;
+  margin-bottom: 35px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  width: fit-content;
 }
 
 .submenu a {
   display: block;
-  padding: 5px 0;
-  color: #ddd;
+  padding-bottom: 5px;
+  color: #ffffff;
   text-decoration: none;
+  border-radius: 8px;
+  padding-right: 8px;
 }
 
 .submenu a:hover {
-  color: #fff;
-  background-color: #DD946F;
+  color: #ffffff;
+  background-color: #FB7B0F;
 }
 
 .submenu-nested {
-  padding-left: 20px;
-  margin-top: 10px;
+  padding-left: 12px;
+  margin-bottom: 10px;
+  margin-top: 8px;
 }
 
 .submenu-nested a {
-  padding: 5px 0;
   color: #ddd;
 }
 
@@ -535,13 +560,26 @@ font-size: 0.88rem;
   background-color: #DD946F;
 }
 
-/* Asegura que el botón FaUserAlt solo se muestre en móvil */
-.mobile-only-button {
-  display: none;
-}
-
 @media screen and (max-width: 1355px) {
   .mobile-only-button {
     display: flex;
+  }
+}
+
+@media screen and (max-width: 850px) {
+  .sidebar {
+    width: 40%;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .sidebar {
+    width: 50%;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  .sidebar {
+    width: 65%;
   }
 }

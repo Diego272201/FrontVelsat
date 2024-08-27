@@ -24,18 +24,21 @@ import axios from 'axios';
 
 interface Props {
   titleM: string;
+  onSaveSuccess: () => void; 
 }
 
-export default function App({ titleM }: Props) {
+export default function App({ titleM, onSaveSuccess}: Props) {
   const {
     register,
     handleSubmit,
     formState: { errors },
+    reset
   } = useForm();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [empresas, setEmpresas] = useState<string[]>([]);
   const [hora, setHora] = useState<Time>(new Time(12));
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     axios
@@ -68,10 +71,11 @@ export default function App({ titleM }: Props) {
           data.programacion = "1";
       }
 
+      const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
       const postData = {
         codrl: data.rol,
         hora: data.hora,
-        tipo: 'I',
+        tipo,
         area: data.area,
         subarea: data.subarea,
         empresa: data.empresa,
@@ -81,12 +85,17 @@ export default function App({ titleM }: Props) {
       console.log('Datos a enviar:', postData);
 
       try {
+        setIsSubmitting(true); // Deshabilitar botón
         await axios.post('https://localhost:7223/api/Turnos/movilbus', postData);
         console.log('Datos enviados correctamente', postData);
+        onSaveSuccess();
         onClose();
-        
+        reset(); 
       } catch (error){
         console.error('Error al enviar los datos:', error);
+
+      } finally{
+        setIsSubmitting(false); // Habilitar botón después de la operación
       }
 
       // console.log(data);
@@ -248,7 +257,7 @@ export default function App({ titleM }: Props) {
                     Cerrar
                     <IoMdCloseCircle size={16} />
                   </Button>
-                  <Button color="primary" type="submit">
+                  <Button color="primary" type="submit" isDisabled={isSubmitting}>
                     Guardar
                     <IoSave size={16} />
                   </Button>
