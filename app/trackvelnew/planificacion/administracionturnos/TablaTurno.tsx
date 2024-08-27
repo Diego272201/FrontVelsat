@@ -32,7 +32,7 @@ import ModalTurnos from './ModalTurnos';
 import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
 import ModalTurnoEdit from './ModalTurnoEdit';
-
+import Swal from 'sweetalert2';
 const columns = [
   { name: 'N°', uid: 'n', sortable: true },
   { name: 'EMPRESA', uid: 'empresa', sortable: true },
@@ -148,6 +148,24 @@ export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
     }
   };
 
+  const confirmDelete = (codigo: number) => {
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'No podrás revertir esto',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleDelete(codigo); // Llama a la función de eliminación si el usuario confirma
+      }
+    });
+  };
+  
+
 
   const renderCell = React.useCallback((user: any, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof typeof user];
@@ -174,7 +192,7 @@ export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
                   color="danger"
                   size="sm"
                   className="btnDelete"
-                  onClick={() => handleDelete(user.codigo)}
+                  onClick={() => confirmDelete(user.codigo)} 
                 >
                   <DeleteIcon />
                 </Button>
