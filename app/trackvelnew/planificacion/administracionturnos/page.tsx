@@ -59,11 +59,11 @@ export default function Page() {
     <div className="contenetTurnos">
       <div className="ingreso">
         <h2 className='tituloTunos'>Turnos de Ingreso</h2>
-        <TablaTurno users={ingresoData} title="Ingreso" onSaveSuccess={handleSaveSuccess} />
+        <TablaTurno users={ingresoData} title="Ingreso" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
       </div>
       <div className="salida">
         <h2 className='tituloTunos'>Turnos de Salida</h2>
-        <TablaTurno users={salidaData} title="Salida" onSaveSuccess={handleSaveSuccess} />
+        <TablaTurno users={salidaData} title="Salida" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
       </div>
     </div>
   );

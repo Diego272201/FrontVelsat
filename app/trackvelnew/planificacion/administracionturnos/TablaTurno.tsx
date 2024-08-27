@@ -59,9 +59,10 @@ interface TablaTurnoProps {
   users: User[];
   title: string;
   onSaveSuccess: () => void; 
+  onEditSuccess: () => void;
 }
 
-export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
+export default function App({ users, title, onSaveSuccess, onEditSuccess }: TablaTurnoProps) {
 
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
@@ -181,7 +182,7 @@ export default function App({ users, title, onSaveSuccess }: TablaTurnoProps) {
       case 'operaciones':
         return (
           <div className="relative flex items-center gap-3">
-            <ModalTurnoEdit user={user} titleM="Ingreso" />
+            <ModalTurnoEdit user={user} titleM={title} onEditSuccess={onEditSuccess}/>
 
             <Tooltip color="danger" content="Eliminar Turno">
               <span className="cursor-pointer text-sm text-danger active:opacity-50"

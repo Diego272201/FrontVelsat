@@ -39,6 +39,7 @@ interface User {
 interface Props {
   titleM: string;
   user: User;
+  onEditSuccess: () => void; 
 }
 
 const mapProgramacion = (programacion: string) => {
@@ -55,7 +56,7 @@ const mapProgramacion = (programacion: string) => {
 };
 
 
-export default function App({ titleM, user }: Props) {
+export default function App({ titleM, user, onEditSuccess}: Props) {
   
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -68,9 +69,7 @@ export default function App({ titleM, user }: Props) {
   });
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-  const [empresas, setEmpresas] = useState<string[]>([]);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [hora, setHora] = useState<Time>(
     new Time(
       parseInt(user.hora.slice(0, 2), 10), // Convierte las horas a número
@@ -80,7 +79,7 @@ export default function App({ titleM, user }: Props) {
   
 
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: any, onClose: () => void) => {
     if (Object.keys(errors).length === 0) {
       const formattedHora = hora.toString().slice(0, 5);
       data.hora = formattedHora;
@@ -99,11 +98,11 @@ export default function App({ titleM, user }: Props) {
           data.programacion = "1";
       }
 
-
+      const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
       const putData  = {
         codrl: data.rol,
         hora: data.hora,
-        tipo: 'I',
+        tipo,
         area: data.area,
         subarea: data.subarea,
         empresa: data.empresa,
@@ -111,14 +110,20 @@ export default function App({ titleM, user }: Props) {
       };
 
       try {
+        setIsSubmitting(true);
         await axios.put(
           `https://localhost:7223/api/Turnos/${user.codigo}`, 
           putData,
         );
+        onEditSuccess();
+        onClose();
         console.log('Datos actualizados correctamente', putData);
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
+      } finally{
+        setIsSubmitting(false); // Habilitar botón después de la operación
       }
+      
       
     } else {
       console.log('Errores de validación:', errors);
@@ -142,7 +147,7 @@ export default function App({ titleM, user }: Props) {
       </Tooltip>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
-        <form action="" onSubmit={handleSubmit(onSubmit)}>
+        <form action="" onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}>
           <ModalContent>
             {(onClose) => (
               <>
@@ -260,7 +265,7 @@ export default function App({ titleM, user }: Props) {
                     Cerrar
                     <IoMdCloseCircle size={16} />
                   </Button>
-                  <Button color="primary" type="submit">
+                  <Button color="primary" type="submit" isDisabled={isSubmitting}>
                     Guardar
                     <IoSave size={16} />
                   </Button>

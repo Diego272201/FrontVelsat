@@ -117,10 +117,7 @@ export default function App({ titleM, onSaveSuccess}: Props) {
         Nuevo Turno
       </Button>
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
-        <form
-          action=""
-          onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}
-        >
+        <form action="" onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}>
           <ModalContent>
             {(onClose) => (
               <>
