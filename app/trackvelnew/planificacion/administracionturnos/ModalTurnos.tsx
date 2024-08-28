@@ -21,6 +21,7 @@ import { SelectorIcon } from './SelectorIcon';
 import { IoSave } from 'react-icons/io5';
 import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
+import { toast, Toaster } from 'sonner';
 
 interface Props {
   titleM: string;
@@ -85,21 +86,21 @@ export default function App({ titleM, onSaveSuccess}: Props) {
       console.log('Datos a enviar:', postData);
 
       try {
-        setIsSubmitting(true); // Deshabilitar botón
+        setIsSubmitting(true); 
         await axios.post('https://localhost:7223/api/Turnos/movilbus', postData);
         console.log('Datos enviados correctamente', postData);
         onSaveSuccess();
+        toast.success('Turno creado exitosamente')
         onClose();
         reset(); 
       } catch (error){
         console.error('Error al enviar los datos:', error);
 
       } finally{
-        setIsSubmitting(false); // Habilitar botón después de la operación
+        setIsSubmitting(false); 
       }
 
-      // console.log(data);
-      // onClose(); // Cerrar el modal
+      
     } else {
       console.log('Errores de validación:', errors);
     }
@@ -107,6 +108,8 @@ export default function App({ titleM, onSaveSuccess}: Props) {
 
   return (
     <>
+    <Toaster richColors  />
+
       <Button
         onPress={onOpen}
         style={{ background: '#FF6300' }}

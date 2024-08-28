@@ -1,4 +1,3 @@
-
 import { useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
@@ -25,21 +24,20 @@ import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
 import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 
-
 interface User {
-  codigo: string; 
+  codigo: string;
   empresa: string;
   area: string;
   subarea: string;
   rol: string;
   programacion: string;
-  hora: string; 
+  hora: string;
 }
 
 interface Props {
   titleM: string;
   user: User;
-  onEditSuccess: () => void; 
+  onEditSuccess: () => void;
 }
 
 const mapProgramacion = (programacion: string) => {
@@ -51,33 +49,33 @@ const mapProgramacion = (programacion: string) => {
     case '3':
       return 'pasada';
     default:
-      return ''; 
+      return '';
   }
 };
 
-
-export default function App({ titleM, user, onEditSuccess}: Props) {
-  
-  const { register, handleSubmit, formState: { errors } } = useForm({
+export default function App({ titleM, user, onEditSuccess }: Props) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
       empresa: user.empresa,
       area: user.area,
       subarea: user.subarea,
       rol: user.rol,
       programacion: mapProgramacion(user.programacion),
-    }
+    },
   });
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hora, setHora] = useState<Time>(
     new Time(
-      parseInt(user.hora.slice(0, 2), 10), // Convierte las horas a número
-      parseInt(user.hora.slice(3, 5), 10)  // Convierte los minutos a número
-    )
+      parseInt(user.hora.slice(0, 2), 10),
+      parseInt(user.hora.slice(3, 5), 10),
+    ),
   );
-  
-
 
   const onSubmit = async (data: any, onClose: () => void) => {
     if (Object.keys(errors).length === 0) {
@@ -86,20 +84,20 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
 
       switch (data.programacion) {
         case 'actual':
-          data.programacion = "1";
+          data.programacion = '1';
           break;
         case 'futura':
-          data.programacion = "2";
+          data.programacion = '2';
           break;
         case 'pasada':
-          data.programacion = "3";
+          data.programacion = '3';
           break;
         default:
-          data.programacion = "1";
+          data.programacion = '1';
       }
 
       const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
-      const putData  = {
+      const putData = {
         codrl: data.rol,
         hora: data.hora,
         tipo,
@@ -112,23 +110,23 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
       try {
         setIsSubmitting(true);
         await axios.put(
-          `https://localhost:7223/api/Turnos/${user.codigo}`, 
+          `https://localhost:7223/api/Turnos/${user.codigo}`,
           putData,
         );
+
         onEditSuccess();
-        onClose();
         console.log('Datos actualizados correctamente', putData);
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
-      } finally{
-        setIsSubmitting(false); // Habilitar botón después de la operación
+      } finally {
+        setIsSubmitting(false);
+        onClose();
       }
-      
-      
     } else {
       console.log('Errores de validación:', errors);
     }
   };
+
   return (
     <>
       <Tooltip color="primary" content="Editar Turno">
@@ -147,7 +145,10 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
       </Tooltip>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
-        <form action="" onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}>
+        <form
+          action=""
+          onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}
+        >
           <ModalContent>
             {(onClose) => (
               <>
@@ -156,8 +157,7 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
                   <MdAddToPhotos />
                 </ModalHeader>
                 <ModalBody>
-                  <div className="contenidoModal flex flex-col gap-4 contenidoEdit">
-              
+                  <div className="contenidoModal contenidoEdit flex flex-col gap-4">
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
                       <div className="mensajeR">
                         <Input
@@ -240,9 +240,15 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
                             required: true,
                           })}
                         >
-                          <SelectItem key="actual" value="actual">Fecha Actual</SelectItem>
-                            <SelectItem key="futura" value="futura">Fecha Futura</SelectItem>
-                            <SelectItem key="pasada" value="pasada">Fecha Pasada</SelectItem>
+                          <SelectItem key="actual" value="actual">
+                            Fecha Actual
+                          </SelectItem>
+                          <SelectItem key="futura" value="futura">
+                            Fecha Futura
+                          </SelectItem>
+                          <SelectItem key="pasada" value="pasada">
+                            Fecha Pasada
+                          </SelectItem>
                         </Select>
 
                         {errors.programacion && (
@@ -252,20 +258,19 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
                         )}
                       </div>
                     </div>
-                    {/* <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-
-                  <h2 className='mensajeIngreso'>Tipo (Ingreso/Salida) : Ingreso <FaCheck />
-                  </h2>
-
-                  </div> */}
                   </div>
                 </ModalBody>
+
                 <ModalFooter>
                   <Button color="danger" onPress={onClose}>
                     Cerrar
                     <IoMdCloseCircle size={16} />
                   </Button>
-                  <Button color="primary" type="submit" isDisabled={isSubmitting}>
+                  <Button
+                    color="primary"
+                    type="submit"
+                    isDisabled={isSubmitting}
+                  >
                     Guardar
                     <IoSave size={16} />
                   </Button>
@@ -274,7 +279,9 @@ export default function App({ titleM, user, onEditSuccess}: Props) {
             )}
           </ModalContent>
         </form>
+
       </Modal>
+
     </>
   );
 }
