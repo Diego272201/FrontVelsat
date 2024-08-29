@@ -1,33 +1,37 @@
-'use client'
+'use client';
 import React, { useEffect, useState } from 'react';
 import '@/app/styles/turnos.css';
 import TablaTurno from './TablaTurno';
 import axios from 'axios';
+import { useApi } from '@/context/ApiContext';
 
 export default function Page() {
   const [ingresoData, setIngresoData] = useState<any[]>([]);
   const [salidaData, setSalidaData] = useState<any[]>([]);
+  const { baseUrl } = useApi();
 
-  // Función para obtener los datos de la API
+  // Mueve fetchData fuera de useEffect para que esté disponible en todo el componente
   const fetchData = async () => {
+    if (!baseUrl) return; // No continuar si baseUrl no está disponible
+    
     try {
-      const response = await axios.get('https://localhost:7223/api/Turnos/movilbus');
+      const response = await axios.get(`${baseUrl}/api/Turnos/movilbus`);
+      console.log("La url es: " + `${baseUrl}`);
+
       const data = response.data.map((item: any) => ({
         codigo: item.codigo,
         empresa: item.empresa,
         area: item.area,
         subarea: item.subarea,
-        rol: item.codrl, // Mapeo de "codrl" a "rol"
+        rol: item.codrl, 
         hora: item.hora,
         tipo: item.tipo,
         programacion: item.programa,
       }));
 
-      // Filtrar los datos de ingreso y salida
       const ingresoDataFiltrada = data.filter((item: any) => item.tipo === 'I');
       const salidaDataFiltrada = data.filter((item: any) => item.tipo === 'S');
 
-      // Asignar el número "n" para ingreso y salida
       const ingresoDataConNumeracion = ingresoDataFiltrada.map((item: any, index: number) => ({
         ...item,
         id: index + 1,
@@ -48,8 +52,8 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(); // Llama a fetchData cuando baseUrl esté listo
+  }, [baseUrl]); // Dependencia en baseUrl
 
   const handleSaveSuccess = () => {
     fetchData(); // Actualizar los datos

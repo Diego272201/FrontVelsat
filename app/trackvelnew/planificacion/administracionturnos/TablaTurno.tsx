@@ -70,7 +70,7 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
     new Set(columns.map((c) => c.uid)),
   );
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
-  const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [rowsPerPage, setRowsPerPage] = useState(8);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'n',
     direction: 'ascending',
@@ -308,8 +308,8 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
               className="totalItems bg-transparent text-small text-default-400 outline-none"
               onChange={onRowsPerPageChange}
             >
-              <option value="5">5</option>
-              <option value="10">10</option>
+              <option value="8">8</option>
+              <option value="12">12</option>
               <option value="15">15</option>
             </select>
           </label>
