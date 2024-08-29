@@ -7,4 +7,6 @@ const getDeviceListUrl = (deviceGroup: string): string => `${baseUrl}/DeviceList
 
 const UrlLogin = '/api/Login/login';
 
+
+
 export { getSimplifiedDeviceListUrl, getDeviceListUrl, UrlLogin };
