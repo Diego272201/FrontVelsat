@@ -339,6 +339,7 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
           total={pages}
           variant="light"
           onChange={setPage}
+          size='sm'
         />
         <span className="totalItems text-small text-default-400">
           {selectedKeys === 'all'
@@ -376,15 +377,15 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
       aria-label="Example table with custom cells, pagination and sorting"
       bottomContent={bottomContent}
       bottomContentPlacement="outside"
-      checkboxesProps={{
-        classNames: {
-          wrapper:
-            'after:bg-[#FF6300] after:text-background text-background checkB',
-        },
-      }}
+      // checkboxesProps={{
+      //   classNames: {
+      //     wrapper:
+      //       'after:bg-[#FF6300] after:text-background text-background checkB',
+      //   },
+      // }}
       classNames={classNames}
-      selectedKeys={selectedKeys}
-      selectionMode="multiple"
+      // selectedKeys={selectedKeys}
+      // selectionMode="multiple"
       sortDescriptor={sortDescriptor}
       topContent={topContent}
       topContentPlacement="outside"
