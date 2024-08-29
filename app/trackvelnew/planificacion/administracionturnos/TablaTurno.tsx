@@ -210,9 +210,7 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setRowsPerPage(Number(e.target.value));
       setPage(1);
-    },
-    [],
-  );
+    },[]);
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -224,7 +222,6 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
   }, []);
 
   const onAreaFilterChange = (selected: Selection) => {
-    console.log('Selected:', selected);
     if (selected instanceof Set) {
       setAreaFilter(new Set(selected));
     } else if (typeof selected === 'string') {
@@ -341,11 +338,6 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
           onChange={setPage}
           size='sm'
         />
-        <span className="totalItems text-small text-default-400">
-          {selectedKeys === 'all'
-            ? 'All items selected'
-            : `${selectedKeys.size} of ${items.length} selected`}
-        </span>
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
