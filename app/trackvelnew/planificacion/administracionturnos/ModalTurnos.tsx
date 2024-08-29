@@ -33,7 +33,8 @@ export default function App({ titleM, onSaveSuccess}: Props) {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    clearErrors
   } = useForm();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -52,12 +53,19 @@ export default function App({ titleM, onSaveSuccess}: Props) {
       });
   }, []);
 
+   // Resetear el formulario al cerrar el modal
+   useEffect(() => {
+    if (isOpen || !isOpen) {
+      reset();
+      clearErrors();
+    }
+  }, [isOpen, reset, clearErrors]);
+
   const onSubmit = async (data: any, onClose: () => void) => {
     if (Object.keys(errors).length === 0) {
       const formattedHora = hora.toString().slice(0, 5);
       data.hora = formattedHora;
   
-
       switch (data.programacion) {
         case 'actual':
           data.programacion = "1";
@@ -92,7 +100,6 @@ export default function App({ titleM, onSaveSuccess}: Props) {
         onSaveSuccess();
         toast.success('Turno creado exitosamente')
         onClose();
-        reset(); 
       } catch (error){
         console.error('Error al enviar los datos:', error);
 
@@ -100,7 +107,6 @@ export default function App({ titleM, onSaveSuccess}: Props) {
         setIsSubmitting(false); 
       }
 
-      
     } else {
       console.log('Errores de validación:', errors);
     }

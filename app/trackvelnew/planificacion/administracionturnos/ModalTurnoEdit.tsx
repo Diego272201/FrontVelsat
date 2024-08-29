@@ -23,6 +23,7 @@ import { IoSave } from 'react-icons/io5';
 import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
 import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
+import { toast, Toaster } from 'sonner';
 
 interface User {
   codigo: string;
@@ -113,8 +114,8 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
           `https://localhost:7223/api/Turnos/${user.codigo}`,
           putData,
         );
-
         onEditSuccess();
+        toast.success('Turno actualizado exitosamente')
         console.log('Datos actualizados correctamente', putData);
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
