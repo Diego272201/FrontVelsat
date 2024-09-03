@@ -431,7 +431,6 @@ const Tollbar = () => {
 
         <div className="sidebar-section">
           <div className="menu_sidebar">
-            <div className='icon_menu'><FaUserAlt size={'18px'}/></div>
             <div>Menu</div>
           </div>
           <div

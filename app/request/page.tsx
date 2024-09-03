@@ -14,8 +14,8 @@ const containerStyle = {
 };
 
 const center = {
-  lat: -12.046591525826495,
-  lng: -77.04689047482863,
+  lat: -9.22812,
+  lng: -75.78894,
 };
 
 interface DeviceList {
@@ -286,7 +286,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
   const centerMap = useCallback(() => {
     if (mapRef.current) {
       mapRef.current.setCenter(center);
-      mapRef.current.setZoom(12);
+      mapRef.current.setZoom(6);
     }
   }, []);
 
@@ -338,7 +338,7 @@ const getEstado = useCallback((speed: number) => speed < 10 ? "Estacionado" : "M
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={center}
-          zoom={12}
+          zoom={6}
           onLoad={onLoad}
           onUnmount={onUnmount}
           options={memoizedMapOptions}

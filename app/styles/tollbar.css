@@ -334,7 +334,6 @@ font-size: 0.88rem;
 }
 
 .dropdown-menue li a{
-  font-size: 12px;
   color: #fff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 500;
@@ -473,7 +472,7 @@ font-size: 0.88rem;
 .sidebar div div a {
   color: #fff;
   text-decoration: none;
-  font-size: 1rem;
+  font-size: 0.8rem;
   padding-left: 10px;
   transition: background-color 0.2s ease, padding-left 0.3s ease;
 }
@@ -485,11 +484,12 @@ font-size: 0.88rem;
 
 .menu_sidebar{
   color: #ffffff;
-  font-size: 1.7rem;
+  font-size: 1.2rem;
   font-family: sans-serif;
   font-weight: 500;
   display: flex;
-  margin-top: 5px;
+  margin-top: 14px;
+  margin-left: 14px;
 }
 
 .icon_menu{
@@ -557,7 +557,7 @@ font-size: 0.88rem;
 
 .submenu-nested a:hover {
   color: #fff;
-  background-color: #DD946F;
+  background-color: #FB7B0F;
 }
 
 @media screen and (max-width: 1355px) {
