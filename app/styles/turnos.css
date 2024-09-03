@@ -10,17 +10,12 @@
 }
 
 .tituloTunos {
-  padding-top: 5px;
-  padding-bottom: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
+  box-sizing: border-box;
   font-size: 18px;
   background: #dddedf;
   border-radius: 5px;
+  padding: 5px;
   margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .colorIcono {
@@ -68,6 +63,7 @@
 .tableScrooll {
   height: 85vh;
   overflow-y: auto;
+  
 }
 
 .tableScrooll::-webkit-scrollbar {

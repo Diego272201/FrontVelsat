@@ -10,9 +10,8 @@ export default function Page() {
   const [salidaData, setSalidaData] = useState<any[]>([]);
   const { baseUrl } = useApi();
 
-  // Mueve fetchData fuera de useEffect para que esté disponible en todo el componente
   const fetchData = async () => {
-    if (!baseUrl) return; // No continuar si baseUrl no está disponible
+    if (!baseUrl) return; 
     
     try {
       const response = await axios.get(`${baseUrl}/api/Turnos/movilbus`);
@@ -52,21 +51,21 @@ export default function Page() {
   };
 
   useEffect(() => {
-    fetchData(); // Llama a fetchData cuando baseUrl esté listo
-  }, [baseUrl]); // Dependencia en baseUrl
+    fetchData();
+  }, [baseUrl]); 
 
   const handleSaveSuccess = () => {
-    fetchData(); // Actualizar los datos
+    fetchData(); 
   };
 
   return (
     <div className="contenetTurnos">
       <div className="ingreso">
-        <h2 className='tituloTunos'>Turnos de Ingreso</h2>
+        {/* <h2 className='tituloTunos'>Turnos de Ingreso</h2> */}
         <TablaTurno users={ingresoData} title="Ingreso" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
       </div>
       <div className="salida">
-        <h2 className='tituloTunos'>Turnos de Salida</h2>
+        {/* <h2 className='tituloTunos'>Turnos de Salida</h2> */}
         <TablaTurno users={salidaData} title="Salida" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
       </div>
     </div>

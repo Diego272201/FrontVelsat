@@ -58,12 +58,16 @@ interface User {
 interface TablaTurnoProps {
   users: User[];
   title: string;
-  onSaveSuccess: () => void; 
+  onSaveSuccess: () => void;
   onEditSuccess: () => void;
 }
 
-export default function App({ users, title, onSaveSuccess, onEditSuccess }: TablaTurnoProps) {
-
+export default function App({
+  users,
+  title,
+  onSaveSuccess,
+  onEditSuccess,
+}: TablaTurnoProps) {
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
   const [visibleColumns, setVisibleColumns] = useState<Selection>(
@@ -142,8 +146,8 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
   const handleDelete = async (codigo: number) => {
     try {
       await axios.delete(`https://localhost:7223/api/Turnos/${codigo}`);
-      onSaveSuccess();  
-      console.log('Elimnado ...')
+      onSaveSuccess();
+      console.log('Elimnado ...');
     } catch (error) {
       console.error('Error deleting record:', error);
     }
@@ -158,15 +162,13 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
         handleDelete(codigo); // Llama a la función de eliminación si el usuario confirma
       }
     });
   };
-  
-
 
   const renderCell = React.useCallback((user: any, columnKey: React.Key) => {
     const cellValue = user[columnKey as keyof typeof user];
@@ -182,18 +184,21 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
       case 'operaciones':
         return (
           <div className="relative flex items-center gap-3">
-            <ModalTurnoEdit user={user} titleM={title} onEditSuccess={onEditSuccess}/>
+            <ModalTurnoEdit
+              user={user}
+              titleM={title}
+              onEditSuccess={onEditSuccess}
+            />
 
             <Tooltip color="danger" content="Eliminar Turno">
-              <span className="cursor-pointer text-sm text-danger active:opacity-50"
-              >
+              <span className="cursor-pointer text-sm text-danger active:opacity-50">
                 <Button
                   isIconOnly
                   variant="light"
                   color="danger"
                   size="sm"
                   className="btnDelete"
-                  onClick={() => confirmDelete(user.codigo)} 
+                  onClick={() => confirmDelete(user.codigo)}
                 >
                   <DeleteIcon />
                 </Button>
@@ -236,6 +241,7 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
+        <h2 className="tituloTunos">Turnos de {title}</h2>{' '}
         <div className="flex items-end justify-between gap-3">
           <Input
             isClearable
@@ -295,7 +301,10 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <ModalTurnos titleM={title} onSaveSuccess={onSaveSuccess}></ModalTurnos>
+            <ModalTurnos
+              titleM={title}
+              onSaveSuccess={onSaveSuccess}
+            ></ModalTurnos>
           </div>
         </div>
         <div className="flex items-center justify-between">
@@ -339,7 +348,7 @@ export default function App({ users, title, onSaveSuccess, onEditSuccess }: Tabl
           total={pages}
           variant="light"
           onChange={setPage}
-          size='sm'
+          size="sm"
         />
         <span className="totalItems text-small text-default-400">
           {selectedKeys === 'all'
