@@ -27,11 +27,13 @@
   align-items: center;
   gap: 10px;
 }
+
 .ingreso {
   width: 50%;
   background: rgb(255, 255, 255);
   border-radius: 10px;
   padding: 10px;
+  height: auto;
   overflow-y: auto;
 }
 
@@ -45,7 +47,7 @@
 }
 
 .salida::-webkit-scrollbar {
-    width: 3px;
+    width: 2px;
   }
   .salida::-webkit-scrollbar-thumb {
     background: #F7931E;
@@ -53,7 +55,7 @@
   }
 
 .ingreso::-webkit-scrollbar {
-  width: 3px;
+  width: 2px;
 }
 .ingreso::-webkit-scrollbar-thumb {
   background: #F7931E;
