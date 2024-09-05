@@ -514,6 +514,12 @@ font-size: 0.88rem;
 
 .menu-item a {
   width: 210px;
+  display: flex;
+}
+
+.icon_options{
+  margin-top: 4px;
+  margin-right: 4px;
 }
 
 .menu-item:hover{

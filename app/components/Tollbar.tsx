@@ -11,8 +11,12 @@ import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/Modal
 import { RiFullscreenLine } from 'react-icons/ri';
 import { IoMdExit } from 'react-icons/io';
 import { FaUserAlt } from 'react-icons/fa';
-import { FaRegUserCircle } from "react-icons/fa";
 import { MdChevronRight } from "react-icons/md";
+import { GrServices } from "react-icons/gr";
+import { GrPlan } from "react-icons/gr";
+import { RiGpsFill } from "react-icons/ri";
+import { MdDisplaySettings } from "react-icons/md";
+import { TbReportSearch } from "react-icons/tb";
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -314,7 +318,7 @@ const Tollbar = () => {
             >
               <div className="containerEstad"></div>
               <li onClick={openModalSpeed}>
-                <a href="#" title="Reporte de Velocidad">
+                <a title="Reporte de Velocidad">
                   Reporte de Velocidad
                 </a>
               </li>
@@ -331,7 +335,7 @@ const Tollbar = () => {
                 <a title="Detalle Recorrido">Detalle Recorrido</a>
               </li>
               <li onClick={openModalKilometers}>
-                <a href="#" title="Reporte de Kilometraje">
+                <a title="Reporte de Kilometraje">
                   Reporte de Kilometraje
                 </a>
               </li>
@@ -437,7 +441,8 @@ const Tollbar = () => {
             className="menu-item menu-item-first"
             onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
           >
-            <a href="#">Gestión de Servicios</a>
+            <a href="#">
+              <div className='icon_options'><GrServices /></div>Gestión de Servicios</a>
             <i
               className={`dropdown-icon ${isServicesMenuOpen ? 'rotate' : ''}`}
             ></i>
@@ -491,7 +496,7 @@ const Tollbar = () => {
             className="menu-item"
             onClick={togglePlanificacionMenu}
           >
-            <a href="#">Planificación</a>
+            <a href="#"> <div className='icon_options'><GrPlan /></div>Planificación</a>
             <i
               className={`dropdown-icon ${isPlanificacionMenuOpen ? 'rotate' : ''}`}
             ></i>
@@ -515,7 +520,7 @@ const Tollbar = () => {
           <div
             className="menu-item"
           >
-            <a href="#">Punto de Interés</a>
+            <a href="#"> <div className='icon_options'><RiGpsFill /></div>Punto de Interés</a>
           </div>
         </div>
 
@@ -523,7 +528,7 @@ const Tollbar = () => {
           <div
             className="menu-item"
           >
-            <a href="#">Operaciones</a>
+            <a href="#"><div className='icon_options'><MdDisplaySettings /></div>Operaciones</a>
           </div>
         </div>
 
@@ -532,26 +537,26 @@ const Tollbar = () => {
             className="menu-item"
             onClick={toggleReportesMenu}
           >
-            <a href="#">Reportes</a>
+            <a href="#"><div className='icon_options'><TbReportSearch /></div>Reportes</a>
             <i
               className={`dropdown-icon ${isReportesMenuOpen ? 'rotate' : ''}`}
             ></i>
           </div>
           {isReportesMenuOpen && (
             <div className="submenu">
-              <a href="#" title="Reporte Velocidad">
+              <a onClick={openModalSpeed} title="Reporte Velocidad">
                 Reporte de Velocidad
               </a>
-              <a href="#" title="Reporte Paradas">
+              <a onClick={openModalStops} title="Reporte Paradas">
                 Reporte de Paradas
               </a>
-              <a href="#" title="Reporte General">
+              <a onClick={openModal} title="Reporte General">
                 Reporte General
               </a>
-              <a href="#" title="Detalle Recorrido">
+              <a onClick={openModalDetails} title="Detalle Recorrido">
                 Detalle Recorrido
               </a>
-              <a href="#" title="Reporte Kilometraje">
+              <a onClick={openModalKilometers} title="Reporte Kilometraje">
                 Reporte de Kilometraje
               </a>
               <a href="#" title="Paradas Bruscas">
