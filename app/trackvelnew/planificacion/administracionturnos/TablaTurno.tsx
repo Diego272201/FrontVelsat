@@ -14,22 +14,18 @@ import {
   Dropdown,
   DropdownMenu,
   DropdownItem,
-  Chip,
   Pagination,
   Selection,
-  ChipProps,
   SortDescriptor,
   Select,
   SelectItem,
   Tooltip,
-  useDisclosure,
 } from '@nextui-org/react';
 
 import { ChevronDownIcon } from './ChevronDownIcon';
 import { SearchIcon } from './SearchIcon';
 import { capitalize } from './utils';
 import ModalTurnos from './ModalTurnos';
-import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
 import ModalTurnoEdit from './ModalTurnoEdit';
 import Swal from 'sweetalert2';
@@ -38,7 +34,7 @@ const columns = [
   { name: 'EMPRESA', uid: 'empresa', sortable: true },
   { name: 'ÁREA', uid: 'area', sortable: true },
   { name: 'SUB ÁREA', uid: 'subarea', sortable: true },
-  { name: 'ROL', uid: 'rol' }, // Mapeado desde "codrl"
+  { name: 'ROL', uid: 'rol' }, 
   { name: 'HORA', uid: 'hora' },
   { name: 'PRO', uid: 'programacion', sortable: true },
   { name: 'OPERACIONES', uid: 'operaciones' },
@@ -108,7 +104,7 @@ export default function App({
 
     if (hasSearchFilter) {
       filteredUsers = filteredUsers.filter((user) =>
-        user.empresa.toLowerCase().includes(filterValue.toLowerCase()),
+        user.rol.toLowerCase().includes(filterValue.toLowerCase()),
       );
     }
     const selectedAreas = Array.from(areaFilter);
@@ -165,7 +161,7 @@ export default function App({
       cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
-        handleDelete(codigo); // Llama a la función de eliminación si el usuario confirma
+        handleDelete(codigo); 
       }
     });
   };
@@ -246,7 +242,7 @@ export default function App({
               base: 'w-full sm:max-w-[44%] bg-[#dddedf] rounded-[10px]',
               inputWrapper: 'border-1',
             }}
-            placeholder="Buscar por empresa"
+            placeholder="Buscar por rol"
             size="sm"
             startContent={
               <SearchIcon className="colorIcono text-default-300" />

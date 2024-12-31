@@ -1,7 +1,7 @@
-import React from 'react'
-import ModalTurnos from './administracionturnos/ModalTurnos'
 
-export default function page() {
+import React from 'react'
+
+export default function Page() {
     return (
     <div>
         <h1>Planificación</h1>
