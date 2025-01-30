@@ -1,30 +1,17 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import {
-  Button,
-  DateInput,
-  Input,
-  Select,
-  SelectItem,
-} from '@nextui-org/react';
-import { CalendarDate, parseDate } from '@internationalized/date';
+import { Button, Input, Select, SelectItem } from '@nextui-org/react';
+import * as xlsx from 'xlsx';
+import { tiposArchivos } from './tiposArchivo';
+import { Toaster, toast } from 'sonner';
 import '@/app/styles/planiTep.css';
+import { FaFileExcel } from 'react-icons/fa';
+import { DatePicker } from '@nextui-org/date-picker';
+import Servicios from './Servicios';
+import axios from 'axios';
+import { MdDelete } from "react-icons/md";
+import App from '@/app/components/TimePicker';
 
-export const animals = [
-  { key: 'cat', label: 'Cat' },
-  { key: 'dog', label: 'Dog' },
-  { key: 'elephant', label: 'Elephant' },
-  { key: 'lion', label: 'Lion' },
-  { key: 'tiger', label: 'Tiger' },
-  { key: 'giraffe', label: 'Giraffe' },
-  { key: 'dolphin', label: 'Dolphin' },
-  { key: 'penguin', label: 'Penguin' },
-  { key: 'zebra', label: 'Zebra' },
-  { key: 'shark', label: 'Shark' },
-  { key: 'whale', label: 'Whale' },
-  { key: 'otter', label: 'Otter' },
-  { key: 'crocodile', label: 'Crocodile' },
-];
 
 export const CalendarIcon = (props: any) => {
   return (
@@ -53,7 +40,137 @@ export const CalendarIcon = (props: any) => {
 };
 
 export default function Page() {
+
+
+  const [excelData, setExcelData] = useState<
+    {
+      CodigoOracle: string;
+      Nombre: string;
+      Subarea: string;
+      Area: string;
+      Rol: string;
+      Empresa: string;
+    }[]
+  >([]);
+
+  const [file, setFile] = useState<File | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+
+  const handleStartDateSelect = (date: string) => {
+    setStartDate(date);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      setFile(event.target.files[0]);
+      setFileName(event.target.files[0].name);
+    }
+  };
+
+  const formatFecha = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const getColumnFromDay = (day: number): string => {
+    const startLetter = 10;
+    const columnIndex = startLetter + (day - 1);
+
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    if (columnIndex < 26) {
+      return letters[columnIndex];
+    }
+
+    const firstLetter = letters[Math.floor((columnIndex - 26) / 26)];
+    const secondLetter = letters[(columnIndex - 26) % 26];
+    return firstLetter + secondLetter;
+  };
+
+  const handleReadExcel = () => {
+    if (!file) {
+      toast.error('Por favor selecciona un archivo Excel.');
+      return;
+    }
+
+    if (!selectedDate) {
+      toast.error('Por favor selecciona una fecha.');
+      return;
+    }
+
+    if (!selectedEmpresa) {
+      toast.error('Por favor selecciona una empresa.');
+      return;
+    }
+
+    const fecact = formatFecha(selectedDate);
+
+    const day = selectedDate.getDate();
+    const rolColumn = getColumnFromDay(day);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const data = e.target?.result;
+
+      if (data) {
+        const workbook = xlsx.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[1];
+        const sheet = workbook.Sheets[sheetName];
+        const filteredData = [];
+
+        const range = xlsx.utils.decode_range(sheet['!ref']!);
+        const lastRow = range.e.r + 1;
+
+        for (let rowIndex = 4; rowIndex <= lastRow; rowIndex++) {
+          const codigoOracle = sheet[`C${rowIndex}`]?.v || '';
+          const nombreCompleto = sheet[`D${rowIndex}`]?.v || '';
+          const subArea = sheet[`I${rowIndex}`]?.v || '';
+          const area = sheet[`J${rowIndex}`]?.v || '';
+          const rol = sheet[`${rolColumn}${rowIndex}`]?.v || '';
+          const empresa = selectedEmpresa;
+
+          if (codigoOracle || nombreCompleto) {
+            filteredData.push({
+              CodigoOracle: String(codigoOracle),
+              Nombre: nombreCompleto,
+              Subarea: subArea,
+              Area: area,
+              Rol: rol,
+              Empresa: empresa,
+            });
+          }
+        }
+
+        console.log(filteredData);
+
+        setExcelData(filteredData);
+
+        try {
+          const response = await axios.post(
+            `http://66.240.210.125:8586/api/preplan/insert?fecact=${fecact}`,
+            filteredData,
+          );
+          console.log(response.data);
+          if (response.status === 200) {
+            toast.success('Datos enviados correctamente a la API.');
+          } else {
+            toast.error('Error al enviar los datos a la API.');
+          }
+        } catch (error) {
+          console.error('Error al enviar los datos a la API:', error);
+          toast.error('Error al enviar los datos a la API.');
+        }
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
 
   const toggleContent = () => {
     setIsVisible((prev) => !prev);
@@ -65,6 +182,7 @@ export default function Page() {
 
   return (
     <div className="containerTep">
+      <Toaster richColors />
       <div>
         <div className="title">
           Modulo de Planificación de Servicios
@@ -83,48 +201,69 @@ export default function Page() {
           <div id="contenido">
             <div className="fristFileT">
               <div>
-                <div className="grid w-full max-w-xs items-center gap-1.5">
+                <div className="p-0.4 mx-auto flex w-max min-w-[300px] items-center overflow-hidden rounded-md bg-[#f1f1f1] font-[sans-serif] text-[#333]">
+                  <div className="flex px-4">
+                    <FaFileExcel size={20} color="#307750" />
+                    <p className="ml-3 text-sm">
+                      {fileName || 'Ningún archivo seleccionado'}
+                    </p>
+                  </div>
                   <label
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    htmlFor="picture"
+                    htmlFor="uploadExcel"
+                    className="ml-auto block w-max cursor-pointer rounded-md bg-[#d62828] px-3 py-2.5 text-sm text-white outline-none hover:bg-gray-700"
                   >
-                    Catgar Excel
+                    Subir
                   </label>
                   <input
-                    id="picture"
                     type="file"
-                    className="border-input flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-400 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-gray-600"
+                    id="uploadExcel"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    onChange={handleFileChange}
                   />
                 </div>
               </div>
 
               <div>
-                <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                  <DateInput
-                    defaultValue={parseDate('2024-04-04')}
-                    endContent={
-                      <CalendarIcon className="pointer-events-none flex-shrink-0 text-2xl text-default-400" />
+                <DatePicker
+                  className="max-w-[284px]"
+                  labelPlacement="outside"
+                  
+                  style={{ background: 'red' }}
+                  onChange={(date) => {
+                    if (date) {
+                      const { year, month, day } = date;
+                      const selectedDate = new Date(year, month - 1, day);
+                      setSelectedDate(selectedDate);
+                    } else {
+                      setSelectedDate(null);
                     }
-                    label="Fecha"
-                    labelPlacement="outside"
-                    placeholderValue={new CalendarDate(1995, 11, 6)}
-                  />
-                </div>
+                  }}
+                />
               </div>
 
               <div className="selectTipoA">
                 <Select
                   className="max-w-xl"
-                  items={animals}
-                  label="Tipo de Archivo"
+                  items={tiposArchivos.map((tipo) => ({
+                    key: tipo,
+                    label: tipo,
+                  }))}
                   labelPlacement="outside"
-                  placeholder="Choose an animal"
+                  placeholder="Selecciona el tipo de Archivo"
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSelectedEmpresa(value);
+                  }}
                 >
-                  {(animal) => (
-                    <SelectItem key={animal.key} textValue={animal.label}>
+                  {(tipoArchivo) => (
+                    <SelectItem
+                      key={tipoArchivo.key}
+                      textValue={tipoArchivo.label}
+                    >
                       <div className="flex flex-col">
                         <span className="text-small font-medium">
-                          {animal.label}
+                          {tipoArchivo.label}
                         </span>
                       </div>
                     </SelectItem>
@@ -132,134 +271,181 @@ export default function Page() {
                 </Select>
               </div>
 
-              <div className='buttonsTep'>
-                <Button color="default">Cargar Archivo </Button>
-                <Button color="default">Eliminar Archivo </Button>
+              <div style={{display:'flex', gap:'10px'}}>
+                <button
+                  className="container-btn-file"
+                  onClick={handleReadExcel}
+                >
+                  <svg
+                    fill="#fff"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 50 50"
+                  >
+                    <path
+                      d="M28.8125 .03125L.8125 5.34375C.339844 
+                      5.433594 0 5.863281 0 6.34375L0 43.65625C0 
+                      44.136719 .339844 44.566406 .8125 44.65625L28.8125 
+                      49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
+                      50 29.445313 49.929688 29.625 49.78125C29.855469 49.589844 
+                      30 49.296875 30 49L30 1C30 .703125 29.855469 .410156 29.625 
+                      .21875C29.394531 .0273438 29.105469 -.0234375 28.8125 .03125ZM32 
+                      6L32 13L34 13L34 15L32 15L32 20L34 20L34 22L32 22L32 27L34 27L34 
+                      29L32 29L32 35L34 35L34 37L32 37L32 44L47 44C48.101563 44 49 
+                      43.101563 49 42L49 8C49 6.898438 48.101563 6 47 6ZM36 13L44 
+                      13L44 15L36 15ZM6.6875 15.6875L11.8125 15.6875L14.5 21.28125C14.710938 
+                      21.722656 14.898438 22.265625 15.0625 22.875L15.09375 22.875C15.199219 
+                      22.511719 15.402344 21.941406 15.6875 21.21875L18.65625 15.6875L23.34375 
+                      15.6875L17.75 24.9375L23.5 34.375L18.53125 34.375L15.28125 
+                      28.28125C15.160156 28.054688 15.035156 27.636719 14.90625 
+                      27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
+                      14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
+                      20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"
+                    ></path>
+                  </svg>
+                  Cargar Archivo
+                </button>
+                <Button color="danger"><MdDelete size={20}/>
+                 Eliminar Carga</Button>
+
               </div>
 
               <div className="selectTipoA">
-                <Select
-                  className="max-w-xl"
-                  items={animals}
-                  label="Select an Animal"
-                  labelPlacement="outside"
-                  placeholder="Obtener Datos"
+                <select
+                  id="countries"
+                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                 >
-                  {(animal) => (
-                    <SelectItem key={animal.key} textValue={animal.label}>
-                      <div className="flex flex-col">
-                        <span className="text-small font-medium">
-                          {animal.label}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  )}
-                </Select>
+                  <option selected>Choose a country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="FR">France</option>
+                  <option value="DE">Germany</option>
+                </select>
               </div>
 
-              <div className='buttonsTep'>
-                <Button color="success">Success</Button>
-                <Button color="success">Success</Button>
-                <Button color="success">Success</Button>
+              <div className="buttonsTep">
+                <Button color="primary">Obtener</Button>
+                <Button color="primary">Guardar</Button>
+                <Button color="primary">Publicar</Button>
               </div>
             </div>
 
             <div className="fristFileT">
               <div className="selectTipoA">
-                <Select
-                  className="max-w-xl"
-                  items={animals}
-                  label="Select an Animal"
-                  labelPlacement="outside"
-                  placeholder="Obtener Datos"
+                <select
+                  id="countries"
+                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                 >
-                  {(animal) => (
-                    <SelectItem key={animal.key} textValue={animal.label}>
-                      <div className="flex flex-col">
-                        <span className="text-small font-medium">
-                          {animal.label}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  )}
-                </Select>
+                  <option selected>Choose a country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="FR">France</option>
+                  <option value="DE">Germany</option>
+                </select>
               </div>
 
               <div className="servicesP">
                 <div>Total Servicios : 0</div>
-
                 <div>Total Pasajeros : 0</div>
               </div>
 
               <div>
-                <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                  <DateInput
-                    defaultValue={parseDate('2024-04-04')}
-                    endContent={
-                      <CalendarIcon className="pointer-events-none flex-shrink-0 text-2xl text-default-400" />
-                    }
-                    label="Fecha"
-                    labelPlacement="outside"
-                    placeholderValue={new CalendarDate(1995, 11, 6)}
-                  />
-                </div>
+
+                <App onDateSelect={handleStartDateSelect} />
+            
               </div>
 
               <div className="selectTipoA">
-                <Select
-                  className="max-w-xl"
-                  items={animals}
-                  label="Select an Animal"
-                  labelPlacement="outside"
-                  placeholder="Choose an animal"
+                <select
+                  id="countries"
+                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                 >
-                  {(animal) => (
-                    <SelectItem key={animal.key} textValue={animal.label}>
-                      <div className="flex flex-col">
-                        <span className="text-small font-medium">
-                          {animal.label}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  )}
-                </Select>
+                  <option selected>Choose a country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="FR">France</option>
+
+                  <option value="DE">Germany</option>
+                </select>
               </div>
 
               <div className="selectTipoA">
-                <Select
-                  className="max-w-xl"
-                  items={animals}
-                  label="Select an Animal"
-                  labelPlacement="outside"
-                  placeholder="Choose an animal"
+                <select
+                  id="countries"
+                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                 >
-                  {(animal) => (
-                    <SelectItem key={animal.key} textValue={animal.label}>
-                      <div className="flex flex-col">
-                        <span className="text-small font-medium">
-                          {animal.label}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  )}
-                </Select>
+                  <option selected>Choose a country</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="FR">France</option>
+                  <option value="DE">Germany</option>
+                </select>
               </div>
 
-              <div>
-                <Input
-                  label="Website"
-                  labelPlacement="outside"
-                  placeholder="nextui.org"
-                  startContent={
-                    <div className="pointer-events-none flex items-center"></div>
-                  }
+              <div className="max-w-lg">
+                <input
+                  type="text"
+                  id="input-label"
+                  className="rounded-lg border-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:bg-[#fff] dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
+                  placeholder="Name"
+                  style={{ borderRadius: '0.5rem', width: '230px' }}
                 />
               </div>
 
-              <Button color="success">Success</Button>
+              <Button color="success">Final</Button>
             </div>
           </div>
         )}
+      </div>
+
+      <div>
+        Luis
+      </div>
+      {excelData.length > 0 && (
+        <div style={{ overflow: 'auto', height: '70vh' }}>
+          <h3>Datos del archivo:</h3>
+          <p></p>
+          <table className="table-auto border-collapse border border-gray-400">
+            {/* <thead>
+              <tr>
+                <th className="border border-gray-400 px-4 py-2">
+                  Código Oracle
+                </th>
+                <th className="border border-gray-400 px-4 py-2">
+                  Nombre Completo
+                </th>
+              </tr>
+            </thead> */}
+            <tbody>
+              {excelData.map((row, index) => (
+                <tr key={index}>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.CodigoOracle}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.Nombre}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.Subarea}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.Area}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.Rol}
+                  </td>
+                  <td className="border border-gray-400 px-4 py-2">
+                    {row.Empresa}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}{' '}
+      <div className="grupoServicios">
+        <Servicios></Servicios>
       </div>
     </div>
   );

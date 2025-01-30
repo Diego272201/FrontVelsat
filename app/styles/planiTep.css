@@ -1,67 +1,82 @@
-.containerTep{
-  margin-top: 10px;
-    background: #c9c2bc;
-    padding: 20px;
+.containerTep {
+  margin-top: -10px;
+  padding: 20px;
+  overflow: auto;
+  height: 95vh;
 }
 
-.title{
-    display: flex;
-    justify-content: space-between;
-    padding: 5px;
+.title {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  font-weight: 500;
+  font-size: 14px;
+  background: #e6e6e6;
 }
 
 .titulo_boton {
-    float: left;
-    padding: 5px;
-    background-color: #e6e6e6;
-    width: 400px;
-    font-family: helvetica;
-    font-size: 16px;
-    font-weight: bold;
-  }
-  
-  .boton_mostrar {
-    float: right;
-    font-size: 12px;
-    line-height: 20px;
-    color: #de7217;
-  }
-  
-  #contenido {
-    clear: both;
-    display: flex;
-    flex-direction: column;
-    margin-top: 2px;
-    padding: 5px;
-    overflow: auto;
-    font-family: helvetica;
-    font-size: 14px;
-    text-align: justify;
-  }
-  
-  .selectTipoA{
-    width: 300px;
-  }
-  
-  .fristFileT{
-    display: flex;
-    width: 100%;
-    justify-content: space-between;
-    align-items: end;
-    padding-bottom: 20px;
+  float: left;
+  padding: 5px;
+  background-color: #e6e6e6;
+  width: 400px;
+  font-family: helvetica;
+  font-size: 16px;
+  font-weight: bold;
+}
 
-  }
+.boton_mostrar {
+  float: right;
+  font-size: 12px;
+  line-height: 20px;
+  color: #de7217;
+}
 
-  .servicesP{
-    background: #c9c2bc;
-    display: flex;
-    flex-direction: column;
-  }
+#contenido {
+  clear: both;
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+  padding: 10px;
+  overflow: auto;
+  font-family: helvetica;
+  font-size: 14px;
+  text-align: justify;
+  margin-top: 10px;
+  background: #e6e6e6;
+}
 
-  .buttonsTep {
-    display: flex;
-    gap: 10px;
-  }
+.subtitleTep{
+  font-weight: 500;
+  font-size: 13px;
+  padding-left: 3px;
+}
+
+.selectTipoA {
+  width: 300px;
+}
+
+.fristFileT {
+  display: flex;
+  flex-wrap: wrap;
+
+  width: 100%;
+  justify-content: space-between;
+  align-items: end;
+  padding-bottom: 20px;
+}
+
+.servicesP {
+  display: flex;
+  flex-direction: column;
+  font-weight: bold;
+  font-size: 12px;
+  gap: 5px;
+}
+
+.buttonsTep {
+  display: flex;
+  gap: 10px;
+}
 
 .checkbox {
   display: none;
@@ -70,7 +85,7 @@
 .slider {
   width: 55px;
   height: 25px;
-  background-color: lightgray;
+  background-color: rgb(141, 140, 140);
   border-radius: 20px;
   overflow: hidden;
   display: flex;
@@ -103,4 +118,172 @@
 
 .checkbox:active ~ .slider::before {
   transform: translate(0);
+}
+
+
+.container-btn-file {
+  display: flex;
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  background-color: #307750;
+  color: #fff;
+  border-style: none;
+  padding: 9px 10px;
+  border-radius: 0.5em;
+  overflow: hidden;
+  z-index: 1;
+  transition: all 250ms;
+}
+.container-btn-file input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.container-btn-file > svg {
+  margin-right: 1em;
+}
+.container-btn-file::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 0;
+  border-radius: 0.5em;
+  background-color: #469b61;
+  z-index: -1;
+  transition: all 350ms;
+}
+.container-btn-file:hover::before {
+  width: 100%;
+}
+
+.headTep{
+  background: #0466c8;
+  display: flex;
+  justify-content: space-between;
+}
+
+
+
+.rwd-table {
+  margin: auto;
+  width: 100%;
+  border-collapse: collapse;
+
+}
+
+.rwd-table tr:first-child {
+  border-top: none;
+  background: #276b9c7a;
+  color: #111010;
+  display: flex;
+  justify-content: space-between;
+  height: 35px;
+  font-size: 12px;
+  align-items: center;
+}
+
+
+
+
+.rwd-table th {
+  display: none;
+}
+
+
+
+.rwd-table th,
+.rwd-table td {
+  text-align: left;
+}
+
+.rwd-table {
+  color: #333;
+  overflow: hidden;
+}
+
+
+
+@media screen and (max-width: 601px) {
+  .rwd-table tr:nth-child(2) {
+    border-top: none;
+  }
+}
+@media screen and (min-width: 600px) {
+
+  .rwd-table td:before {
+    display: none;
+  }
+  .rwd-table th,
+  .rwd-table td {
+    display: table-cell;
+  }
+  .rwd-table th:first-child,
+  .rwd-table td:first-child {
+    padding-left: 0;
+  }
+  .rwd-table th:last-child,
+  .rwd-table td:last-child {
+    padding-right: 0;
+  }
+
+}
+
+.headTable{
+  background: rgb(145, 141, 148);
+  display: flex;
+  justify-content: space-between;
+  font-weight: 400;
+  font-size: 15px;
+  color: #000000;
+  
+}
+
+.grupoServicios{
+  margin-top: 10px;
+}
+.footerTep{
+  background: #f3ae24;
+  display: flex;
+  padding: 5px;
+
+}
+
+.dataConductorUnidad{
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+
+}
+
+.btnTep{
+  gap: 10px;
+  display: flex;
+}
+
+.num{
+  width: 5%;
+}
+
+.nombre{
+  width: 20%;
+}
+.distrito{
+  width: 15%;
+}
+.direccion{
+  width: 25%;
+}
+.fecha{
+  width: 15%;
+}
+.area{
+  width: 10%;
+}
+
+.acciones{
+  width: 10%;
 }
