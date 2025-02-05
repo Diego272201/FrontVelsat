@@ -269,10 +269,10 @@
 }
 
 .nombre{
-  width: 20%;
+  width: 15%;
 }
 .distrito{
-  width: 15%;
+  width: 10%;
 }
 .direccion{
   width: 25%;
@@ -285,5 +285,10 @@
 }
 
 .acciones{
-  width: 10%;
+  width: 20%;
+}
+
+.accionesItems{
+  display: flex;
+  justify-content: space-between;
 }

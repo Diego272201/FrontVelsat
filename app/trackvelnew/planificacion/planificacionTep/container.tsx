@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { DndContext } from '@dnd-kit/core';
 
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
+import GrupoEliminados from './GrupoEliminados';
+import { DragEndEvent } from '@dnd-kit/core';
 
 interface ItemData {
   id: string;
-  numGrupo: number;
+  numGrupo: number;  
+  orderItem: number;
   nombre: string;
   distrito: string;
   direccion: string;
@@ -21,16 +25,42 @@ interface ItemData {
   acciones: React.ReactNode;
 }
 
-export default function Container(props: { id: string; items: ItemData[] }) {
-  const { id, items } = props;
-  const [startDate, setStartDate] = useState<string>('');
+interface Grupo {
+  id: number;
+  tipo: string;
+  empresa: string;
+  destinoGrupo: string;
+  fecha: string;
+}
+
+interface ContainerProps {
+  id: string;
+  items: ItemData[];
+  grupo: Grupo;
+}
+
+export default function Container({ id, items, grupo }: ContainerProps) {
+  const [startDate, setStartDate] = useState<string>(grupo.fecha);
+  const handleStartDateSelect = (date: string) => {
+    setStartDate(date);
+  };
+
+  useEffect(() => {
+    setStartDate(grupo.fecha);
+  }, [grupo.fecha]); // Se ejecuta cuando `grupo.fecha` cambia
 
   const { setNodeRef } = useDroppable({
     id,
   });
 
-  const handleStartDateSelect = (date: string) => {
-    setStartDate(date);
+  const formatDateToISO = (fecha: string) => {
+    const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/;
+    const match = fecha.match(regex);
+
+    if (!match) return ''; // Si el formato no coincide, retorna vacío
+
+    const [, day, month, year, hours, minutes] = match;
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   return (
@@ -43,18 +73,21 @@ export default function Container(props: { id: string; items: ItemData[] }) {
         ref={setNodeRef}
         style={{
           background: '#fff',
-          padding: 5,
+          padding: '0px 0 0px 0px',
           flex: 1,
           marginBottom: 10,
+          border: '1px solid white',
         }}
       >
         <table className="rwd-table">
           <thead style={{ color: '#fff' }}>
             <tr>
-              <th>Grupo: 01</th>
-              <th>Tipo: Ingreso</th>
-              <th>Empresa: Delta</th>
-              <th>Destino: Destino Aeropuerto Jorge Chavez</th>
+              <th>Grupo: {grupo.id}</th>
+              <th>Tipo: {grupo.tipo}</th>
+              <th>Empresa: {grupo.empresa}</th>
+              <th>Destino: {grupo.destinoGrupo}</th>
+              <th>Fecha: {grupo.fecha}</th>
+
               <th>
                 <div
                   style={{
@@ -66,7 +99,12 @@ export default function Container(props: { id: string; items: ItemData[] }) {
                   }}
                 >
                   Inicio :
-                  <App onDateSelect={handleStartDateSelect}  height='30px' borderRadius='0'/>
+                  <App
+                    onDateSelect={handleStartDateSelect}
+                    height="30px"
+                    borderRadius="0"
+                    initialDateTime={formatDateToISO(grupo.fecha)}
+                  />
                 </div>
               </th>
               <th>
@@ -79,15 +117,19 @@ export default function Container(props: { id: string; items: ItemData[] }) {
                     height: '100%',
                   }}
                 >
-                  Fin : <App onDateSelect={handleStartDateSelect}   height='30px' borderRadius='0'/>
+                  Fin :
+                  <App
+                    onDateSelect={handleStartDateSelect}
+                    height="30px"
+                    borderRadius="0"
+                  />
                 </div>
               </th>
               <th>Tarifa: Tarifa Delta Delta</th>
             </tr>
-            
+
             <tr>
               <th>
-          
                 <div className="headTable">
                   <div className="num">N°</div>
                   <div className="nombre">Nombre</div>

@@ -11,6 +11,7 @@ import Servicios from './Servicios';
 import axios from 'axios';
 import { MdDelete } from "react-icons/md";
 import App from '@/app/components/TimePicker';
+import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
 
 
 export const CalendarIcon = (props: any) => {
@@ -41,6 +42,17 @@ export const CalendarIcon = (props: any) => {
 
 export default function Page() {
 
+    const [grupos, setGrupos] = useState<any[]>([]);
+  
+    useEffect(() => {
+      const fetchData = async () => {
+        const groupedData = await obtenerDatosYAgrupar();
+        setGrupos(groupedData);
+      };
+  
+      fetchData();
+    }, []);
+
 
   const [excelData, setExcelData] = useState<
     {
@@ -63,6 +75,8 @@ export default function Page() {
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
   };
+
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -179,6 +193,11 @@ export default function Page() {
   useEffect(() => {
     setIsVisible(false);
   }, []);
+
+
+  
+
+
 
   return (
     <div className="containerTep">
@@ -400,7 +419,7 @@ export default function Page() {
       </div>
 
       <div>
-        Luis
+        
       </div>
       {excelData.length > 0 && (
         <div style={{ overflow: 'auto', height: '70vh' }}>

@@ -37,6 +37,7 @@ interface Grupo {
   fecha: string;
   tipo: string;
   empresa: string;
+  destinoGrupo: string;
   personas: any[];
   destino: { coddestino: string; nomdestino: string };
   fecfin: string | null;
@@ -51,7 +52,7 @@ export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
     const datos = response.data; // Aquí se reciben los datos de la API
 
     let grupos: Grupo[] = [];
-    let gn = 0;
+    let gn = 1;
 
     while (datos.length >= 1) {
       const item = datos[0];
@@ -59,15 +60,17 @@ export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
       const tipo = item.tipo;
       const numgrupo = item.destino;
       const empresa = item.empresa;
+      const destinoGrupo = item.nomdestino;
       const grupo: Grupo = {
         id: gn,
         fecha: fecha,
         tipo: tipo,
         empresa: empresa,
+        destinoGrupo: destinoGrupo,
         personas: [],
         destino: {
           coddestino: item.destino,
-          nomdestino: item.destinocodigo,
+          nomdestino: item.nomdestino,
         },
         fecfin: null,
         fecaten: null,
@@ -85,12 +88,14 @@ export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
           currentItem.destino === numgrupo
         ) {
           const persona = {
+            idCliente: currentItem.id,
+            codCliente: currentItem.codcliente,
             nombre: currentItem.nombre,
             direccion: currentItem.lugar.direccion,
             distrito: currentItem.lugar.distrito,
-            zona: currentItem.lugar.zona,
-            lat: currentItem.lugar.wy,
-            lng: currentItem.lugar.wx,
+            fechaItem:currentItem.horaprog,
+            area:currentItem.area,
+
           };
 
           grupo.personas.push(persona);

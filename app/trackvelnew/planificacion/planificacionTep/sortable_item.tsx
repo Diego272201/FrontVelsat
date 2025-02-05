@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface ItemProps {
   numGrupo: number;
+  orderItem: number;
   nombre: string;
   distrito: string;
   direccion: string;
@@ -13,7 +14,7 @@ interface ItemProps {
 }
 
 export function Item(props: ItemProps) {
-  const { numGrupo, nombre, distrito, direccion, fecha,area, acciones } = props;
+  const { orderItem,numGrupo, nombre, distrito, direccion, fecha,area, acciones } = props;
 
   const style = {
     width: '100%',
@@ -21,13 +22,15 @@ export function Item(props: ItemProps) {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    margin: '10px 0',
+    margin: '5px 0px 5px 0px',
     background: '#e9ecef',
+    fontSize: '14px', 
+
   };
 
   return (
     <div style={style}>
-      <span className='num'>{numGrupo}</span>
+      <span className='num'>{orderItem}</span>
       <span className='nombre'>{nombre}</span>
       <span className='distrito'>{distrito}</span>
       <span className='direccion'>{direccion}</span>

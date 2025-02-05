@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '@/app/styles/timepicker.css';
 
 interface AppProps {
@@ -6,15 +6,25 @@ interface AppProps {
   backgroundColor?: string;
   height?: string;
   borderRadius?: string;
+  initialDateTime?: string;
 }
 export default function App({
   onDateSelect,
   backgroundColor = '#ffffff',
   height = '38px',
   borderRadius = '10px',
+  initialDateTime = '',
 }: AppProps) {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+
+  useEffect(() => {
+    if (initialDateTime) {
+      const [date, time] = initialDateTime.split('T');
+      setSelectedDate(date);
+      setSelectedTime(time?.slice(0, 5) || ''); // Formato HH:MM
+    }
+  }, [initialDateTime]);
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = event.target.value;
@@ -55,8 +65,7 @@ export default function App({
         style={{
           backgroundColor,
           height,
-          borderRadius: `${borderRadius} 0 0 ${borderRadius}`, 
-
+          borderRadius: `${borderRadius} 0 0 ${borderRadius}`,
         }}
       />
       <input
@@ -69,8 +78,7 @@ export default function App({
         style={{
           backgroundColor,
           height,
-          borderRadius: `0 ${borderRadius} ${borderRadius} 0`, 
-
+          borderRadius: `0 ${borderRadius} ${borderRadius} 0`,
         }}
       />
     </div>
