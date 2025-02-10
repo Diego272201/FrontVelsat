@@ -4,7 +4,7 @@ import { Item } from './sortable_item';
 
 interface GrupoEliminadosProps {
   items: any[];
-  onRestore: (item: any) => void;  // Nueva prop para restaurar
+  onRestore: (item: any) => void;  
 }
 
 export default function GrupoEliminados({ items, onRestore }: GrupoEliminadosProps) {

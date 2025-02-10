@@ -4,23 +4,19 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { DndContext } from '@dnd-kit/core';
-
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
-import GrupoEliminados from './GrupoEliminados';
-import { DragEndEvent } from '@dnd-kit/core';
 
 interface ItemData {
   id: string;
-  numGrupo: number;  
+  numGrupo: number;
   orderItem: number;
   nombre: string;
   distrito: string;
   direccion: string;
-  fecha: string;
+  fechaItem: string;
   area: string;
   acciones: React.ReactNode;
 }
@@ -40,14 +36,20 @@ interface ContainerProps {
 }
 
 export default function Container({ id, items, grupo }: ContainerProps) {
-  const [startDate, setStartDate] = useState<string>(grupo.fecha);
+
+const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
+
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
   };
 
   useEffect(() => {
-    setStartDate(grupo.fecha);
-  }, [grupo.fecha]); // Se ejecuta cuando `grupo.fecha` cambia
+    if (grupo?.fecha) {  // ✅ Verifica que grupo existe antes de acceder a fecha
+      setStartDate(grupo.fecha);
+    }
+  }, [grupo]); // ✅ Usa grupo completo como dependencia
+  
+  
 
   const { setNodeRef } = useDroppable({
     id,
@@ -57,7 +59,7 @@ export default function Container({ id, items, grupo }: ContainerProps) {
     const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/;
     const match = fecha.match(regex);
 
-    if (!match) return ''; // Si el formato no coincide, retorna vacío
+    if (!match) return '';
 
     const [, day, month, year, hours, minutes] = match;
     return `${year}-${month}-${day}T${hours}:${minutes}`;
@@ -86,7 +88,6 @@ export default function Container({ id, items, grupo }: ContainerProps) {
               <th>Tipo: {grupo.tipo}</th>
               <th>Empresa: {grupo.empresa}</th>
               <th>Destino: {grupo.destinoGrupo}</th>
-              <th>Fecha: {grupo.fecha}</th>
 
               <th>
                 <div
@@ -148,7 +149,8 @@ export default function Container({ id, items, grupo }: ContainerProps) {
           <SortableItem key={item.id} id={item.id} data={item} />
         ))}
 
-        <div className="footerTep">
+     
+<div className="footerTep">
           <div className="dataConductorUnidad">
             <div className="relative">
               <input
@@ -196,6 +198,7 @@ export default function Container({ id, items, grupo }: ContainerProps) {
             </div>
           </div>
         </div>
+
       </div>
     </SortableContext>
   );

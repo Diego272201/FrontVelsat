@@ -1,18 +1,20 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Select, SelectItem } from '@nextui-org/react';
+import { Button, Select, SelectItem, useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
-import { tiposArchivos } from './tiposArchivo';
+import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/planiTep.css';
 import { FaFileExcel } from 'react-icons/fa';
 import { DatePicker } from '@nextui-org/date-picker';
 import Servicios from './Servicios';
 import axios from 'axios';
-import { MdDelete } from "react-icons/md";
+import { MdDelete } from 'react-icons/md';
 import App from '@/app/components/TimePicker';
-import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
-
+import ModalObtenerServicios from './ModalObtenerServicios';
+import ProgressBar from '@/app/components/ui/ProgressBar';
+import { IoSave } from "react-icons/io5";
+import { IoSendSharp } from "react-icons/io5";
 
 export const CalendarIcon = (props: any) => {
   return (
@@ -41,18 +43,27 @@ export const CalendarIcon = (props: any) => {
 };
 
 export default function Page() {
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
+  const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(
+    null,
+  );
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [dato, setDato] = useState<string>('');
 
-    const [grupos, setGrupos] = useState<any[]>([]);
-  
-    useEffect(() => {
-      const fetchData = async () => {
-        const groupedData = await obtenerDatosYAgrupar();
-        setGrupos(groupedData);
-      };
-  
-      fetchData();
-    }, []);
+  const manejarRespuestaModal = (respuesta: string) => {
+    setDato(respuesta);
+    onOpenChange();
+  };
 
+  useEffect(() => {
+    if (empresaConfirmada && dato) {
+    }
+  }, [empresaConfirmada, dato]);
+
+  const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEmpresaSeleccionada(e.target.value);
+    setDato(''); // Limpiar dato al cambiar empresa
+  };
 
   const [excelData, setExcelData] = useState<
     {
@@ -75,8 +86,6 @@ export default function Page() {
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
   };
-
-
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -194,17 +203,18 @@ export default function Page() {
     setIsVisible(false);
   }, []);
 
-
   
-
-
 
   return (
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="title">
-          Modulo de Planificación de Servicios
+        <div className="cabecera">
+          <div className="progressAndTitle">
+           Modulo de Planificación de Servicios
+            <ProgressBar></ProgressBar>
+          </div>
+
           <label className="switch">
             <input
               type="checkbox"
@@ -247,7 +257,6 @@ export default function Page() {
                 <DatePicker
                   className="max-w-[284px]"
                   labelPlacement="outside"
-                  
                   style={{ background: 'red' }}
                   onChange={(date) => {
                     if (date) {
@@ -290,7 +299,7 @@ export default function Page() {
                 </Select>
               </div>
 
-              <div style={{display:'flex', gap:'10px'}}>
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   className="container-btn-file"
                   onClick={handleReadExcel}
@@ -325,27 +334,53 @@ export default function Page() {
                   </svg>
                   Cargar Archivo
                 </button>
-                <Button color="danger"><MdDelete size={20}/>
-                 Eliminar Carga</Button>
-
+                <Button color="danger">
+                  <MdDelete size={20} />
+                  Eliminar Carga
+                </Button>
               </div>
 
               <div className="selectTipoA">
                 <select
                   id="countries"
                   className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                  value={empresaSeleccionada}
+                  onChange={handleEmpresaChange}
                 >
-                  <option selected>Choose a country</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="FR">France</option>
-                  <option value="DE">Germany</option>
+                  <option value="" selected disabled>
+                    Seleccione Empresa
+                  </option>
+
+                  {empresa.map((nombre, index) => (
+                    <option key={index} value={nombre}>
+                      {nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="buttonsTep">
-                <Button color="primary">Obtener</Button>
-                <Button color="primary">Guardar</Button>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    setEmpresaConfirmada(empresaSeleccionada);
+                    onOpen();
+                  }}
+                >
+                  Obtener
+                  <IoSendSharp />
+
+                </Button>
+                <Button color="success" >
+                  Guardar
+                  <IoSave color='#212529'/>
+
+                </Button>
+                <ModalObtenerServicios
+                  isOpen={isOpen}
+                  onOpenChange={onOpenChange}
+                  onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
+                />
                 <Button color="primary">Publicar</Button>
               </div>
             </div>
@@ -356,11 +391,11 @@ export default function Page() {
                   id="countries"
                   className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                 >
-                  <option selected>Choose a country</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="FR">France</option>
-                  <option value="DE">Germany</option>
+                  <option selected>Empresa</option>
+                  <option value="US">AVIANCA</option>
+                  <option value="CA">LCP</option>
+                  <option value="FR">DELTA</option>
+                  <option value="DE">Quality Products</option>
                 </select>
               </div>
 
@@ -370,9 +405,7 @@ export default function Page() {
               </div>
 
               <div>
-
                 <App onDateSelect={handleStartDateSelect} />
-            
               </div>
 
               <div className="selectTipoA">
@@ -418,24 +451,12 @@ export default function Page() {
         )}
       </div>
 
-      <div>
-        
-      </div>
+      <div></div>
       {excelData.length > 0 && (
         <div style={{ overflow: 'auto', height: '70vh' }}>
           <h3>Datos del archivo:</h3>
           <p></p>
           <table className="table-auto border-collapse border border-gray-400">
-            {/* <thead>
-              <tr>
-                <th className="border border-gray-400 px-4 py-2">
-                  Código Oracle
-                </th>
-                <th className="border border-gray-400 px-4 py-2">
-                  Nombre Completo
-                </th>
-              </tr>
-            </thead> */}
             <tbody>
               {excelData.map((row, index) => (
                 <tr key={index}>
@@ -462,9 +483,15 @@ export default function Page() {
             </tbody>
           </table>
         </div>
-      )}{' '}
+      )}
       <div className="grupoServicios">
-        <Servicios></Servicios>
+        {empresaConfirmada && dato && (
+          <Servicios
+            key={`${empresaConfirmada}-${dato}`}
+            empresa={empresaConfirmada}
+            dato={dato}
+          />
+        )}
       </div>
     </div>
   );

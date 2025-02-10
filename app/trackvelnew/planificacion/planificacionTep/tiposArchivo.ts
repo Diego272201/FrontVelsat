@@ -31,4 +31,34 @@ export const tiposArchivos: string[] = [
     "Total TERPEL COMERCIAL",
     "ATSA",
   ];
+
+  export const empresa: string[] = [
+    "AVIANCA",
+    "LCP",
+    "DELTA",
+    "KLM",
+    "Quality Products",
+    "LATAM",
+    "REP",
+    "AMERICAN",
+    "TERPEL",
+    "DHL",
+    "INDECOPI",
+    "AMERICAN TIERRA",
+    "MOVILBUS",
+    "COPA AIR",
+    "PLUSPETROL",
+    "PLUSPETROL-PISCO",
+    "PROSEGUR",
+    "TALMA",
+    "OI PERU",
+    "CHINALCO",
+    "METSO",
+    "OI LURIN",
+    "METSO SSGG",
+    "TERPEL AVIACION",
+    "TERPEL COMERCIAL",
+    "ATSA"
+  ];
+  
   

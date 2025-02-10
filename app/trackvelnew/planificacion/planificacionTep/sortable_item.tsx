@@ -8,13 +8,13 @@ interface ItemProps {
   nombre: string;
   distrito: string;
   direccion: string;
-  fecha: string;
+  fechaItem: string;
   area: string;
   acciones: React.ReactNode;
 }
 
 export function Item(props: ItemProps) {
-  const { orderItem,numGrupo, nombre, distrito, direccion, fecha,area, acciones } = props;
+  const { orderItem,numGrupo, nombre, distrito, direccion, fechaItem,area, acciones } = props;
 
   const style = {
     width: '100%',
@@ -34,7 +34,7 @@ export function Item(props: ItemProps) {
       <span className='nombre'>{nombre}</span>
       <span className='distrito'>{distrito}</span>
       <span className='direccion'>{direccion}</span>
-      <span className='fecha'>{fecha}</span>
+      <span className='fecha'>{fechaItem}</span>
       <span className='area'>{area}</span>
       <span className='acciones'>{acciones}</span>
     </div>

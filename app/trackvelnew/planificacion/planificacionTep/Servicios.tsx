@@ -24,38 +24,28 @@ const wrapperStyle: React.CSSProperties = {
   flexDirection: 'column',
 };
 
-export default function App() {
+interface ServiciosProps {
+  empresa: string;
+  dato: string;
+}
+
+export default function App({ empresa, dato }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const groupedData = await obtenerDatosYAgrupar();
+      const groupedData = await obtenerDatosYAgrupar(empresa, dato);
       setGrupos(groupedData);
     };
 
     fetchData();
-  }, []);
+  }, [empresa]);
 
-  function handleDelete(item: any, containerKey: string) {
-    setItems((prev) => {
-      const updatedItems = prev[containerKey].filter((i) => i.id !== item.id);
-      return {
-        ...prev,
-        [containerKey]: updatedItems,
-      };
-    });
-  
-    setEliminados((prev) => [
-      ...prev,
-      {
-        ...item,
-        acciones: undefined, // Eliminar las acciones al mover al grupo de eliminados
-        originalContainer: containerKey,
-        originalIndex: items[containerKey]?.findIndex((i) => i.id === item.id),
-        originalNumGrupo: item.numGrupo,
-      },
-    ]);
-  }
+
+  useEffect(()=>{
+    console.log(grupos)
+  })
+
 
   const [items, setItems] = useState<
     Record<
@@ -67,7 +57,7 @@ export default function App() {
         nombre: string;
         distrito: string;
         direccion: string;
-        fecha: string;
+        fechaItem: string;
         area: string;
         acciones: React.ReactNode;
       }[]
@@ -75,65 +65,70 @@ export default function App() {
   >({});
 
   useEffect(() => {
-    const nuevoItems = grupos.reduce(
-      (acc, grupo, index) => {
-        acc[`container${index}`] = grupo.personas.map(
-          (persona: any, idx: number) => {
-            const item = {
-              id: String(persona.idCliente),
-              numGrupo: grupo.id,
-              orderItem: idx + 1,
-              tipo: grupo.tipo,
-              destino: grupo.destinoGrupo,
-              empresa: grupo.empresa,
-              fechaGrupo: persona.fechaItem,
-              nombre: persona.nombre,
-              distrito: persona.distrito,
-              direccion: persona.direccion,
-              fecha: persona.fechaItem,
-              area: persona.area,
-            };
+    if (grupos.length > 0) {
+      const nuevoItems = grupos.reduce(
+        (acc, grupo, index) => {
+          acc[`container${index}`] = grupo.personas.map(
+            (persona: any, idx: number) => {
+              const item = {
+                id: String(persona.idCliente),
+                orderItem: idx + 1,
+                nombre: persona.nombre,
+                distrito: persona.distrito,
+                direccion: persona.direccion,
+                fechaItem: persona.fechaItem,
+                area: persona.area,
 
-            return {
-              ...item,
-              acciones: (
-                <div className="accionesItems">
-                  <Button color="success" size="sm">
-                    Nuevo
-                    <MdOutlineAdd />
-                  </Button>
-                  <Button
-                    color="danger"
-                    size="sm"
-                    onClick={() => {
-                      const currentContainer = findContainer(item.id);
-                      if (currentContainer) {
-                        handleDelete(item, currentContainer);
-                      }
-                    }}
-                  >
-                    Eliminar
-                    <MdDelete />
-                  </Button>
+                numGrupo: grupo.id,
+                tipo: grupo.tipo,
+                destino: grupo.destinoGrupo,
+                empresa: grupo.empresa,
+                fecha: grupo.fecha,
+              };
 
-                  <Button color="warning" size="sm">
-                    Dirección
-                    <TbGps />
-                  </Button>
-                </div>
-              ),
-            };
-          },
-        );
-        return acc;
-      },
-      {} as Record<string, any[]>,
-    );
+              return {
+                ...item,
+                acciones: (
+                  <div className="accionesItems">
 
-    setItems(nuevoItems);
+              <Button color="success" size="sm" onClick={() => handleMoverAGrupoNuevo(Number(item.id))}>
+                  Nuevo
+                  <MdOutlineAdd />
+                </Button>
+
+
+
+                    <Button
+                      color="danger"
+                      size="sm"
+                      onClick={() => handleEliminarDelArray(Number(item.id))}
+                    >
+                      Eliminar
+                      <MdDelete />
+                    </Button>
+
+                    <Button color="warning" size="sm">
+                      Dirección
+                      <TbGps />
+                    </Button>
+                  </div>
+                ),
+              };
+            },
+          );
+          return acc;
+        },
+        {} as Record<string, any[]>,
+      );
+
+      setItems(nuevoItems);
+    }
   }, [grupos]);
 
   const [eliminados, setEliminados] = useState<any[]>([]);
+
+
+
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -213,123 +208,179 @@ export default function App() {
     const activeContainer = findContainer(activeId);
 
     if (overId === 'grupo-eliminados') {
-      if (activeContainer) {
-        const activeItems = items[activeContainer];
-        const itemToRemove = activeItems.find((item) => item.id === activeId);
-        const originalIndex = activeItems.findIndex(
-          (item) => item.id === activeId,
-        );
-
-        setItems((prev) => ({
-          ...prev,
-          [activeContainer]: prev[activeContainer].filter(
-            (item) => item.id !== activeId,
-          ),
-        }));
-
-        if (!itemToRemove) return;
-        setEliminados((prev) => [
-          ...prev,
-          {
-            ...itemToRemove,
-            acciones: undefined,
-            originalContainer: activeContainer,
-            originalIndex,
-            originalNumGrupo: itemToRemove.numGrupo,
-          },
-        ]);
-      }
+      handleEliminarDelArray(Number(activeId));
       setActiveId(null);
       return;
     }
+    
 
     const overContainer = findContainer(overId);
 
-    if (
-      !activeContainer ||
-      !overContainer ||
-      activeContainer !== overContainer
-    ) {
+    if (!activeContainer || !overContainer) {
       setActiveId(null);
       return;
     }
 
-    const activeIndex = items[activeContainer].findIndex(
-      (item) => item.id === activeId,
-    );
-    const overIndex = items[overContainer].findIndex(
-      (item) => item.id === overId,
-    );
+    // Si se reordena dentro del mismo grupo
+    if (activeContainer === overContainer) {
+      const activeIndex = items[activeContainer].findIndex(
+        (item) => item.id === activeId,
+      );
+      const overIndex = items[overContainer].findIndex(
+        (item) => item.id === overId,
+      );
 
-    if (activeIndex !== overIndex) {
-      setItems((items) => ({
-        ...items,
-        [overContainer]: arrayMove(
-          items[overContainer],
-          activeIndex,
-          overIndex,
-        ),
-      }));
+      if (activeIndex !== overIndex) {
+        setItems((prevItems) => {
+          const updatedItems = arrayMove(
+            prevItems[overContainer],
+            activeIndex,
+            overIndex,
+          );
+
+          // Reasigna los `orderItem` después de mover
+          const reorderedItems = updatedItems.map((item, index) => ({
+            ...item,
+            orderItem: index + 1,
+          }));
+
+          return {
+            ...prevItems,
+            [overContainer]: reorderedItems,
+          };
+        });
+      }
     }
 
     setActiveId(null);
   }
 
-  function handleRestore(item: any) {
-    const containerKey = Object.keys(items).find((key, index) => {
-      return grupos[index]?.id === item.originalNumGrupo;
-    });
+  
 
-    if (!containerKey) {
-      console.error('No se pudo encontrar el contenedor original');
-      return;
-    }
 
-    setItems((prevItems) => {
-      const updatedItems = [...(prevItems[containerKey] || [])];
 
-      if (updatedItems.some((existingItem) => existingItem.id === item.id)) {
-        return prevItems;
+  const handleMoverAGrupoNuevo = (idCliente: number) => {
+    setGrupos((prevGrupos) => {
+      let nuevosGrupos = [...prevGrupos];
+  
+      let grupoOrigenIndex = nuevosGrupos.findIndex(grupo =>
+        grupo.personas.some(persona => persona.idCliente === idCliente)
+      );
+  
+      if (grupoOrigenIndex !== -1) {
+        let clienteMovido = nuevosGrupos[grupoOrigenIndex].personas.find(
+          persona => persona.idCliente === idCliente
+        );
+  
+        if (clienteMovido) {
+
+          const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
+
+          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[grupoOrigenIndex].personas.filter(
+            persona => persona.idCliente !== idCliente
+          );
+  
+      
+          const nuevoGrupo = {
+            id: nuevosGrupos.length + 1, 
+            destinoGrupo: grupoOrigen.destinoGrupo, 
+          empresa: grupoOrigen.empresa, 
+          fecha: grupoOrigen.fecha, 
+          tipo: grupoOrigen.tipo, 
+            personas: [clienteMovido], 
+          };
+  
+          nuevosGrupos.push(nuevoGrupo);
+        }
       }
-
-      const restoredItem = {
-        ...item,
-        acciones: (
-          <div className="accionesItems">
-            <Button color="success" size="sm">
-              Nuevo
-              <MdOutlineAdd />
-            </Button>
-            <Button
-              color="danger"
-              size="sm"
-              onClick={() => {
-                handleDelete(restoredItem, containerKey);
-              }}
-            >
-              Eliminar
-              <MdDelete />
-            </Button>
-            <Button color="warning" size="sm">
-              Dirección
-              <TbGps />
-            </Button>
-          </div>
-        ),
-      };
-
-      updatedItems.push(restoredItem);
-
-      return {
-        ...prevItems,
-        [containerKey]: updatedItems,
-      };
+  
+      console.log("Nuevo estado de grupos:", nuevosGrupos);
+      return nuevosGrupos;
     });
-
+  };
+  
+  const handleEliminarDelArray = (idCliente: number) => {
+    setGrupos((prevGrupos) => {
+      let nuevosGrupos = [...prevGrupos];
+  
+      let grupoOrigenIndex = nuevosGrupos.findIndex(grupo =>
+        grupo.personas.some(persona => persona.idCliente === idCliente)
+      );
+  
+      if (grupoOrigenIndex !== -1) {
+        let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
+          persona => persona.idCliente === idCliente
+        );
+  
+        if (clienteEliminado) {
+          // Agregar el número del grupo antes de eliminarlo
+          clienteEliminado = { ...clienteEliminado, numGrupo: nuevosGrupos[grupoOrigenIndex].id };
+  
+          // Remover del grupo
+          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[grupoOrigenIndex].personas.filter(
+            persona => persona.idCliente !== idCliente
+          );
+  
+          // Guardar en eliminados con su numGrupo
+          setEliminados((prevEliminados) => {
+            const nuevosEliminados = [...prevEliminados, clienteEliminado];
+  
+            console.log(
+              `Cliente eliminado:`, clienteEliminado,
+              `\nViene del grupo:`, clienteEliminado.numGrupo,
+              `\nNuevo estado de eliminados:`, nuevosEliminados
+            );
+  
+            return nuevosEliminados;
+          });
+        }
+      }
+  
+      return nuevosGrupos;
+    });
+  };
+  
+  
+  const handleRestore = (item: any) => {
     setEliminados((prevEliminados) =>
-      prevEliminados.filter((el) => el.id !== item.id),
+      prevEliminados.filter((eliminado) => eliminado.idCliente !== item.idCliente)
     );
-  }
+  
+    setGrupos((prevGrupos) => {
+      let nuevosGrupos = [...prevGrupos];
+  
+      // Buscar el grupo original por `numGrupo`
+      let grupoOriginalIndex = nuevosGrupos.findIndex(
+        (grupo) => Number(grupo.id) === Number(item.numGrupo)
+      );
+  
+      if (grupoOriginalIndex !== -1) {
+        // Verificar si el cliente ya está en la lista antes de agregarlo
+        let existeEnGrupo = nuevosGrupos[grupoOriginalIndex].personas.some(
+          (persona) => persona.idCliente === item.idCliente
+        );
+  
+        if (!existeEnGrupo) {
+          nuevosGrupos[grupoOriginalIndex].personas.push(item);
+          console.log(
+            `Item restaurado:`, item,
+            `\nRestaurado al grupo:`, nuevosGrupos[grupoOriginalIndex].id
+          );
+        } else {
+          console.warn("El cliente ya está en el grupo, evitando duplicados.");
+        }
+      } else {
+        console.warn("Grupo original no encontrado. No se restauró correctamente.");
+        console.log("Estado actual de grupos:", nuevosGrupos);
+        console.log("Buscando grupo con ID:", item.numGrupo);
+      }
+  
+      return nuevosGrupos;
+    });
+  };
+  
+  
+
 
   return (
     <div style={wrapperStyle}>
@@ -340,17 +391,31 @@ export default function App() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        {Object.keys(items).map((key, index) => (
-          <Container
-            key={key}
-            id={key}
-            items={items[key]}
-            grupo={grupos[index]}
-          />
-        ))}
+        {grupos.length > 0 &&
+          Object.keys(items).map((key, index) =>
+            grupos[index] ? (
+              <Container
+                key={key}
+                id={key}
+                items={items[key] || []}
+                grupo={grupos[index]}
+              />
+            ) : null,
+          )}
 
         <div>
           <GrupoEliminados items={eliminados} onRestore={handleRestore} />
+        </div>
+
+        <div>
+        <Button
+            color="primary"
+            onClick={() => handleEliminarDelArray(4)}
+          >
+            Eliminar del array
+          </Button>
+
+
         </div>
 
         <DragOverlay>

@@ -1,4 +1,3 @@
-// services/apiService.ts
 import axios from 'axios';
 
 interface Lugar {
@@ -44,12 +43,15 @@ interface Grupo {
   fecaten: string | null;
 }
 
-export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
+export const obtenerDatosYAgrupar = async (empresa: string, dato:string): Promise<Grupo[]> => {
   try {
-    const response = await axios.get(
-      'http://66.240.210.125:8586/api/preplan/get?dato=2&empresa=AMERICAN%20TIERRA&usuario=movilbus'
-    );
-    const datos = response.data; // Aquí se reciben los datos de la API
+    const url = `http://66.240.210.125:8586/api/preplan/get?dato=${encodeURIComponent(dato)}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`;
+
+    
+    const response = await axios.get(url);
+
+
+    const datos = response.data;
 
     let grupos: Grupo[] = [];
     let gn = 1;
@@ -78,7 +80,6 @@ export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
 
       let it = 0;
 
-      // Agrupar por fecha, tipo y destino
       while (it < datos.length) {
         const currentItem = datos[it];
 
@@ -100,7 +101,6 @@ export const obtenerDatosYAgrupar = async (): Promise<Grupo[]> => {
 
           grupo.personas.push(persona);
 
-          // Eliminar el item procesado de la lista
           datos.splice(it, 1);
         } else {
           it++;
