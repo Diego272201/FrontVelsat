@@ -64,17 +64,18 @@
 }
 
 .selectTipoA {
-  width: 300px;
+  width: 230px;
 }
 
 .fristFileT {
   display: flex;
   flex-wrap: wrap;
-
   width: 100%;
   justify-content: space-between;
   align-items: end;
   padding-bottom: 20px;
+  gap:5px;
+  
 }
 
 .servicesP {
@@ -82,17 +83,38 @@
   flex-direction: column;
   font-weight: bold;
   font-size: 12px;
-  gap: 5px;
 }
 
 .buttonsTep {
   display: flex;
   gap: 10px;
+  /* background: red; */
+
+}
+.InfoReportes{
+  display: flex;
+  gap:10px;
 }
 
 .checkbox {
   display: none;
 }
+
+.cargaArchivos{
+  /* background: rebeccapurple; */
+}
+
+.filtrosPlanificacion{
+  /* background: rebeccapurple; */
+  width: 100%;
+}
+
+.cabeceraArchivos{
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+}
+
 
 .slider {
   width: 55px;

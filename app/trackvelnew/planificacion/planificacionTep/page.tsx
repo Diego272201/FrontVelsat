@@ -1,6 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Button, Select, SelectItem, useDisclosure } from '@nextui-org/react';
+import {
+  Button,
+  Divider,
+  Select,
+  SelectItem,
+  useDisclosure,
+} from '@nextui-org/react';
 import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
@@ -13,8 +19,10 @@ import { MdDelete } from 'react-icons/md';
 import App from '@/app/components/TimePicker';
 import ModalObtenerServicios from './ModalObtenerServicios';
 import ProgressBar from '@/app/components/ui/ProgressBar';
-import { IoSave } from "react-icons/io5";
-import { IoSendSharp } from "react-icons/io5";
+import { IoSave } from 'react-icons/io5';
+import { IoSendSharp } from 'react-icons/io5';
+import { MdHomeRepairService } from 'react-icons/md';
+import { FaUsers } from 'react-icons/fa';
 
 export const CalendarIcon = (props: any) => {
   return (
@@ -50,6 +58,43 @@ export default function Page() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [dato, setDato] = useState<string>('');
 
+  const [guardar, setGuardar] = useState<() => void>(() => () => {});
+  const [datosServicios, setDatosServicios] = useState({
+    totalGrupos: 0,
+    totalPasajeros: 0,
+  });
+
+  const [cabeceras, setCabeceras] = useState<
+    { empresa: string; fecha: string }[]
+  >([]);
+  const [filtro, setFiltro] = useState<{
+    empresa: string;
+    fecha: string;
+  } | null>(null);
+
+  const actualizarCabeceras = (
+    nuevasCabeceras: { empresa: string; fecha: string }[],
+  ) => {
+    setCabeceras(nuevasCabeceras);
+  };
+
+  const handleFiltrar = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const seleccion = e.target.value;
+    if (seleccion === 'all') {
+      setFiltro(null);
+    } else {
+      const [empresa, fecha] = seleccion.split(' | ');
+      setFiltro({ empresa, fecha });
+    }
+  };
+
+  const actualizarDatosServicios = (datos: {
+    totalGrupos: number;
+    totalPasajeros: number;
+  }) => {
+    setDatosServicios(datos);
+  };
+
   const manejarRespuestaModal = (respuesta: string) => {
     setDato(respuesta);
     onOpenChange();
@@ -62,7 +107,7 @@ export default function Page() {
 
   const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setEmpresaSeleccionada(e.target.value);
-    setDato(''); // Limpiar dato al cambiar empresa
+    setDato('');
   };
 
   const [excelData, setExcelData] = useState<
@@ -176,7 +221,7 @@ export default function Page() {
 
         try {
           const response = await axios.post(
-            `http://66.240.210.125:8586/api/preplan/insert?fecact=${fecact}`,
+            `http://66.240.210.125:8586/api/preplan/insert?fecact=${fecact}&tipo=${encodeURIComponent(selectedEmpresa)}`,
             filteredData,
           );
           console.log(response.data);
@@ -203,15 +248,13 @@ export default function Page() {
     setIsVisible(false);
   }, []);
 
-  
-
   return (
     <div className="containerTep">
       <Toaster richColors />
       <div>
         <div className="cabecera">
           <div className="progressAndTitle">
-           Modulo de Planificación de Servicios
+            Modulo de Planificación de Servicios
             <ProgressBar></ProgressBar>
           </div>
 
@@ -229,90 +272,88 @@ export default function Page() {
         {isVisible && (
           <div id="contenido">
             <div className="fristFileT">
-              <div>
-                <div className="p-0.4 mx-auto flex w-max min-w-[300px] items-center overflow-hidden rounded-md bg-[#f1f1f1] font-[sans-serif] text-[#333]">
-                  <div className="flex px-4">
-                    <FaFileExcel size={20} color="#307750" />
-                    <p className="ml-3 text-sm">
-                      {fileName || 'Ningún archivo seleccionado'}
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="uploadExcel"
-                    className="ml-auto block w-max cursor-pointer rounded-md bg-[#d62828] px-3 py-2.5 text-sm text-white outline-none hover:bg-gray-700"
-                  >
-                    Subir
-                  </label>
-                  <input
-                    type="file"
-                    id="uploadExcel"
-                    accept=".xlsx, .xls"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
+              <div className="cargaArchivos">
+                <div className="relative flex items-center pb-2.5">
+                  <span className="text-gray-900">Carga de Archivo ‎ ‎ </span>
+                  <div className="flex-grow border-t border-stone-400"></div>
                 </div>
-              </div>
 
-              <div>
-                <DatePicker
-                  className="max-w-[284px]"
-                  labelPlacement="outside"
-                  style={{ background: 'red' }}
-                  onChange={(date) => {
-                    if (date) {
-                      const { year, month, day } = date;
-                      const selectedDate = new Date(year, month - 1, day);
-                      setSelectedDate(selectedDate);
-                    } else {
-                      setSelectedDate(null);
-                    }
-                  }}
-                />
-              </div>
-
-              <div className="selectTipoA">
-                <Select
-                  className="max-w-xl"
-                  items={tiposArchivos.map((tipo) => ({
-                    key: tipo,
-                    label: tipo,
-                  }))}
-                  labelPlacement="outside"
-                  placeholder="Selecciona el tipo de Archivo"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setSelectedEmpresa(value);
-                  }}
-                >
-                  {(tipoArchivo) => (
-                    <SelectItem
-                      key={tipoArchivo.key}
-                      textValue={tipoArchivo.label}
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-small font-medium">
-                          {tipoArchivo.label}
-                        </span>
+                <div className="cabeceraArchivos">
+                  <div>
+                    <div className="p-0.4 mx-auto flex w-max min-w-[300px] items-center overflow-hidden rounded-md bg-[#ffffff] font-[sans-serif] text-[#333]">
+                      <div className="flex px-4">
+                        <FaFileExcel size={20} color="#307750" />
+                        <p className="ml-3 text-sm">
+                          {fileName || 'Ningún archivo seleccionado'}
+                        </p>
                       </div>
-                    </SelectItem>
-                  )}
-                </Select>
-              </div>
+                      <label
+                        htmlFor="uploadExcel"
+                        className="ml-auto block w-max cursor-pointer rounded-md bg-[#d62828] px-3 py-2.5 text-sm text-white outline-none hover:bg-gray-700"
+                      >
+                        Subir
+                      </label>
+                      <input
+                        type="file"
+                        id="uploadExcel"
+                        accept=".xlsx, .xls"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  className="container-btn-file"
-                  onClick={handleReadExcel}
-                >
-                  <svg
-                    fill="#fff"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 50 50"
-                  >
-                    <path
-                      d="M28.8125 .03125L.8125 5.34375C.339844 
+                  <div>
+                    <DatePicker
+                      className="max-w-[284px]"
+                      labelPlacement="outside"
+                      style={{ background: 'red' }}
+                      onChange={(date) => {
+                        if (date) {
+                          const { year, month, day } = date;
+                          const selectedDate = new Date(year, month - 1, day);
+                          setSelectedDate(selectedDate);
+                        } else {
+                          setSelectedDate(null);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="selectTipoA">
+                    <select
+                      className="block w-full max-w-xl rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      value={selectedEmpresa}
+                      onChange={(event) =>
+                        setSelectedEmpresa(event.target.value)
+                      }
+                    >
+                      <option value="" disabled>
+                        Selecciona el tipo de Archivo
+                      </option>
+
+                      {tiposArchivos.map((tipo, index) => (
+                        <option key={index} value={tipo}>
+                          {tipo}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      className="container-btn-file"
+                      onClick={handleReadExcel}
+                    >
+                      <svg
+                        fill="#fff"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 50 50"
+                      >
+                        <path
+                          d="M28.8125 .03125L.8125 5.34375C.339844 
                       5.433594 0 5.863281 0 6.34375L0 43.65625C0 
                       44.136719 .339844 44.566406 .8125 44.65625L28.8125 
                       49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
@@ -330,122 +371,173 @@ export default function Page() {
                       27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
                       14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
                       20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"
-                    ></path>
-                  </svg>
-                  Cargar Archivo
-                </button>
-                <Button color="danger">
-                  <MdDelete size={20} />
-                  Eliminar Carga
-                </Button>
+                        ></path>
+                      </svg>
+                      Cargar Archivo
+                    </button>
+                    <Button color="danger">
+                      <MdDelete size={20} />
+                      Eliminar Carga
+                    </Button>
+                  </div>
+                </div>
               </div>
 
-              <div className="selectTipoA">
-                <select
-                  id="countries"
-                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                  value={empresaSeleccionada}
-                  onChange={handleEmpresaChange}
-                >
-                  <option value="" selected disabled>
-                    Seleccione Empresa
-                  </option>
+              <div className="cargaArchivos">
+                <div className="relative flex items-center pb-2.5">
+                  <span className="text-gray-900">Obtener Datos ‎ ‎ </span>
+                  <div className="flex-grow border-t border-stone-400"></div>
+                </div>
 
-                  {empresa.map((nombre, index) => (
-                    <option key={index} value={nombre}>
-                      {nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="cabeceraArchivos">
+                  <div className="selectTipoA">
+                    <select
+                      id="countries"
+                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      value={empresaSeleccionada}
+                      onChange={handleEmpresaChange}
+                    >
+                      <option value="" selected disabled>
+                        Seleccione Empresa
+                      </option>
 
-              <div className="buttonsTep">
-                <Button
-                  color="primary"
-                  onClick={() => {
-                    setEmpresaConfirmada(empresaSeleccionada);
-                    onOpen();
-                  }}
-                >
-                  Obtener
-                  <IoSendSharp />
+                      {empresa.map((nombre, index) => (
+                        <option key={index} value={nombre}>
+                          {nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                </Button>
-                <Button color="success" >
-                  Guardar
-                  <IoSave color='#212529'/>
-
-                </Button>
-                <ModalObtenerServicios
-                  isOpen={isOpen}
-                  onOpenChange={onOpenChange}
-                  onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
-                />
-                <Button color="primary">Publicar</Button>
+                  <div className="buttonsTep">
+                    <Button
+                      color="primary"
+                      onClick={() => {
+                        setEmpresaConfirmada(empresaSeleccionada);
+                        onOpen();
+                      }}
+                    >
+                      Obtener
+                      <IoSendSharp />
+                    </Button>
+                    <Button color="success" onClick={guardar}>
+                      Guardar
+                      <IoSave color="#212529" />
+                    </Button>
+                    <ModalObtenerServicios
+                      isOpen={isOpen}
+                      onOpenChange={onOpenChange}
+                      onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
+                    />
+                    <Button color="primary">Publicar</Button>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="fristFileT">
-              <div className="selectTipoA">
-                <select
-                  id="countries"
-                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                >
-                  <option selected>Empresa</option>
-                  <option value="US">AVIANCA</option>
-                  <option value="CA">LCP</option>
-                  <option value="FR">DELTA</option>
-                  <option value="DE">Quality Products</option>
-                </select>
+              <div className="cargaArchivos">
+                <div className="filtrosPlanificacion">
+                  <div className="relative flex items-center pb-2">
+                    <span className="text-gray-900">Filtrar Datos ‎ ‎ </span>
+                    <div className="flex-grow border-t border-stone-400"></div>
+                  </div>
+
+                  <div className="cabeceraArchivos">
+                  <div className="selectTipoA">
+                      <select onChange={handleFiltrar}  id="countries" className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400">
+                        <option value="all">Todos</option>
+                        {cabeceras.map((cabecera, index) => (
+                          <option
+                            key={index}
+                            value={`${cabecera.empresa} | ${cabecera.fecha}`}
+                          >
+                            {cabecera.empresa} - {cabecera.fecha}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <App onDateSelect={handleStartDateSelect} />
+                    </div>
+
+                    <div className="selectTipoA">
+                      <select
+                        id="countries"
+                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      >
+                        <option selected>Choose a country</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="FR">France</option>
+
+                        <option value="DE">Germany</option>
+                      </select>
+                    </div>
+
+                    <div className="selectTipoA">
+                      <select
+                        id="countries"
+                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      >
+                        <option selected>Choose a country</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="FR">France</option>
+                        <option value="DE">Germany</option>
+                      </select>
+                    </div>
+
+                    <div className="max-w-lg">
+                      <input
+                        type="text"
+                        id="input-label"
+                        className="rounded-lg border-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:bg-[#fff] dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
+                        placeholder="Name"
+                        style={{ borderRadius: '0.5rem', width: '230px' }}
+                      />
+                    </div>
+
+                    <Button color="success">Final</Button>
+                  </div>
+                </div>
               </div>
 
-              <div className="servicesP">
-                <div>Total Servicios : 0</div>
-                <div>Total Pasajeros : 0</div>
+              <div className="cargaArchivos">
+                <div className="InfoReportes">
+                  <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-[#fff] px-[10px] sm:h-14">
+                      <div className="flex gap-2">
+                        <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
+                          <MdHomeRepairService size={20} />
+                        </div>
+                        <div>
+                          <p className="text-black">Total Servicios</p>
+                          <p className="text-gray-800">
+                            {datosServicios.totalGrupos}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-[#fff] px-[10px] sm:h-14">
+                      <div className="flex gap-2">
+                        <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
+                          <FaUsers size={20} />
+                        </div>
+                        <div>
+                          <p className="text-black">Total Pasajeros</p>
+                          <p className="text-gray-800">
+                            {datosServicios.totalPasajeros}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>{' '}
               </div>
-
-              <div>
-                <App onDateSelect={handleStartDateSelect} />
-              </div>
-
-              <div className="selectTipoA">
-                <select
-                  id="countries"
-                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                >
-                  <option selected>Choose a country</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="FR">France</option>
-
-                  <option value="DE">Germany</option>
-                </select>
-              </div>
-
-              <div className="selectTipoA">
-                <select
-                  id="countries"
-                  className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                >
-                  <option selected>Choose a country</option>
-                  <option value="US">United States</option>
-                  <option value="CA">Canada</option>
-                  <option value="FR">France</option>
-                  <option value="DE">Germany</option>
-                </select>
-              </div>
-
-              <div className="max-w-lg">
-                <input
-                  type="text"
-                  id="input-label"
-                  className="rounded-lg border-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:bg-[#fff] dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
-                  placeholder="Name"
-                  style={{ borderRadius: '0.5rem', width: '230px' }}
-                />
-              </div>
-
-              <Button color="success">Final</Button>
             </div>
           </div>
         )}
@@ -490,8 +582,14 @@ export default function Page() {
             key={`${empresaConfirmada}-${dato}`}
             empresa={empresaConfirmada}
             dato={dato}
+            onGuardar={setGuardar}
+            onActualizarDatos={actualizarDatosServicios}
+            onActualizarCabeceras={actualizarCabeceras}
+            filtro={filtro} // Pasamos el filtro
           />
         )}
+
+        <p>el dato {dato}</p>
       </div>
     </div>
   );

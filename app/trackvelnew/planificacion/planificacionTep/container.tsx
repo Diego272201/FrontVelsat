@@ -27,6 +27,8 @@ interface Grupo {
   empresa: string;
   destinoGrupo: string;
   fecha: string;
+  horaprog:string;
+  
 }
 
 interface ContainerProps {
@@ -38,32 +40,45 @@ interface ContainerProps {
 export default function Container({ id, items, grupo }: ContainerProps) {
 
 const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
+const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
   };
 
+  const handleEndDateSelect = (date: string) => {
+    setEndDate(date);
+  };
+
   useEffect(() => {
-    if (grupo?.fecha) {  // ✅ Verifica que grupo existe antes de acceder a fecha
+    if (grupo?.fecha) {  
       setStartDate(grupo.fecha);
     }
-  }, [grupo]); // ✅ Usa grupo completo como dependencia
+  }, [grupo]); 
   
+  useEffect(() => {
+    if (grupo?.horaprog) {  
+      setEndDate(grupo.horaprog);
+    }
+  }, [grupo]); 
   
 
   const { setNodeRef } = useDroppable({
     id,
   });
 
-  const formatDateToISO = (fecha: string) => {
+  const formatDateToISO = (fecha?: string) => {
+    if (!fecha) return ''; 
+  
     const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/;
     const match = fecha.match(regex);
-
+  
     if (!match) return '';
-
+  
     const [, day, month, year, hours, minutes] = match;
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
+  
 
   return (
     <SortableContext
@@ -120,9 +135,11 @@ const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
                 >
                   Fin :
                   <App
-                    onDateSelect={handleStartDateSelect}
+                    onDateSelect={handleEndDateSelect}
                     height="30px"
                     borderRadius="0"
+                    initialDateTime={formatDateToISO(grupo.horaprog)}
+
                   />
                 </div>
               </th>

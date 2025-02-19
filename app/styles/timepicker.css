@@ -1,3 +1,8 @@
+.dateFt{
+    width: 210px;
+    display: flex;
+}
+
 #dateInput{
     background-color: #ffffff;
     padding: 5px;

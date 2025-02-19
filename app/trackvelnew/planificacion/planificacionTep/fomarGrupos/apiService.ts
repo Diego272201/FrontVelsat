@@ -19,98 +19,124 @@ interface Servicio {
 }
 
 interface DataItem {
-  codcliente: string;
+  id: number;
+  codigo: string;
   nombre: string;
-  tipo: string;
   fecha: string;
-  fecreg: string;
+  horaprog: string;
   empresa: string;
-  destino: string;
+  tipo: string;
   lugar: Lugar;
   servicio: Servicio;
-  eliminado: string;
+  destino: string;
+  nomdestino: string;
+  orden: string;
+  numero: string;
 }
 
 interface Grupo {
   id: number;
   fecha: string;
+  horaprog: string;
   tipo: string;
   empresa: string;
   destinoGrupo: string;
   personas: any[];
   destino: { coddestino: string; nomdestino: string };
-  fecfin: string | null;
-  fecaten: string | null;
 }
 
-export const obtenerDatosYAgrupar = async (empresa: string, dato:string): Promise<Grupo[]> => {
+export const obtenerDatosYAgrupar = async (
+  empresa: string,
+  dato: string
+): Promise<Grupo[]> => {
   try {
-    const url = `http://66.240.210.125:8586/api/preplan/get?dato=${encodeURIComponent(dato)}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`;
-
-    
+    const url = `http://66.240.210.125:8586/api/preplan/get?dato=${encodeURIComponent(
+      dato
+    )}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`;
     const response = await axios.get(url);
-
-
-    const datos = response.data;
-
+    const datos: DataItem[] = response.data;
+    
     let grupos: Grupo[] = [];
     let gn = 1;
 
-    while (datos.length >= 1) {
-      const item = datos[0];
-      const fecha = item.fecha;
-      const tipo = item.tipo;
-      const numgrupo = item.destino;
-      const empresa = item.empresa;
-      const destinoGrupo = item.nomdestino;
-      const grupo: Grupo = {
-        id: gn,
-        fecha: fecha,
-        tipo: tipo,
-        empresa: empresa,
-        destinoGrupo: destinoGrupo,
-        personas: [],
-        destino: {
-          coddestino: item.destino,
-          nomdestino: item.nomdestino,
-        },
-        fecfin: null,
-        fecaten: null,
-      };
-
-      let it = 0;
-
-      while (it < datos.length) {
-        const currentItem = datos[it];
-
-        if (
-          currentItem.fecha === fecha &&
-          currentItem.tipo === tipo &&
-          currentItem.destino === numgrupo
-        ) {
-          const persona = {
-            idCliente: currentItem.id,
-            codCliente: currentItem.codcliente,
-            nombre: currentItem.nombre,
-            direccion: currentItem.lugar.direccion,
-            distrito: currentItem.lugar.distrito,
-            fechaItem:currentItem.horaprog,
-            area:currentItem.area,
-
-          };
-
-          grupo.personas.push(persona);
-
-          datos.splice(it, 1);
-        } else {
-          it++;
+    if (dato === '1') {
+      const gruposMap = new Map<string, Grupo>();
+      
+      datos.forEach((item) => {
+        const numGrupo = item.numero;
+        if (!gruposMap.has(numGrupo)) {
+          gruposMap.set(numGrupo, {
+            id: gn++,
+            fecha: item.fecha,
+            horaprog: item.horaprog,
+            tipo: item.tipo,
+            empresa: item.empresa,
+            destinoGrupo: item.nomdestino,
+            personas: [],
+            destino: {
+              coddestino: item.destino,
+              nomdestino: item.nomdestino,
+            },
+          });
         }
+        gruposMap.get(numGrupo)?.personas.push({
+          idCliente: item.id,
+          codCliente: item.codigo,
+          nombre: item.nombre,
+          direccion: item.lugar.direccion,
+          distrito: item.lugar.distrito,
+          fechaItem: item.horaprog,
+          area: item.empresa,
+          orden: parseInt(item.orden, 10),
+        });
+      });
+      
+      grupos = Array.from(gruposMap.values()).map((grupo) => ({
+        ...grupo,
+        personas: grupo.personas.sort((a, b) => a.orden - b.orden),
+      }));
+    } else {
+      while (datos.length >= 1) {
+        const item = datos[0];
+        const grupo: Grupo = {
+          id: gn,
+          fecha: item.fecha,
+          horaprog: item.horaprog,
+          tipo: item.tipo,
+          empresa: item.empresa,
+          destinoGrupo: item.nomdestino,
+          personas: [],
+          destino: {
+            coddestino: item.destino,
+            nomdestino: item.nomdestino,
+          },
+        };
+        let it = 0;
+        while (it < datos.length) {
+          const currentItem = datos[it];
+          if (
+            currentItem.fecha === item.fecha &&
+            currentItem.tipo === item.tipo &&
+            currentItem.destino === item.destino
+          ) {
+            grupo.personas.push({
+              idCliente: currentItem.id,
+              codCliente: currentItem.codigo,
+              nombre: currentItem.nombre,
+              direccion: currentItem.lugar.direccion,
+              distrito: currentItem.lugar.distrito,
+              fechaItem: currentItem.horaprog,
+              area: currentItem.empresa,
+            });
+            datos.splice(it, 1);
+          } else {
+            it++;
+          }
+        }
+        grupos.push(grupo);
+        gn++;
       }
-
-      grupos.push(grupo);
-      gn++;
     }
-
     return grupos;
   } catch (error) {
     console.error('Error al obtener los datos:', error);

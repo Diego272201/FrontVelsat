@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -14,10 +14,11 @@ import Container from './container';
 import { Item } from './sortable_item';
 import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
 import GrupoEliminados from './GrupoEliminados';
-import { Button } from '@nextui-org/react';
+import { Button, Spinner } from '@nextui-org/react';
 import { MdDelete } from 'react-icons/md';
 import { MdOutlineAdd } from 'react-icons/md';
 import { TbGps } from 'react-icons/tb';
+import axios from 'axios';
 
 const wrapperStyle: React.CSSProperties = {
   display: 'flex',
@@ -27,24 +28,139 @@ const wrapperStyle: React.CSSProperties = {
 interface ServiciosProps {
   empresa: string;
   dato: string;
+  onGuardar?: (fn: () => void) => void; 
+  onActualizarDatos?: (datos: { totalGrupos: number; totalPasajeros: number }) => void;
+  onActualizarCabeceras?: (cabeceras: { empresa: string; fecha: string }[]) => void; 
+  filtro?: { empresa: string; fecha: string } | null;
 }
 
-export default function App({ empresa, dato }: ServiciosProps) {
+export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro   }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const groupedData = await obtenerDatosYAgrupar(empresa, dato);
       setGrupos(groupedData);
+      setLoading(false);
+
+      if (onActualizarDatos) {
+        onActualizarDatos({
+          totalGrupos: groupedData.length,
+          totalPasajeros: groupedData.reduce((acc, grupo) => acc + (grupo.personas?.length || 0), 0),
+        });
+      }
+
+      if (onActualizarCabeceras) {
+        const cabeceras = groupedData.map((grupo) => ({
+          empresa: grupo.empresa,
+          fecha: grupo.fecha,
+        }));
+        onActualizarCabeceras(cabeceras);
+      }
+
+
     };
 
     fetchData();
   }, [empresa]);
 
+  useEffect(() => {
+    console.log(grupos);
+  });
 
-  useEffect(()=>{
-    console.log(grupos)
-  })
+  
+  const parseFechaHora = (fechaStr: string) => {
+    if (!fechaStr) return ""; // Manejo de errores
+    // Convierte la fecha a formato "YYYY-MM-DD HH:mm"
+    const [dia, mes, año] = fechaStr.split(" ")[0].split("/");
+    const hora = fechaStr.split(" ")[1];
+    return `${año}-${mes}-${dia} ${hora}`; // Formato "YYYY-MM-DD HH:mm"
+  };
+  
+  const parseFechaHoraFiltro = (filtroFecha: string) => {
+    if (!filtroFecha) return ""; // Manejo de errores
+    // Convierte el filtro de fecha y hora de "DD/MM/YYYY HH:mm" a "YYYY-MM-DD HH:mm"
+    const [dia, mes, año] = filtroFecha.split(" ")[0].split("/");
+    const hora = filtroFecha.split(" ")[1];
+    return `${año}-${mes}-${dia} ${hora}`; // Formato "YYYY-MM-DD HH:mm"
+  };
+  
+  const gruposFiltrados = useMemo(() => {
+    if (!filtro?.fecha) return grupos; // Si no hay filtro, devuelve todos
+  
+    const filtroFechaHora = parseFechaHoraFiltro(filtro.fecha); // Convierte el filtro a "YYYY-MM-DD HH:mm"
+  
+    return grupos.filter((grupo) => {
+      const fechaHoraGrupo = parseFechaHora(grupo.fecha); // "YYYY-MM-DD HH:mm"
+      return fechaHoraGrupo === filtroFechaHora;
+    });
+  }, [grupos, filtro]);
+  
+  useEffect(() => {
+    console.log("Fecha y hora filtro:", filtro?.fecha);
+    console.log("Grupos filtrados:", gruposFiltrados);
+  }, [gruposFiltrados]);
+  
+  
+  
+  
+
+  const handleGuardar = async (data: any[]) => {
+    const dataToSend = data.flatMap((grupo, grupoIndex) => {
+      if (!grupo.personas || grupo.personas.length === 0) return [];
+  
+      return grupo.personas.map((persona: any, personaIndex: any) => {
+        const destinoCodigo = grupo.destino?.coddestino ? String(grupo.destino.coddestino) : "4175"; // 🔹 Asegurar que siempre sea string
+        const horaprog = grupo.horaprog ? String(grupo.horaprog) : "13/02/2025 20:00"; // 🔹 Valor por defecto correcto
+        const codunidad = grupo.codunidad && grupo.codunidad !== "" ? String(grupo.codunidad) : "1"; // 🔹 Evitar valores vacíos
+  
+        return {
+          codigo: Number(persona.codCliente) || 0, // 🔹 Convertir a número seguro
+          horaprog, // 🔹 Asegurar formato de fecha
+          orden: String(personaIndex), // 🔹 Convertir a string
+          numero: String(grupoIndex), // 🔹 Convertir a string
+          eliminado: "0",
+          codconductor: 0,
+          codunidad, // 🔹 Convertido a string válido
+          codtarifa: "25",
+          destinocodigo: destinoCodigo, // 🔹 Convertido a string válido
+        };
+      });
+    });
+  
+    console.log("Datos a enviar:", JSON.stringify(dataToSend, null, 2));
+  
+    if (dataToSend.length === 0) {
+      console.warn("No hay datos válidos para enviar a la API.");
+      return;
+    }
+  
+    try {
+      const response = await axios.put(
+        "http://66.240.210.125:8586/api/Preplan/save?usuario=movilbus",
+        dataToSend,
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      console.log("Respuesta de la API:", response.data);
+    } catch (error) {
+      console.error("Error al guardar los datos:", error || error);
+    }
+  };
+  
+  
+  useEffect(() => {
+    if (onGuardar) {
+      onGuardar(() => () => handleGuardar(grupos));
+    }
+  }, [grupos]); 
+  
+
+
+
+
 
 
   const [items, setItems] = useState<
@@ -65,70 +181,62 @@ export default function App({ empresa, dato }: ServiciosProps) {
   >({});
 
   useEffect(() => {
-    if (grupos.length > 0) {
-      const nuevoItems = grupos.reduce(
-        (acc, grupo, index) => {
-          acc[`container${index}`] = grupo.personas.map(
-            (persona: any, idx: number) => {
-              const item = {
-                id: String(persona.idCliente),
-                orderItem: idx + 1,
-                nombre: persona.nombre,
-                distrito: persona.distrito,
-                direccion: persona.direccion,
-                fechaItem: persona.fechaItem,
-                area: persona.area,
-
-                numGrupo: grupo.id,
-                tipo: grupo.tipo,
-                destino: grupo.destinoGrupo,
-                empresa: grupo.empresa,
-                fecha: grupo.fecha,
-              };
-
-              return {
-                ...item,
-                acciones: (
-                  <div className="accionesItems">
-
-              <Button color="success" size="sm" onClick={() => handleMoverAGrupoNuevo(Number(item.id))}>
-                  Nuevo
-                  <MdOutlineAdd />
-                </Button>
-
-
-
-                    <Button
-                      color="danger"
-                      size="sm"
-                      onClick={() => handleEliminarDelArray(Number(item.id))}
-                    >
-                      Eliminar
-                      <MdDelete />
-                    </Button>
-
-                    <Button color="warning" size="sm">
-                      Dirección
-                      <TbGps />
-                    </Button>
-                  </div>
-                ),
-              };
-            },
-          );
-          return acc;
-        },
-        {} as Record<string, any[]>,
-      );
-
-      setItems(nuevoItems);
+    if (gruposFiltrados.length > 0) { // Asegúrate de que estás usando el estado de gruposFiltrados
+      const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
+        if (grupo.personas && grupo.personas.length > 0) {
+          acc[`container${index}`] = grupo.personas.map((persona, idx) => {
+            console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
+            return {
+              id: String(persona.idCliente),
+              orderItem: idx + 1,
+              nombre: persona.nombre,
+              distrito: persona.distrito,
+              direccion: persona.direccion,
+              fechaItem: grupo.fecha,
+              area: persona.area,
+              numGrupo: grupo.id,
+              tipo: grupo.tipo,
+              destino: grupo.destinoGrupo,
+              empresa: grupo.empresa,
+              fecha: grupo.fecha,
+              horaprog: grupo.horaprog,
+              acciones: (
+                <div className="accionesItems">
+                  <Button
+                    color="success"
+                    size="sm"
+                    onClick={() => handleMoverAGrupoNuevo(Number(persona.idCliente))}
+                  >
+                    Nuevo
+                    <MdOutlineAdd />
+                  </Button>
+  
+                  <Button
+                    color="danger"
+                    size="sm"
+                    onClick={() => handleEliminarDelArray(Number(persona.idCliente))}
+                  >
+                    Eliminar
+                    <MdDelete />
+                  </Button>
+  
+                  <Button color="warning" size="sm">
+                    Dirección
+                    <TbGps />
+                  </Button>
+                </div>
+              ),
+            };
+          });
+        }
+        return acc;
+      }, {});
+      setItems(nuevoItems); // Actualizar el estado con los nuevos items
     }
-  }, [grupos]);
+  }, [grupos, gruposFiltrados]); // Asegúrate de agregar gruposFiltrados a las dependencias
+  
 
   const [eliminados, setEliminados] = useState<any[]>([]);
-
-
-
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -212,7 +320,6 @@ export default function App({ empresa, dato }: ServiciosProps) {
       setActiveId(null);
       return;
     }
-    
 
     const overContainer = findContainer(overId);
 
@@ -255,182 +362,195 @@ export default function App({ empresa, dato }: ServiciosProps) {
     setActiveId(null);
   }
 
-  
-
-
-
   const handleMoverAGrupoNuevo = (idCliente: number) => {
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
   
-      let grupoOrigenIndex = nuevosGrupos.findIndex(grupo =>
-        grupo.personas.some(persona => persona.idCliente === idCliente)
+      // Encontrar el índice del grupo origen
+      let grupoOrigenIndex = nuevosGrupos.findIndex((grupo) =>
+        grupo.personas.some((persona: any) => persona.idCliente === idCliente)
       );
   
       if (grupoOrigenIndex !== -1) {
         let clienteMovido = nuevosGrupos[grupoOrigenIndex].personas.find(
-          persona => persona.idCliente === idCliente
+          (persona: any) => persona.idCliente === idCliente
         );
   
         if (clienteMovido) {
-
           const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
-
-          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[grupoOrigenIndex].personas.filter(
-            persona => persona.idCliente !== idCliente
-          );
   
-      
+          // Eliminar el cliente del grupo de origen
+          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
+            grupoOrigenIndex
+          ].personas.filter((persona: any) => persona.idCliente !== idCliente);
+  
+          // Crear un nuevo grupo en la siguiente posición
           const nuevoGrupo = {
-            id: nuevosGrupos.length + 1, 
-            destinoGrupo: grupoOrigen.destinoGrupo, 
-          empresa: grupoOrigen.empresa, 
-          fecha: grupoOrigen.fecha, 
-          tipo: grupoOrigen.tipo, 
-            personas: [clienteMovido], 
+            id: grupoOrigen.id + 1, // ID consecutivo
+            destinoGrupo: grupoOrigen.destinoGrupo,
+            empresa: grupoOrigen.empresa,
+            fecha: grupoOrigen.fecha,
+            tipo: grupoOrigen.tipo,
+            horaprog: grupoOrigen.horaprog,
+            personas: [clienteMovido],
           };
   
-          nuevosGrupos.push(nuevoGrupo);
+          // Insertar el nuevo grupo después del grupo de origen
+          nuevosGrupos.splice(grupoOrigenIndex + 1, 0, nuevoGrupo);
+  
+          // Desplazar los IDs de los grupos siguientes
+          for (let i = grupoOrigenIndex + 2; i < nuevosGrupos.length; i++) {
+            nuevosGrupos[i].id += 1;
+          }
         }
       }
   
-      console.log("Nuevo estado de grupos:", nuevosGrupos);
+      console.log('Nuevo estado de grupos:', nuevosGrupos);
       return nuevosGrupos;
     });
   };
   
+
   const handleEliminarDelArray = (idCliente: number) => {
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
-  
-      let grupoOrigenIndex = nuevosGrupos.findIndex(grupo =>
-        grupo.personas.some(persona => persona.idCliente === idCliente)
+
+      let grupoOrigenIndex = nuevosGrupos.findIndex((grupo) =>
+        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
       );
-  
+
       if (grupoOrigenIndex !== -1) {
         let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
-          persona => persona.idCliente === idCliente
+          (persona: any) => persona.idCliente === idCliente,
         );
-  
+
         if (clienteEliminado) {
           // Agregar el número del grupo antes de eliminarlo
-          clienteEliminado = { ...clienteEliminado, numGrupo: nuevosGrupos[grupoOrigenIndex].id };
-  
+          clienteEliminado = {
+            ...clienteEliminado,
+            numGrupo: nuevosGrupos[grupoOrigenIndex].id,
+          };
+
           // Remover del grupo
-          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[grupoOrigenIndex].personas.filter(
-            persona => persona.idCliente !== idCliente
-          );
-  
+          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
+            grupoOrigenIndex
+          ].personas.filter((persona: any) => persona.idCliente !== idCliente);
+
           // Guardar en eliminados con su numGrupo
           setEliminados((prevEliminados) => {
             const nuevosEliminados = [...prevEliminados, clienteEliminado];
-  
+
             console.log(
-              `Cliente eliminado:`, clienteEliminado,
-              `\nViene del grupo:`, clienteEliminado.numGrupo,
-              `\nNuevo estado de eliminados:`, nuevosEliminados
+              `Cliente eliminado:`,
+              clienteEliminado,
+              `\nViene del grupo:`,
+              clienteEliminado.numGrupo,
+              `\nNuevo estado de eliminados:`,
+              nuevosEliminados,
             );
-  
+
             return nuevosEliminados;
           });
         }
       }
-  
+
       return nuevosGrupos;
     });
   };
-  
-  
+
   const handleRestore = (item: any) => {
     setEliminados((prevEliminados) =>
-      prevEliminados.filter((eliminado) => eliminado.idCliente !== item.idCliente)
+      prevEliminados.filter(
+        (eliminado) => eliminado.idCliente !== item.idCliente,
+      ),
     );
-  
+
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
-  
-      // Buscar el grupo original por `numGrupo`
+
       let grupoOriginalIndex = nuevosGrupos.findIndex(
-        (grupo) => Number(grupo.id) === Number(item.numGrupo)
+        (grupo) => Number(grupo.id) === Number(item.numGrupo),
       );
-  
+
       if (grupoOriginalIndex !== -1) {
-        // Verificar si el cliente ya está en la lista antes de agregarlo
         let existeEnGrupo = nuevosGrupos[grupoOriginalIndex].personas.some(
-          (persona) => persona.idCliente === item.idCliente
+          (persona: any) => persona.idCliente === item.idCliente,
         );
-  
+
         if (!existeEnGrupo) {
           nuevosGrupos[grupoOriginalIndex].personas.push(item);
           console.log(
-            `Item restaurado:`, item,
-            `\nRestaurado al grupo:`, nuevosGrupos[grupoOriginalIndex].id
+            `Item restaurado:`,
+            item,
+            `\nRestaurado al grupo:`,
+            nuevosGrupos[grupoOriginalIndex].id,
           );
         } else {
-          console.warn("El cliente ya está en el grupo, evitando duplicados.");
+          console.warn('El cliente ya está en el grupo, evitando duplicados.');
         }
       } else {
-        console.warn("Grupo original no encontrado. No se restauró correctamente.");
-        console.log("Estado actual de grupos:", nuevosGrupos);
-        console.log("Buscando grupo con ID:", item.numGrupo);
+        console.warn(
+          'Grupo original no encontrado. No se restauró correctamente.',
+        );
+        console.log('Estado actual de grupos:', nuevosGrupos);
+        console.log('Buscando grupo con ID:', item.numGrupo);
       }
-  
+
       return nuevosGrupos;
     });
   };
-  
-  
-
 
   return (
     <div style={wrapperStyle}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={rectIntersection}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        {grupos.length > 0 &&
-          Object.keys(items).map((key, index) =>
-            grupos[index] ? (
-              <Container
-                key={key}
-                id={key}
-                items={items[key] || []}
-                grupo={grupos[index]}
-              />
-            ) : null,
-          )}
-
-        <div>
-          <GrupoEliminados items={eliminados} onRestore={handleRestore} />
+      {loading ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+          }}
+        >
+          <Spinner color="primary" size="lg" />
         </div>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          {gruposFiltrados.length > 0 &&
+            Object.keys(items).map((key, index) =>
+              gruposFiltrados[index] ? (
+                <Container
+                  key={key}
+                  id={key}
+                  items={items[key] || []}
+                  grupo={gruposFiltrados[index]}
+                />
+              ) : null,
+            )}
 
-        <div>
-        <Button
-            color="primary"
-            onClick={() => handleEliminarDelArray(4)}
-          >
-            Eliminar del array
-          </Button>
+          <div>
+            <GrupoEliminados items={eliminados} onRestore={handleRestore} />
+          </div>
 
-
-        </div>
-
-        <DragOverlay>
-          {activeId
-            ? (() => {
-                const container = findContainer(activeId);
-                if (!container) return null;
-                const item = items[container]?.find(
-                  (item) => item.id === activeId,
-                );
-                return item ? <Item {...item} /> : null;
-              })()
-            : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeId
+              ? (() => {
+                  const container = findContainer(activeId);
+                  if (!container) return null;
+                  const item = items[container]?.find(
+                    (item) => item.id === activeId,
+                  );
+                  return item ? <Item {...item} /> : null;
+                })()
+              : null}
+          </DragOverlay>
+        </DndContext>
+      )}
     </div>
   );
 }
