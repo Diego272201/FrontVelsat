@@ -1,24 +1,7 @@
 
 import SessionAuthProvider from '@/context/SessionAuthProvider';
 import './globals.css';
-import { Providers } from './providers';
-import { ApiProvider, useApi } from '@/context/ApiContext';
-import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-// import { poppins} from './ui/fonts';
-
-// const UpdateBaseUrl = () => {
-//   const { data: session } = useSession();
-//   const { setBaseUrl } = useApi();
-
-//   useEffect(() => {
-//     if (session?.user?.serverUrl) {
-//       setBaseUrl(`${session.user.serverUrl}/api`);
-//     }
-//   }, [session, setBaseUrl]);
-
-//   return null;
-// };
+import { ApiProvider } from '@/context/ApiContext';
 
 export default function RootLayout({
   children,
@@ -45,7 +28,6 @@ export default function RootLayout({
           </SessionAuthProvider>
       </body>
 
-      {/* <body className={`${poppins.className} antialiased`}>{children}</body> */}
     </html>
   );
 }

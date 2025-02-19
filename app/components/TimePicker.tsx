@@ -1,19 +1,36 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '@/app/styles/timepicker.css';
 
 interface AppProps {
   onDateSelect: (date: string) => void;
+  backgroundColor?: string;
+  height?: string;
+  borderRadius?: string;
+  initialDateTime?: string;
 }
-
-export default function App(props: AppProps) {
+export default function App({
+  onDateSelect,
+  backgroundColor = '#ffffff',
+  height = '38px',
+  borderRadius = '10px',
+  initialDateTime = '',
+}: AppProps) {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+
+  useEffect(() => {
+    if (initialDateTime) {
+      const [date, time] = initialDateTime.split('T');
+      setSelectedDate(date);
+      setSelectedTime(time?.slice(0, 5) || ''); 
+    }
+  }, [initialDateTime]);
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newDate = event.target.value;
     setSelectedDate(newDate);
     if (!newDate) {
-      props.onDateSelect('');
+      onDateSelect('');
     } else {
       combineDateTime(newDate, selectedTime);
     }
@@ -23,7 +40,7 @@ export default function App(props: AppProps) {
     const newTime = event.target.value;
     setSelectedTime(newTime);
     if (!newTime) {
-      props.onDateSelect('');
+      onDateSelect('');
     } else {
       combineDateTime(selectedDate, newTime);
     }
@@ -32,19 +49,24 @@ export default function App(props: AppProps) {
   const combineDateTime = (date: string, time: string) => {
     if (date && time) {
       const combinedDateTime = `${date}T${time}`;
-      props.onDateSelect(combinedDateTime);
+      onDateSelect(combinedDateTime);
     } else {
-      props.onDateSelect('');
+      onDateSelect('');
     }
   };
 
   return (
-    <div>
+    <div className='dateFt'>
       <input
         id="dateInput"
         type="date"
         value={selectedDate}
         onChange={handleDateChange}
+        style={{
+          backgroundColor,
+          height,
+          borderRadius: `${borderRadius} 0 0 ${borderRadius}`,
+        }}
       />
       <input
         id="timeInput"
@@ -53,6 +75,11 @@ export default function App(props: AppProps) {
         onChange={handleTimeChange}
         min="00:00"
         max="23:59"
+        style={{
+          backgroundColor,
+          height,
+          borderRadius: `0 ${borderRadius} ${borderRadius} 0`,
+        }}
       />
     </div>
   );
