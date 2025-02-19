@@ -32,7 +32,7 @@
   display: flex;
   position: relative;
   flex-direction: row;
-  z-index: 18;
+  z-index: 9999;
 
 }
 
