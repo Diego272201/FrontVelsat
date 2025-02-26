@@ -556,7 +556,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codCliente) || 0,
-          horaprog: grupo.horaprog ? String(grupo.horaprog) : "13/02/2025 20:00",
+          horaprog: String(grupo.horaprog),
           orden: String(persona.idCliente-1),
           numero: String(grupoIndex),
           eliminado: "0", // No está eliminado
@@ -570,7 +570,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
       // Datos de los eliminados
       ...eliminados.map((personaEliminada: any) => ({
         codigo: Number(personaEliminada.codCliente) || 0,
-        6: personaEliminada.fechaItem ? String(personaEliminada.fechaItem) : "13/02/2025 20:00",
+        horaprog: String(personaEliminada.fechaItem),
         orden: String(personaEliminada.ordenOriginal-1),
         numero: String(personaEliminada.numGrupo-1),
         eliminado: "1", 
