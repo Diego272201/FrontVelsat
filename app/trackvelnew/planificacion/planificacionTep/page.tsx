@@ -2,9 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Button,
-  Divider,
-  Select,
-  SelectItem,
   useDisclosure,
 } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
@@ -24,31 +21,7 @@ import { IoSendSharp } from 'react-icons/io5';
 import { MdHomeRepairService } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
 
-export const CalendarIcon = (props: any) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height="1em"
-      role="presentation"
-      viewBox="0 0 24 24"
-      width="1em"
-      {...props}
-    >
-      <path
-        d="M7.75 2.5a.75.75 0 0 0-1.5 0v1.58c-1.44.115-2.384.397-3.078 1.092c-.695.694-.977 1.639-1.093 3.078h19.842c-.116-1.44-.398-2.384-1.093-3.078c-.694-.695-1.639-.977-3.078-1.093V2.5a.75.75 0 0 0-1.5 0v1.513C15.585 4 14.839 4 14 4h-4c-.839 0-1.585 0-2.25.013z"
-        fill="currentColor"
-      />
-      <path
-        clipRule="evenodd"
-        d="M2 12c0-.839 0-1.585.013-2.25h19.974C22 10.415 22 11.161 22 12v2c0 3.771 0 5.657-1.172 6.828C19.657 22 17.771 22 14 22h-4c-3.771 0-5.657 0-6.828-1.172C2 19.657 2 17.771 2 14zm15 2a1 1 0 1 0 0-2a1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-4-5a1 1 0 1 1-2 0a1 1 0 0 1 2 0m0 4a1 1 0 1 1-2 0a1 1 0 0 1 2 0m-6-3a1 1 0 1 0 0-2a1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2a1 1 0 0 0 0 2"
-        fill="currentColor"
-        fillRule="evenodd"
-      />
-    </svg>
-  );
-};
+
 
 export default function Page() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -71,6 +44,9 @@ export default function Page() {
     empresa: string;
     fecha: string;
   } | null>(null);
+
+  const [nombrePasajero, setNombrePasajero] = useState("");
+
 
   const actualizarCabeceras = (
     nuevasCabeceras: { empresa: string; fecha: string }[],
@@ -444,7 +420,7 @@ export default function Page() {
                   </div>
 
                   <div className="cabeceraArchivos">
-                  <div className="selectTipoA">
+                  <div className="inputFiltros">
                       <select onChange={handleFiltrar}  id="countries" className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400">
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -458,48 +434,26 @@ export default function Page() {
                       </select>
                     </div>
 
-                    <div>
-                      <App onDateSelect={handleStartDateSelect} />
-                    </div>
 
-                    <div className="selectTipoA">
-                      <select
-                        id="countries"
-                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                      >
-                        <option selected>Choose a country</option>
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="FR">France</option>
-
-                        <option value="DE">Germany</option>
-                      </select>
-                    </div>
-
-                    <div className="selectTipoA">
-                      <select
-                        id="countries"
-                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
-                      >
-                        <option selected>Choose a country</option>
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="FR">France</option>
-                        <option value="DE">Germany</option>
-                      </select>
-                    </div>
 
                     <div className="max-w-lg">
                       <input
                         type="text"
                         id="input-label"
                         className="rounded-lg border-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:bg-[#fff] dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
-                        placeholder="Name"
-                        style={{ borderRadius: '0.5rem', width: '230px' }}
+                        placeholder="Nombre del pasajero"
+                        style={{ borderRadius: '0.5rem', width: '280px' }}
+                        value={nombrePasajero}
+                        onChange={(e)=> setNombrePasajero(e.target.value)}
                       />
                     </div>
 
                     <Button color="success">Final</Button>
+
+                    <Button color="danger">
+                      Eliminados
+                    </Button>
+
                   </div>
                 </div>
               </div>
@@ -585,7 +539,8 @@ export default function Page() {
             onGuardar={setGuardar}
             onActualizarDatos={actualizarDatosServicios}
             onActualizarCabeceras={actualizarCabeceras}
-            filtro={filtro} // Pasamos el filtro
+            filtro={filtro} 
+            nombrePasajero={nombrePasajero} 
           />
         )}
 

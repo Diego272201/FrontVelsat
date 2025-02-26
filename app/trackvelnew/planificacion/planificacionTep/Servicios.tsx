@@ -32,17 +32,37 @@ interface ServiciosProps {
   onActualizarDatos?: (datos: { totalGrupos: number; totalPasajeros: number }) => void;
   onActualizarCabeceras?: (cabeceras: { empresa: string; fecha: string }[]) => void; 
   filtro?: { empresa: string; fecha: string } | null;
+  nombrePasajero?:string;
 }
 
-export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro   }: ServiciosProps) {
+export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro,nombrePasajero=""   }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       const groupedData = await obtenerDatosYAgrupar(empresa, dato);
-      setGrupos(groupedData);
+
+      const nuevosGrupos = groupedData.map((grupo) => ({
+        ...grupo,
+        personas: grupo.personas.filter((persona: any) => persona.eliminado === "0"),
+      }));
+
+      const nuevosEliminados = groupedData.flatMap((grupo) =>
+        grupo.personas
+          .filter((persona: any) => persona.eliminado === "1")
+          .map((persona: any) => ({
+            ...persona,
+            numGrupo: grupo.id, 
+            ordenOriginal: persona.idCliente,
+          }))
+      );
+
+      setGrupos(nuevosGrupos);
+      setEliminados(nuevosEliminados);      
       setLoading(false);
 
       if (onActualizarDatos) {
@@ -70,33 +90,63 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     console.log(grupos);
   });
 
+
+
+
+  const handleUpdateGrupo = (id: number, nuevaFecha: string) => {
+
+
+    console.log(`Actualizando grupo ID: ${id}, Nueva fecha: ${nuevaFecha}`);
+    setGrupos((prevGrupos) =>
+      prevGrupos.map((grupo) =>
+        grupo.id === id ? { ...grupo, horaprog: nuevaFecha } : grupo
+      )
+    );
+  };
+  
+
   
   const parseFechaHora = (fechaStr: string) => {
-    if (!fechaStr) return ""; // Manejo de errores
-    // Convierte la fecha a formato "YYYY-MM-DD HH:mm"
+    if (!fechaStr) return ""; 
     const [dia, mes, año] = fechaStr.split(" ")[0].split("/");
     const hora = fechaStr.split(" ")[1];
-    return `${año}-${mes}-${dia} ${hora}`; // Formato "YYYY-MM-DD HH:mm"
+    return `${año}-${mes}-${dia} ${hora}`; 
   };
   
   const parseFechaHoraFiltro = (filtroFecha: string) => {
-    if (!filtroFecha) return ""; // Manejo de errores
-    // Convierte el filtro de fecha y hora de "DD/MM/YYYY HH:mm" a "YYYY-MM-DD HH:mm"
+    if (!filtroFecha) return ""; 
+  
     const [dia, mes, año] = filtroFecha.split(" ")[0].split("/");
     const hora = filtroFecha.split(" ")[1];
-    return `${año}-${mes}-${dia} ${hora}`; // Formato "YYYY-MM-DD HH:mm"
+    return `${año}-${mes}-${dia} ${hora}`; 
   };
   
   const gruposFiltrados = useMemo(() => {
-    if (!filtro?.fecha) return grupos; // Si no hay filtro, devuelve todos
+    if (!filtro?.fecha && !nombrePasajero.trim()) return grupos;
   
-    const filtroFechaHora = parseFechaHoraFiltro(filtro.fecha); // Convierte el filtro a "YYYY-MM-DD HH:mm"
+    const filtroFechaHora = filtro?.fecha ? parseFechaHoraFiltro(filtro.fecha) : null;
   
     return grupos.filter((grupo) => {
-      const fechaHoraGrupo = parseFechaHora(grupo.fecha); // "YYYY-MM-DD HH:mm"
-      return fechaHoraGrupo === filtroFechaHora;
+      const fechaHoraGrupo = parseFechaHora(grupo.fecha);
+      const coincideFecha = filtroFechaHora ? fechaHoraGrupo === filtroFechaHora : true;
+  
+      // Normalizamos nombrePasajero eliminando espacios extra y convirtiendo a minúsculas
+      const nombreBuscado = nombrePasajero.trim().toLowerCase();
+  
+      const coincidePasajero = !nombreBuscado
+        ? true
+        : grupo.personas.some((persona: any) =>
+            persona.nombre.trim().toLowerCase().includes(nombreBuscado)
+          );
+  
+      return coincideFecha && coincidePasajero;
     });
-  }, [grupos, filtro]);
+  }, [grupos, filtro, nombrePasajero]);
+  
+
+  useEffect(() => {
+    console.log("Texto ingresado en búsqueda:", nombrePasajero);
+  }, [nombrePasajero]);
   
   useEffect(() => {
     console.log("Fecha y hora filtro:", filtro?.fecha);
@@ -105,62 +155,6 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   
   
   
-  
-
-  const handleGuardar = async (data: any[]) => {
-    const dataToSend = data.flatMap((grupo, grupoIndex) => {
-      if (!grupo.personas || grupo.personas.length === 0) return [];
-  
-      return grupo.personas.map((persona: any, personaIndex: any) => {
-        const destinoCodigo = grupo.destino?.coddestino ? String(grupo.destino.coddestino) : "4175"; // 🔹 Asegurar que siempre sea string
-        const horaprog = grupo.horaprog ? String(grupo.horaprog) : "13/02/2025 20:00"; // 🔹 Valor por defecto correcto
-        const codunidad = grupo.codunidad && grupo.codunidad !== "" ? String(grupo.codunidad) : "1"; // 🔹 Evitar valores vacíos
-  
-        return {
-          codigo: Number(persona.codCliente) || 0, // 🔹 Convertir a número seguro
-          horaprog, // 🔹 Asegurar formato de fecha
-          orden: String(personaIndex), // 🔹 Convertir a string
-          numero: String(grupoIndex), // 🔹 Convertir a string
-          eliminado: "0",
-          codconductor: 0,
-          codunidad, // 🔹 Convertido a string válido
-          codtarifa: "25",
-          destinocodigo: destinoCodigo, // 🔹 Convertido a string válido
-        };
-      });
-    });
-  
-    console.log("Datos a enviar:", JSON.stringify(dataToSend, null, 2));
-  
-    if (dataToSend.length === 0) {
-      console.warn("No hay datos válidos para enviar a la API.");
-      return;
-    }
-  
-    try {
-      const response = await axios.put(
-        "http://66.240.210.125:8586/api/Preplan/save?usuario=movilbus",
-        dataToSend,
-        { headers: { "Content-Type": "application/json" } }
-      );
-  
-      console.log("Respuesta de la API:", response.data);
-    } catch (error) {
-      console.error("Error al guardar los datos:", error || error);
-    }
-  };
-  
-  
-  useEffect(() => {
-    if (onGuardar) {
-      onGuardar(() => () => handleGuardar(grupos));
-    }
-  }, [grupos]); 
-  
-
-
-
-
 
 
   const [items, setItems] = useState<
@@ -181,11 +175,11 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   >({});
 
   useEffect(() => {
-    if (gruposFiltrados.length > 0) { // Asegúrate de que estás usando el estado de gruposFiltrados
+    if (gruposFiltrados.length > 0) { 
       const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
         if (grupo.personas && grupo.personas.length > 0) {
-          acc[`container${index}`] = grupo.personas.map((persona, idx) => {
-            console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
+          acc[`container${index}`] = grupo.personas.map((persona:any, idx:any) => {
+            // console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
             return {
               id: String(persona.idCliente),
               orderItem: idx + 1,
@@ -231,9 +225,9 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         }
         return acc;
       }, {});
-      setItems(nuevoItems); // Actualizar el estado con los nuevos items
+      setItems(nuevoItems); 
     }
-  }, [grupos, gruposFiltrados]); // Asegúrate de agregar gruposFiltrados a las dependencias
+  }, [grupos, gruposFiltrados]); 
   
 
   const [eliminados, setEliminados] = useState<any[]>([]);
@@ -303,64 +297,157 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     });
   }
 
+
+
   function handleDragEnd(event: any) {
     const { active, over } = event;
     if (!over) {
       setActiveId(null);
       return;
     }
-
+  
     const activeId = active.id;
     const overId = over.id;
-
-    const activeContainer = findContainer(activeId);
-
+  
     if (overId === 'grupo-eliminados') {
       handleEliminarDelArray(Number(activeId));
       setActiveId(null);
       return;
     }
 
+  
+
+
+    const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
+
+  
     if (!activeContainer || !overContainer) {
       setActiveId(null);
       return;
     }
+  
+    let activeIndex = items[activeContainer]?.findIndex(
+      (item) => item.id === activeId
+    );
+    let overIndex = items[overContainer]?.findIndex(
+      (item) => item.id === overId
+    );
 
-    // Si se reordena dentro del mismo grupo
-    if (activeContainer === overContainer) {
-      const activeIndex = items[activeContainer].findIndex(
-        (item) => item.id === activeId,
+    const encontrarGrupoPorCliente = (idCliente: number) => {
+      return grupos.findIndex((grupo) =>
+        grupo.personas.some((persona:any) => persona.idCliente === idCliente)
       );
-      const overIndex = items[overContainer].findIndex(
-        (item) => item.id === overId,
-      );
+    };
+    
+    // Ejemplo de uso:
+    const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
+    
+    const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
+    const activeContainerIndex = Number(activeContainer.replace(/\D/g, '')); 
+      console.log(`Moviendo el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`);
 
-      if (activeIndex !== overIndex) {
-        setItems((prevItems) => {
-          const updatedItems = arrayMove(
-            prevItems[overContainer],
-            activeIndex,
-            overIndex,
-          );
 
-          // Reasigna los `orderItem` después de mover
-          const reorderedItems = updatedItems.map((item, index) => ({
-            ...item,
-            orderItem: index + 1,
-          }));
+ if(indiceGrupo === overContainerIndex){
+  intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
+ }else{
+  moverClienteOtroGrupo(Number(activeId), indiceGrupo, overContainerIndex, overIndex ?? 0);
 
-          return {
-            ...prevItems,
-            [overContainer]: reorderedItems,
-          };
-        });
-      }
-    }
+ }
+  
+    
 
     setActiveId(null);
   }
+  
+  const intercambiarClientes = (grupoIndex: number, activeIndex: number, overIndex: number) => {
+    setGrupos((prevGrupos) => {
+      if (grupoIndex < 0 || grupoIndex >= prevGrupos.length) {
+        console.error(`Error: grupoIndex fuera de rango (${grupoIndex})`);
+        return prevGrupos;
+      }
+  
+      let nuevosGrupos = [...prevGrupos];
+      let personasGrupo = [...nuevosGrupos[grupoIndex].personas];
+  
+      if (activeIndex < 0 || activeIndex >= personasGrupo.length || overIndex < 0 || overIndex >= personasGrupo.length) {
+        console.error(`Error: Índices fuera de rango en grupo ${grupoIndex}`, { activeIndex, overIndex });
+        return prevGrupos;
+      }
+  
+      // 🔹 Mover el elemento sin perder datos
+      const [movedItem] = personasGrupo.splice(activeIndex, 1);
+      personasGrupo.splice(overIndex, 0, movedItem);
+  
+      // 🔹 Reasignar idCliente en orden
+      personasGrupo = personasGrupo.map((persona, index) => ({
+        ...persona,
+        idCliente: index + 1, // Ahora el primer elemento tendrá idCliente = 1, el segundo = 2, etc.
+      }));
+  
+      nuevosGrupos[grupoIndex] = {
+        ...nuevosGrupos[grupoIndex],
+        personas: personasGrupo,
+      };
+  
+      console.log('Nuevo estado de grupos:', nuevosGrupos);
+      return nuevosGrupos;
+    });
+  };
+  
+  const moverClienteOtroGrupo = (
+    idCliente: number,
+    origenIndex: number,
+    destinoIndex: number,
+    overIndex: number
+  ) => {
+    setGrupos((prevGrupos) => {
+      let nuevosGrupos = JSON.parse(JSON.stringify(prevGrupos)); // 🔹 Clonamos para evitar mutaciones
+  
+      // 🔹 Encontrar el grupo de origen y el cliente a mover
+      const grupoOrigen = nuevosGrupos[origenIndex];
+      const grupoDestino = nuevosGrupos[destinoIndex];
+  
+      const clienteMovidoIndex = grupoOrigen.personas.findIndex(
+        (persona: any) => persona.idCliente === idCliente
+      );
+  
+      if (clienteMovidoIndex === -1) return prevGrupos; // Si no se encuentra, retornamos el estado actual
+  
+      // 🔹 Remover al cliente del grupo de origen
+      const [clienteMovido] = grupoOrigen.personas.splice(clienteMovidoIndex, 1);
+  
+      // 🔹 Insertar el cliente en el grupo de destino en la posición correcta
+      if (overIndex >= grupoDestino.personas.length) {
+        grupoDestino.personas.push(clienteMovido);
+      } else {
+        grupoDestino.personas.splice(overIndex, 0, clienteMovido);
+      }
+  
+      return nuevosGrupos;
+    });
+  
+    // 🔹 Después de mover el cliente, reasignamos los `idCliente`
+    setTimeout(() => {
+      setGrupos((prevGrupos) => {
+        let idCounter = 1;
+        const nuevosGrupos = prevGrupos.map((grupo) => ({
+          ...grupo,
+          personas: grupo.personas.map((persona:any) => ({
+            ...persona,
+            idCliente: idCounter++, // 🔹 Se asigna en orden sin afectar el movimiento
+          })),
+        }));
+  
+        console.log("Nuevo estado de grupos:", nuevosGrupos); // ✅ Agregado aquí
+  
+        return nuevosGrupos;
+      });
+    }, 0); // 🔹 Se ejecuta después del `setState` para evitar problemas con el estado anterior
+  };
+  
+  
 
   const handleMoverAGrupoNuevo = (idCliente: number) => {
     setGrupos((prevGrupos) => {
@@ -429,6 +516,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
           clienteEliminado = {
             ...clienteEliminado,
             numGrupo: nuevosGrupos[grupoOrigenIndex].id,
+            ordenOriginal: idCliente,
+
           };
 
           // Remover del grupo
@@ -457,6 +546,70 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
       return nuevosGrupos;
     });
   };
+
+    
+  const handleGuardar = async (data: any[], eliminados: any[]) => {
+    const dataToSend = [
+      // Datos de los grupos (no eliminados)
+      ...data.flatMap((grupo, grupoIndex) => {
+        if (!grupo.personas || grupo.personas.length === 0) return [];
+    
+        return grupo.personas.map((persona: any, personaIndex: any) => ({
+          codigo: Number(persona.codCliente) || 0,
+          horaprog: grupo.horaprog ? String(grupo.horaprog) : "13/02/2025 20:00",
+          orden: String(persona.idCliente-1),
+          numero: String(grupoIndex),
+          eliminado: "0", // No está eliminado
+          codconductor: 0,  
+          codunidad: "",
+          codtarifa: "",
+          destinocodigo: "",
+        }));
+      }),
+  
+      // Datos de los eliminados
+      ...eliminados.map((personaEliminada: any) => ({
+        codigo: Number(personaEliminada.codCliente) || 0,
+        6: personaEliminada.fechaItem ? String(personaEliminada.fechaItem) : "13/02/2025 20:00",
+        orden: String(personaEliminada.ordenOriginal-1),
+        numero: String(personaEliminada.numGrupo-1),
+        eliminado: "1", 
+        codconductor: 0,
+        codunidad: "",
+        codtarifa: "",
+        destinocodigo: "",
+      })),
+    ];
+  
+    console.log("Datos a enviar:", JSON.stringify(dataToSend, null, 2));
+  
+    if (dataToSend.length === 0) {
+      console.warn("No hay datos válidos para enviar a la API.");
+      return;
+    }
+  
+    try {
+      const response = await axios.put(
+        "http://66.240.210.125:8586/api/Preplan/save?usuario=movilbus",
+        dataToSend,
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      console.log("Respuesta de la API:", response.data);
+    } catch (error) {
+      console.error("Error al guardar los datos:", error);
+    }
+  };
+  
+  
+  
+  useEffect(() => {
+    if (onGuardar) {
+      onGuardar(() => () => handleGuardar(grupos, eliminados));
+    }
+  }, [grupos, eliminados]); 
+  
+  
 
   const handleRestore = (item: any) => {
     setEliminados((prevEliminados) =>
@@ -529,7 +682,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                   id={key}
                   items={items[key] || []}
                   grupo={gruposFiltrados[index]}
-                />
+                  onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
+                  />
               ) : null,
             )}
 

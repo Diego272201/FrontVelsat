@@ -32,6 +32,8 @@ interface DataItem {
   nomdestino: string;
   orden: string;
   numero: string;
+  eliminado:string;
+
 }
 
 interface Grupo {
@@ -87,6 +89,7 @@ export const obtenerDatosYAgrupar = async (
           distrito: item.lugar.distrito,
           fechaItem: item.horaprog,
           area: item.empresa,
+          eliminado:item.eliminado,
           orden: parseInt(item.orden, 10),
         });
       });
@@ -126,6 +129,8 @@ export const obtenerDatosYAgrupar = async (
               direccion: currentItem.lugar.direccion,
               distrito: currentItem.lugar.distrito,
               fechaItem: currentItem.horaprog,
+              eliminado:item.eliminado,
+
               area: currentItem.empresa,
             });
             datos.splice(it, 1);

@@ -35,9 +35,10 @@ interface ContainerProps {
   id: string;
   items: ItemData[];
   grupo: Grupo;
+  onUpdateGrupo: (id: number, nuevaFecha: string) => void;
 }
 
-export default function Container({ id, items, grupo }: ContainerProps) {
+export default function Container({ id, items, grupo,onUpdateGrupo  }: ContainerProps) {
 
 const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
 const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
@@ -46,9 +47,35 @@ const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
     setStartDate(date);
   };
 
-  const handleEndDateSelect = (date: string) => {
-    setEndDate(date);
+  const formatDateToCustom = (fecha?: string) => {
+    if (!fecha) return '';
+  
+    const isoRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
+    const match = fecha.match(isoRegex);
+  
+    if (!match) return '';
+  
+    const [, year, month, day, hours, minutes] = match;
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
+  
+  const handleEndDateSelect = (date: string) => {
+    console.log("Fecha seleccionada antes de conversión:", date);
+  
+    setEndDate(date);
+  
+    const formattedDate = formatDateToCustom(date);
+  
+    if (!formattedDate) {
+      console.error("Error: Fecha inválida después de conversión.");
+      return;
+    }
+  
+    console.log("Fecha convertida a formato deseado:", formattedDate);
+    onUpdateGrupo(grupo.id, formattedDate);
+  };
+  
+  
 
   useEffect(() => {
     if (grupo?.fecha) {  
