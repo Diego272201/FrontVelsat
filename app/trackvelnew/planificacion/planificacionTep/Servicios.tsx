@@ -33,9 +33,11 @@ interface ServiciosProps {
   onActualizarCabeceras?: (cabeceras: { empresa: string; fecha: string }[]) => void; 
   filtro?: { empresa: string; fecha: string } | null;
   nombrePasajero?:string;
+  onActualizarFechas?: (fechas: { totalFechas: number; fechasLlenas: number }) => void;
+  modoVista: string; 
 }
 
-export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro,nombrePasajero=""   }: ServiciosProps) {
+export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro,nombrePasajero="", onActualizarFechas, modoVista}: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +67,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
       setEliminados(nuevosEliminados);      
       setLoading(false);
 
+
       if (onActualizarDatos) {
         onActualizarDatos({
           totalGrupos: groupedData.length,
@@ -80,6 +83,20 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         onActualizarCabeceras(cabeceras);
       }
 
+      const totalFechas = nuevosGrupos.length * 2;
+      const fechasLlenas = nuevosGrupos.reduce((count, grupo) => {
+        if (grupo.fecha) count++;
+        if (grupo.horaprog) count++;
+        return count;
+      }, 0);
+
+      if (onActualizarFechas) {
+        onActualizarFechas({ totalFechas, fechasLlenas });
+      }
+
+
+      
+
 
     };
 
@@ -91,6 +108,19 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   });
 
 
+  useEffect(() => {
+    if (grupos.length > 0 && onActualizarFechas) {
+      const totalFechas = grupos.length * 2;
+      const fechasLlenas = grupos.reduce((count, grupo) => {
+        if (grupo.fecha) count++;
+        if (grupo.horaprog) count++;
+        return count;
+      }, 0);
+  
+      onActualizarFechas({ totalFechas, fechasLlenas });
+    }
+  }, [grupos]); 
+  
 
 
   const handleUpdateGrupo = (id: number, nuevaFecha: string) => {
@@ -228,6 +258,9 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
       setItems(nuevoItems); 
     }
   }, [grupos, gruposFiltrados]); 
+
+
+
   
 
   const [eliminados, setEliminados] = useState<any[]>([]);
@@ -674,22 +707,31 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          {gruposFiltrados.length > 0 &&
-            Object.keys(items).map((key, index) =>
-              gruposFiltrados[index] ? (
-                <Container
-                  key={key}
-                  id={key}
-                  items={items[key] || []}
-                  grupo={gruposFiltrados[index]}
-                  onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
-                  />
-              ) : null,
-            )}
 
-          <div>
-            <GrupoEliminados items={eliminados} onRestore={handleRestore} />
-          </div>
+
+      {modoVista === "Eliminados" ? (
+            <>
+              {gruposFiltrados.length > 0 &&
+                Object.keys(items).map((key, index) =>
+                  gruposFiltrados[index] ? (
+                    <Container
+                      key={key}
+                      id={key}
+                      items={items[key] || []}
+                      grupo={gruposFiltrados[index]}
+                      onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
+                    />
+                  ) : null,
+                )}
+              <div>
+                <GrupoEliminados items={eliminados} onRestore={handleRestore} />
+              </div>
+            </>
+          ) : (
+            <div>
+              <GrupoEliminados items={eliminados} onRestore={handleRestore} />
+            </div>
+          )}
 
           <DragOverlay>
             {activeId

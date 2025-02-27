@@ -1,9 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import {
-  Button,
-  useDisclosure,
-} from '@nextui-org/react';
+import { Button, useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
@@ -21,8 +18,6 @@ import { IoSendSharp } from 'react-icons/io5';
 import { MdHomeRepairService } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
 
-
-
 export default function Page() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(
@@ -30,6 +25,13 @@ export default function Page() {
   );
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [dato, setDato] = useState<string>('');
+
+  const [modoVista, setModoVista] = useState("Eliminados");
+
+  const alternarEstado = () => {
+    setModoVista(modoVista === "Eliminados" ? "Total" : "Eliminados");
+  };
+  
 
   const [guardar, setGuardar] = useState<() => void>(() => () => {});
   const [datosServicios, setDatosServicios] = useState({
@@ -45,14 +47,30 @@ export default function Page() {
     fecha: string;
   } | null>(null);
 
-  const [nombrePasajero, setNombrePasajero] = useState("");
+  const [nombrePasajero, setNombrePasajero] = useState('');
 
+  const [totalFechas, setTotalFechas] = useState(0);
+  const [fechasLlenas, setFechasLlenas] = useState(0);
 
   const actualizarCabeceras = (
     nuevasCabeceras: { empresa: string; fecha: string }[],
   ) => {
     setCabeceras(nuevasCabeceras);
   };
+
+  const actualizarFechas = ({
+    totalFechas,
+    fechasLlenas,
+  }: {
+    totalFechas: number;
+    fechasLlenas: number;
+  }) => {
+    setTotalFechas(totalFechas);
+    setFechasLlenas(fechasLlenas);
+  };
+
+  const porcentajeLlenado =
+    totalFechas > 0 ? (fechasLlenas / totalFechas) * 100 : 0;
 
   const handleFiltrar = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const seleccion = e.target.value;
@@ -231,7 +249,10 @@ export default function Page() {
         <div className="cabecera">
           <div className="progressAndTitle">
             Modulo de Planificación de Servicios
-            <ProgressBar></ProgressBar>
+            <ProgressBar value={porcentajeLlenado}></ProgressBar>
+            Cantidad de Fechas: {totalFechas}
+            Fechas llenas: {fechasLlenas}
+            Porcentaje: {porcentajeLlenado}
           </div>
 
           <label className="switch">
@@ -420,8 +441,12 @@ export default function Page() {
                   </div>
 
                   <div className="cabeceraArchivos">
-                  <div className="inputFiltros">
-                      <select onChange={handleFiltrar}  id="countries" className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400">
+                    <div className="inputFiltros">
+                      <select
+                        onChange={handleFiltrar}
+                        id="countries"
+                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
                           <option
@@ -434,8 +459,6 @@ export default function Page() {
                       </select>
                     </div>
 
-
-
                     <div className="max-w-lg">
                       <input
                         type="text"
@@ -444,16 +467,15 @@ export default function Page() {
                         placeholder="Nombre del pasajero"
                         style={{ borderRadius: '0.5rem', width: '280px' }}
                         value={nombrePasajero}
-                        onChange={(e)=> setNombrePasajero(e.target.value)}
+                        onChange={(e) => setNombrePasajero(e.target.value)}
                       />
                     </div>
 
-                    <Button color="success">Final</Button>
-
-                    <Button color="danger">
-                      Eliminados
-                    </Button>
-
+                    <Button
+                      color={modoVista  === 'Eliminados' ? 'danger' : 'success'}
+                      onClick={alternarEstado}
+                    >
+ {modoVista}                    </Button>
                   </div>
                 </div>
               </div>
@@ -539,8 +561,10 @@ export default function Page() {
             onGuardar={setGuardar}
             onActualizarDatos={actualizarDatosServicios}
             onActualizarCabeceras={actualizarCabeceras}
-            filtro={filtro} 
-            nombrePasajero={nombrePasajero} 
+            onActualizarFechas={actualizarFechas}
+            filtro={filtro}
+            nombrePasajero={nombrePasajero}
+            modoVista={modoVista}
           />
         )}
 

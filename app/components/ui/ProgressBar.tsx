@@ -1,6 +1,10 @@
 import { Progress } from "@nextui-org/react";
 
-export default function App() {
+interface ProgressBarProp {
+  value: number;
+}
+
+export default function App({value}:ProgressBarProp) {
   return (
     <Progress
       classNames={{
@@ -13,7 +17,7 @@ export default function App() {
       radius="sm"
       showValueLabel={true}
       size="sm"
-      value={100}
+      value={value}
     />
   );
 }
