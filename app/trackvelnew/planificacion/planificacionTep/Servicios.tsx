@@ -9,6 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { MdAddBox } from "react-icons/md";
 
 import Container from './container';
 import { Item } from './sortable_item';
@@ -40,6 +41,36 @@ interface ServiciosProps {
 export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro,nombrePasajero="", onActualizarFechas, modoVista}: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+
+  const [conductores, setConductores] = useState<{ [grupoId: number]: number }>({}); // Ahora guarda números
+
+  const [unidades, setUnidades] = useState<{ [grupoId: number]: string }>({});
+
+  const handleUpdateConductor = (id: number, codigoConductor: number) => {
+    setConductores((prev) => {
+      console.log("Actualizando conductor:", { ...prev, [id]: codigoConductor });
+      return { ...prev, [id]: codigoConductor };
+    });
+  };
+
+  const handleUpdateUnidad = (id: number, codigoUnidad: string) => {
+    setUnidades((prev) => {
+      console.log("Actualizando unidad:", { ...prev, [id]: codigoUnidad });
+      return { ...prev, [id]: codigoUnidad };
+    });
+  };
+  
+  useEffect(() => {
+    console.log("Estado de unidades actualizado:", unidades);
+  }, [unidades]);
+  
+  
+  useEffect(() => {
+    console.log("Estado de conductores actualizado:", conductores);
+  }, [conductores]);
+  
+  
 
 
 
@@ -103,6 +134,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     fetchData();
   }, [empresa]);
 
+
+  
   useEffect(() => {
     console.log(grupos);
   });
@@ -183,10 +216,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     console.log("Grupos filtrados:", gruposFiltrados);
   }, [gruposFiltrados]);
   
-  
-  
-
-
+ 
   const [items, setItems] = useState<
     Record<
       string,
@@ -231,8 +261,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                     size="sm"
                     onClick={() => handleMoverAGrupoNuevo(Number(persona.idCliente))}
                   >
-                    Nuevo
-                    <MdOutlineAdd />
+                    
+                    <MdAddBox  size={16} color='#212529'/>
                   </Button>
   
                   <Button
@@ -240,8 +270,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                     size="sm"
                     onClick={() => handleEliminarDelArray(Number(persona.idCliente))}
                   >
-                    Eliminar
-                    <MdDelete />
+                    
+                    <MdDelete size={16}/>
                   </Button>
   
                   <Button color="warning" size="sm">
@@ -259,9 +289,6 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     }
   }, [grupos, gruposFiltrados]); 
 
-
-
-  
 
   const [eliminados, setEliminados] = useState<any[]>([]);
 
@@ -329,7 +356,6 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
       };
     });
   }
-
 
 
   function handleDragEnd(event: any) {
@@ -481,7 +507,6 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   };
   
   
-
   const handleMoverAGrupoNuevo = (idCliente: number) => {
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
@@ -581,20 +606,22 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   };
 
     
-  const handleGuardar = async (data: any[], eliminados: any[]) => {
+  const handleGuardar = async (data: any[], eliminados: any[],conductoresActualizados: any, unidadesActualizadas: any ) => {
     const dataToSend = [
       // Datos de los grupos (no eliminados)
       ...data.flatMap((grupo, grupoIndex) => {
         if (!grupo.personas || grupo.personas.length === 0) return [];
-    
+
+        const codConductor = conductores[grupo.id] || 0;
+        const codUnidad = unidades[grupo.id] || "";
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codCliente) || 0,
           horaprog: String(grupo.horaprog),
           orden: String(persona.idCliente-1),
           numero: String(grupoIndex),
           eliminado: "0", // No está eliminado
-          codconductor: 0,  
-          codunidad: "",
+          codconductor: codConductor,  
+          codunidad: codUnidad,
           codtarifa: "",
           destinocodigo: "",
         }));
@@ -635,12 +662,11 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   };
   
   
-  
   useEffect(() => {
     if (onGuardar) {
-      onGuardar(() => () => handleGuardar(grupos, eliminados));
+      onGuardar(() => () => handleGuardar(grupos, eliminados, conductores,unidades));
     }
-  }, [grupos, eliminados]); 
+  }, [grupos, eliminados,conductores,unidades]); 
   
   
 
@@ -720,6 +746,8 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
                       onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
+                      onUpdateConductor={handleUpdateConductor}
+                      onUpdateUnidad={handleUpdateUnidad}
                     />
                   ) : null,
                 )}

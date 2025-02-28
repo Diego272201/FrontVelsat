@@ -8,6 +8,7 @@ import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
+import axios from 'axios';
 
 interface ItemData {
   id: string;
@@ -27,8 +28,7 @@ interface Grupo {
   empresa: string;
   destinoGrupo: string;
   fecha: string;
-  horaprog:string;
-  
+  horaprog: string;
 }
 
 interface ContainerProps {
@@ -36,12 +36,130 @@ interface ContainerProps {
   items: ItemData[];
   grupo: Grupo;
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
+  onUpdateConductor?: (id: number, conductorCodigo: number) => void;
+  onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
+
 }
 
-export default function Container({ id, items, grupo,onUpdateGrupo  }: ContainerProps) {
+export default function Container({
+  id,
+  items,
+  grupo,
+  onUpdateGrupo,
+  onUpdateConductor,
+  onUpdateUnidad,
+}: ContainerProps) {
+  const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
+  const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
-const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
-const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
+  const [conductor, setConductor] = useState<string>("");
+  const [conductores, setConductores] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+
+  const [unidad, setUnidad] = useState<string>("");
+  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
+
+
+  useEffect(() => {
+    const fetchConductores = async () => {
+      try {
+        const response = await axios.get(
+          "http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus"
+        );
+        setConductores(response.data);
+      } catch (error) {
+        console.error("Error al obtener conductores:", error);
+      }
+    };
+
+    const fetchUnidades = async () => {
+      try {
+        const response = await axios.get(
+          "http://66.240.210.125:8586/api/Preplan/unidades"
+        );
+        setUnidades(response.data);
+      } catch (error) {
+        console.error("Error al obtener unidades:", error);
+      }
+    };
+
+    fetchConductores();
+    fetchUnidades();
+  }, []);
+
+
+
+  
+  const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newConductor = event.target.value;
+    setConductor(newConductor);
+    
+    if (newConductor.trim() === "") {
+      setFilteredOptions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const filtered = conductores.filter((c) =>
+      c.apepate.toLowerCase().includes(newConductor.toLowerCase())
+    );
+    
+    setFilteredOptions(filtered);
+    setShowDropdown(filtered.length > 0);
+  };
+
+
+  const handleSelectConductor = (codigo: number, apepate: string) => {
+    console.log(`🚗 Conductor seleccionado: ${apepate} (Código: ${codigo})`);
+    setConductor(apepate); // Mostrar el nombre en el input
+    setShowDropdown(false);
+    
+    if (onUpdateConductor) {
+      onUpdateConductor(grupo.id, codigo); // Guardar el código
+    } else {
+      console.warn("onUpdateConductor no está definido.");
+    }
+  };
+  
+  const handleUnidadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newUnidad = event.target.value;
+    setUnidad(newUnidad);
+    
+    if (newUnidad.trim() === "") {
+      setFilteredUnidades([]);
+      setShowDropdownUnidad(false);
+      return;
+    }
+  
+    const filtered = unidades.filter((u) =>
+      (u.codunidad ?? "").toLowerCase().includes(newUnidad.toLowerCase())
+    );
+    
+    setFilteredUnidades(filtered);
+    setShowDropdownUnidad(filtered.length > 0);
+  };
+  
+
+  const handleSelectUnidad = (codunidad: string) => {
+    console.log(`🚌 Unidad seleccionada: ${codunidad}`);
+    setUnidad(codunidad);
+    setShowDropdownUnidad(false);
+    
+    if (onUpdateUnidad) {
+      onUpdateUnidad(grupo.id, codunidad);
+    } else {
+      console.warn("onUpdateUnidad no está definido.");
+    }
+  };
+
+
+
+
+
 
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
@@ -49,63 +167,59 @@ const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
   const formatDateToCustom = (fecha?: string) => {
     if (!fecha) return '';
-  
+
     const isoRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
     const match = fecha.match(isoRegex);
-  
+
     if (!match) return '';
-  
+
     const [, year, month, day, hours, minutes] = match;
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
-  
+
   const handleEndDateSelect = (date: string) => {
-    console.log("Fecha seleccionada antes de conversión:", date);
-  
+    console.log('Fecha seleccionada antes de conversión:', date);
+
     setEndDate(date);
-  
+
     const formattedDate = formatDateToCustom(date);
-  
+
     if (!formattedDate) {
-      console.error("Error: Fecha inválida después de conversión.");
+      console.error('Error: Fecha inválida después de conversión.');
       return;
     }
-  
-    console.log("Fecha convertida a formato deseado:", formattedDate);
+
+    console.log('Fecha convertida a formato deseado:', formattedDate);
     onUpdateGrupo(grupo.id, formattedDate);
   };
-  
-  
 
   useEffect(() => {
-    if (grupo?.fecha) {  
+    if (grupo?.fecha) {
       setStartDate(grupo.fecha);
     }
-  }, [grupo]); 
-  
+  }, [grupo]);
+
   useEffect(() => {
-    if (grupo?.horaprog) {  
+    if (grupo?.horaprog) {
       setEndDate(grupo.horaprog);
     }
-  }, [grupo]); 
-  
+  }, [grupo]);
 
   const { setNodeRef } = useDroppable({
     id,
   });
 
   const formatDateToISO = (fecha?: string) => {
-    if (!fecha) return ''; 
-  
+    if (!fecha) return '';
+
     const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/;
     const match = fecha.match(regex);
-  
+
     if (!match) return '';
-  
+
     const [, day, month, year, hours, minutes] = match;
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
-  
 
   return (
     <SortableContext
@@ -166,7 +280,6 @@ const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
                     height="30px"
                     borderRadius="0"
                     initialDateTime={formatDateToISO(grupo.horaprog)}
-
                   />
                 </div>
               </th>
@@ -193,29 +306,69 @@ const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
           <SortableItem key={item.id} id={item.id} data={item} />
         ))}
 
-     
-<div className="footerTep">
+        <div className="footerTep">
           <div className="dataConductorUnidad">
             <div className="relative">
               <input
                 type="text"
-                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500  disabled:pointer-events-none disabled:opacity-50"
+                className="peer block w-96 rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500  disabled:pointer-events-none disabled:opacity-50"
                 placeholder="Conductor"
-              />
+                value={conductor}
+                onChange={handleConductorChange}
+                onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                 />
+
+
               <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
                 <FaUserTie color="#343a40" />
               </div>
+
+              {showDropdown && filteredOptions.length > 0 && (
+        <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+          {filteredOptions.map((conductor) => (
+            <li
+              key={conductor.codigo}
+              className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+              onClick={() => handleSelectConductor(conductor.codigo, conductor.apepate)}
+            >
+              {conductor.apepate}
+            </li>
+          ))}
+        </ul>
+      )}
+
             </div>
             <div className="relative">
               <input
                 type="text"
                 className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                 placeholder="Unidad"
+                value={unidad}
+                onChange={handleUnidadChange}
+                onFocus={() => setShowDropdownUnidad(true)}
+                onBlur={() => setTimeout(() => setShowDropdownUnidad(false), 200)}
               />
               <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
                 <FaCar color="#343a40" />
               </div>
+
+              {showDropdownUnidad && filteredUnidades.length > 0 && (
+          <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+            {filteredUnidades.map((unidad) => (
+              <li
+                key={unidad.id}
+                className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+                onClick={() => handleSelectUnidad(unidad.codunidad)}
+              >
+                {unidad.codunidad}
+              </li>
+            ))}
+          </ul>
+        )}
             </div>
+
+
 
             <div>Duracion: (Ida desde el Aeropuerto) Calculando ...</div>
 
@@ -242,7 +395,6 @@ const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
             </div>
           </div>
         </div>
-
       </div>
     </SortableContext>
   );
