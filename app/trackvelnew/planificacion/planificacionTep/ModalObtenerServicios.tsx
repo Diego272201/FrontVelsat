@@ -22,9 +22,9 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
         <ModalContent>
           {(onClose) => (
             <>
-       <ModalHeader className="flex items-center gap-2">
-  Obtener Servicios <MdHomeRepairService />
-</ModalHeader>
+              <ModalHeader className="flex items-center gap-2">
+                Obtener Servicios <MdHomeRepairService />
+              </ModalHeader>
 
               <ModalBody>
                 <p>¿ Desea aplicar el orden del ultimo cierre ?</p>

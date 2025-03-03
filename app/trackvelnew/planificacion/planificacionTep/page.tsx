@@ -26,12 +26,11 @@ export default function Page() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [dato, setDato] = useState<string>('');
 
-  const [modoVista, setModoVista] = useState("Eliminados");
+  const [modoVista, setModoVista] = useState('Eliminados');
 
   const alternarEstado = () => {
-    setModoVista(modoVista === "Eliminados" ? "Total" : "Eliminados");
+    setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
   };
-  
 
   const [guardar, setGuardar] = useState<() => void>(() => () => {});
   const [datosServicios, setDatosServicios] = useState({
@@ -51,6 +50,8 @@ export default function Page() {
 
   const [totalFechas, setTotalFechas] = useState(0);
   const [fechasLlenas, setFechasLlenas] = useState(0);
+
+  const [actualizacion, setActualizacion] = useState(0);
 
   const actualizarCabeceras = (
     nuevasCabeceras: { empresa: string; fecha: string }[],
@@ -140,6 +141,13 @@ export default function Page() {
     return `${day}/${month}/${year}`;
   };
 
+  const formatFechaAMD = (date: Date): string => {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
+  };
+
   const getColumnFromDay = (day: number): string => {
     const startLetter = 10;
     const columnIndex = startLetter + (day - 1);
@@ -153,6 +161,10 @@ export default function Page() {
     const firstLetter = letters[Math.floor((columnIndex - 26) / 26)];
     const secondLetter = letters[(columnIndex - 26) % 26];
     return firstLetter + secondLetter;
+  };
+
+  const alertaGuardar = () => {
+    toast.success('Datos guardados correctaemte');
   };
 
   const handleReadExcel = () => {
@@ -219,6 +231,8 @@ export default function Page() {
             filteredData,
           );
           console.log(response.data);
+          console.log(fecact);
+
           if (response.status === 200) {
             toast.success('Datos enviados correctamente a la API.');
           } else {
@@ -232,6 +246,41 @@ export default function Page() {
     };
 
     reader.readAsBinaryString(file);
+  };
+
+  const handleDeleteCarga = async () => {
+    if (!selectedDate) {
+      toast.error('Por favor selecciona una fecha.');
+      return;
+    }
+
+    if (!selectedEmpresa) {
+      toast.error('Por favor selecciona una empresa.');
+      return;
+    }
+
+    const fecact = formatFechaAMD(selectedDate);
+    const url = `http://66.240.210.125:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
+    try {
+      const response = await axios({
+        method: 'PUT',
+        url: url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {},
+      });
+
+      if (response.status === 200) {
+        toast.success('Carga eliminada correctamente.');
+        setActualizacion((prev) => prev + 1);
+      } else {
+        toast.error('Error al eliminar la carga.');
+      }
+    } catch (error) {
+      console.error('Error al eliminar la carga:', error);
+      toast.error('Error al eliminar la carga.');
+    }
   };
 
   const toggleContent = () => {
@@ -372,7 +421,7 @@ export default function Page() {
                       </svg>
                       Cargar Archivo
                     </button>
-                    <Button color="danger">
+                    <Button color="danger" onClick={handleDeleteCarga}>
                       <MdDelete size={20} />
                       Eliminar Carga
                     </Button>
@@ -417,7 +466,13 @@ export default function Page() {
                       Obtener
                       <IoSendSharp />
                     </Button>
-                    <Button color="success" onClick={guardar}>
+                    <Button
+                      color="success"
+                      onClick={() => {
+                        guardar();
+                        alertaGuardar();
+                      }}
+                    >
                       Guardar
                       <IoSave color="#212529" />
                     </Button>
@@ -472,10 +527,11 @@ export default function Page() {
                     </div>
 
                     <Button
-                      color={modoVista  === 'Eliminados' ? 'danger' : 'success'}
+                      color={modoVista === 'Eliminados' ? 'danger' : 'success'}
                       onClick={alternarEstado}
                     >
- {modoVista}                    </Button>
+                      {modoVista}{' '}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -555,7 +611,7 @@ export default function Page() {
       <div className="grupoServicios">
         {empresaConfirmada && dato && (
           <Servicios
-            key={`${empresaConfirmada}-${dato}`}
+            key={`${empresaConfirmada}-${dato}-${actualizacion}`}
             empresa={empresaConfirmada}
             dato={dato}
             onGuardar={setGuardar}

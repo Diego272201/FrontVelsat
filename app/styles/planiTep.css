@@ -313,7 +313,7 @@
   width: 10%;
 }
 .direccion{
-  width: 25%;
+  width: 30%;
   display: -webkit-box;
   -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical;
@@ -328,7 +328,7 @@
 }
 
 .acciones{
-  width: 20%;
+  width: 15%;
 }
 
 .accionesItems{
