@@ -20,6 +20,7 @@ import { MdDelete } from 'react-icons/md';
 import { MdOutlineAdd } from 'react-icons/md';
 import { TbGps } from 'react-icons/tb';
 import axios from 'axios';
+import ModalDirecciones from './ModalDirecciones';
 
 const wrapperStyle: React.CSSProperties = {
   display: 'flex',
@@ -42,6 +43,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [shouldRefetch, setShouldRefetch] = useState(false);
 
   const [conductores, setConductores] = useState<{ [grupoId: number]: number }>({}); // Ahora guarda números
 
@@ -125,14 +127,12 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         onActualizarFechas({ totalFechas, fechasLlenas });
       }
 
-
-      
-
-
+      setShouldRefetch(false); 
     };
 
-    fetchData();
-  }, [empresa]);
+      fetchData();
+    
+  }, [empresa,shouldRefetch]);
 
 
   
@@ -262,7 +262,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                     onClick={() => handleMoverAGrupoNuevo(Number(persona.idCliente))}
                   >
                     
-                    <MdAddBox  size={16} color='#212529'/>
+                    <MdAddBox  size={16} color='#343a40'/>
                   </Button>
   
                   <Button
@@ -274,10 +274,11 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                     <MdDelete size={16}/>
                   </Button>
   
-                  <Button color="warning" size="sm">
-                    Dirección
-                    <TbGps />
-                  </Button>
+              
+
+                  <ModalDirecciones codCliente={persona.codCliente} nombrePasajero={persona.nombre} codigo={persona.codigo} setShouldRefetch={setShouldRefetch}/>
+
+
                 </div>
               ),
             };
@@ -613,14 +614,16 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         if (!grupo.personas || grupo.personas.length === 0) return [];
 
         const codConductor = conductores[grupo.id] || 0;
+        const codConductorStr = String(codConductor);
+
         const codUnidad = unidades[grupo.id] || "";
         return grupo.personas.map((persona: any, personaIndex: any) => ({
-          codigo: Number(persona.codCliente) || 0,
+          codigo: Number(persona.codigo) || 0,
           horaprog: String(grupo.horaprog),
           orden: String(persona.idCliente-1),
           numero: String(grupoIndex),
           eliminado: "0", // No está eliminado
-          codconductor: codConductor,  
+          codconductor: codConductorStr,  
           codunidad: codUnidad,
           codtarifa: "",
           destinocodigo: "",
@@ -629,12 +632,12 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   
       // Datos de los eliminados
       ...eliminados.map((personaEliminada: any) => ({
-        codigo: Number(personaEliminada.codCliente) || 0,
+        codigo: Number(personaEliminada.codigo) || 0,
         horaprog: String(personaEliminada.fechaItem),
         orden: String(personaEliminada.ordenOriginal-1),
         numero: String(personaEliminada.numGrupo-1),
         eliminado: "1", 
-        codconductor: 0,
+        codconductor: "0",
         codunidad: "",
         codtarifa: "",
         destinocodigo: "",

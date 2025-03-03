@@ -20,6 +20,7 @@ interface Servicio {
 
 interface DataItem {
   id: number;
+  codcliente: string;
   codigo: string;
   nombre: string;
   fecha: string;
@@ -83,7 +84,8 @@ export const obtenerDatosYAgrupar = async (
         }
         gruposMap.get(numGrupo)?.personas.push({
           idCliente: item.id,
-          codCliente: item.codigo,
+          codCliente: item.codcliente,
+          codigo: item.codigo,
           nombre: item.nombre,
           direccion: item.lugar.direccion,
           distrito: item.lugar.distrito,
@@ -124,7 +126,8 @@ export const obtenerDatosYAgrupar = async (
           ) {
             grupo.personas.push({
               idCliente: currentItem.id,
-              codCliente: currentItem.codigo,
+              codCliente: currentItem.codcliente,
+              codigo: currentItem.codigo,
               nombre: currentItem.nombre,
               direccion: currentItem.lugar.direccion,
               distrito: currentItem.lugar.distrito,
