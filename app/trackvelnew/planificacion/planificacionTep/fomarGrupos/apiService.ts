@@ -12,10 +12,19 @@ interface Lugar {
 interface Conductor {
   codigo: number;
   nombre: string | null;
+  apepate: string;
+
+}
+
+
+interface Unidad {
+  codunidad: string;
 }
 
 interface Servicio {
   conductor: Conductor;
+  unidad: Unidad;
+
 }
 
 interface DataItem {
@@ -34,7 +43,7 @@ interface DataItem {
   orden: string;
   numero: string;
   eliminado:string;
-
+  codconductor: string; 
 }
 
 interface Grupo {
@@ -46,6 +55,9 @@ interface Grupo {
   destinoGrupo: string;
   personas: any[];
   destino: { coddestino: string; nomdestino: string };
+  conductor: string ;
+  unidad: string ;
+  codConductor: string;
 }
 
 export const obtenerDatosYAgrupar = async (
@@ -74,12 +86,15 @@ export const obtenerDatosYAgrupar = async (
             horaprog: item.horaprog,
             tipo: item.tipo,
             empresa: item.empresa,
+            codConductor: item.codconductor,            
             destinoGrupo: item.nomdestino,
             personas: [],
             destino: {
               coddestino: item.destino,
               nomdestino: item.nomdestino,
             },
+            conductor: item.servicio.conductor.apepate ,
+            unidad: item.servicio.unidad.codunidad,
           });
         }
         gruposMap.get(numGrupo)?.personas.push({
@@ -109,12 +124,15 @@ export const obtenerDatosYAgrupar = async (
           horaprog: item.horaprog,
           tipo: item.tipo,
           empresa: item.empresa,
+          codConductor: item.codconductor,
           destinoGrupo: item.nomdestino,
           personas: [],
           destino: {
             coddestino: item.destino,
             nomdestino: item.nomdestino,
           },
+          conductor: item.servicio.conductor.apepate ,
+          unidad: item.servicio.unidad.codunidad,
         };
         let it = 0;
         while (it < datos.length) {

@@ -99,12 +99,12 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
               <div className="selectdates">
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Inicial</span>
-                  <App onDateSelect={handleStartDateSelect} />
+                  <App backgroundColor='#e9ecef' onDateSelect={handleStartDateSelect} />
                 </div>
 
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Final</span>
-                  <App onDateSelect={handleEndDateSelect} />
+                  <App backgroundColor='#e9ecef' onDateSelect={handleEndDateSelect} />
                 </div>
               </div>
             </ModalBody>

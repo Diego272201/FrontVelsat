@@ -17,8 +17,12 @@ import { IoSave } from 'react-icons/io5';
 import { IoSendSharp } from 'react-icons/io5';
 import { MdHomeRepairService } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
+import ModalErroresCarga from './reporteerrores/ModalErroresCarga';
+import ModalReporteErrores from './reporteerrores/ModalErroresCarga';
 
 export default function Page() {
+  const [date, setDate] = useState('');
+
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(
     null,
@@ -27,6 +31,9 @@ export default function Page() {
   const [dato, setDato] = useState<string>('');
 
   const [modoVista, setModoVista] = useState('Eliminados');
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [erroresCarga, setErroresCarga] = useState<any[]>([]);
 
   const alternarEstado = () => {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
@@ -235,6 +242,11 @@ export default function Page() {
 
           if (response.status === 200) {
             toast.success('Datos enviados correctamente a la API.');
+
+            if (response.data.errores?.length > 0) {
+              setErroresCarga(response.data.errores);
+              setIsModalOpen(true);
+            }
           } else {
             toast.error('Error al enviar los datos a la API.');
           }
@@ -248,6 +260,35 @@ export default function Page() {
     reader.readAsBinaryString(file);
   };
 
+  const handlePublicar = async () => {
+    if (!selectedDate || !empresaSeleccionada) {
+      toast.error("Debe seleccionar una fecha y una empresa.");
+      return;
+    }
+
+    // Formatear la fecha en YYYY-MM-DD
+    const fecact = formatFechaAMD(selectedDate);
+
+    try {
+      const response = await axios.post(
+        `http://66.240.210.125:8586/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`
+      );
+      toast.success("Datos enviados correctamente.");
+      console.log("Respuesta de la API:", response.data);
+      setActualizacion(prev => prev + 1);
+
+
+    } catch (error) {
+      toast.error("Error al enviar los datos.");
+      console.error("Error en la solicitud:", error);
+    }
+  };
+
+
+  useEffect(() => {
+    console.log('Errores actualizados en el estado:', erroresCarga);
+  }, [erroresCarga]);
+
   const handleDeleteCarga = async () => {
     if (!selectedDate) {
       toast.error('Por favor selecciona una fecha.');
@@ -258,6 +299,7 @@ export default function Page() {
       toast.error('Por favor selecciona una empresa.');
       return;
     }
+
 
     const fecact = formatFechaAMD(selectedDate);
     const url = `http://66.240.210.125:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
@@ -297,11 +339,8 @@ export default function Page() {
       <div>
         <div className="cabecera">
           <div className="progressAndTitle">
-            Modulo de Planificación de Servicios
+            MÓDULO DE PLANIFICACIÓN DE SERVICIOS
             <ProgressBar value={porcentajeLlenado}></ProgressBar>
-            Cantidad de Fechas: {totalFechas}
-            Fechas llenas: {fechasLlenas}
-            Porcentaje: {porcentajeLlenado}
           </div>
 
           <label className="switch">
@@ -320,8 +359,10 @@ export default function Page() {
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2.5">
-                  <span className="text-gray-900">Carga de Archivo ‎ ‎ </span>
-                  <div className="flex-grow border-t border-stone-400"></div>
+                  <span className="whitespace-nowrap text-gray-900">
+                    Carga de Archivo
+                  </span>
+                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
@@ -350,20 +391,18 @@ export default function Page() {
                   </div>
 
                   <div>
-                    <DatePicker
-                      className="max-w-[284px]"
-                      labelPlacement="outside"
-                      style={{ background: 'red' }}
-                      onChange={(date) => {
-                        if (date) {
-                          const { year, month, day } = date;
-                          const selectedDate = new Date(year, month - 1, day);
-                          setSelectedDate(selectedDate);
-                        } else {
-                          setSelectedDate(null);
-                        }
+        
+                      <input
+                      type="date"
+                      value={selectedDate ? selectedDate.toISOString().split("T")[0] : ""}
+                      onChange={(e) => {
+                        const [year, month, day] = e.target.value.split("-");
+                        const selectedDate = new Date(Number(year), Number(month) - 1, Number(day));
+                        setSelectedDate(selectedDate);
                       }}
-                    />
+                        className="rounded-md border  p-2 focus:outline-none"
+                      />
+           
                   </div>
 
                   <div className="selectTipoA">
@@ -421,6 +460,13 @@ export default function Page() {
                       </svg>
                       Cargar Archivo
                     </button>
+
+                    <ModalReporteErrores
+                      errores={erroresCarga}
+                      isOpen={isModalOpen}
+                      onClose={() => setIsModalOpen(false)}
+                    />
+
                     <Button color="danger" onClick={handleDeleteCarga}>
                       <MdDelete size={20} />
                       Eliminar Carga
@@ -430,9 +476,11 @@ export default function Page() {
               </div>
 
               <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="text-gray-900">Obtener Datos ‎ ‎ </span>
-                  <div className="flex-grow border-t border-stone-400"></div>
+              <div className="relative flex items-center pb-2.5">
+                  <span className="whitespace-nowrap text-gray-900">
+                    Obtener Datos
+                  </span>
+                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
@@ -481,7 +529,8 @@ export default function Page() {
                       onOpenChange={onOpenChange}
                       onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
                     />
-                    <Button color="primary">Publicar</Button>
+                    <Button color="primary" onPress={handlePublicar}
+                    >Publicar</Button>
                   </div>
                 </div>
               </div>
@@ -490,10 +539,12 @@ export default function Page() {
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="filtrosPlanificacion">
-                  <div className="relative flex items-center pb-2">
-                    <span className="text-gray-900">Filtrar Datos ‎ ‎ </span>
-                    <div className="flex-grow border-t border-stone-400"></div>
-                  </div>
+                <div className="relative flex items-center pb-2.5">
+                  <span className="whitespace-nowrap text-gray-900">
+                    Filtrar Datos
+                  </span>
+                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
+                </div>
 
                   <div className="cabeceraArchivos">
                     <div className="inputFiltros">
