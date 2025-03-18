@@ -40,10 +40,12 @@ interface ContainerProps {
   id: string;
   items: ItemData[];
   grupo: Grupo;
+  conductorCodigo: string;
+  unidadCodigo: string;
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
-  datosUbicacion: { numero: number; orden: number; latitud: number; longitud: number }[];
+  
 }
 
 const center = {
@@ -55,37 +57,27 @@ export default function Container({
   id,
   items,
   grupo,
+  conductorCodigo,
+  unidadCodigo,
   onUpdateGrupo,
   onUpdateConductor,
   onUpdateUnidad,
 }: ContainerProps) {
+
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
-  const [conductor, setConductor] = useState<string>('');
-  const [conductores, setConductores] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [filteredOptions, setFilteredOptions] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
+  const [conductor, setConductor] = useState<string>("");
+  const [conductores, setConductores] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<{ codigo: number; apepate: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const [unidad, setUnidad] = useState<string>('');
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
-    [],
-  );
-  const [filteredUnidades, setFilteredUnidades] = useState<
-    { id: number; codunidad: string }[]
-  >([]);
+
+  const [unidad, setUnidad] = useState<string>("");
+  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
   const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
 
-  const [isOpen, setIsOpen] = useState(false);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-  });
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -114,9 +106,10 @@ export default function Container({
     fetchUnidades();
   }, []);
 
-  const handleConductorChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+
+
+  
+  const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newConductor = event.target.value;
     setConductor(newConductor);
 
@@ -323,6 +316,8 @@ export default function Container({
 
         <div className="footerTep">
           <div className="dataConductorUnidad">
+
+
             <div className="relative">
               <input
                 type="text"
@@ -357,6 +352,7 @@ export default function Container({
                 </ul>
               )}
             </div>
+
             <div className="relative">
               <input
                 type="text"

@@ -645,10 +645,10 @@ export default function App({
       ...data.flatMap((grupo, grupoIndex) => {
         if (!grupo.personas || grupo.personas.length === 0) return [];
 
-        const codConductor = conductores[grupo.id] || 0;
+        const codConductor = conductores[grupo.id] ?? grupo.codConductor ?? 0;
         const codConductorStr = String(codConductor);
 
-        const codUnidad = unidades[grupo.id] || '';
+        const codUnidad = unidades[grupo.id] ?? grupo.unidad ?? "";
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codigo) || 0,
           horaprog: String(grupo.horaprog),
@@ -777,9 +777,7 @@ export default function App({
                       id={key}
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
-                      onUpdateGrupo={(id: number, nuevaFecha: string) =>
-                        handleUpdateGrupo(id, nuevaFecha)
-                      }
+                      onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
                       onUpdateConductor={handleUpdateConductor}
                       onUpdateUnidad={handleUpdateUnidad}
                       datosUbicacion={}

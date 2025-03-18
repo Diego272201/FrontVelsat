@@ -47,14 +47,16 @@
   clear: both;
   display: flex;
   flex-direction: column;
-  margin-top: 2px;
-  padding: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
   overflow: auto;
   font-family: helvetica;
   font-size: 14px;
   text-align: justify;
   margin-top: 10px;
   background: #e6e6e6;
+   border-radius: 10px;
 }
 
 .subtitleTep{
@@ -104,12 +106,9 @@
   display: none;
 }
 
-.cargaArchivos{
-  /* background: rebeccapurple; */
-}
+
 
 .filtrosPlanificacion{
-  /* background: rebeccapurple; */
   width: 100%;
 }
 
@@ -117,6 +116,8 @@
   display: flex;
   gap: 15px;
   justify-content: space-between;
+  align-items: center;
+  
 }
 
 
@@ -336,3 +337,4 @@
   display: flex;
   justify-content: space-between;
 }
+
