@@ -777,10 +777,11 @@ export default function App({
                       id={key}
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
-                      onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
+                      onUpdateGrupo={(id: number, nuevaFecha: string) =>
+                        handleUpdateGrupo(id, nuevaFecha)
+                      }
                       onUpdateConductor={handleUpdateConductor}
                       onUpdateUnidad={handleUpdateUnidad}
-                      datosUbicacion={}
                     />
                   ) : null,
                 )}

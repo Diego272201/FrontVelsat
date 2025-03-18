@@ -40,12 +40,9 @@ interface ContainerProps {
   id: string;
   items: ItemData[];
   grupo: Grupo;
-  conductorCodigo: string;
-  unidadCodigo: string;
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
-  
 }
 
 const center = {
@@ -57,8 +54,6 @@ export default function Container({
   id,
   items,
   grupo,
-  conductorCodigo,
-  unidadCodigo,
   onUpdateGrupo,
   onUpdateConductor,
   onUpdateUnidad,
@@ -78,6 +73,12 @@ export default function Container({
   const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
   const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
 
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+  });
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -105,9 +106,6 @@ export default function Container({
     fetchConductores();
     fetchUnidades();
   }, []);
-
-
-
   
   const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newConductor = event.target.value;
