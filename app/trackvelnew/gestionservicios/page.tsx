@@ -1,5 +1,5 @@
 'use client';
-import { Button } from '@nextui-org/react';
+import { Button, useDisclosure } from '@nextui-org/react';
 import React, { useEffect, useState } from 'react';
 import { FaCar, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
 import { IoSave, IoSendSharp } from 'react-icons/io5';
@@ -18,6 +18,7 @@ import { FaClipboard } from 'react-icons/fa';
 import TableServicios from './TableServicios';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import ModalNuevoServicio from './ModalNuevoServicio';
 
 const empresas = [
   'ABNER MATOS',
@@ -359,6 +360,8 @@ export default function Page() {
     }
   };
   
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
 
   useEffect(() => {
     console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
@@ -385,11 +388,15 @@ export default function Page() {
           <div className="progressAndTitle">
             CONTROL DE SERVICIOS
             <div className="flex gap-2">
-              {' '}
-              <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
+             
+              <button    onClick={onOpen} className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
                 <MdNewLabel size={20} />
                 Nuevo Servicio
               </button>
+
+              <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} />
+
+
               <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
                 Nuevo Servicio Turismo
               </button>

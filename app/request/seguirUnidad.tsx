@@ -6,10 +6,7 @@ import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import { useApi } from '@/context/ApiContext';
 
-const containerStyle = {
-  width: '100%',
-  height: '100vh',
-};
+
 
 const initialCenter = {
   lat: -12.046591525826495,
@@ -29,7 +26,12 @@ interface FechaActual {
   fechaActual: string;
 }
 
-export default function SeguirUnidadPage() {
+interface Props {
+  deviceId?: string; 
+  height?: string;
+}
+
+export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) {
   const { data: session, status } = useSession();
   const [device, setDevice] = useState<Device | null>(null);
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
@@ -47,34 +49,29 @@ export default function SeguirUnidadPage() {
   };
 
   useEffect(() => {
-    const deviceId = getDeviceIdFromUrl();
-
-    if (status === 'authenticated' && session && deviceId) {
+    const deviceIdFinal = deviceId || getDeviceIdFromUrl();
+    if (!deviceIdFinal) return; // Asegura que deviceIdFinal tiene un valor antes de continuar
+  
+    if (status === 'authenticated' && session) {
       const username = session.user.username;
       const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
-
-      const connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
-        .build();
-
+  
+      const connection = new signalR.HubConnectionBuilder().withUrl(hubUrl).build();
       connection.start()
         .then(() => connection.invoke('UnirGrupo', username))
-        .then(() => {
-          console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
-        })
-        .catch((error) => {
-          console.error('Error al conectar con SignalR: ', error);
-        });
-
+        .catch(console.error);
+  
       connection.on('ActualizarDatos', (datos) => {
-        const updatedDevice = datos.datosDevice.find((d: Device) => d.deviceId === deviceId);
+        const updatedDevice = datos.datosDevice.find((d: Device) => d.deviceId === deviceIdFinal);
         if (updatedDevice) {
           setFechaActual(datos.fechaActual);
           setDevice(updatedDevice);
         }
       });
     }
-  }, [status, session, setBaseUrl]);
+  }, [status, session, deviceId, baseUrl]);
+  
+  
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -272,6 +269,11 @@ export default function SeguirUnidadPage() {
       createMarkerAndPopup(mapRef.current);
     }
   }, [device, createMarkerAndPopup]);
+
+  const containerStyle = {
+    width: '100%',
+    height,
+  };
 
   return isLoaded ? (
     <GoogleMap
