@@ -24,7 +24,6 @@ import { FaCar, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
-import DragAndDropTable from './TableDraw';
 
 const getFormattedDate = () => {
   const peruTime = new Date(
@@ -143,6 +142,10 @@ export default function App({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [isOpenD, setIsOpenD] = useState(false);
+
+  const [recorrido, setRecorrido] = useState<{ lat: number; lng: number }[]>(
+    [],
+  );
 
   // Detecta clics fuera del dropdown y lo cierra
   useEffect(() => {
@@ -344,7 +347,9 @@ export default function App({
         fecPlanCompleta: item.fecplan || '-',
         empresaSinNumber: item.empresa,
         controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
+        fechaini: item.newfechaini || '---',
         fechafin: item.newfechafni || '---',
+        unidadSF: item.unidad?.codunidad,
         unidad: item.unidad?.codunidad
           ? item.unidad.codunidad.split('-')[0]
           : '-',
@@ -516,6 +521,59 @@ export default function App({
       console.error('Error en la eliminación:', error);
     }
   };
+
+  const formatFecha = (fechaStr: string | null | undefined) => {
+    if (!fechaStr) return '';
+
+    // Separar la fecha de la hora
+    const [fecha, hora] = fechaStr.split(' ');
+    if (!fecha || !hora) return '';
+
+    // Extraer día, mes y año
+    const [dia, mes, año] = fecha.split('/');
+    if (!dia || !mes || !año) return '';
+
+    return `${año}-${mes}-${dia} ${hora}`;
+  };
+
+  useEffect(() => {
+    console.log('❌ FECHAS', selectedRow?.fechaini, selectedRow?.fechafin);
+    if (
+      !selectedRow?.fechaini ||
+      !selectedRow?.fechafin ||
+      !selectedRow?.unidadSF
+    ) {
+      console.log('❌ No hay datos suficientes para llamar a la API');
+      return;
+    }
+
+    setRecorrido([]);
+
+    const fechaInicial = formatFecha(selectedRow?.fechaini);
+    const fechaFinal = formatFecha(selectedRow?.fechafin);
+
+    const API_URL = `http://66.240.210.125:8586/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
+
+    console.log('🚀 Llamando a la API con URL:', API_URL);
+
+    axios
+      .get(API_URL)
+      .then((response) => {
+        console.log('✅ Respuesta de la API:', response.data);
+
+        if (response.data.result) {
+          const puntos = response.data.result.map((item: any) => ({
+            lat: item.latitude,
+            lng: item.longitude,
+          }));
+          setRecorrido(puntos);
+        }
+      })
+      .catch((error) => console.error('❌ Error fetching route data:', error));
+    return () => {
+      setRecorrido([]);
+    };
+  }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
 
   return (
     <div>
@@ -791,10 +849,7 @@ export default function App({
                       </div>
 
                       <div>
-                        <Mapa
-                          recorrido={coordenadas}
-                          marcadores={coordenadas}
-                        />
+                        <Mapa recorrido={recorrido} marcadores={coordenadas} />
                       </div>
                     </div>
 
@@ -837,6 +892,7 @@ export default function App({
                       </p>
                       <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
                       <p>Fecha Fin: {selectedRow?.fechafin}</p>
+                      <p>Fecha Ini: {selectedRow?.fechaini}</p>
                     </div>
                   </div>
                 ) : (
