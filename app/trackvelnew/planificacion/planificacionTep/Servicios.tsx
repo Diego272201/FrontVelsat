@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { MdAddBox } from "react-icons/md";
+import { MdAddBox } from 'react-icons/md';
 
 import Container from './container';
 import { Item } from './sortable_item';
@@ -30,51 +30,69 @@ const wrapperStyle: React.CSSProperties = {
 interface ServiciosProps {
   empresa: string;
   dato: string;
-  onGuardar?: (fn: () => void) => void; 
-  onActualizarDatos?: (datos: { totalGrupos: number; totalPasajeros: number }) => void;
-  onActualizarCabeceras?: (cabeceras: { empresa: string; fecha: string }[]) => void; 
+  onGuardar?: (fn: () => void) => void;
+  onActualizarDatos?: (datos: {
+    totalGrupos: number;
+    totalPasajeros: number;
+  }) => void;
+  onActualizarCabeceras?: (
+    cabeceras: { empresa: string; fecha: string }[],
+  ) => void;
   filtro?: { empresa: string; fecha: string } | null;
-  nombrePasajero?:string;
-  onActualizarFechas?: (fechas: { totalFechas: number; fechasLlenas: number }) => void;
-  modoVista: string; 
+  nombrePasajero?: string;
+  onActualizarFechas?: (fechas: {
+    totalFechas: number;
+    fechasLlenas: number;
+  }) => void;
+  modoVista: string;
 }
 
-export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActualizarCabeceras,filtro,nombrePasajero="", onActualizarFechas, modoVista}: ServiciosProps) {
+export default function App({
+  empresa,
+  dato,
+  onGuardar,
+  onActualizarDatos,
+  onActualizarCabeceras,
+  filtro,
+  nombrePasajero = '',
+  onActualizarFechas,
+  modoVista,
+}: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [shouldRefetch, setShouldRefetch] = useState(false);
 
-  const [conductores, setConductores] = useState<{ [grupoId: number]: number }>({}); // Ahora guarda números
+  const [conductores, setConductores] = useState<{ [grupoId: number]: number }>(
+    {},
+  ); // Ahora guarda números
 
   const [unidades, setUnidades] = useState<{ [grupoId: number]: string }>({});
 
   const handleUpdateConductor = (id: number, codigoConductor: number) => {
     setConductores((prev) => {
-      console.log("Actualizando conductor:", { ...prev, [id]: codigoConductor });
+      console.log('Actualizando conductor:', {
+        ...prev,
+        [id]: codigoConductor,
+      });
       return { ...prev, [id]: codigoConductor };
     });
   };
 
   const handleUpdateUnidad = (id: number, codigoUnidad: string) => {
     setUnidades((prev) => {
-      console.log("Actualizando unidad:", { ...prev, [id]: codigoUnidad });
+      console.log('Actualizando unidad:', { ...prev, [id]: codigoUnidad });
       return { ...prev, [id]: codigoUnidad };
     });
   };
-  
+
   useEffect(() => {
-    console.log("Estado de unidades actualizado:", unidades);
+    console.log('Estado de unidades actualizado:', unidades);
   }, [unidades]);
-  
-  
+
   useEffect(() => {
-    console.log("Estado de conductores actualizado:", conductores);
+    console.log('Estado de conductores actualizado:', conductores);
   }, [conductores]);
-  
-  
-
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,28 +101,32 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
 
       const nuevosGrupos = groupedData.map((grupo) => ({
         ...grupo,
-        personas: grupo.personas.filter((persona: any) => persona.eliminado === "0"),
+        personas: grupo.personas.filter(
+          (persona: any) => persona.eliminado === '0',
+        ),
       }));
 
       const nuevosEliminados = groupedData.flatMap((grupo) =>
         grupo.personas
-          .filter((persona: any) => persona.eliminado === "1")
+          .filter((persona: any) => persona.eliminado === '1')
           .map((persona: any) => ({
             ...persona,
-            numGrupo: grupo.id, 
+            numGrupo: grupo.id,
             ordenOriginal: persona.idCliente,
-          }))
+          })),
       );
 
       setGrupos(nuevosGrupos);
-      setEliminados(nuevosEliminados);      
+      setEliminados(nuevosEliminados);
       setLoading(false);
-
 
       if (onActualizarDatos) {
         onActualizarDatos({
           totalGrupos: groupedData.length,
-          totalPasajeros: groupedData.reduce((acc, grupo) => acc + (grupo.personas?.length || 0), 0),
+          totalPasajeros: groupedData.reduce(
+            (acc, grupo) => acc + (grupo.personas?.length || 0),
+            0,
+          ),
         });
       }
 
@@ -127,19 +149,15 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         onActualizarFechas({ totalFechas, fechasLlenas });
       }
 
-      setShouldRefetch(false); 
+      setShouldRefetch(false);
     };
 
-      fetchData();
-    
-  }, [empresa,shouldRefetch]);
+    fetchData();
+  }, [empresa, shouldRefetch]);
 
-
-  
   useEffect(() => {
     console.log(grupos);
   });
-
 
   useEffect(() => {
     if (grupos.length > 0 && onActualizarFechas) {
@@ -149,74 +167,70 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         if (grupo.horaprog) count++;
         return count;
       }, 0);
-  
+
       onActualizarFechas({ totalFechas, fechasLlenas });
     }
-  }, [grupos]); 
-  
-
+  }, [grupos]);
 
   const handleUpdateGrupo = (id: number, nuevaFecha: string) => {
-
-
     console.log(`Actualizando grupo ID: ${id}, Nueva fecha: ${nuevaFecha}`);
     setGrupos((prevGrupos) =>
       prevGrupos.map((grupo) =>
-        grupo.id === id ? { ...grupo, horaprog: nuevaFecha } : grupo
-      )
+        grupo.id === id ? { ...grupo, horaprog: nuevaFecha } : grupo,
+      ),
     );
   };
-  
 
-  
   const parseFechaHora = (fechaStr: string) => {
-    if (!fechaStr) return ""; 
-    const [dia, mes, año] = fechaStr.split(" ")[0].split("/");
-    const hora = fechaStr.split(" ")[1];
-    return `${año}-${mes}-${dia} ${hora}`; 
+    if (!fechaStr) return '';
+    const [dia, mes, año] = fechaStr.split(' ')[0].split('/');
+    const hora = fechaStr.split(' ')[1];
+    return `${año}-${mes}-${dia} ${hora}`;
   };
-  
+
   const parseFechaHoraFiltro = (filtroFecha: string) => {
-    if (!filtroFecha) return ""; 
-  
-    const [dia, mes, año] = filtroFecha.split(" ")[0].split("/");
-    const hora = filtroFecha.split(" ")[1];
-    return `${año}-${mes}-${dia} ${hora}`; 
+    if (!filtroFecha) return '';
+
+    const [dia, mes, año] = filtroFecha.split(' ')[0].split('/');
+    const hora = filtroFecha.split(' ')[1];
+    return `${año}-${mes}-${dia} ${hora}`;
   };
-  
+
   const gruposFiltrados = useMemo(() => {
     if (!filtro?.fecha && !nombrePasajero.trim()) return grupos;
-  
-    const filtroFechaHora = filtro?.fecha ? parseFechaHoraFiltro(filtro.fecha) : null;
-  
+
+    const filtroFechaHora = filtro?.fecha
+      ? parseFechaHoraFiltro(filtro.fecha)
+      : null;
+
     return grupos.filter((grupo) => {
       const fechaHoraGrupo = parseFechaHora(grupo.fecha);
-      const coincideFecha = filtroFechaHora ? fechaHoraGrupo === filtroFechaHora : true;
-  
+      const coincideFecha = filtroFechaHora
+        ? fechaHoraGrupo === filtroFechaHora
+        : true;
+
       // Normalizamos nombrePasajero eliminando espacios extra y convirtiendo a minúsculas
       const nombreBuscado = nombrePasajero.trim().toLowerCase();
-  
+
       const coincidePasajero = !nombreBuscado
         ? true
         : grupo.personas.some((persona: any) =>
-            persona.nombre.trim().toLowerCase().includes(nombreBuscado)
+            persona.nombre.trim().toLowerCase().includes(nombreBuscado),
           );
-  
+
       return coincideFecha && coincidePasajero;
     });
   }, [grupos, filtro, nombrePasajero]);
-  
 
   useEffect(() => {
-    console.log("Texto ingresado en búsqueda:", nombrePasajero);
+    console.log('Texto ingresado en búsqueda:', nombrePasajero);
   }, [nombrePasajero]);
-  
+
   useEffect(() => {
-    console.log("Fecha y hora filtro:", filtro?.fecha);
-    console.log("Grupos filtrados:", gruposFiltrados);
+    console.log('Fecha y hora filtro:', filtro?.fecha);
+    console.log('Grupos filtrados:', gruposFiltrados);
   }, [gruposFiltrados]);
-  
- 
+
   const [items, setItems] = useState<
     Record<
       string,
@@ -235,61 +249,65 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
   >({});
 
   useEffect(() => {
-    if (gruposFiltrados.length > 0) { 
+    if (gruposFiltrados.length > 0) {
       const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
         if (grupo.personas && grupo.personas.length > 0) {
-          acc[`container${index}`] = grupo.personas.map((persona:any, idx:any) => {
-            // console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
-            return {
-              id: String(persona.idCliente),
-              orderItem: idx + 1,
-              nombre: persona.nombre,
-              distrito: persona.distrito,
-              direccion: persona.direccion,
-              fechaItem: grupo.fecha,
-              area: persona.area,
-              numGrupo: grupo.id,
-              tipo: grupo.tipo,
-              destino: grupo.destinoGrupo,
-              empresa: grupo.empresa,
-              fecha: grupo.fecha,
-              horaprog: grupo.horaprog,
-              acciones: (
-                <div className="accionesItems">
-                  <Button
-                    color="success"
-                    size="sm"
-                    onClick={() => handleMoverAGrupoNuevo(Number(persona.idCliente))}
-                  >
-                    
-                    <MdAddBox  size={16} color='#343a40'/>
-                  </Button>
-  
-                  <Button
-                    color="danger"
-                    size="sm"
-                    onClick={() => handleEliminarDelArray(Number(persona.idCliente))}
-                  >
-                    
-                    <MdDelete size={16}/>
-                  </Button>
-  
-              
+          acc[`container${index}`] = grupo.personas.map(
+            (persona: any, idx: any) => {
+              // console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
+              return {
+                id: String(persona.idCliente),
+                orderItem: idx + 1,
+                nombre: persona.nombre,
+                distrito: persona.distrito,
+                direccion: persona.direccion,
+                fechaItem: grupo.fecha,
+                area: persona.area,
+                numGrupo: grupo.id,
+                tipo: grupo.tipo,
+                destino: grupo.destinoGrupo,
+                empresa: grupo.empresa,
+                fecha: grupo.fecha,
+                horaprog: grupo.horaprog,
+                acciones: (
+                  <div className="accionesItems">
+                    <Button
+                      color="success"
+                      size="sm"
+                      onClick={() =>
+                        handleMoverAGrupoNuevo(Number(persona.idCliente))
+                      }
+                    >
+                      <MdAddBox size={16} color="#343a40" />
+                    </Button>
 
-                  <ModalDirecciones codCliente={persona.codCliente} nombrePasajero={persona.nombre} codigo={persona.codigo} setShouldRefetch={setShouldRefetch}/>
+                    <Button
+                      color="danger"
+                      size="sm"
+                      onClick={() =>
+                        handleEliminarDelArray(Number(persona.idCliente))
+                      }
+                    >
+                      <MdDelete size={16} />
+                    </Button>
 
-
-                </div>
-              ),
-            };
-          });
+                    <ModalDirecciones
+                      codCliente={persona.codCliente}
+                      nombrePasajero={persona.nombre}
+                      codigo={persona.codigo}
+                      setShouldRefetch={setShouldRefetch}
+                    />
+                  </div>
+                ),
+              };
+            },
+          );
         }
         return acc;
       }, {});
-      setItems(nuevoItems); 
+      setItems(nuevoItems);
     }
-  }, [grupos, gruposFiltrados]); 
-
+  }, [grupos, gruposFiltrados]);
 
   const [eliminados, setEliminados] = useState<any[]>([]);
 
@@ -358,178 +376,188 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     });
   }
 
-
   function handleDragEnd(event: any) {
     const { active, over } = event;
     if (!over) {
       setActiveId(null);
       return;
     }
-  
+
     const activeId = active.id;
     const overId = over.id;
-  
+
     if (overId === 'grupo-eliminados') {
       handleEliminarDelArray(Number(activeId));
       setActiveId(null);
       return;
     }
 
-  
-
-
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
-
-  
     if (!activeContainer || !overContainer) {
       setActiveId(null);
       return;
     }
-  
+
     let activeIndex = items[activeContainer]?.findIndex(
-      (item) => item.id === activeId
+      (item) => item.id === activeId,
     );
     let overIndex = items[overContainer]?.findIndex(
-      (item) => item.id === overId
+      (item) => item.id === overId,
     );
 
     const encontrarGrupoPorCliente = (idCliente: number) => {
       return grupos.findIndex((grupo) =>
-        grupo.personas.some((persona:any) => persona.idCliente === idCliente)
+        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
       );
     };
-    
+
     // Ejemplo de uso:
     const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
-    
+
     const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
-    const activeContainerIndex = Number(activeContainer.replace(/\D/g, '')); 
-      console.log(`Moviendo el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`);
+    const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
+    console.log(
+      `Moviendo el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
+    );
 
-
- if(indiceGrupo === overContainerIndex){
-  intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
- }else{
-  moverClienteOtroGrupo(Number(activeId), indiceGrupo, overContainerIndex, overIndex ?? 0);
-
- }
-  
-    
-
+    if (indiceGrupo === overContainerIndex) {
+      intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
+    } else {
+      moverClienteOtroGrupo(
+        Number(activeId),
+        indiceGrupo,
+        overContainerIndex,
+        overIndex ?? 0,
+      );
+    }
     setActiveId(null);
   }
-  
-  const intercambiarClientes = (grupoIndex: number, activeIndex: number, overIndex: number) => {
+
+  const intercambiarClientes = (
+    grupoIndex: number,
+    activeIndex: number,
+    overIndex: number,
+  ) => {
     setGrupos((prevGrupos) => {
       if (grupoIndex < 0 || grupoIndex >= prevGrupos.length) {
         console.error(`Error: grupoIndex fuera de rango (${grupoIndex})`);
         return prevGrupos;
       }
-  
+
       let nuevosGrupos = [...prevGrupos];
       let personasGrupo = [...nuevosGrupos[grupoIndex].personas];
-  
-      if (activeIndex < 0 || activeIndex >= personasGrupo.length || overIndex < 0 || overIndex >= personasGrupo.length) {
-        console.error(`Error: Índices fuera de rango en grupo ${grupoIndex}`, { activeIndex, overIndex });
+
+      if (
+        activeIndex < 0 ||
+        activeIndex >= personasGrupo.length ||
+        overIndex < 0 ||
+        overIndex >= personasGrupo.length
+      ) {
+        console.error(`Error: Índices fuera de rango en grupo ${grupoIndex}`, {
+          activeIndex,
+          overIndex,
+        });
         return prevGrupos;
       }
-  
+
       // 🔹 Mover el elemento sin perder datos
       const [movedItem] = personasGrupo.splice(activeIndex, 1);
       personasGrupo.splice(overIndex, 0, movedItem);
-  
+
       // 🔹 Reasignar idCliente en orden
       personasGrupo = personasGrupo.map((persona, index) => ({
         ...persona,
         idCliente: index + 1, // Ahora el primer elemento tendrá idCliente = 1, el segundo = 2, etc.
       }));
-  
+
       nuevosGrupos[grupoIndex] = {
         ...nuevosGrupos[grupoIndex],
         personas: personasGrupo,
       };
-  
+
       console.log('Nuevo estado de grupos:', nuevosGrupos);
       return nuevosGrupos;
     });
   };
-  
+
   const moverClienteOtroGrupo = (
     idCliente: number,
     origenIndex: number,
     destinoIndex: number,
-    overIndex: number
+    overIndex: number,
   ) => {
     setGrupos((prevGrupos) => {
       let nuevosGrupos = JSON.parse(JSON.stringify(prevGrupos)); // 🔹 Clonamos para evitar mutaciones
-  
+
       // 🔹 Encontrar el grupo de origen y el cliente a mover
       const grupoOrigen = nuevosGrupos[origenIndex];
       const grupoDestino = nuevosGrupos[destinoIndex];
-  
+
       const clienteMovidoIndex = grupoOrigen.personas.findIndex(
-        (persona: any) => persona.idCliente === idCliente
+        (persona: any) => persona.idCliente === idCliente,
       );
-  
+
       if (clienteMovidoIndex === -1) return prevGrupos; // Si no se encuentra, retornamos el estado actual
-  
+
       // 🔹 Remover al cliente del grupo de origen
-      const [clienteMovido] = grupoOrigen.personas.splice(clienteMovidoIndex, 1);
-  
+      const [clienteMovido] = grupoOrigen.personas.splice(
+        clienteMovidoIndex,
+        1,
+      );
+
       // 🔹 Insertar el cliente en el grupo de destino en la posición correcta
       if (overIndex >= grupoDestino.personas.length) {
         grupoDestino.personas.push(clienteMovido);
       } else {
         grupoDestino.personas.splice(overIndex, 0, clienteMovido);
       }
-  
+
       return nuevosGrupos;
     });
-  
+
     // 🔹 Después de mover el cliente, reasignamos los `idCliente`
     setTimeout(() => {
       setGrupos((prevGrupos) => {
         let idCounter = 1;
         const nuevosGrupos = prevGrupos.map((grupo) => ({
           ...grupo,
-          personas: grupo.personas.map((persona:any) => ({
+          personas: grupo.personas.map((persona: any) => ({
             ...persona,
             idCliente: idCounter++, // 🔹 Se asigna en orden sin afectar el movimiento
           })),
         }));
-  
-        console.log("Nuevo estado de grupos:", nuevosGrupos); // ✅ Agregado aquí
-  
+
+        console.log('Nuevo estado de grupos:', nuevosGrupos); // ✅ Agregado aquí
+
         return nuevosGrupos;
       });
     }, 0); // 🔹 Se ejecuta después del `setState` para evitar problemas con el estado anterior
   };
-  
-  
+
   const handleMoverAGrupoNuevo = (idCliente: number) => {
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
-  
+
       // Encontrar el índice del grupo origen
       let grupoOrigenIndex = nuevosGrupos.findIndex((grupo) =>
-        grupo.personas.some((persona: any) => persona.idCliente === idCliente)
+        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
       );
-  
+
       if (grupoOrigenIndex !== -1) {
         let clienteMovido = nuevosGrupos[grupoOrigenIndex].personas.find(
-          (persona: any) => persona.idCliente === idCliente
+          (persona: any) => persona.idCliente === idCliente,
         );
-  
+
         if (clienteMovido) {
           const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
-  
+
           // Eliminar el cliente del grupo de origen
           nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
             grupoOrigenIndex
           ].personas.filter((persona: any) => persona.idCliente !== idCliente);
-  
+
           // Crear un nuevo grupo en la siguiente posición
           const nuevoGrupo = {
             id: grupoOrigen.id + 1, // ID consecutivo
@@ -540,22 +568,21 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
             horaprog: grupoOrigen.horaprog,
             personas: [clienteMovido],
           };
-  
+
           // Insertar el nuevo grupo después del grupo de origen
           nuevosGrupos.splice(grupoOrigenIndex + 1, 0, nuevoGrupo);
-  
+
           // Desplazar los IDs de los grupos siguientes
           for (let i = grupoOrigenIndex + 2; i < nuevosGrupos.length; i++) {
             nuevosGrupos[i].id += 1;
           }
         }
       }
-  
+
       console.log('Nuevo estado de grupos:', nuevosGrupos);
       return nuevosGrupos;
     });
   };
-  
 
   const handleEliminarDelArray = (idCliente: number) => {
     setGrupos((prevGrupos) => {
@@ -576,7 +603,6 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
             ...clienteEliminado,
             numGrupo: nuevosGrupos[grupoOrigenIndex].id,
             ordenOriginal: idCliente,
-
           };
 
           // Remover del grupo
@@ -606,8 +632,14 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
     });
   };
 
-    
-  const handleGuardar = async (data: any[], eliminados: any[],conductoresActualizados: any, unidadesActualizadas: any ) => {
+  const handleGuardar = async (
+    data: any[],
+    eliminados: any[],
+    conductoresActualizados: any,
+    unidadesActualizadas: any,
+  ) => 
+  
+  {
     const dataToSend = [
       // Datos de los grupos (no eliminados)
       ...data.flatMap((grupo, grupoIndex) => {
@@ -616,62 +648,61 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
         const codConductor = conductores[grupo.id] || 0;
         const codConductorStr = String(codConductor);
 
-        const codUnidad = unidades[grupo.id] || "";
+        const codUnidad = unidades[grupo.id] || '';
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codigo) || 0,
           horaprog: String(grupo.horaprog),
-          orden: String(persona.idCliente-1),
+          orden: String(persona.idCliente - 1),
           numero: String(grupoIndex),
-          eliminado: "0", // No está eliminado
-          codconductor: codConductorStr,  
+          eliminado: '0', // No está eliminado
+          codconductor: codConductorStr,
           codunidad: codUnidad,
-          codtarifa: "",
-          destinocodigo: "",
+          codtarifa: '',
+          destinocodigo: '',
         }));
       }),
-  
+
       // Datos de los eliminados
       ...eliminados.map((personaEliminada: any) => ({
         codigo: Number(personaEliminada.codigo) || 0,
         horaprog: String(personaEliminada.fechaItem),
-        orden: String(personaEliminada.ordenOriginal-1),
-        numero: String(personaEliminada.numGrupo-1),
-        eliminado: "1", 
-        codconductor: "0",
-        codunidad: "",
-        codtarifa: "",
-        destinocodigo: "",
+        orden: String(personaEliminada.ordenOriginal - 1),
+        numero: String(personaEliminada.numGrupo - 1),
+        eliminado: '1',
+        codconductor: '0',
+        codunidad: '',
+        codtarifa: '',
+        destinocodigo: '',
       })),
     ];
-  
-    console.log("Datos a enviar:", JSON.stringify(dataToSend, null, 2));
-  
+
+    console.log('Datos a enviar:', JSON.stringify(dataToSend, null, 2));
+
     if (dataToSend.length === 0) {
-      console.warn("No hay datos válidos para enviar a la API.");
+      console.warn('No hay datos válidos para enviar a la API.');
       return;
     }
-  
+
     try {
       const response = await axios.put(
-        "http://66.240.210.125:8586/api/Preplan/save?usuario=movilbus",
+        'http://66.240.210.125:8586/api/Preplan/save?usuario=movilbus',
         dataToSend,
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { 'Content-Type': 'application/json' } },
       );
-  
-      console.log("Respuesta de la API:", response.data);
+
+      console.log('Respuesta de la API:', response.data);
     } catch (error) {
-      console.error("Error al guardar los datos:", error);
+      console.error('Error al guardar los datos:', error);
     }
   };
-  
-  
+
   useEffect(() => {
     if (onGuardar) {
-      onGuardar(() => () => handleGuardar(grupos, eliminados, conductores,unidades));
+      onGuardar(
+        () => () => handleGuardar(grupos, eliminados, conductores, unidades),
+      );
     }
-  }, [grupos, eliminados,conductores,unidades]); 
-  
-  
+  }, [grupos, eliminados, conductores, unidades]);
 
   const handleRestore = (item: any) => {
     setEliminados((prevEliminados) =>
@@ -736,9 +767,7 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-
-
-      {modoVista === "Eliminados" ? (
+          {modoVista === 'Eliminados' ? (
             <>
               {gruposFiltrados.length > 0 &&
                 Object.keys(items).map((key, index) =>
@@ -748,9 +777,12 @@ export default function App({ empresa, dato,onGuardar,onActualizarDatos,onActual
                       id={key}
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
-                      onUpdateGrupo={(id: number, nuevaFecha: string) => handleUpdateGrupo(id, nuevaFecha)}
+                      onUpdateGrupo={(id: number, nuevaFecha: string) =>
+                        handleUpdateGrupo(id, nuevaFecha)
+                      }
                       onUpdateConductor={handleUpdateConductor}
                       onUpdateUnidad={handleUpdateUnidad}
+                      datosUbicacion={}
                     />
                   ) : null,
                 )}

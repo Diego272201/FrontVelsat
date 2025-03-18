@@ -8,6 +8,11 @@ import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
+import {
+  GoogleMap,
+  Marker,
+  useJsApiLoader,
+} from '@react-google-maps/api';
 import axios from 'axios';
 
 interface ItemData {
@@ -38,8 +43,13 @@ interface ContainerProps {
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
-
+  datosUbicacion: { numero: number; orden: number; latitud: number; longitud: number }[];
 }
+
+const center = {
+  lat: -12.0464,
+  lng: -77.0428,
+};
 
 export default function Container({
   id,
@@ -52,38 +62,51 @@ export default function Container({
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
-  const [conductor, setConductor] = useState<string>("");
-  const [conductores, setConductores] = useState<{ codigo: number; apepate: string }[]>([]);
-  const [filteredOptions, setFilteredOptions] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [conductor, setConductor] = useState<string>('');
+  const [conductores, setConductores] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
+  const [filteredOptions, setFilteredOptions] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-
-  const [unidad, setUnidad] = useState<string>("");
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>([]);
-  const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [unidad, setUnidad] = useState<string>('');
+  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
+    [],
+  );
+  const [filteredUnidades, setFilteredUnidades] = useState<
+    { id: number; codunidad: string }[]
+  >([]);
   const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
 
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
+  });
 
   useEffect(() => {
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          "http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus"
+          'http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
         );
         setConductores(response.data);
       } catch (error) {
-        console.error("Error al obtener conductores:", error);
+        console.error('Error al obtener conductores:', error);
       }
     };
 
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          "http://66.240.210.125:8586/api/Preplan/unidades"
+          'http://66.240.210.125:8586/api/Preplan/unidades',
         );
         setUnidades(response.data);
       } catch (error) {
-        console.error("Error al obtener unidades:", error);
+        console.error('Error al obtener unidades:', error);
       }
     };
 
@@ -91,75 +114,67 @@ export default function Container({
     fetchUnidades();
   }, []);
 
-
-
-  
-  const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConductorChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const newConductor = event.target.value;
     setConductor(newConductor);
-    
-    if (newConductor.trim() === "") {
+
+    if (newConductor.trim() === '') {
       setFilteredOptions([]);
       setShowDropdown(false);
       return;
     }
 
     const filtered = conductores.filter((c) =>
-      c.apepate.toLowerCase().includes(newConductor.toLowerCase())
+      c.apepate.toLowerCase().includes(newConductor.toLowerCase()),
     );
-    
+
     setFilteredOptions(filtered);
     setShowDropdown(filtered.length > 0);
   };
-
 
   const handleSelectConductor = (codigo: number, apepate: string) => {
     console.log(`🚗 Conductor seleccionado: ${apepate} (Código: ${codigo})`);
     setConductor(apepate); // Mostrar el nombre en el input
     setShowDropdown(false);
-    
+
     if (onUpdateConductor) {
       onUpdateConductor(grupo.id, codigo); // Guardar el código
     } else {
-      console.warn("onUpdateConductor no está definido.");
+      console.warn('onUpdateConductor no está definido.');
     }
   };
-  
+
   const handleUnidadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newUnidad = event.target.value;
     setUnidad(newUnidad);
-    
-    if (newUnidad.trim() === "") {
+
+    if (newUnidad.trim() === '') {
       setFilteredUnidades([]);
       setShowDropdownUnidad(false);
       return;
     }
-  
+
     const filtered = unidades.filter((u) =>
-      (u.codunidad ?? "").toLowerCase().includes(newUnidad.toLowerCase())
+      (u.codunidad ?? '').toLowerCase().includes(newUnidad.toLowerCase()),
     );
-    
+
     setFilteredUnidades(filtered);
     setShowDropdownUnidad(filtered.length > 0);
   };
-  
 
   const handleSelectUnidad = (codunidad: string) => {
     console.log(`🚌 Unidad seleccionada: ${codunidad}`);
     setUnidad(codunidad);
     setShowDropdownUnidad(false);
-    
+
     if (onUpdateUnidad) {
       onUpdateUnidad(grupo.id, codunidad);
     } else {
-      console.warn("onUpdateUnidad no está definido.");
+      console.warn('onUpdateUnidad no está definido.');
     }
   };
-
-
-
-
-
 
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
@@ -317,27 +332,30 @@ export default function Container({
                 onChange={handleConductorChange}
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                 />
-
+              />
 
               <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
                 <FaUserTie color="#343a40" />
               </div>
 
               {showDropdown && filteredOptions.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
-          {filteredOptions.map((conductor) => (
-            <li
-              key={conductor.codigo}
-              className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-              onClick={() => handleSelectConductor(conductor.codigo, conductor.apepate)}
-            >
-              {conductor.apepate}
-            </li>
-          ))}
-        </ul>
-      )}
-
+                <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+                  {filteredOptions.map((conductor) => (
+                    <li
+                      key={conductor.codigo}
+                      className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+                      onClick={() =>
+                        handleSelectConductor(
+                          conductor.codigo,
+                          conductor.apepate,
+                        )
+                      }
+                    >
+                      {conductor.apepate}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="relative">
               <input
@@ -347,28 +365,28 @@ export default function Container({
                 value={unidad}
                 onChange={handleUnidadChange}
                 onFocus={() => setShowDropdownUnidad(true)}
-                onBlur={() => setTimeout(() => setShowDropdownUnidad(false), 200)}
+                onBlur={() =>
+                  setTimeout(() => setShowDropdownUnidad(false), 200)
+                }
               />
               <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
                 <FaCar color="#343a40" />
               </div>
 
               {showDropdownUnidad && filteredUnidades.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
-            {filteredUnidades.map((unidad) => (
-              <li
-                key={unidad.id}
-                className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                onClick={() => handleSelectUnidad(unidad.codunidad)}
-              >
-                {unidad.codunidad}
-              </li>
-            ))}
-          </ul>
-        )}
+                <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+                  {filteredUnidades.map((unidad) => (
+                    <li
+                      key={unidad.id}
+                      className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+                      onClick={() => handleSelectUnidad(unidad.codunidad)}
+                    >
+                      {unidad.codunidad}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-
-
 
             <div>Duracion: (Ida desde el Aeropuerto) Calculando ...</div>
 
@@ -380,12 +398,52 @@ export default function Container({
                 Pasajero
               </button>
 
-              <button
-                type="button"
-                className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-              >
-                Ruta
-              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(true)}
+                  className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Ruta
+                </button>
+
+                {isOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+                      <h2 className="mb-4 text-lg font-semibold">
+                        Ruta programada - Grupo 1
+                      </h2>
+
+                      {/* Muestra el mapa solo si la API está cargada */}
+                      {isLoaded ? (
+                        <div className="h-[500px] w-full">
+                          <GoogleMap
+                            mapContainerStyle={{
+                              width: '100%',
+                              height: '100%',
+                            }}
+                            center={center}
+                            zoom={14}
+                          >
+                            <Marker position={center} />
+                          </GoogleMap>
+                        </div>
+                      ) : (
+                        <p>Cargando mapa...</p>
+                      )}
+
+                      {/* Botón para cerrar */}
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="mt-4 rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 type="button"
                 className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
