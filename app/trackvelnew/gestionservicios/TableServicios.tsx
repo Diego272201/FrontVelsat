@@ -23,8 +23,8 @@ import { BsArrowDownSquareFill } from 'react-icons/bs';
 import { FaCar, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
-
-
+import Mapa from '@/app/components/Mapa';
+import DragAndDropTable from './TableDraw';
 
 const getFormattedDate = () => {
   const peruTime = new Date(
@@ -134,6 +134,10 @@ export default function App({
   selectedDate: string | null;
   refreshFlag: boolean;
 }) {
+  const [coordenadas, setCoordenadas] = useState<
+    { lat: number; lng: number }[]
+  >([]);
+
   const [isOpenA, setIsOpenA] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -740,7 +744,7 @@ export default function App({
                           {' '}
                           {selectedRow.fechafin}
                         </p>
-                        <div className="relative inline-block text-left mt-2">
+                        <div className="relative mt-2 inline-block text-left">
                           <button
                             onClick={() => setIsOpenD(!isOpenD)}
                             className="flex w-48 items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
@@ -780,15 +784,19 @@ export default function App({
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       {/* Table */}
                       <div>
-                      <TableDraw codServicio={selectedRow.codServicio}></TableDraw>
-                    </div>
+                        <TableDraw
+                          codServicio={selectedRow.codServicio}
+                          onCoordenadasUpdate={setCoordenadas}
+                        ></TableDraw>
+                      </div>
 
-                      <div className="flex items-center justify-center rounded-lg bg-white p-4 shadow-md">
-                        <p className="text-gray-500">[Mapa aquí]</p>
+                      <div>
+                        <Mapa
+                          recorrido={coordenadas}
+                          marcadores={coordenadas}
+                        />
                       </div>
                     </div>
-
-                
 
                     <div className="mt-6 flex">
                       <p>

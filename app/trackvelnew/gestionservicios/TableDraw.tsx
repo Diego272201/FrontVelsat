@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import {
-  DndContext,
-  closestCenter,
-} from '@dnd-kit/core';
+import { DndContext, closestCenter } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -13,11 +10,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@nextui-org/react';
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Button,
+} from '@nextui-org/react';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
 
 interface RowData {
-  orden: string;  
+  orden: string;
   area: string;
   nombre: string;
   direccion: string;
@@ -27,10 +30,12 @@ interface RowData {
 
 interface Props {
   codServicio: string;
+  onCoordenadasUpdate: (coordenadas: { lat: number; lng: number }[]) => void;
 }
 
 const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: row.orden });
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: row.orden });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -38,9 +43,15 @@ const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
   };
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} {...listeners} className="cursor-grab border bg-white active:cursor-grabbing">
+    <tr
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="cursor-grab border bg-white active:cursor-grabbing"
+    >
       <td className="border p-1">
-        <div className="flex items-center gap-2 justify-center">
+        <div className="flex items-center justify-center gap-2">
           <span>{index + 1}</span>
           <Dropdown>
             <DropdownTrigger>
@@ -50,7 +61,9 @@ const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
             </DropdownTrigger>
             <DropdownMenu aria-label="Acciones">
               <DropdownItem key="edit">Editar</DropdownItem>
-              <DropdownItem key="delete" className="text-danger" color="danger">Eliminar</DropdownItem>
+              <DropdownItem key="delete" className="text-danger" color="danger">
+                Eliminar
+              </DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </div>
@@ -64,7 +77,10 @@ const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
   );
 };
 
-export default function DragAndDropTable({ codServicio }: Props) {
+export default function DragAndDropTable({
+  codServicio,
+  onCoordenadasUpdate,
+}: Props) {
   const [data, setData] = useState<RowData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +90,8 @@ export default function DragAndDropTable({ codServicio }: Props) {
     const API_URL = `http://66.240.210.125:8586/api/Preplan/PasajeroList?codservicio=${codServicio}`;
     setLoading(true);
 
-    axios.get(API_URL)
+    axios
+      .get(API_URL)
       .then((response) => {
         const fetchedData = response.data.map((item: any, index: number) => ({
           orden: item.orden.toString(),
@@ -82,18 +99,29 @@ export default function DragAndDropTable({ codServicio }: Props) {
           nombre: item?.pasajero?.nombre || 'N/A',
           direccion: item?.lugar?.direccion || 'N/A',
           distrito: item?.lugar?.distrito || 'N/A',
-          estado: item.lugar?.estado ?? "Sin estado",
+          estado: item.lugar?.estado ?? 'Sin estado',
+          wy: item.lugar?.wy ?? '',
+          wx: item.lugar?.wx ?? '',
         }));
 
-        console.log("Datos obtenidos:", fetchedData);
+        console.log('Datos obtenidos:', fetchedData);
         setData(fetchedData);
+        // Convertir wy y wx en coordenadas para pasarlas como props
+        const coordenadas = fetchedData
+          .map((item: { wy: string; wx: string }) => ({
+            lat: parseFloat(item.wy),
+            lng: parseFloat(item.wx),
+          }))
+          .filter(
+            (coord: { lat: number; lng: number }) =>
+              !isNaN(coord.lat) && !isNaN(coord.lng),
+          ); // Filtrar valores inválidos
+
+        onCoordenadasUpdate(coordenadas);
       })
       .catch((error) => console.error('Error fetching data:', error))
       .finally(() => setLoading(false));
-  }, [codServicio]);
-
-
-
+  }, [codServicio, onCoordenadasUpdate]);
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
@@ -103,12 +131,13 @@ export default function DragAndDropTable({ codServicio }: Props) {
       setData(arrayMove(data, oldIndex, newIndex));
     }
   };
-  
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={data.map((item) => ({ id: item.orden }))} strategy={verticalListSortingStrategy}>
-
+      <SortableContext
+        items={data.map((item) => ({ id: item.orden }))}
+        strategy={verticalListSortingStrategy}
+      >
         <div className="rounded-lg bg-white p-4 shadow-md">
           <table className="w-full border-collapse border border-gray-300">
             <thead>
@@ -127,26 +156,28 @@ export default function DragAndDropTable({ codServicio }: Props) {
                 ? Array.from({ length: 5 }).map((_, index) => (
                     <tr key={index} className="animate-pulse bg-gray-200">
                       <td className="border p-2">
-                        <div className="h-4 w-8 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-8 rounded bg-gray-300"></div>
                       </td>
                       <td className="border p-2">
-                        <div className="h-4 w-20 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-20 rounded bg-gray-300"></div>
                       </td>
                       <td className="border p-2">
-                        <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-24 rounded bg-gray-300"></div>
                       </td>
                       <td className="border p-2">
-                        <div className="h-4 w-32 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-32 rounded bg-gray-300"></div>
                       </td>
                       <td className="border p-2">
-                        <div className="h-4 w-20 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-20 rounded bg-gray-300"></div>
                       </td>
                       <td className="border p-2">
-                        <div className="h-4 w-16 bg-gray-300 rounded"></div>
+                        <div className="h-4 w-16 rounded bg-gray-300"></div>
                       </td>
                     </tr>
                   ))
-                : data.map((row, index) => <SortableRow key={row.orden} row={row} index={index} />)}
+                : data.map((row, index) => (
+                    <SortableRow key={row.orden} row={row} index={index} />
+                  ))}
             </tbody>
           </table>
         </div>
