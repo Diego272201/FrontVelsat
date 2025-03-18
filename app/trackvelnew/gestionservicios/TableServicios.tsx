@@ -24,6 +24,7 @@ import { FaCar, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
+import SeguirUnidad from '@/app/request/seguirUnidad';
 
 const getFormattedDate = () => {
   const peruTime = new Date(
@@ -849,7 +850,16 @@ export default function App({
                       </div>
 
                       <div>
-                        <Mapa recorrido={recorrido} marcadores={coordenadas} />
+                        {['FA', 'FT', 'CN', 'NA'].includes(
+                          selectedRow.estado,
+                        ) ? (
+                          <Mapa
+                            recorrido={recorrido}
+                            marcadores={coordenadas}
+                          />
+                        ) : (
+                          <SeguirUnidad deviceId={selectedRow.unidadSF?.toLowerCase()} height="200px"/>                         
+                        )}
                       </div>
                     </div>
 
