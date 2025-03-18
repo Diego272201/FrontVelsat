@@ -8,6 +8,11 @@ import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
+import {
+  GoogleMap,
+  Marker,
+  useJsApiLoader,
+} from '@react-google-maps/api';
 import axios from 'axios';
 
 interface ItemData {
@@ -43,6 +48,10 @@ interface ContainerProps {
   
 }
 
+const center = {
+  lat: -12.0464,
+  lng: -77.0428,
+};
 
 export default function Container({
   id,
@@ -58,27 +67,17 @@ export default function Container({
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
-  const [conductor, setConductor] = useState<string>('');
-  const [conductores, setConductores] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  
-  const [filteredOptions, setFilteredOptions] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-
+  const [conductor, setConductor] = useState<string>("");
+  const [conductores, setConductores] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [filteredOptions, setFilteredOptions] = useState<{ codigo: number; apepate: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  
 
-  const [unidad, setUnidad] = useState<string>('');
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
-    [],
-  );
-  const [filteredUnidades, setFilteredUnidades] = useState<
-    { id: number; codunidad: string }[]
-  >([]);
+  const [unidad, setUnidad] = useState<string>("");
+  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
   const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
+
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -107,36 +106,10 @@ export default function Container({
     fetchUnidades();
   }, []);
 
-  
-  useEffect(() => {
-    if (conductorCodigo) {
-      const conductorEncontrado = conductores.find(c => c.codigo === Number(conductorCodigo));
-      if (conductorEncontrado) {
-        setConductor(conductorEncontrado.apepate);
-      } else {
-        setConductor(conductorCodigo); 
-      }
-    }
-  }, [conductorCodigo, conductores]);
-
-  useEffect(() => {
-    if (unidadCodigo) {
-      const unidadEncontrada = unidades.find(u => u.codunidad === unidadCodigo);
-      if (unidadEncontrada) {
-        setUnidad(unidadEncontrada.codunidad);
-      } else {
-        setUnidad(unidadCodigo);
-      }
-    }
-  }, [unidadCodigo, unidades]);
-  
-
 
 
   
-  const handleConductorChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newConductor = event.target.value;
     setConductor(newConductor);
 
@@ -421,12 +394,52 @@ export default function Container({
                 Pasajero
               </button>
 
-              <button
-                type="button"
-                className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-              >
-                Ruta
-              </button>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(true)}
+                  className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                >
+                  Ruta
+                </button>
+
+                {isOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+                      <h2 className="mb-4 text-lg font-semibold">
+                        Ruta programada - Grupo 1
+                      </h2>
+
+                      {/* Muestra el mapa solo si la API está cargada */}
+                      {isLoaded ? (
+                        <div className="h-[500px] w-full">
+                          <GoogleMap
+                            mapContainerStyle={{
+                              width: '100%',
+                              height: '100%',
+                            }}
+                            center={center}
+                            zoom={14}
+                          >
+                            <Marker position={center} />
+                          </GoogleMap>
+                        </div>
+                      ) : (
+                        <p>Cargando mapa...</p>
+                      )}
+
+                      {/* Botón para cerrar */}
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="mt-4 rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 type="button"
                 className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
