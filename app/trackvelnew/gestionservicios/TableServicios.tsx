@@ -20,6 +20,11 @@ import {
 import axios from 'axios';
 import { toast } from 'sonner';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
+import { FaCar, FaUserTie } from 'react-icons/fa';
+import Swal from 'sweetalert2';
+import TableDraw from './TableDraw';
+
+
 
 const getFormattedDate = () => {
   const peruTime = new Date(
@@ -131,7 +136,9 @@ export default function App({
 }) {
   const [isOpenA, setIsOpenA] = useState(false);
 
-  const dropdownRef = useRef<HTMLDivElement>(null); // 🔹 Definir el tipo correctamente
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isOpenD, setIsOpenD] = useState(false);
 
   // Detecta clics fuera del dropdown y lo cierra
   useEffect(() => {
@@ -151,6 +158,8 @@ export default function App({
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [refreshFlagDelete, setRefreshFlagDelete] = useState(false);
 
   const [page, setPage] = useState(1);
 
@@ -217,20 +226,124 @@ export default function App({
 
   const [selectedRow, setSelectedRow] = useState<any>(null);
 
+  const [conductor, setConductor] = useState<string>('');
+  const [conductores, setConductores] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
+  const [filteredOptions, setFilteredOptions] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [conductorSeleccionado, setConductorSeleccionado] = useState<
+    string | null
+  >(null);
+
+  const [unidadA, setUnidadA] = useState('');
+  const [unidadesA, setUnidadesA] = useState<
+    { id: number; codunidad: string }[]
+  >([]);
+  const [showDropdownUnidadA, setShowDropdownUnidadA] = useState(false);
+
+  const [unidadSeleccionadaA, setUnidadSeleccionadaA] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const fetchConductores = async () => {
+      try {
+        const response = await axios.get(
+          'http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
+        );
+        setConductores(response.data);
+      } catch (error) {
+        console.error('Error al obtener conductores:', error);
+      }
+    };
+
+    fetchConductores();
+  }, []);
+
+  useEffect(() => {
+    const fetchUnidades = async () => {
+      try {
+        const response = await axios.get(
+          'http://66.240.210.125:8586/api/Preplan/unidades',
+        );
+        setUnidadesA(response.data);
+      } catch (error) {
+        console.error('Error al obtener unidades:', error);
+      }
+    };
+
+    fetchUnidades();
+  }, []);
+
+  const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUnidadA(e.target.value);
+    setShowDropdownUnidadA(true);
+  };
+
+  const handleSelectUnidadA = (codunidad: string) => {
+    setUnidadA(codunidad);
+    setUnidadSeleccionadaA(codunidad);
+    setShowDropdownUnidadA(false);
+  };
+
+  const filteredUnidadesA =
+    unidadA.length > 0
+      ? unidadesA.filter((u) =>
+          (u.codunidad ?? '').toLowerCase().includes(unidadA.toLowerCase()),
+        )
+      : [];
+
+  const handleConductorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setConductor(value);
+
+    if (value.length > 0) {
+      const filtered = conductores.filter((c) =>
+        c.apepate.toLowerCase().includes(value.toLowerCase()),
+      );
+      setFilteredOptions(filtered);
+      setShowDropdown(true);
+    } else {
+      setFilteredOptions([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSelectConductor = (codigo: number, apepate: string) => {
+    setConductor(apepate);
+    setConductorSeleccionado(codigo.toString());
+    setShowDropdown(false);
+  };
   const formatData = (rawData: any[]) => {
     return rawData.map((item: any) => {
       const { estado, color } = getEstadoYColor(item);
+      const numpax = item.numpax ? parseInt(item.numpax, 10) - 1 : 0;
       return {
         key: item.codservicio,
+        codServicio: item.codservicio,
         area: item.area,
         numero: item.numero,
-        tipo: item.tipo,
-        empresa: item.empresa,
+        tipo:
+          item.tipo === 'S'
+            ? 'REPARTO'
+            : item.tipo === 'I'
+              ? 'RECOJO'
+              : item.tipo,
+        empresa: `${item.empresa} (${numpax})`,
         grupo: item.nomgrupo || 'NINGUNO',
         horaProg: item.fecplan ? item.fecplan.split(' ')[1] : '-',
         horaAto: item.fecha ? item.fecha.split(' ')[1] : '-',
+        fechaCompleta: item.fecha || '-',
+        fecPlanCompleta: item.fecplan || '-',
+        empresaSinNumber: item.empresa,
         controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
-        unidad: item.unidad?.codunidad || '-',
+        fechafin: item.newfechafni || '---',
+        unidad: item.unidad?.codunidad
+          ? item.unidad.codunidad.split('-')[0]
+          : '-',
         conductor: item.conductor?.apepate || '-',
         estado,
         color,
@@ -262,7 +375,7 @@ export default function App({
     };
 
     fetchData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag]);
+  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
 
   useEffect(() => {
     console.log('Datos formateados en data:', data);
@@ -293,7 +406,7 @@ export default function App({
     };
 
     fetchPasajeroData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag]);
+  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
 
   useEffect(() => {
     setSelectedKeys([]);
@@ -301,14 +414,16 @@ export default function App({
   }, [selectedDate]);
 
   const filteredData = useMemo(() => {
+    const unidadLimpia = selectedUnidad ? selectedUnidad.split('-')[0] : null;
+
     return data.filter(
       (item) =>
         (selectedArea ? item.area === selectedArea : true) &&
         (selectedEmpresa ? item.empresa === selectedEmpresa : true) &&
         (selecteServicio ? item.tipo === selecteServicio : true) &&
         (selecteNumServicio ? item.numero === selecteNumServicio : true) &&
-        (selectedUnidad
-          ? item.unidad.toLowerCase() === selectedUnidad.toLowerCase()
+        (unidadLimpia
+          ? item.unidad.toLowerCase() === unidadLimpia.toLowerCase()
           : true),
     );
   }, [
@@ -327,6 +442,76 @@ export default function App({
     const end = start + rowsPerPage;
     return filteredData.slice(start, end);
   }, [page, filteredData, rowsPerPage]);
+
+  useEffect(() => {
+    console.log(
+      'Nuevo valor de conductorSeleccionado Modal:',
+      conductorSeleccionado,
+    );
+  }, [conductorSeleccionado]);
+
+  useEffect(() => {
+    console.log(
+      'Nuevo valor de UnidadSeleccionado Modal:',
+      unidadSeleccionadaA,
+    );
+  }, [unidadSeleccionadaA]);
+
+  const asignarServicios = async () => {
+    if (!conductorSeleccionado || !unidadSeleccionadaA || !selectedRow) {
+      toast.error('Debe seleccionar un servicio, un conductor y una unidad.');
+      return;
+    }
+
+    const payload = [
+      {
+        codservicio: selectedRow.codServicio,
+        conductor: { codigo: conductorSeleccionado },
+        unidad: { codunidad: unidadSeleccionadaA },
+      },
+    ];
+
+    try {
+      const response = await axios.post(
+        'http://66.240.210.125:8586/api/Preplan/AsignarServicio',
+        payload,
+      );
+      toast.success('Asignación realizada con éxito.');
+    } catch (error) {
+      toast.error('Error al enviar la asignación.');
+    }
+  };
+
+  const eliminarServicio = async () => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción eliminará los servicios seleccionados permanentemente.',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+    });
+
+    if (!result.isConfirmed) return;
+
+    const payload = [{ codservicio: selectedRow.codServicio }]; // 🔹 Corrección aquí
+
+    try {
+      await axios.delete(
+        'http://66.240.210.125:8586/api/Preplan/eliminacionmultiple',
+        {
+          data: payload,
+        },
+      );
+
+      toast.success('Eliminado con éxito.');
+      setRefreshFlagDelete((prev) => !prev);
+    } catch (error) {
+      toast.error('Error al eliminar el servicio.');
+      console.error('Error en la eliminación:', error);
+    }
+  };
 
   return (
     <div>
@@ -409,14 +594,16 @@ export default function App({
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Servicio:</p>
                             <p className="col-span-3">
-                              15/03/2025 00:25 - REPARTO (8) - DELTA
+                              {selectedRow?.fechaCompleta} - {selectedRow.tipo}{' '}
+                              ({selectedRow.numero}) -{' '}
+                              {selectedRow.empresaSinNumber}
                             </p>
                           </div>
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Programación:</p>
                             <p className="col-span-3">
-                              15/03/2025 00:25 - RIVERA ROSALES HUGO FRANCISCO -
-                              S110
+                              {selectedRow?.fecPlanCompleta} -{' '}
+                              {selectedRow.conductor} -{selectedRow.unidad}
                             </p>
                           </div>
 
@@ -424,19 +611,96 @@ export default function App({
                             <p className="col-span-1 font-semibold">
                               Asignación:
                             </p>
-                            <input
-                              type="text"
-                              placeholder="Escriba el nombre del conductor (mínimo 4 dígitos)"
-                              className="col-span-2 rounded border p-2"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Escriba la unidad (mínimo 3 dígitos)"
-                              className="col-span-1 rounded border p-2"
-                            />
-                            <button className="w- rounded-md bg-blue-500 px-2 py-2 text-white">
-                              Asignar Servicio
-                            </button>
+
+                            <div className="relative col-span-2">
+                              <input
+                                type="text"
+                                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                                placeholder="Escriba el Nombre del Conductor"
+                                value={conductor}
+                                onChange={handleConductorChange}
+                                onFocus={() => setShowDropdown(true)}
+                                onBlur={() =>
+                                  setTimeout(() => setShowDropdown(false), 200)
+                                }
+                              />
+
+                              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
+                                <FaUserTie color="#343a40" />
+                              </div>
+
+                              {showDropdown && filteredOptions.length > 0 && (
+                                <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                                  {filteredOptions.map((c) => (
+                                    <li
+                                      key={c.codigo}
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+                                      onClick={() =>
+                                        handleSelectConductor(
+                                          c.codigo,
+                                          c.apepate,
+                                        )
+                                      }
+                                    >
+                                      {c.apepate}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            <div className="relative">
+                              <input
+                                type="text"
+                                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                                placeholder="Escriba Unidad"
+                                value={unidadA}
+                                onChange={handleUnidadAChange}
+                                onFocus={() => setShowDropdownUnidadA(true)}
+                                onBlur={() =>
+                                  setTimeout(
+                                    () => setShowDropdownUnidadA(false),
+                                    200,
+                                  )
+                                }
+                              />
+                              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
+                                <FaCar color="#343a40" />
+                              </div>
+
+                              {showDropdownUnidadA &&
+                                filteredUnidadesA.length > 0 && (
+                                  <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                                    {filteredUnidadesA.map((unidad) => (
+                                      <li
+                                        key={unidad.id}
+                                        className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+                                        onClick={() =>
+                                          handleSelectUnidadA(unidad.codunidad)
+                                        }
+                                      >
+                                        {unidad.codunidad}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={asignarServicios}
+                                className="w-96 rounded-md bg-blue-500 px-2 py-2 text-white transition-all duration-300 hover:bg-blue-400 hover:shadow-md active:scale-95 active:bg-blue-700"
+                              >
+                                Asignar Servicio
+                              </button>
+
+                              <button
+                                onClick={eliminarServicio}
+                                className="w-full rounded-md bg-red-600 px-2 py-2 text-white transition-all duration-300 hover:bg-red-500 hover:shadow-md active:scale-95 active:bg-red-700"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-5 items-center gap-2 p-2">
@@ -465,102 +729,71 @@ export default function App({
                           </div>
                         </div>
                       </div>
-                      <div className="flex w-1/6 flex-col items-center justify-center rounded-lg bg-green-200 p-3 text-center">
-                        <p className="text-lg font-bold">FA</p>
-                        <p className="text-xl font-bold">15/03/2025 01:43</p>
-                        <button className="mt-2 rounded-md bg-blue-500 px-4 py-2 text-white">
-                          Opciones Servicio
-                        </button>
+                      <div
+                        className="rounded-lgp-3 flex w-1/6 flex-col items-center justify-center text-center"
+                        style={{ backgroundColor: selectedRow.color }}
+                      >
+                        <p className="text-lg font-bold">
+                          {selectedRow.estado}
+                        </p>
+                        <p className="text-xl font-bold">
+                          {' '}
+                          {selectedRow.fechafin}
+                        </p>
+                        <div className="relative inline-block text-left mt-2">
+                          <button
+                            onClick={() => setIsOpenD(!isOpenD)}
+                            className="flex w-48 items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                          >
+                            Opciones Servicio ▼
+                          </button>
+
+                          {isOpenD && (
+                            <div className="absolute z-10 mt-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
+                              <ul className="py-1">
+                                <li
+                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                  onClick={() => alert('Cancelar Servicio')}
+                                >
+                                  Cancelar Servicio
+                                </li>
+                                <li
+                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                  onClick={() => alert('Cancelar Asignación')}
+                                >
+                                  Cancelar Asignación
+                                </li>
+                                <li
+                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                  onClick={() => alert('Modificar Servicio')}
+                                >
+                                  Modificar Servicio
+                                </li>
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Table & Map */}
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       {/* Table */}
-                      <div className="rounded-lg bg-white p-4 shadow-md">
-                        <table className="w-full border-collapse border border-gray-300">
-                          <thead>
-                            <tr className="bg-gray-200">
-                              <th className="border p-2">Orden</th>
-                              <th className="border p-2">Area</th>
-                              <th className="border p-2">Nombre</th>
-                              <th className="border p-2">Direccion</th>
-                              <th className="border p-2">Distrito</th>
-                              <th className="border p-2">Orden</th>
-                              <th className="border p-2">Estado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr className="border">
-                              <td className="border p-2">
-                                <div
-                                  className="relative flex items-center gap-2"
-                                  ref={dropdownRef}
-                                >
-                                  <span>1</span>
-                                  <button
-                                    className="rounded bg-blue-200 p-1 hover:bg-gray-300"
-                                    onClick={() => setIsOpenA(!isOpenA)}
-                                  >
-                                    <BsArrowDownSquareFill
-                                      color="#0353a4"
-                                      size={20}
-                                    />
-                                  </button>
-                                  {isOpenA && (
-                                    <div className="lefth-0 absolute top-8 z-10 w-40 rounded-md border bg-white shadow-lg">
-                                      <ul className="text-sm">
-                                        <li
-                                          className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                          onClick={() => setIsOpenA(false)}
-                                        >
-                                          New file
-                                        </li>
-                                        <li
-                                          className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                          onClick={() => setIsOpenA(false)}
-                                        >
-                                          Copy link
-                                        </li>
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="border p-2">1</td>
-                              <td className="border p-2">delta</td>
-                              <td className="border p-2">
-                                YANEYZA VENTE / 926972077
-                              </td>
-                              <td className="border p-2">
-                                Pasaje San Martin Mz. P Lote 17
-                              </td>
-                              <td className="border p-2">CALLAO</td>
-                              <td className="border p-2">CALLAO</td>
-
-                              <td className="border p-2">NA</td>
-                            </tr>
-                            <tr className="border">
-                              <td className="border p-2">2</td>
-                              <td className="border p-2">delta</td>
-                              <td className="border p-2">Max Raffo Velarde</td>
-                              <td className="border p-2">
-                                Calle la Habana 121 dep 102
-                              </td>
-                              <td className="border p-2">San Isidro</td>
-                              <td className="border p-2">CALLAO</td>
-                              <td className="border p-2">NA</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                      <div>
+                      <TableDraw codServicio={selectedRow.codServicio}></TableDraw>
+                    </div>
 
                       <div className="flex items-center justify-center rounded-lg bg-white p-4 shadow-md">
                         <p className="text-gray-500">[Mapa aquí]</p>
                       </div>
                     </div>
 
+                
+
                     <div className="mt-6 flex">
+                      <p>
+                        <strong>CodServicio:</strong> {selectedRow.codServicio}
+                      </p>
                       <p>
                         <strong>Área:</strong> {selectedRow.area}
                       </p>
@@ -594,6 +827,8 @@ export default function App({
                       <p>
                         <strong>Estado:</strong> {selectedRow.estado}
                       </p>
+                      <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
+                      <p>Fecha Fin: {selectedRow?.fechafin}</p>
                     </div>
                   </div>
                 ) : (

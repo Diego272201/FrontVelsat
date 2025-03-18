@@ -224,11 +224,17 @@ export default function Page() {
         )
       : [];
 
-  const handleUnidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUnidad(e.target.value);
 
-    setShowDropdownUnidad(true);
-  };
+      const handleUnidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setUnidad(value);
+        setShowDropdownUnidad(true);
+      
+        if (!value.trim()) {
+          setUnidadSeleccionada(null); 
+        }
+      };
+      
 
   const handleSelectUnidad = (codunidad: string) => {
     setUnidad(codunidad);
@@ -352,6 +358,7 @@ export default function Page() {
       console.error('Error en la eliminación:', error);
     }
   };
+  
 
   useEffect(() => {
     console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
@@ -360,6 +367,11 @@ export default function Page() {
   useEffect(() => {
     console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionadaA);
   }, [unidadSeleccionadaA]);
+
+  useEffect(() => {
+    console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
+  }, [unidadSeleccionada]);
+
 
   useEffect(() => {
     console.log('Nuevo valor de ccodigosServicios:', selectedServices);
@@ -606,7 +618,7 @@ export default function Page() {
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                      className="peer block w-full rounded-lg border-transparent bg-gray-50 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                       placeholder="Unidad"
                       value={unidad}
                       onChange={handleUnidadChange}
@@ -670,7 +682,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-96 rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                  className="peer block w-96 rounded-lg border-transparent bg-gray-50 px-16 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                   placeholder="Conductor"
                   value={conductor}
                   onChange={handleConductorChange}
@@ -702,7 +714,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                  className="peer block w-full rounded-lg border-transparent bg-gray-50 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                   placeholder="Unidad"
                   value={unidadA}
                   onChange={handleUnidadAChange}
