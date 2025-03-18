@@ -17,7 +17,7 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Button } from '@
 import { BsArrowDownSquareFill } from 'react-icons/bs';
 
 interface RowData {
-  id: string;
+  orden: string;  
   area: string;
   nombre: string;
   direccion: string;
@@ -30,7 +30,7 @@ interface Props {
 }
 
 const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: row.id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: row.orden });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -77,31 +77,38 @@ export default function DragAndDropTable({ codServicio }: Props) {
     axios.get(API_URL)
       .then((response) => {
         const fetchedData = response.data.map((item: any, index: number) => ({
-          id: index.toString(),
+          orden: item.orden.toString(),
           area: item.arealan || 'N/A',
           nombre: item?.pasajero?.nombre || 'N/A',
           direccion: item?.lugar?.direccion || 'N/A',
           distrito: item?.lugar?.distrito || 'N/A',
           estado: item.lugar?.estado ?? "Sin estado",
         }));
+
+        console.log("Datos obtenidos:", fetchedData);
         setData(fetchedData);
       })
       .catch((error) => console.error('Error fetching data:', error))
       .finally(() => setLoading(false));
   }, [codServicio]);
 
+
+
+
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-      const oldIndex = data.findIndex((item) => item.id === active.id);
-      const newIndex = data.findIndex((item) => item.id === over?.id);
+      const oldIndex = data.findIndex((item) => item.orden === active.id);
+      const newIndex = data.findIndex((item) => item.orden === over?.id);
       setData(arrayMove(data, oldIndex, newIndex));
     }
   };
+  
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={data} strategy={verticalListSortingStrategy}>
+      <SortableContext items={data.map((item) => ({ id: item.orden }))} strategy={verticalListSortingStrategy}>
+
         <div className="rounded-lg bg-white p-4 shadow-md">
           <table className="w-full border-collapse border border-gray-300">
             <thead>
@@ -139,7 +146,7 @@ export default function DragAndDropTable({ codServicio }: Props) {
                       </td>
                     </tr>
                   ))
-                : data.map((row, index) => <SortableRow key={row.id} row={row} index={index} />)}
+                : data.map((row, index) => <SortableRow key={row.orden} row={row} index={index} />)}
             </tbody>
           </table>
         </div>
