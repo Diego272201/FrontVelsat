@@ -646,7 +646,7 @@ export default function App({
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div className="bg-gray-100 p-2 rounded-lg"  style={{marginTop:'70px'}}>
+                  <div className="bg-gray-100 p-2 rounded-lg" >
                     {/* Service Header */}
                     <div className="flex rounded-lg bg-white p-2 shadow-md" style={{fontSize:'13px'}}>
                       <div className="mr-4 flex-1">
