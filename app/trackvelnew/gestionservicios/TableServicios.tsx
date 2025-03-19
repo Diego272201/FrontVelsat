@@ -639,15 +639,16 @@ export default function App({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         className="w-[90%] max-w-none"
+        placement='bottom'
       >
         <ModalContent>
           {(onClose) => (
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div className="bg-gray-100 p-4">
+                  <div className="bg-gray-100 p-2 rounded-lg">
                     {/* Service Header */}
-                    <div className="flex rounded-lg bg-white p-4 shadow-md" style={{fontSize:'13px'}}>
+                    <div className="flex rounded-lg bg-white p-2 shadow-md" style={{fontSize:'13px'}}>
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-lg font-semibold">
                           Ficha Servicio
@@ -794,16 +795,17 @@ export default function App({
                         </div>
                       </div>
                       <div
-                        className="rounded-lgp-3 flex w-1/6 flex-col items-center justify-center text-center"
+                        className="rounded-lgp-3 flex w-[170px] flex-col items-center justify-center text-center"
                         style={{ backgroundColor: selectedRow.color }}
                       >
                         <p className="text-lg font-bold">
                           {selectedRow.estado}
                         </p>
-                        <p className="text-xl font-bold">
+                        <p className="text-lg font-bold">
                           {' '}
                           {selectedRow.fechafin}
                         </p>
+
                         <div className="relative mt-2 inline-block text-left">
                           <button
                             onClick={() => setIsOpenD(!isOpenD)}
