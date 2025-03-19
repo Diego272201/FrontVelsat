@@ -639,7 +639,6 @@ export default function App({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         className="w-[90%] max-w-none"
-        placement='bottom'
       >
         <ModalContent>
           {(onClose) => (
