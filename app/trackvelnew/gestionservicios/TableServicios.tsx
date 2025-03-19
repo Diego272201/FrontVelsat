@@ -638,15 +638,15 @@ export default function App({
       <Modal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        className="full max-w-none"
+        className="full max-w-none"        
         scrollBehavior='inside'
-      >
-        <ModalContent>
+       >
+        <ModalContent style={{ marginTop: '80px' }}>
           {(onClose) => (
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div className="bg-gray-100 p-2 rounded-lg">
+                  <div className="bg-gray-100 p-2 rounded-lg"  style={{marginTop:'70px'}}>
                     {/* Service Header */}
                     <div className="flex rounded-lg bg-white p-2 shadow-md" style={{fontSize:'13px'}}>
                       <div className="mr-4 flex-1">
