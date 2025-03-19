@@ -647,10 +647,7 @@ export default function App({
                 {selectedRow ? (
                   <div className="bg-gray-100 p-4">
                     {/* Service Header */}
-                    <div
-                      className="flex rounded-lg bg-white p-4 shadow-md"
-                      style={{ fontSize: '13px' }}
-                    >
+                    <div className="flex rounded-lg bg-white p-4 shadow-md" style={{fontSize:'13px'}}>
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-lg font-semibold">
                           Ficha Servicio
@@ -682,6 +679,7 @@ export default function App({
                               <input
                                 type="text"
                                 className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+
                                 placeholder="Escriba el Nombre del Conductor"
                                 value={conductor}
                                 onChange={handleConductorChange}
@@ -718,7 +716,7 @@ export default function App({
                             <div className="relative">
                               <input
                                 type="text"
-                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                               className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba Unidad"
                                 value={unidadA}
                                 onChange={handleUnidadAChange}
@@ -809,7 +807,7 @@ export default function App({
                         <div className="relative mt-2 inline-block text-left">
                           <button
                             onClick={() => setIsOpenD(!isOpenD)}
-                            className="w-46 flex items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                            className="flex w-46 items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
                           >
                             Opciones Servicio ▼
                           </button>
@@ -845,7 +843,7 @@ export default function App({
                     {/* Table & Map */}
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       {/* Table */}
-                      <div className="h-[32.4vh] bg-white p-3 rounded-lg">
+                      <div className=''>
                         <TableDraw
                           codServicio={selectedRow.codServicio}
                           onCoordenadasUpdate={setCoordenadas}
@@ -861,11 +859,9 @@ export default function App({
                             marcadores={coordenadas}
                           />
                         ) : (
-                          <div className="rounded-lg bg-white p-3">
-                            <SeguirUnidad
-                              deviceId={selectedRow.unidadSF?.toLowerCase()}
-                              height="30vh"
-                            />
+                          <div className='p-3 bg-white rounded-lg'>
+                          <SeguirUnidad deviceId={selectedRow.unidadSF?.toLowerCase()} height="30vh"/>                         
+
                           </div>
                         )}
                       </div>
