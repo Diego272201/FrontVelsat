@@ -639,6 +639,7 @@ export default function App({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         className="w-[90%] max-w-none"
+        scrollBehavior='inside'
       >
         <ModalContent>
           {(onClose) => (
