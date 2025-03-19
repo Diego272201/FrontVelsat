@@ -148,6 +148,9 @@ export default function App({
     [],
   );
 
+  const tableRef = useRef<{ actualizarOrdenEnServidor: () => void } | null>(null);
+
+
   // Detecta clics fuera del dropdown y lo cierra
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -638,17 +641,20 @@ export default function App({
       <Modal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        className="full max-w-none"        
-        scrollBehavior='inside'
-       >
+        className="full max-w-none"
+        scrollBehavior="inside"
+      >
         <ModalContent style={{ marginTop: '80px' }}>
           {(onClose) => (
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div className="bg-gray-100 p-2 rounded-lg" >
+                  <div className="rounded-lg bg-gray-100 p-2">
                     {/* Service Header */}
-                    <div className="flex rounded-lg bg-white p-2 shadow-md" style={{fontSize:'13px'}}>
+                    <div
+                      className="flex rounded-lg bg-white p-2 shadow-md"
+                      style={{ fontSize: '13px' }}
+                    >
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-lg font-semibold">
                           Ficha Servicio
@@ -680,7 +686,6 @@ export default function App({
                               <input
                                 type="text"
                                 className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-
                                 placeholder="Escriba el Nombre del Conductor"
                                 value={conductor}
                                 onChange={handleConductorChange}
@@ -717,7 +722,7 @@ export default function App({
                             <div className="relative">
                               <input
                                 type="text"
-                               className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba Unidad"
                                 value={unidadA}
                                 onChange={handleUnidadAChange}
@@ -809,7 +814,7 @@ export default function App({
                         <div className="relative mt-2 inline-block text-left">
                           <button
                             onClick={() => setIsOpenD(!isOpenD)}
-                            className="flex w-46 items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                            className="w-46 flex items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
                           >
                             Opciones Servicio ▼
                           </button>
@@ -845,10 +850,13 @@ export default function App({
                     {/* Table & Map */}
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       {/* Table */}
-                      <div className=''>
+                      <div className="">
                         <TableDraw
                           codServicio={selectedRow.codServicio}
+                          fecha={selectedRow.fechaCompleta}
                           onCoordenadasUpdate={setCoordenadas}
+                          ref={tableRef}
+
                         ></TableDraw>
                       </div>
 
@@ -861,9 +869,11 @@ export default function App({
                             marcadores={coordenadas}
                           />
                         ) : (
-                          <div className='p-3 bg-white rounded-lg'>
-                          <SeguirUnidad deviceId={selectedRow.unidadSF?.toLowerCase()} height="30vh"/>                         
-
+                          <div className="rounded-lg bg-white p-3">
+                            <SeguirUnidad
+                              deviceId={selectedRow.unidadSF?.toLowerCase()}
+                              height="30vh"
+                            />
                           </div>
                         )}
                       </div>
@@ -916,7 +926,13 @@ export default function App({
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button color="success" onPress={onClose}>
+                <Button
+                  color="success"
+                  onPress={() => {
+                    tableRef.current?.actualizarOrdenEnServidor();
+                    onClose();
+                  }}
+                >
                   Guardar
                 </Button>
                 <Button color="danger" onPress={onClose}>

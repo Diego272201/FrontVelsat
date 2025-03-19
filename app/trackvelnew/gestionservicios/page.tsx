@@ -225,17 +225,15 @@ export default function Page() {
         )
       : [];
 
+  const handleUnidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUnidad(value);
+    setShowDropdownUnidad(true);
 
-      const handleUnidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setUnidad(value);
-        setShowDropdownUnidad(true);
-      
-        if (!value.trim()) {
-          setUnidadSeleccionada(null); 
-        }
-      };
-      
+    if (!value.trim()) {
+      setUnidadSeleccionada(null);
+    }
+  };
 
   const handleSelectUnidad = (codunidad: string) => {
     setUnidad(codunidad);
@@ -359,9 +357,8 @@ export default function Page() {
       console.error('Error en la eliminación:', error);
     }
   };
-  
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
     console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
@@ -375,7 +372,6 @@ export default function Page() {
     console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
   }, [unidadSeleccionada]);
 
-
   useEffect(() => {
     console.log('Nuevo valor de ccodigosServicios:', selectedServices);
   }, [selectedServices]);
@@ -388,14 +384,15 @@ export default function Page() {
           <div className="progressAndTitle">
             CONTROL DE SERVICIOS
             <div className="flex gap-2">
-             
-              <button    onClick={onOpen} className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
+              <button
+                onClick={onOpen}
+                className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600"
+              >
                 <MdNewLabel size={20} />
                 Nuevo Servicio
               </button>
 
               <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} />
-
 
               <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
                 Nuevo Servicio Turismo
@@ -422,21 +419,21 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido">
+          <div id="contenido" style={{ background: 'white' }}>
+            
             <div className="fristFileT">
               <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="whitespace-nowrap text-gray-900">
+                <div className="relative flex items-center pb-2">
+                  <span className="whitespace-nowrap text-xs font-bold tracking-wide text-gray-900">
                     Fecha a Consultar
                   </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
                   <div>
                     <input
                       type="date"
-                      className="rounded-md border  p-2 focus:outline-none"
+                      className="rounded-md border  p-2 focus:outline-none bg-gray-100"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -464,10 +461,11 @@ export default function Page() {
                     </Button>
                   </div>
 
+
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-100 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
                     >
                       <option value="">Seleccione Empresa</option>
                       <option value="Empresa 1">Empresa 1</option>
@@ -487,7 +485,9 @@ export default function Page() {
                       Resumen 2
                     </button>
                   </div>
-                </div>
+                  </div>
+
+              
               </div>
             </div>
 
@@ -558,7 +558,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="peer block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 ps-11 text-sm placeholder-zinc-500"
+                   className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -618,14 +618,14 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-lg border border-gray-300 p-2 text-center shadow-sm"
+                      className="w-full rounded-lg border border-gray-300 p-2 text-center shadow-sm bg-gray-100"
                     />
                   </div>
 
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer block w-full rounded-lg border-transparent bg-gray-50 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                        className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                       placeholder="Unidad"
                       value={unidad}
                       onChange={handleUnidadChange}
