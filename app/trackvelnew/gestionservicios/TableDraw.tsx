@@ -138,7 +138,6 @@ export default function DragAndDropTable({
         items={data.map((item) => ({ id: item.orden }))}
         strategy={verticalListSortingStrategy}
       >
-        <div className="rounded-lg bg-white p-4 shadow-md">
           <table className="w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-blue-300">
@@ -180,7 +179,6 @@ export default function DragAndDropTable({
                   ))}
             </tbody>
           </table>
-        </div>
       </SortableContext>
     </DndContext>
   );

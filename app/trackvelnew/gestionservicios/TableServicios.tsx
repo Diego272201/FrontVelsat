@@ -643,16 +643,19 @@ export default function App({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Detalles del Servicio</ModalHeader>
               <ModalBody>
                 {selectedRow ? (
                   <div className="bg-gray-100 p-4">
                     {/* Service Header */}
-                    <div className="flex rounded-lg bg-white p-4 shadow-md">
+                    <div
+                      className="flex rounded-lg bg-white p-4 shadow-md"
+                      style={{ fontSize: '13px' }}
+                    >
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-lg font-semibold">
                           Ficha Servicio
                         </h2>
+
                         <div className="mt-2 border border-gray-300">
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Servicio:</p>
@@ -678,7 +681,7 @@ export default function App({
                             <div className="relative col-span-2">
                               <input
                                 type="text"
-                                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba el Nombre del Conductor"
                                 value={conductor}
                                 onChange={handleConductorChange}
@@ -715,7 +718,7 @@ export default function App({
                             <div className="relative">
                               <input
                                 type="text"
-                                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba Unidad"
                                 value={unidadA}
                                 onChange={handleUnidadAChange}
@@ -752,14 +755,14 @@ export default function App({
                             <div className="flex gap-2">
                               <button
                                 onClick={asignarServicios}
-                                className="w-96 rounded-md bg-blue-500 px-2 py-2 text-white transition-all duration-300 hover:bg-blue-400 hover:shadow-md active:scale-95 active:bg-blue-700"
+                                className="w-96 rounded-md bg-blue-500 px-2 py-1.5 text-white transition-all duration-300 hover:bg-blue-400 hover:shadow-md active:scale-95 active:bg-blue-700"
                               >
                                 Asignar Servicio
                               </button>
 
                               <button
                                 onClick={eliminarServicio}
-                                className="w-full rounded-md bg-red-600 px-2 py-2 text-white transition-all duration-300 hover:bg-red-500 hover:shadow-md active:scale-95 active:bg-red-700"
+                                className="w-full rounded-md bg-red-600 px-2 py-1.5 text-white transition-all duration-300 hover:bg-red-500 hover:shadow-md active:scale-95 active:bg-red-700"
                               >
                                 Eliminar
                               </button>
@@ -771,22 +774,22 @@ export default function App({
                             <input
                               type="text"
                               placeholder="Ingrese Nombre Pasajero"
-                              className="col-span-1 rounded border bg-gray-200 p-2"
+                              className="col-span-1 rounded border bg-gray-200 p-1.5"
                               disabled
                             />
                             <input
                               type="text"
                               placeholder="Hora Atención"
-                              className="col-span-1 rounded border bg-gray-200 p-2"
+                              className="col-span-1 rounded border bg-gray-200 p-1.5"
                               disabled
                             />
                             <input
                               type="text"
                               placeholder="Nueva Hora Ato"
-                              className="col-span-1 rounded border bg-gray-200 p-2"
+                              className="col-span-1 rounded border bg-gray-200 p-1.5"
                               disabled
                             />
-                            <button className="rounded-md bg-gray-500 px-4 py-2 text-white">
+                            <button className="rounded-md bg-gray-500 px-4 py-1.5 text-white">
                               Agregar
                             </button>
                           </div>
@@ -806,7 +809,7 @@ export default function App({
                         <div className="relative mt-2 inline-block text-left">
                           <button
                             onClick={() => setIsOpenD(!isOpenD)}
-                            className="flex w-48 items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                            className="w-46 flex items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
                           >
                             Opciones Servicio ▼
                           </button>
@@ -842,7 +845,7 @@ export default function App({
                     {/* Table & Map */}
                     <div className="mt-4 grid grid-cols-2 gap-4">
                       {/* Table */}
-                      <div>
+                      <div className="h-[32.4vh] bg-white p-3 rounded-lg">
                         <TableDraw
                           codServicio={selectedRow.codServicio}
                           onCoordenadasUpdate={setCoordenadas}
@@ -858,12 +861,17 @@ export default function App({
                             marcadores={coordenadas}
                           />
                         ) : (
-                          <SeguirUnidad deviceId={selectedRow.unidadSF?.toLowerCase()} height="200px"/>                         
+                          <div className="rounded-lg bg-white p-3">
+                            <SeguirUnidad
+                              deviceId={selectedRow.unidadSF?.toLowerCase()}
+                              height="30vh"
+                            />
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="mt-6 flex">
+                    {/* <div className="mt-6 flex">
                       <p>
                         <strong>CodServicio:</strong> {selectedRow.codServicio}
                       </p>
@@ -903,7 +911,7 @@ export default function App({
                       <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
                       <p>Fecha Fin: {selectedRow?.fechafin}</p>
                       <p>Fecha Ini: {selectedRow?.fechaini}</p>
-                    </div>
+                    </div> */}
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>
