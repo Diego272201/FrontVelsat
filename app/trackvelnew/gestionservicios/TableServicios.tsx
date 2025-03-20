@@ -148,8 +148,11 @@ export default function App({
     [],
   );
 
-  const tableRef = useRef<{ actualizarOrdenEnServidor: () => void } | null>(null);
+  const tableRef = useRef<{ actualizarOrdenEnServidor: () => void } | null>(
+    null,
+  );
 
+  const [refreshFlagAsignar, setRefreshFlagAsignar] = useState(false);
 
   // Detecta clics fuera del dropdown y lo cierra
   useEffect(() => {
@@ -172,10 +175,6 @@ export default function App({
 
   const [refreshFlagDelete, setRefreshFlagDelete] = useState(false);
 
-  const [page, setPage] = useState(1);
-
-  const [rowsPerPage, setRowsPerPage] = useState(13);
-
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
   const handleCheckboxClick = (key: string) => {
@@ -193,43 +192,6 @@ export default function App({
   useEffect(() => {
     console.log('Registros seleccionados:', selectedKeys);
   }, [selectedKeys]);
-
-  useEffect(() => {
-    console.log('isVisible:', isVisible, 'isVisibleAsignar:', isVisibleAsignar);
-
-    const updateRowsPerPage = () => {
-      const windowHeight = window.innerHeight;
-      let headerHeight = 120; // Altura base
-
-      if (isVisible && isVisibleAsignar) {
-        headerHeight += 300; // Ambos activos, más espacio ocupado
-      } else if (isVisible) {
-        headerHeight += 250; // Solo `isVisible` activo
-      } else if (isVisibleAsignar) {
-        headerHeight += 150; // Solo `isVisibleAsignar` activo
-      }
-
-      const rowHeight = 48;
-      const availableHeight = windowHeight - headerHeight;
-      let calculatedRows = Math.floor(availableHeight / rowHeight);
-
-      if (!isVisible && !isVisibleAsignar) {
-        calculatedRows -= 1;
-      }
-
-      // Asegurar un mínimo de 5 filas
-      setRowsPerPage(calculatedRows > 5 ? calculatedRows : 5);
-    };
-
-    updateRowsPerPage(); // Llamar al inicio
-
-    window.addEventListener('resize', updateRowsPerPage);
-    return () => window.removeEventListener('resize', updateRowsPerPage);
-  }, [isVisible, isVisibleAsignar]);
-
-  useEffect(() => {
-    console.log('Nuevo rowsPerPage:', rowsPerPage);
-  }, [rowsPerPage]);
 
   const [errorPasajero, setErrorPasajero] = useState<string | null>(null);
 
@@ -355,9 +317,13 @@ export default function App({
         fechafin: item.newfechafni || '---',
         unidadSF: item.unidad?.codunidad,
         unidad: item.unidad?.codunidad
-          ? item.unidad.codunidad.split('-')[0]
+          ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
+            item.unidad.codunidad.split('-')[0].slice(1)
           : '-',
-        conductor: item.conductor?.apepate || '-',
+
+        conductor: item.conductor?.apepate
+          ? item.conductor.apepate.toUpperCase()
+          : '-',
         estado,
         color,
       };
@@ -388,7 +354,13 @@ export default function App({
     };
 
     fetchData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
+  }, [
+    selectedPasajeroCodlan,
+    selectedDate,
+    refreshFlag,
+    refreshFlagDelete,
+    refreshFlagAsignar,
+  ]);
 
   useEffect(() => {
     console.log('Datos formateados en data:', data);
@@ -448,13 +420,9 @@ export default function App({
     selectedUnidad,
   ]);
 
-  const pages = Math.ceil(filteredData.length / rowsPerPage);
-
   const items = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    return filteredData.slice(start, end);
-  }, [page, filteredData, rowsPerPage]);
+    return filteredData; 
+  }, [filteredData]);
 
   useEffect(() => {
     console.log(
@@ -490,9 +458,14 @@ export default function App({
         payload,
       );
       toast.success('Asignación realizada con éxito.');
+
+      setRefreshFlagAsignar((prev) => !prev);
     } catch (error) {
       toast.error('Error al enviar la asignación.');
     }
+
+    setConductor("");
+    setUnidadA("");
   };
 
   const eliminarServicio = async () => {
@@ -584,58 +557,53 @@ export default function App({
       {loading ? (
         <p>Cargando datos...</p>
       ) : (
-        <Table
-          aria-label="Tabla de servicios con paginación"
-          selectionMode="single"
-          bottomContent={
-            <div className="flex w-full justify-center">
-              <Pagination
-                isCompact
-                showControls
-                showShadow
-                color="warning"
-                page={page}
-                total={pages}
-                onChange={setPage}
-              />
-            </div>
-          }
-        >
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn
-                className="uppercase text-[#212529]"
-                key={column.key}
-              >
-                {column.label}
-              </TableColumn>
-            )}
-          </TableHeader>
-          <TableBody items={items}>
-            {(item) => (
-              <TableRow
-                key={item.key}
-                style={{ backgroundColor: item.color }}
-                onClick={() => handleRowClick(item)}
-              >
-                {(columnKey) =>
-                  columnKey === 'select' ? (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="form-checkbox h-5 w-5 rounded text-blue-600"
-                        onClick={() => handleCheckboxClick(item.key)}
-                        defaultChecked={selectedKeys.includes(item.key)}
-                      />
-                    </TableCell>
-                  ) : (
-                    <TableCell>{item[columnKey]}</TableCell>
-                  )
-                }
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        <div className="overflow-auto rounded-lg border border-gray-300"  style={{
+          height: `calc(100vh - ${isVisible ? 350 : 158}px)`,
+        }}>
+          <table className="w-full border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-gray-200">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-4 py-2 uppercase text-[#212529]"
+                    style={{fontSize:'12px', fontFamily:'sans-serif'}}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr
+                  key={item.key}
+                  className="cursor-pointer border-t transition-colors duration-200 hover:!bg-gray-200"
+                  style={{ backgroundColor: item.color }}
+                  onClick={() => handleRowClick(item)}
+                >
+                  {columns.map((column) => (
+                    <td key={column.key} className="px-4 py-2" style={{fontSize:'12px'}}>
+                      {column.key === 'select' ? (
+                        <input
+                          type="checkbox"
+                          className="form-checkbox h-4 w-4 rounded text-blue-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCheckboxClick(item.key);
+                          }}
+                          defaultChecked={selectedKeys.includes(item.key)}
+                        />
+                      ) : (
+                        item[column.key]
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <Modal
@@ -856,7 +824,6 @@ export default function App({
                           fecha={selectedRow.fechaCompleta}
                           onCoordenadasUpdate={setCoordenadas}
                           ref={tableRef}
-
                         ></TableDraw>
                       </div>
 
