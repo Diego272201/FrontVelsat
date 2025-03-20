@@ -28,15 +28,18 @@ interface RowData {
   direccion: string;
   distrito: string;
   estado: string;
+  wy: string;
+  wx: string;
 }
 
 interface Props {
   codServicio: string;
   onCoordenadasUpdate: (coordenadas: { lat: number; lng: number }[]) => void;
+  onCenterUpdate?: (coordenadas: { lat: number; lng: number }[]) => void; // 🔹 Nuevo prop opcional
   fecha: string;
 }
 
-const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
+const SortableRow = ({ row, index, onUbicar  }: { row: RowData; index: number; onUbicar: (coords: { lat: number; lng: number }) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
 
@@ -58,24 +61,20 @@ const SortableRow = ({ row, index }: { row: RowData; index: number }) => {
           <span>{index + 1}</span>
           <Dropdown>
             <DropdownTrigger>
-              <Button
-                isIconOnly
-                variant="light"
-                className="p-0 shadow-none"
-              >
+              <Button isIconOnly variant="light" className="p-0 shadow-none">
                 <BsArrowDownSquareFill size={20} color="#0353a4" />
               </Button>
             </DropdownTrigger>
 
-            <DropdownMenu aria-label="Acciones" >
-              <DropdownItem key="edit">Ubicar</DropdownItem>
+            <DropdownMenu aria-label="Acciones">
+            <DropdownItem key="edit" onPress={() => onUbicar({ lat: parseFloat(row.wy), lng: parseFloat(row.wx) })}>
+                Ubicar
+              </DropdownItem>
               <DropdownItem key="delete" className="text-danger" color="danger">
                 Cancelar
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>
-         
-         
         </div>
       </td>
       <td className="border p-1">{row.area}</td>
@@ -91,6 +90,16 @@ const DragAndDropTable = forwardRef(
   ({ codServicio, onCoordenadasUpdate, fecha }: Props, ref) => {
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const handleUbicar = (coords: { lat: number; lng: number }) => {
+      console.log("Coordenadas enviadas:", coords);
+    
+      if (!isNaN(coords.lat) && !isNaN(coords.lng)) {
+        onCoordenadasUpdate([coords]);
+      } else {
+        toast.error("Coordenadas inválidas");
+      }
+    };
 
     useEffect(() => {
       if (!codServicio) return;
@@ -224,7 +233,7 @@ const DragAndDropTable = forwardRef(
                       </tr>
                     ))
                   : data.map((row, index) => (
-                      <SortableRow key={row.orden} row={row} index={index} />
+                      <SortableRow key={row.orden} row={row} index={index} onUbicar={handleUbicar}/>
                     ))}
               </tbody>
             </table>
