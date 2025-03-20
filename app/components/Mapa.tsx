@@ -1,20 +1,42 @@
 import { GoogleMap, Marker, Polyline, useLoadScript } from "@react-google-maps/api";
-
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+import { useEffect, useState } from "react";
 
 interface MapaProps {
-  recorrido: { lat: number; lng: number }[]; // Lista de coordenadas para el recorrido
-  marcadores: { lat: number; lng: number }[]; // Lista de coordenadas para los marcadores
+  recorrido: { lat: number; lng: number }[];
+  marcadores: { lat: number; lng: number }[];
+  centro?: { lat: number; lng: number } | null; // 🔹 Nuevo prop
 }
 
-const Mapa = ({ recorrido, marcadores }: MapaProps) => {
+const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
+
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+
+  const [zoom, setZoom] = useState(12); // 🔹 Zoom inicial en 12
+  const [isFirstLoad, setIsFirstLoad] = useState(true); 
+
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: API_KEY,
   });
 
-  // Centro del mapa (puede ser el primer punto del recorrido o un valor fijo)
-  const center = marcadores.length > 0 ? marcadores[0] : { lat: -12.0464, lng: -77.0428 };
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
+    marcadores.length > 0 ? marcadores[0] : { lat: -12.0464, lng: -77.0428 }
+  );
 
+  useEffect(() => {
+    if (centro) {
+      setMapCenter(centro);
+      setZoom(15); // 🔹 Siempre pone zoom en 15 al cambiar `centro`
+      setIsFirstLoad(false); // 🔹 Ya no es la primera carga
+    }
+  }, [centro]);
+
+  useEffect(() => {
+    if (marcadores.length > 0) {
+      setMapCenter(marcadores[0]);
+      setZoom(12)
+    }
+  }, [marcadores]);
+  
   const markerIcons = [
     "/house1.png",
     "/house2.png",
@@ -28,8 +50,8 @@ const Mapa = ({ recorrido, marcadores }: MapaProps) => {
       {isLoaded ? (
         <GoogleMap
           mapContainerStyle={{ width: "100%", height: "100%" }}
-          center={center}
-          zoom={12}
+          center={mapCenter}
+          zoom={zoom} 
         >
           {/* Dibuja el recorrido con una línea */}
           {recorrido.length > 1 && (

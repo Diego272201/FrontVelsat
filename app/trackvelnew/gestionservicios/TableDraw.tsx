@@ -35,7 +35,7 @@ interface RowData {
 interface Props {
   codServicio: string;
   onCoordenadasUpdate: (coordenadas: { lat: number; lng: number }[]) => void;
-  onCenterUpdate?: (coordenadas: { lat: number; lng: number }[]) => void; // 🔹 Nuevo prop opcional
+  onCenterUpdate?: (coordenadas: { lat: number; lng: number }) => void; // 🔹 Nuevo prop opcional
   fecha: string;
 }
 
@@ -87,7 +87,7 @@ const SortableRow = ({ row, index, onUbicar  }: { row: RowData; index: number; o
 };
 
 const DragAndDropTable = forwardRef(
-  ({ codServicio, onCoordenadasUpdate, fecha }: Props, ref) => {
+  ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha }: Props, ref) => {
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -95,12 +95,14 @@ const DragAndDropTable = forwardRef(
       console.log("Coordenadas enviadas:", coords);
     
       if (!isNaN(coords.lat) && !isNaN(coords.lng)) {
-        onCoordenadasUpdate([coords]);
+        if (onCenterUpdate) {
+          onCenterUpdate(coords); // 🔹 Solo centrar el mapa
+        }
       } else {
         toast.error("Coordenadas inválidas");
       }
     };
-
+    
     useEffect(() => {
       if (!codServicio) return;
 
