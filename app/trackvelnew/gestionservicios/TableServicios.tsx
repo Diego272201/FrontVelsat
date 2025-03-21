@@ -138,6 +138,8 @@ export default function App({
     { lat: number; lng: number }[]
   >([]);
 
+  const [centroMapa, setCentroMapa] = useState<{ lat: number; lng: number } | null>(null);
+
   const [isOpenA, setIsOpenA] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -153,6 +155,11 @@ export default function App({
   );
 
   const [refreshFlagAsignar, setRefreshFlagAsignar] = useState(false);
+
+  const handleCenterUpdate = (coords: { lat: number; lng: number }) => {
+    setCentroMapa(coords);
+  };
+
 
   // Detecta clics fuera del dropdown y lo cierra
   useEffect(() => {
@@ -823,6 +830,7 @@ export default function App({
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
                           onCoordenadasUpdate={setCoordenadas}
+                          onCenterUpdate={handleCenterUpdate} // 🔹 Pasamos la función
                           ref={tableRef}
                         ></TableDraw>
                       </div>
@@ -834,6 +842,7 @@ export default function App({
                           <Mapa
                             recorrido={recorrido}
                             marcadores={coordenadas}
+                            centro={centroMapa} // 🔹 Pasamos el centro del mapa
                           />
                         ) : (
                           <div className="rounded-lg bg-white p-3">
