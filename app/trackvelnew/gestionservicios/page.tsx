@@ -19,6 +19,8 @@ import TableServicios from './TableServicios';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import ModalNuevoServicio from './ModalNuevoServicio';
+import { AiOutlineFilter } from 'react-icons/ai';
+import { HiCalendarDateRange } from 'react-icons/hi2';
 
 const empresas = [
   'ABNER MATOS',
@@ -420,11 +422,11 @@ export default function Page() {
 
         {isVisible && (
           <div id="contenido" style={{ background: 'white' }}>
-            
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
-                  <span className="whitespace-nowrap text-xs font-bold tracking-wide text-gray-900">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiCalendarDateRange className="h-5 w-5 text-gray-600" />
                     Fecha a Consultar
                   </span>
                 </div>
@@ -433,39 +435,38 @@ export default function Page() {
                   <div>
                     <input
                       type="date"
-                      className="rounded-md border  p-2 focus:outline-none bg-gray-100"
+                      className="rounded-md border bg-gray-100 p-1 focus:outline-none"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
                   </div>
 
                   <div>
-                    <Button
-                      color="primary"
-                      onPress={() => setSearchDate(selectedDate)}
+                    <button
+                      className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      onClick={() => setSearchDate(selectedDate)}
                     >
                       Buscar
-                      <IoSearchSharp />
-                    </Button>
+                      <IoSearchSharp className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div>
-                    <Button
-                      color="primary"
-                      onPress={() => {
+                    <button
+                      className="rounded-md bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      onClick={() => {
                         setSelectedDate(null);
                         setSearchDate(null);
                       }}
                     >
                       Actual
-                    </Button>
+                    </button>
                   </div>
-
 
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-100 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                     >
                       <option value="">Seleccione Empresa</option>
                       <option value="Empresa 1">Empresa 1</option>
@@ -485,26 +486,24 @@ export default function Page() {
                       Resumen 2
                     </button>
                   </div>
-                  </div>
-
-              
+                </div>
               </div>
             </div>
 
             <div className="fristFileT">
               <div className="filtrosPlanificacion">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="whitespace-nowrap text-gray-900">
+                <div className="relative flex items-center pb-2">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <AiOutlineFilter className="h-5 w-5 text-gray-600" />
                     Filtros de Búsqueda
                   </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
                   <div className="inputFiltros">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200"
                       value={selectedArea}
                       onChange={(e) => setSelectedArea(e.target.value)}
                     >
@@ -519,7 +518,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
@@ -537,7 +536,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="tipo-servicio"
-                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       value={tipoServicio}
                       onChange={(e) => setTipoServicio(e.target.value)}
                     >
@@ -558,7 +557,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                   className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                      className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -582,7 +581,7 @@ export default function Page() {
                     </div>
 
                     {mostrarSugerencias && sugerencias.length > 0 && (
-                      <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                      <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg ">
                         {sugerencias.map((item, index) => (
                           <li
                             key={index}
@@ -618,14 +617,14 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-lg border border-gray-300 p-2 text-center shadow-sm bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-gray-200 p-1.5 text-center shadow-sm dark:placeholder:text-gray-700"
                     />
                   </div>
 
                   <div className="relative">
                     <input
                       type="text"
-                        className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                      className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
                       placeholder="Unidad"
                       value={unidad}
                       onChange={handleUnidadChange}
@@ -656,7 +655,7 @@ export default function Page() {
                   <div className="mr-2">
                     <div className="group relative">
                       <button
-                        className="flex cursor-pointer items-center rounded-md bg-red-600 fill-red-400 p-2 duration-100 hover:bg-red-700 active:border active:border-red-400"
+                        className="flex cursor-pointer items-center rounded-md bg-red-600 fill-red-400 p-1.5 duration-100 hover:bg-red-700 active:border active:border-red-400"
                         onClick={handleClearFilters}
                       >
                         <MdCleaningServices color="#fff" />
@@ -677,10 +676,10 @@ export default function Page() {
           <div
             className="flex justify-between gap-2"
             style={{
-              background: '#e6e6e6',
-              paddingBottom: '10px',
+              background: '#fff',
+              paddingBottom: '5px',
               paddingLeft: '10px',
-              paddingTop: '10px',
+              paddingTop: '5px',
               borderRadius: '10px',
               marginTop: '10px',
             }}
@@ -689,7 +688,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-96 rounded-lg border-transparent bg-gray-50 px-16 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                  className="peer block w-96 rounded-lg border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                   placeholder="Conductor"
                   value={conductor}
                   onChange={handleConductorChange}
@@ -721,7 +720,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-full rounded-lg border-transparent bg-gray-50 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                  className="peer block w-full rounded-lg border-transparent bg-gray-200 px-4 py-1.5 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
                   placeholder="Unidad"
                   value={unidadA}
                   onChange={handleUnidadAChange}
@@ -751,12 +750,19 @@ export default function Page() {
             </div>
 
             <div className="flex gap-2 pr-2">
-              <Button color="primary" onPress={asignarServicios}>
-                Asignar <MdOutlineTask />
-              </Button>
-              <Button color="danger" onPress={eliminarServicio}>
-                Eliminar <MdDelete />
-              </Button>
+              <button
+                className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-white transition hover:bg-blue-600"
+                onClick={asignarServicios}
+              >
+                Asignar <MdOutlineTask className="h-4 w-4" />
+              </button>
+
+              <button
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-white transition hover:bg-red-500"
+                onClick={eliminarServicio}
+              >
+                Eliminar <MdDelete className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
