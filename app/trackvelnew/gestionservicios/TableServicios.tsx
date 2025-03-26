@@ -346,6 +346,8 @@ export default function App({
     if (selectedPasajeroCodlan) return;
 
     const fetchData = async () => {
+      setLoading(true);
+
       const currentDate = selectedDate || getFormattedDate();
 
       const API_URL = `http://66.240.210.125:8586/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
@@ -353,6 +355,7 @@ export default function App({
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
+
       } catch (error) {
         console.error('Error al obtener los datos:', error);
       } finally {
@@ -561,57 +564,108 @@ export default function App({
 
   return (
     <div>
-      {loading ? (
-        <p>Cargando datos...</p>
-      ) : (
-        <div className="overflow-auto rounded-lg border border-gray-300"  style={{
-          height: `calc(100vh - ${isVisible ? 350 : 158}px)`,
-        }}>
-          <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-200">
-              <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="px-4 py-2 uppercase text-[#212529]"
-                    style={{fontSize:'12px', fontFamily:'sans-serif'}}
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.key}
-                  className="cursor-pointer border-t transition-colors duration-200 hover:!bg-gray-200"
-                  style={{ backgroundColor: item.color }}
-                  onClick={() => handleRowClick(item)}
-                >
-                  {columns.map((column) => (
-                    <td key={column.key} className="px-4 py-2" style={{fontSize:'12px'}}>
-                      {column.key === 'select' ? (
-                        <input
-                          type="checkbox"
-                          className="form-checkbox h-4 w-4 rounded text-blue-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCheckboxClick(item.key);
-                          }}
-                          defaultChecked={selectedKeys.includes(item.key)}
-                        />
-                      ) : (
-                        item[column.key]
-                      )}
-                    </td>
-                  ))}
-                </tr>
+{loading ? (
+  <div 
+    className="overflow-auto rounded-lg border border-gray-300"
+    style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
+  >
+    <table className="w-full border-collapse text-left">
+      <thead className="sticky top-0 z-10 bg-gray-200">
+        <tr>
+          {columns.map((column) => (
+            <th
+              key={column.key}
+              className="px-4 py-2 uppercase text-[#212529]"
+              style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+            >
+              {column.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {/* Skeleton de carga en filas */}
+        {[...Array(5)].map((_, index) => (
+          <tr key={index} className="border-t">
+            {columns.map((column) => (
+              <td key={column.key} className="px-4 py-2">
+                <div className="h-4 w-full animate-pulse bg-gray-300 rounded"></div>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <div 
+    className="overflow-auto rounded-lg border border-gray-300"
+    style={{ height: `calc(100vh - ${isVisible ? 300 : 118}px)` }}
+  >
+    <table className="w-full border-collapse text-left">
+      <thead className="sticky top-0 z-10 bg-gray-200">
+        <tr>
+          {columns.map((column) => (
+            <th
+              key={column.key}
+              className="px-4 py-2 uppercase text-[#212529]"
+              style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+            >
+              {column.label}
+            </th>
+          ))}
+        </tr>
+        
+      </thead>
+      <tbody>
+        {items.length === 0 ? (
+          <tr>
+  <td colSpan={columns.length} className="py-4 h-[50vh]" >
+    <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-gradient-to-r from-gray-900 to-gray-700 rounded-lg shadow-lg border border-gray-600">
+      <svg className="w-12 h-12 text-red-500 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <p className="mt-4 text-lg font-semibold text-red-400 tracking-wide animate-pulse">
+        No hay datos disponibles para esta fecha
+      </p>
+      <p className="text-gray-400 text-sm mt-2">Por favor, selecciona otra fecha o intenta más tarde.</p>
+    </div>
+  </td>
+</tr>
+
+        ) : (
+          items.map((item) => (
+            <tr
+              key={item.key}
+              className="cursor-pointer border-t transition-colors duration-200 hover:!bg-gray-200"
+              style={{ backgroundColor: item.color }}
+              onClick={() => handleRowClick(item)}
+            >
+              {columns.map((column) => (
+                <td key={column.key} className="px-4 py-2" style={{ fontSize: '12px' }}>
+                  {column.key === 'select' ? (
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-4 w-4 rounded text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCheckboxClick(item.key);
+                      }}
+                      defaultChecked={selectedKeys.includes(item.key)}
+                    />
+                  ) : (
+                    item[column.key]
+                  )}
+                </td>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+)}
+
 
       <Modal
         isOpen={isOpen}

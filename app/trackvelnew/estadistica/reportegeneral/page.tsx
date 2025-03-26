@@ -13,6 +13,7 @@ import { Toaster } from 'sonner';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import { VscDebugBreakpointData } from 'react-icons/vsc';
 import { GrStatusDisabledSmall } from 'react-icons/gr';
+import { BiSolidReport } from 'react-icons/bi';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -55,62 +56,54 @@ export default function Page() {
     <div className="tablaReport tablaReportMargen">
       <div className="stick">
         <div className="headerRG">
-          <h2 className="resaltarT text-center">
-            REPORTE GENERAL DE LA UNIDAD: {deviceId?.toUpperCase()}
-          </h2>
-          <Image
-            src="/CarL.png"
-            width={60}
-            height={60}
-            alt="Picture of the author"
-          />
+        {/* <h2 className="resaltarT text-center">
+            REPORTE GENERAL DE LA UNIDAD : {deviceId?.toUpperCase()}
+          </h2> */}
 
-          {/* <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} /> */}
+  
         </div>
 
         <div className="datosReporting">
-          <div
-            className="fristData"
-            style={{ background: '#fe7f2d', color: 'white' }}
-          >
-            <div className="alinearDate">
-              <p className="dateS">
-                <GrStatusDisabledSmall />
+        <div className="fristData flex items-center gap-6">
+  <div className="dataFecha flex-1">
+    <p className="flex items-center gap-2  border-white rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-md dark:bg-gray-800 dark:text-gray-300">
+      <GrStatusDisabledSmall className="text-sm text-blue-500" />
+      <span className="font-semibold">
+        Fecha De Inicio: {formatDate(startDate)}
+      </span>
+    </p>
+  </div>
 
-                <span className="resaltar">
-                  &nbsp;FECHA DE INICIO :&nbsp; {formatDate(startDate)}
-                </span>
-              </p>
-            </div>
+  {/* Línea horizontal */}
+  <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
 
-            <div className="alinearDate">
-              <p className="dateS">
-                <GrStatusDisabledSmall />
+  {/* Sección central destacada */}
+  <div className="flex flex-col items-center bg-blue-100 dark:bg-blue-900 px-6 py-2 rounded-lg shadow-md border border-blue-300 dark:border-blue-700">
+  <h2 className="resaltarT text-center">
+            REPORTE GENERAL DE LA UNIDAD 
+             : {deviceId?.toUpperCase()}
+             <BiSolidReport size={25}/>
+          </h2>
+    <span className="text-small font-extrabold text-blue-900 dark:text-blue-100">
+      2 días, 4 horas y 3 minutos
+    </span>
+  </div>
 
-                <span className="resaltar">
-                  &nbsp;FECHA DE FIN :&nbsp; {formatDate(endDate)}
-                </span>
-              </p>
-            </div>
+  {/* Línea horizontal */}
+  <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
 
-            {/* <div className="userReporte">
-              <IoCarSport style={{ color: '#0d3b66' }} size={22} />
+  <div className="dataFecha flex-1">
+    <p className="flex items-center gap-2  border-white rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-md dark:bg-gray-800 dark:text-gray-300">
+      <GrStatusDisabledSmall className="text-sm text-blue-500" />
+      <span className="font-semibold">
+        Fecha De Fin: {formatDate(endDate)}
+      </span>
+    </p>
+  </div>
+</div>
 
-              <p>
-                <span className="resaltar">UNIDAD:</span>{' '}
-              </p>
-            </div> */}
-          </div>
 
-          <div className="selectRows">
-            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
-          </div>
-
-          {/* <div>
-            
-          </div> */}
         </div>
-        <hr className="lineaH" />
       </div>
 
       <Toaster />
@@ -125,11 +118,7 @@ export default function Page() {
       />
 
       <div>
-        <Table
-          url={tableUrl}
-          selectedRowsPerPage={selectedRowsPerPage}
-          onSelectedRowsPerPageChange={handleSelectRowsChange}
-        />
+        <Table url={tableUrl} />
       </div>
     </div>
   );

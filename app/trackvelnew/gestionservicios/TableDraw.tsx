@@ -30,6 +30,8 @@ interface RowData {
   estado: string;
   wy: string;
   wx: string;
+  fechafin:string;
+  feccancelpas:string;
 }
 
 interface Props {
@@ -39,7 +41,7 @@ interface Props {
   fecha: string;
 }
 
-const SortableRow = ({ row, index, onUbicar  }: { row: RowData; index: number; onUbicar: (coords: { lat: number; lng: number }) => void }) => {
+const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index: number; onUbicar: (coords: { lat: number; lng: number }) => void; onCancelar: (codigo: number) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
 
@@ -48,14 +50,19 @@ const SortableRow = ({ row, index, onUbicar  }: { row: RowData; index: number; o
     transition,
   };
 
+  const rowBgColor =
+  row.estado === 'NA' || row.estado === 'AT' ? 'bg-[#fff]' : // Gris claro
+  row.estado === 'CC' || row.estado === 'CP' ? 'bg-[#FDBDAA]' : // Rojo claro
+  'bg-white';
+
   return (
     <tr
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab border bg-white active:cursor-grabbing"
-    >
+      className={`cursor-grab border ${rowBgColor} active:cursor-grabbing`}   
+       >
       <td className="border p-1">
         <div className="flex items-center justify-center gap-2">
           <span>{index + 1}</span>
@@ -70,7 +77,7 @@ const SortableRow = ({ row, index, onUbicar  }: { row: RowData; index: number; o
             <DropdownItem key="edit" onPress={() => onUbicar({ lat: parseFloat(row.wy), lng: parseFloat(row.wx) })}>
                 Ubicar
               </DropdownItem>
-              <DropdownItem key="delete" className="text-danger" color="danger">
+              <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => onCancelar(row.codigo)}>  
                 Cancelar
               </DropdownItem>
             </DropdownMenu>
@@ -102,30 +109,51 @@ const DragAndDropTable = forwardRef(
         toast.error("Coordenadas inválidas");
       }
     };
+
+    const handleCancelar = async (codigo: number) => {
+      try {
+        await axios.put('http://66.240.210.125:8586/api/Preplan', { codigo });
+        toast.success('Pasajero cancelado con éxito.');
+        console.log("PASAJERO ES " + codigo)
+      } catch (error) {
+        toast.error('Error al cancelar el pasajero.');
+      }
+    };
+
     
     useEffect(() => {
       if (!codServicio) return;
-
+    
       const API_URL = `http://66.240.210.125:8586/api/Preplan/PasajeroList?codservicio=${codServicio}`;
       setLoading(true);
-
+    
       axios
         .get(API_URL)
         .then((response) => {
-          const fetchedData = response.data.map((item: any, index: number) => ({
-            orden: item.orden.toString(),
-            area: item.arealan || 'N/A',
-            nombre: item?.pasajero?.nombre || 'N/A',
-            direccion: item?.lugar?.direccion || 'N/A',
-            distrito: item?.lugar?.distrito || 'N/A',
-            estado: item.lugar?.estado ?? 'Sin estado',
-            wy: item.lugar?.wy ?? '',
-            wx: item.lugar?.wx ?? '',
-            codigo: item.codigo,
-          }));
-
+          const fetchedData = response.data.map((item: any, index: number) => {
+            let estado = 'NA'; 
+    
+            if (item.fechafin !== null) {
+              estado = 'AT';
+            } else if (item.estado === 'C') {
+              estado = item.feccancelpas !== null ? 'CP' : 'CC';
+            }
+    
+            return {
+              orden: item.orden.toString(),
+              area: item.arealan || 'N/A',
+              nombre: item?.pasajero?.nombre || 'N/A',
+              direccion: item?.lugar?.direccion || 'N/A',
+              distrito: item?.lugar?.distrito || 'N/A',
+              estado, 
+              wy: item.lugar?.wy ?? '',
+              wx: item.lugar?.wx ?? '',
+              codigo: item.codigo,
+            };
+          });
+    
           setData(fetchedData);
-
+    
           const coordenadas = fetchedData
             .map((item: { wy: string; wx: string }) => ({
               lat: parseFloat(item.wy),
@@ -135,12 +163,13 @@ const DragAndDropTable = forwardRef(
               (coord: { lat: number; lng: number }) =>
                 !isNaN(coord.lat) && !isNaN(coord.lng),
             );
-
+    
           onCoordenadasUpdate(coordenadas);
         })
         .catch((error) => console.error('Error fetching data:', error))
         .finally(() => setLoading(false));
     }, [codServicio, onCoordenadasUpdate]);
+    
 
     useEffect(() => {
       console.log(data);
@@ -235,7 +264,7 @@ const DragAndDropTable = forwardRef(
                       </tr>
                     ))
                   : data.map((row, index) => (
-                      <SortableRow key={row.orden} row={row} index={index} onUbicar={handleUbicar}/>
+                      <SortableRow key={row.orden} row={row} index={index} onUbicar={handleUbicar} onCancelar={handleCancelar}/>
                     ))}
               </tbody>
             </table>

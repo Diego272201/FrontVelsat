@@ -5,11 +5,11 @@ import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/planiTep.css';
-import { FaFileExcel } from 'react-icons/fa';
+import { FaDatabase, FaFileAlt, FaFileExcel } from 'react-icons/fa';
 import { DatePicker } from '@nextui-org/date-picker';
 import Servicios from './Servicios';
 import axios from 'axios';
-import { MdDelete } from 'react-icons/md';
+import { MdDelete, MdFilterAlt } from 'react-icons/md';
 import App from '@/app/components/TimePicker';
 import ModalObtenerServicios from './ModalObtenerServicios';
 import ProgressBar from '@/app/components/ui/ProgressBar';
@@ -19,6 +19,8 @@ import { MdHomeRepairService } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
 import ModalErroresCarga from './reporteerrores/ModalErroresCarga';
 import ModalReporteErrores from './reporteerrores/ModalErroresCarga';
+import { AiOutlineFilter } from 'react-icons/ai';
+import { CgChevronRightR } from 'react-icons/cg';
 
 export default function Page() {
   const [date, setDate] = useState('');
@@ -262,7 +264,7 @@ export default function Page() {
 
   const handlePublicar = async () => {
     if (!selectedDate || !empresaSeleccionada) {
-      toast.error("Debe seleccionar una fecha y una empresa.");
+      toast.error('Debe seleccionar una fecha y una empresa.');
       return;
     }
 
@@ -271,19 +273,16 @@ export default function Page() {
 
     try {
       const response = await axios.post(
-        `http://66.240.210.125:8586/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`
+        `http://66.240.210.125:8586/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
       );
-      toast.success("Datos enviados correctamente.");
-      console.log("Respuesta de la API:", response.data);
-      setActualizacion(prev => prev + 1);
-
-
+      toast.success('Datos enviados correctamente.');
+      console.log('Respuesta de la API:', response.data);
+      setActualizacion((prev) => prev + 1);
     } catch (error) {
-      toast.error("Error al enviar los datos.");
-      console.error("Error en la solicitud:", error);
+      toast.error('Error al enviar los datos.');
+      console.error('Error en la solicitud:', error);
     }
   };
-
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -299,7 +298,6 @@ export default function Page() {
       toast.error('Por favor selecciona una empresa.');
       return;
     }
-
 
     const fecact = formatFechaAMD(selectedDate);
     const url = `http://66.240.210.125:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
@@ -337,9 +335,13 @@ export default function Page() {
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="cabecera">
+        <div className="cabecera sticky top-0 z-50 bg-white shadow-md">
           <div className="progressAndTitle">
-            MÓDULO DE PLANIFICACIÓN DE SERVICIOS
+            <div className="relative">
+              <span className="border-b-2 border-white px-4 py-2 pb-0.5 font-semibold uppercase leading-none text-white">
+                MÓDULO DE PLANIFICACIÓN DE SERVICIOS
+              </span>
+            </div>{' '}
             <ProgressBar value={porcentajeLlenado}></ProgressBar>
           </div>
 
@@ -355,19 +357,20 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido">
+          <div id="contenido" >
             <div className="fristFileT">
               <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="whitespace-nowrap text-gray-900">
-                    Carga de Archivo
+                <div className="relative flex items-center pb-2">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <FaFileAlt className="h-5 w-5 text-gray-600" />
+                    Carga de Archivos
                   </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
+                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-400 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
                   <div>
-                    <div className="p-0.4 mx-auto flex w-max min-w-[300px] items-center overflow-hidden rounded-md bg-[#ffffff] font-[sans-serif] text-[#333]">
+                    <div className="p-0.4 mx-auto flex w-max min-w-[300px] items-center overflow-hidden rounded-md bg-gray-200 font-[sans-serif] text-[#333]">
                       <div className="flex px-4">
                         <FaFileExcel size={20} color="#307750" />
                         <p className="ml-3 text-sm">
@@ -391,23 +394,29 @@ export default function Page() {
                   </div>
 
                   <div>
-        
-                      <input
+                    <input
                       type="date"
-                      value={selectedDate ? selectedDate.toISOString().split("T")[0] : ""}
+                      value={
+                        selectedDate
+                          ? selectedDate.toISOString().split('T')[0]
+                          : ''
+                      }
                       onChange={(e) => {
-                        const [year, month, day] = e.target.value.split("-");
-                        const selectedDate = new Date(Number(year), Number(month) - 1, Number(day));
+                        const [year, month, day] = e.target.value.split('-');
+                        const selectedDate = new Date(
+                          Number(year),
+                          Number(month) - 1,
+                          Number(day),
+                        );
                         setSelectedDate(selectedDate);
                       }}
-                        className="rounded-md border  p-2 focus:outline-none"
-                      />
-           
+                      className="rounded-md border p-2 focus:outline-none bg-gray-200"
+                    />
                   </div>
 
                   <div className="selectTipoA">
                     <select
-                      className="block w-full max-w-xl rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-2.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       value={selectedEmpresa}
                       onChange={(event) =>
                         setSelectedEmpresa(event.target.value)
@@ -476,8 +485,9 @@ export default function Page() {
               </div>
 
               <div className="cargaArchivos">
-              <div className="relative flex items-center pb-2.5">
-                  <span className="whitespace-nowrap text-gray-900">
+                <div className="relative flex items-center pb-2.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <FaDatabase className="h-5 w-5 text-gray-600" />
                     Obtener Datos
                   </span>
                   <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
@@ -487,7 +497,7 @@ export default function Page() {
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                      className="block w-full rounded-lg border bg-gray-200 p-2.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       value={empresaSeleccionada}
                       onChange={handleEmpresaChange}
                     >
@@ -506,7 +516,7 @@ export default function Page() {
                   <div className="buttonsTep">
                     <Button
                       color="primary"
-                      onClick={() => {
+                      onPress={() => {
                         setEmpresaConfirmada(empresaSeleccionada);
                         onOpen();
                       }}
@@ -516,7 +526,7 @@ export default function Page() {
                     </Button>
                     <Button
                       color="success"
-                      onClick={() => {
+                      onPress={() => {
                         guardar();
                         alertaGuardar();
                       }}
@@ -529,8 +539,9 @@ export default function Page() {
                       onOpenChange={onOpenChange}
                       onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
                     />
-                    <Button color="primary" onPress={handlePublicar}
-                    >Publicar</Button>
+                    <Button color="primary" onPress={handlePublicar}>
+                      Publicar
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -539,19 +550,20 @@ export default function Page() {
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="filtrosPlanificacion">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="whitespace-nowrap text-gray-900">
-                    Filtrar Datos
-                  </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
-                </div>
+                  <div className="relative flex items-center pb-2.5">
+                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                      <MdFilterAlt className="h-5 w-5 text-gray-600" />
+                      Filtrar Datos
+                    </span>
+                    <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
+                  </div>
 
                   <div className="cabeceraArchivos">
                     <div className="inputFiltros">
                       <select
                         onChange={handleFiltrar}
                         id="countries"
-                        className="block w-full rounded-lg border bg-gray-50 p-2.5 text-sm text-gray-900 focus:outline-none dark:border-stone-200 dark:bg-stone-50 dark:text-black dark:placeholder-gray-400"
+                       className="block w-full rounded-lg border bg-gray-200 p-2.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -569,7 +581,7 @@ export default function Page() {
                       <input
                         type="text"
                         id="input-label"
-                        className="rounded-lg border-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:bg-[#fff] dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
+                        className="rounded-lg bg-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 bg-sotone-200 dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
                         placeholder="Nombre del pasajero"
                         style={{ borderRadius: '0.5rem', width: '280px' }}
                         value={nombrePasajero}
@@ -590,7 +602,7 @@ export default function Page() {
               <div className="cargaArchivos">
                 <div className="InfoReportes">
                   <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-[#fff] px-[10px] sm:h-14">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-stone-200 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <MdHomeRepairService size={20} />
@@ -605,7 +617,7 @@ export default function Page() {
                     </div>
                   </div>
                   <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-[#fff] px-[10px] sm:h-14">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-stone-200 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <FaUsers size={20} />
@@ -659,7 +671,7 @@ export default function Page() {
           </table>
         </div>
       )}
-      <div className="grupoServicios">
+      <div className="grupoServicios h-[calc(100vh-310px)]  overflow-y-auto">
         {empresaConfirmada && dato && (
           <Servicios
             key={`${empresaConfirmada}-${dato}-${actualizacion}`}

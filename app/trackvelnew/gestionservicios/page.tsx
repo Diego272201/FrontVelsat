@@ -1,7 +1,15 @@
 'use client';
 import { Button, useDisclosure } from '@nextui-org/react';
 import React, { useEffect, useState } from 'react';
-import { FaCar, FaUser, FaUsers, FaUserTie } from 'react-icons/fa';
+import {
+  FaCar,
+  FaClipboardList,
+  FaSquare,
+  FaTasks,
+  FaUser,
+  FaUsers,
+  FaUserTie,
+} from 'react-icons/fa';
 import { IoSave, IoSendSharp } from 'react-icons/io5';
 import {
   MdCleaningServices,
@@ -21,6 +29,7 @@ import Swal from 'sweetalert2';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
 import { HiCalendarDateRange } from 'react-icons/hi2';
+import { CgChevronRightR } from 'react-icons/cg';
 
 const empresas = [
   'ABNER MATOS',
@@ -382,28 +391,33 @@ export default function Page() {
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="cabecera">
+        <div className="cabecera sticky top-0 z-50 bg-white shadow-md">
           <div className="progressAndTitle">
-            CONTROL DE SERVICIOS
+            <div className="relative">
+              <span className="border-b-2 border-white px-4 py-2 pb-0.5 font-semibold uppercase leading-none text-white">
+                CONTROL DE SERVICIOS
+              </span>
+            </div>
+
             <div className="flex gap-2">
               <button
                 onClick={onOpen}
-                className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600"
+                className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
               >
-                <MdNewLabel size={20} />
+                <MdNewLabel size={20} color='#343a40'/>
                 Nuevo Servicio
               </button>
 
               <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} />
 
-              <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600">
+              <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300">
                 Nuevo Servicio Turismo
               </button>
               <button
-                className="flex cursor-pointer items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-zinc-200 transition-all duration-200 ease-in hover:bg-blue-600"
+                className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
                 onClick={() => setIsVisibleAsignar((prev) => !prev)}
               >
-                <MdDesignServices size={20} />
+                <MdDesignServices size={20} color='#343a40' />
                 Asignar Servicio
               </button>
             </div>
@@ -421,7 +435,7 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido" style={{ background: 'white' }}>
+          <div id="contenido" >
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">

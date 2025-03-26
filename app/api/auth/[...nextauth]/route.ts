@@ -22,7 +22,7 @@ const handler = NextAuth({
           throw new Error('Credenciales no proporcionadas');
         }
         const serverUrl = await getServerUrl(credentials.login);
-        const urlLogin = `${serverUrl}${UrlLogin}`;
+      const urlLogin = `${serverUrl}${UrlLogin}`;
 
         const res = await fetch(urlLogin, {
           method: 'POST',

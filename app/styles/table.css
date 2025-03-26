@@ -1,11 +1,10 @@
-/* ESTILOS DE LA TABLA REPORTE GENERAL */
 
 .lineaH {
-  height: 2px; /* Grosor de la línea */
-  background: linear-gradient(to right, #FB7B0F, rgba(251, 123, 15, 0)); /* Degradado de izquierda a derecha */
+  height: 1.15px; 
+  background: rgb(48, 46, 46); 
   border: none;
-  padding: 0; /* Sin padding */
-  margin-top: -12px;
+  padding: 0; 
+  margin-top: -24px;
   margin-left: 10px;
 
 }
@@ -42,30 +41,23 @@
   justify-content: center;
   align-items: center;
   gap: 10px;
-  margin-top: -20px;
+  margin-top: -15px;
+  padding-top: 10px;
+  margin-bottom: 10px;
 }
 .tablaReportMargen {
   padding-left: 20px;
   padding-right: 20px;
 }
 
-.alinearDate {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.dataFecha{
+  width: 320px;
 }
-
-.dateS{
-  display: flex;
-  align-items: center;
-  padding: 1px;
-}
-
 
 .tablaReport {
   overflow-y: auto;
-  height: 95vh;
-  margin-top: -51px;
+  height: 99.5vh;
+  margin-top: -65px;
 }
 .tablaReport::-webkit-scrollbar {
   width: 4px;
@@ -76,37 +68,45 @@
 }
 
 .headerColumT {
-  background: #fb7b0f;
-  color: #ffffff;
+  background: #F7931E;
+  color: #272525;
   text-align: center;
+  font-size: 12px;
 }
 
 .centerCell {
   text-align: center;
+  font-size: 11.5px;
+  padding: 8px;
+  
 }
+
+
 .centerMap {
   display: flex;
   justify-content: center;
 }
 
 .resaltarT {
-  color: #0d3b66;
+  color: #ebeff3;
   font-weight: bold;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .resaltar {
-  color: #ffffff;
-  font-weight: 500;
+  color: #242323;
 }
 
 .fristData {
-  font-size: 14px;
-  font-weight: 400;
-  padding: 10px;
+
   display: flex;
-  flex-direction: column;
-  width: 25%;
-  border-radius: 10px;
+  width: 100%;
+  padding: 5px;
+  gap: 10px;
+  justify-content: space-between;
 
 }
 
@@ -138,7 +138,7 @@
 
 @media (max-width: 1300px) {
   .fristData {
-   width: 40%;
+   width: 100%;
   }
 }
 
@@ -178,6 +178,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: -8px;
+  margin-bottom: 15px;
+  padding: 2px;
+
 
 }
 
@@ -218,7 +222,7 @@
 
 }
 
-.whatsapp-btn:{
+.whatsapp-btn{
   background-color: #89c032;
 
 }

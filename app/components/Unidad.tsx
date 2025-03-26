@@ -55,7 +55,7 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
       </div>
 
       <div className="img-listacarro">
-        <Image src="/list-car.png" alt="carrito" width={'1000'} height={'1000'}/>
+        <Image src="/UnidadK.webp" alt="carrito" width={'1000'} height={'1000'}/>
       </div>
 
       <div className="codigo-carro">

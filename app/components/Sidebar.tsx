@@ -133,7 +133,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
             <input
               className="input"
               type="search"
-              placeholder="Buscar unidad"
+              placeholder="Buscar Unidad"
               value={searchTerm}
               onChange={handleSearchChange}
               style={{ borderRadius: '0px'}}

@@ -124,16 +124,17 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
 
   const getPopupContent = useCallback((device: Device) => {
     return `
-      <div class="content-custom-popup" id="content2-${device.deviceId}">
+      <div class="content-custom-popup bg-gray-800 text-white rounded-lg p-2" id="content2-${device.deviceId}">
+           <button id="close-btn-${device.deviceId}" class="absolute top-2 right-4 text-white hover:text-red-500 text-lg font-bold">&times;</button>
           <span>Unidad: ${device.deviceId.toUpperCase()} </span>
           <span>Velocidad: ${device.lastValidSpeed} Km/h </span>
           <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
           <br>
-          <span>ÚLTIMO REPORTE </span>
-          <span>${formatFecha(fechaActual?.fechaActual || '')} </span>
+   <hr class="my-2 border-gray-600">
+            
+            <h4 class="font-medium text-gray-300 uppercase">Último Reporte</h4>          <span>${formatFecha(fechaActual)} </span>
           <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
           <span>Ubicación: ${device.direccion} </span>
-          <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
       </div>
     `;
   }, [fechaActual, getDireccion, getEstado, formatFecha]);
@@ -165,7 +166,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
       existingPopups[device.deviceId].draw();
     } else {
       const content1 = document.createElement('div');
-      content1.innerHTML = `<div id="content">${device.deviceId.toUpperCase()}</div>`;
+      content1.innerHTML = `<div id="content" class=" bg-[#fca311] text-gray-800 px-2 py-1.5 rounded-md mt-4">${device.deviceId.toUpperCase()}</div>`;
 
       class Popup extends google.maps.OverlayView {
         position: google.maps.LatLng;
