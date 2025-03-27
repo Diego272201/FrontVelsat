@@ -373,7 +373,7 @@ const Tollbar = () => {
                 <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
               </button>
 
-              <button onClick={() => signOut({ callbackUrl: '/' })}>
+              <button  onClick={() => signOut({ callbackUrl: '/' })}>
                 <IoMdExit size={'22px'} />
               </button>
             </div>

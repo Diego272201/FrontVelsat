@@ -357,7 +357,7 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido" >
+          <div id="contenido">
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
@@ -410,7 +410,7 @@ export default function Page() {
                         );
                         setSelectedDate(selectedDate);
                       }}
-                      className="rounded-md border p-2 focus:outline-none bg-gray-200"
+                      className="rounded-md border bg-gray-200 p-2 focus:outline-none"
                     />
                   </div>
 
@@ -563,7 +563,7 @@ export default function Page() {
                       <select
                         onChange={handleFiltrar}
                         id="countries"
-                       className="block w-full rounded-lg border bg-gray-200 p-2.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
+                        className="block w-full rounded-lg border bg-gray-200 p-2.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
                       >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -581,7 +581,7 @@ export default function Page() {
                       <input
                         type="text"
                         id="input-label"
-                        className="rounded-lg bg-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 bg-sotone-200 dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
+                        className="bg-sotone-200 rounded-lg bg-gray-200 px-4 py-2.5 text-sm disabled:pointer-events-none disabled:opacity-50 dark:text-neutral-900 dark:placeholder-neutral-900 dark:focus:ring-neutral-600"
                         placeholder="Nombre del pasajero"
                         style={{ borderRadius: '0.5rem', width: '280px' }}
                         value={nombrePasajero}
@@ -671,7 +671,10 @@ export default function Page() {
           </table>
         </div>
       )}
-      <div className="grupoServicios h-[calc(100vh-310px)]  overflow-y-auto">
+      <div
+        className="grupoServicios overflow-y-auto"
+        style={{ height: `calc(100vh - ${isVisible ? 310 : 110}px)` }}
+      >
         {empresaConfirmada && dato && (
           <Servicios
             key={`${empresaConfirmada}-${dato}-${actualizacion}`}

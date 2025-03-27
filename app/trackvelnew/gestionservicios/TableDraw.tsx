@@ -37,7 +37,7 @@ interface RowData {
 interface Props {
   codServicio: string;
   onCoordenadasUpdate: (coordenadas: { lat: number; lng: number }[]) => void;
-  onCenterUpdate?: (coordenadas: { lat: number; lng: number }) => void; // 🔹 Nuevo prop opcional
+  onCenterUpdate?: (coordenadas: { lat: number; lng: number }) => void;
   fecha: string;
 }
 
@@ -51,8 +51,8 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
   };
 
   const rowBgColor =
-  row.estado === 'NA' || row.estado === 'AT' ? 'bg-[#fff]' : // Gris claro
-  row.estado === 'CC' || row.estado === 'CP' ? 'bg-[#FDBDAA]' : // Rojo claro
+  row.estado === 'NA' || row.estado === 'AT' ? 'bg-[#fff]' : 
+  row.estado === 'CC' || row.estado === 'CP' ? 'bg-[#FDBDAA]' : 
   'bg-white';
 
   return (
@@ -98,12 +98,14 @@ const DragAndDropTable = forwardRef(
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
 
+
+
     const handleUbicar = (coords: { lat: number; lng: number }) => {
       console.log("Coordenadas enviadas:", coords);
     
       if (!isNaN(coords.lat) && !isNaN(coords.lng)) {
         if (onCenterUpdate) {
-          onCenterUpdate(coords); // 🔹 Solo centrar el mapa
+          onCenterUpdate(coords); 
         }
       } else {
         toast.error("Coordenadas inválidas");
@@ -113,13 +115,33 @@ const DragAndDropTable = forwardRef(
     const handleCancelar = async (codigo: number) => {
       try {
         await axios.put('http://66.240.210.125:8586/api/Preplan', { codigo });
-        toast.success('Pasajero cancelado con éxito.');
-        console.log("PASAJERO ES " + codigo)
+        toast.success('Pasajero cancelado con éxito.');   
+        setData((prevData) =>
+          prevData.map((item) => {
+            if (item.codigo === codigo) {
+              
+              const nuevoItem = { ...item, estado: 'C' };
+              let estado = 'NA';
+    
+              if (nuevoItem.fechafin) {
+                estado = 'AT';
+              } else if (nuevoItem.estado === 'C') {
+                estado = nuevoItem.feccancelpas ? 'CP' : 'CC';
+              }
+            
+              return { ...nuevoItem, estado }; 
+            }
+    
+            return item; 
+          })
+        );
+    
       } catch (error) {
         toast.error('Error al cancelar el pasajero.');
       }
     };
-
+    
+    
     
     useEffect(() => {
       if (!codServicio) return;
@@ -131,14 +153,15 @@ const DragAndDropTable = forwardRef(
         .get(API_URL)
         .then((response) => {
           const fetchedData = response.data.map((item: any, index: number) => {
-            let estado = 'NA'; 
-    
-            if (item.fechafin !== null) {
+            let estado = 'NA';
+
+            
+            if (item.fechafin) {
               estado = 'AT';
             } else if (item.estado === 'C') {
-              estado = item.feccancelpas !== null ? 'CP' : 'CC';
+              estado = item.feccancelpas ? 'CP' : 'CC';
             }
-    
+            
             return {
               orden: item.orden.toString(),
               area: item.arealan || 'N/A',
@@ -149,6 +172,8 @@ const DragAndDropTable = forwardRef(
               wy: item.lugar?.wy ?? '',
               wx: item.lugar?.wx ?? '',
               codigo: item.codigo,
+              fechafin:item.fechafin,
+              feccancelpas:item.feccancelpas,
             };
           });
     
@@ -207,10 +232,8 @@ const DragAndDropTable = forwardRef(
         const oldIndex = data.findIndex((item) => item.orden === active.id);
         const newIndex = data.findIndex((item) => item.orden === over?.id);
 
-        // Reordenar los datos
         const newData = arrayMove(data, oldIndex, newIndex);
 
-        // Actualizar el orden dentro de los objetos
         const updatedData = newData.map((item, index) => ({
           ...item,
           orden: (index + 1).toString(),

@@ -416,7 +416,6 @@ font-size: 0.88rem;
 .exitToolbar{
   background: transparent;
   color: white;
-  height: 85px;
   width: 50px;
   display: flex;
   justify-content: end;

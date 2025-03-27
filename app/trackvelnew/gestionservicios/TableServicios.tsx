@@ -52,6 +52,7 @@ const getEstadoYColor = (item: any) => {
   const fechaATO = parseFecha(item.fecha);
 
   if (!fechaProg) return { estado: 'ERROR', color: '#C9CECD' };
+
   if (item.estado === 'C') return { estado: 'CN', color: '#E5AFEF' };
 
   let estado = 'AS';
@@ -138,13 +139,37 @@ export default function App({
     { lat: number; lng: number }[]
   >([]);
 
-  const [centroMapa, setCentroMapa] = useState<{ lat: number; lng: number } | null>(null);
+  const [centroMapa, setCentroMapa] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
-  const [isOpenA, setIsOpenA] = useState(false);
+  // const [isOpenA, setIsOpenA] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [isOpenD, setIsOpenD] = useState(false);
+
+  const [refreshFlagCancelar, setRefreshFlagCancelar] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event: any) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpenD(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleClickOption = (callback:any) => {
+    callback();
+    setIsOpenD(false);
+  };
+
 
   const [recorrido, setRecorrido] = useState<{ lat: number; lng: number }[]>(
     [],
@@ -160,22 +185,21 @@ export default function App({
     setCentroMapa(coords);
   };
 
-
-  // Detecta clics fuera del dropdown y lo cierra
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpenA(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  // // Detecta clics fuera del dropdown y lo cierra
+  // useEffect(() => {
+  //   function handleClickOutside(event: MouseEvent) {
+  //     if (
+  //       dropdownRef.current &&
+  //       !dropdownRef.current.contains(event.target as Node)
+  //     ) {
+  //       setIsOpenA(false);
+  //     }
+  //   }
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleClickOutside);
+  //   };
+  // }, []);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,6 +229,7 @@ export default function App({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const [selectedRow, setSelectedRow] = useState<any>(null);
+  const [previousSelectedCod, setPreviousSelectedCod] = useState<string | null>(null);
 
   const [conductor, setConductor] = useState<string>('');
   const [conductores, setConductores] = useState<
@@ -297,6 +322,8 @@ export default function App({
     setConductorSeleccionado(codigo.toString());
     setShowDropdown(false);
   };
+
+
   const formatData = (rawData: any[]) => {
     return rawData.map((item: any) => {
       const { estado, color } = getEstadoYColor(item);
@@ -337,8 +364,27 @@ export default function App({
     });
   };
 
+
+  //Sirve para actulizar los datos del modal al cambiar en opciones de servcio y llevarme al servcio que estana al incio 
+
+  useEffect(() => {
+    if (previousSelectedCod && data.length > 0) {
+      const updatedRow = data.find((item) => item.codServicio === previousSelectedCod);
+      if (updatedRow) {
+        setSelectedRow({ ...updatedRow });
+        setTimeout(() => {
+          document.getElementById(`row-${previousSelectedCod}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100); 
+      }
+    }
+  }, [data]);
+  
+  
+  
+
   const handleRowClick = (row: any) => {
     setSelectedRow(row);
+    setPreviousSelectedCod(row.codServicio); 
     onOpen();
   };
 
@@ -355,7 +401,6 @@ export default function App({
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
-
       } catch (error) {
         console.error('Error al obtener los datos:', error);
       } finally {
@@ -370,6 +415,7 @@ export default function App({
     refreshFlag,
     refreshFlagDelete,
     refreshFlagAsignar,
+    refreshFlagCancelar,
   ]);
 
   useEffect(() => {
@@ -401,7 +447,7 @@ export default function App({
     };
 
     fetchPasajeroData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
+  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete,refreshFlagCancelar]);
 
   useEffect(() => {
     setSelectedKeys([]);
@@ -431,7 +477,7 @@ export default function App({
   ]);
 
   const items = useMemo(() => {
-    return filteredData; 
+    return filteredData;
   }, [filteredData]);
 
   useEffect(() => {
@@ -474,9 +520,38 @@ export default function App({
       toast.error('Error al enviar la asignación.');
     }
 
-    setConductor("");
-    setUnidadA("");
+    setConductor('');
+    setUnidadA('');
   };
+
+  const handleCancelarAsignacion = async(codServicio:string)=> {
+
+      try {
+        const response = await axios.put(`http://66.240.210.125:8586/api/Preplan/canasig/${codServicio}`);
+        toast.success('Asignación cancelada correctamente.');
+        setRefreshFlagCancelar(prev => !prev); 
+
+      } catch (error) {      
+        toast.error('Error al cancelar la asignación.');
+      }
+  }
+
+
+
+  const handleCancelarServicio = async(codServicio:string)=>{
+
+    try {
+      const response = await axios.delete(`http://66.240.210.125:8586/api/Preplan/cancelar/${codServicio}`)
+      toast.success('Servicio cancelada correctamente.');
+      setRefreshFlagCancelar(prev => !prev); 
+
+
+    } catch (error) {
+      toast.error('Error al cancelar el servicio.');
+
+    }
+
+  }
 
   const eliminarServicio = async () => {
     const result = await Swal.fire({
@@ -491,7 +566,7 @@ export default function App({
 
     if (!result.isConfirmed) return;
 
-    const payload = [{ codservicio: selectedRow.codServicio }]; // 🔹 Corrección aquí
+    const payload = [{ codservicio: selectedRow.codServicio }]; 
 
     try {
       await axios.delete(
@@ -562,110 +637,130 @@ export default function App({
     };
   }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setIsOpenD(false);
+    }
+  }, [isOpen]);
+
   return (
     <div>
-{loading ? (
-  <div 
-    className="overflow-auto rounded-lg border border-gray-300"
-    style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
-  >
-    <table className="w-full border-collapse text-left">
-      <thead className="sticky top-0 z-10 bg-gray-200">
-        <tr>
-          {columns.map((column) => (
-            <th
-              key={column.key}
-              className="px-4 py-2 uppercase text-[#212529]"
-              style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
-            >
-              {column.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {/* Skeleton de carga en filas */}
-        {[...Array(5)].map((_, index) => (
-          <tr key={index} className="border-t">
-            {columns.map((column) => (
-              <td key={column.key} className="px-4 py-2">
-                <div className="h-4 w-full animate-pulse bg-gray-300 rounded"></div>
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-) : (
-  <div 
-    className="overflow-auto rounded-lg border border-gray-300"
-    style={{ height: `calc(100vh - ${isVisible ? 300 : 118}px)` }}
-  >
-    <table className="w-full border-collapse text-left">
-      <thead className="sticky top-0 z-10 bg-gray-200">
-        <tr>
-          {columns.map((column) => (
-            <th
-              key={column.key}
-              className="px-4 py-2 uppercase text-[#212529]"
-              style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
-            >
-              {column.label}
-            </th>
-          ))}
-        </tr>
-        
-      </thead>
-      <tbody>
-        {items.length === 0 ? (
-          <tr>
-  <td colSpan={columns.length} className="py-4 h-[50vh]" >
-    <div className="flex flex-col items-center justify-center h-full text-center p-6 bg-gradient-to-r from-gray-900 to-gray-700 rounded-lg shadow-lg border border-gray-600">
-      <svg className="w-12 h-12 text-red-500 animate-pulse" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      <p className="mt-4 text-lg font-semibold text-red-400 tracking-wide animate-pulse">
-        No hay datos disponibles para esta fecha
-      </p>
-      <p className="text-gray-400 text-sm mt-2">Por favor, selecciona otra fecha o intenta más tarde.</p>
-    </div>
-  </td>
-</tr>
-
-        ) : (
-          items.map((item) => (
-            <tr
-              key={item.key}
-              className="cursor-pointer border-t transition-colors duration-200 hover:!bg-gray-200"
-              style={{ backgroundColor: item.color }}
-              onClick={() => handleRowClick(item)}
-            >
-              {columns.map((column) => (
-                <td key={column.key} className="px-4 py-2" style={{ fontSize: '12px' }}>
-                  {column.key === 'select' ? (
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-4 w-4 rounded text-blue-600"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCheckboxClick(item.key);
-                      }}
-                      defaultChecked={selectedKeys.includes(item.key)}
-                    />
-                  ) : (
-                    item[column.key]
-                  )}
-                </td>
+      {loading ? (
+        <div
+          className="overflow-auto rounded-lg border border-gray-300"
+          style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
+        >
+          <table className="w-full border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-gray-200">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-4 py-2 uppercase text-[#212529]"
+                    style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Skeleton de carga en filas */}
+              {[...Array(5)].map((_, index) => (
+                <tr key={index} className="border-t">
+                  {columns.map((column) => (
+                    <td key={column.key} className="px-4 py-2">
+                      <div className="h-4 w-full animate-pulse rounded bg-gray-300"></div>
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-)}
-
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div
+          className="overflow-auto rounded-lg border border-gray-300"
+          style={{ height: `calc(100vh - ${isVisible ? 300 : 118}px)` }}
+        >
+          <table className="w-full border-collapse text-left">
+            <thead className="sticky top-0 z-10 bg-gray-200">
+              <tr>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-4 py-2 uppercase text-[#212529]"
+                    style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="h-[50vh] py-4">
+                    <div className="flex h-full flex-col items-center justify-center rounded-lg border border-gray-600 bg-gradient-to-r from-gray-900 to-gray-700 p-6 text-center shadow-lg">
+                      <svg
+                        className="h-12 w-12 animate-pulse text-red-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="mt-4 animate-pulse text-lg font-semibold tracking-wide text-red-400">
+                        No hay datos disponibles para esta fecha
+                      </p>
+                      <p className="mt-2 text-sm text-gray-400">
+                        Por favor, selecciona otra fecha o intenta más tarde.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                items.map((item) => (
+                  <tr
+                    key={item.key}
+                    id={`row-${item.codServicio}`}
+                    className="cursor-pointer border-t transition-colors duration-200 hover:!bg-gray-200"
+                    style={{ backgroundColor: item.color }}
+                    onClick={() => handleRowClick(item)}
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className="px-4 py-2"
+                        style={{ fontSize: '12px' }}
+                      >
+                        {column.key === 'select' ? (
+                          <input
+                            type="checkbox"
+                            className="form-checkbox h-4 w-4 rounded text-blue-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCheckboxClick(item.key);
+                            }}
+                            defaultChecked={selectedKeys.includes(item.key)}
+                          />
+                        ) : (
+                          item[column.key]
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Modal
         isOpen={isOpen}
@@ -828,6 +923,7 @@ export default function App({
                           </div>
                         </div>
                       </div>
+
                       <div
                         className="rounded-lgp-3 flex w-[170px] flex-col items-center justify-center text-center"
                         style={{ backgroundColor: selectedRow.color }}
@@ -840,51 +936,96 @@ export default function App({
                           {selectedRow.fechafin}
                         </p>
 
-                        <div className="relative mt-2 inline-block text-left">
-                          <button
-                            onClick={() => setIsOpenD(!isOpenD)}
-                            className="w-46 flex items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                        {!['FA', 'FT', 'CN'].includes(selectedRow.estado) && (
+                          <div
+                            className="relative mt-2 inline-block text-left"
+                            ref={dropdownRef}
                           >
-                            Opciones Servicio ▼
-                          </button>
+                            <button
+                              onClick={() => setIsOpenD(!isOpenD)}
+                              className="w-46 flex items-center justify-between rounded-md bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-600 active:bg-blue-700"
+                            >
+                              Opciones Servicio ▼
+                            </button>
 
-                          {isOpenD && (
-                            <div className="absolute z-10 mt-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
-                              <ul className="py-1">
-                                <li
-                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                  onClick={() => alert('Cancelar Servicio')}
-                                >
-                                  Cancelar Servicio
-                                </li>
-                                <li
-                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                  onClick={() => alert('Cancelar Asignación')}
-                                >
-                                  Cancelar Asignación
-                                </li>
-                                <li
-                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                  onClick={() => alert('Modificar Servicio')}
-                                >
-                                  Modificar Servicio
-                                </li>
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                            {isOpenD && (
+                              <div className="absolute z-10 mt-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
+                                <ul className="py-1">
+                                  {['AS', 'NI', 'NA'].includes(
+                                    selectedRow.estado,
+                                  ) && (
+                                    <li
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                      onClick={() =>
+                                        handleClickOption(() =>
+
+                                        handleCancelarServicio(selectedRow.codServicio)
+                                      )
+                                      }
+                                    >
+                                      Cancelar Servicio
+                                    </li>
+                                  )}
+
+                                  {['AS', 'NI'].includes(
+                                    selectedRow.estado,
+                                  ) && (
+                                    <li
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                      onClick={() =>
+                                        handleClickOption(() =>
+
+                                        handleCancelarAsignacion(selectedRow.codServicio)
+                                      )
+                                      }
+                                    >
+                                      Cancelar Asignación
+                                    </li>
+                                  )}
+
+                                  {['AS', 'NI', 'NA', 'PR'].includes(
+                                    selectedRow.estado,
+                                  ) && (
+                                    <li
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                      onClick={() =>
+                                        handleClickOption(() =>
+                                        {}
+
+                                        )
+                                      }
+                                    >
+                                      Modificar Servicio
+                                    </li>
+                                  )}
+
+                                  {['AS', 'PR'].includes(
+                                    selectedRow.estado,
+                                  ) && (
+                                    <li
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                      onClick={() =>
+                                        alert('Reiniciar Servicio')
+                                      }
+                                    >
+                                      Reiniciar Servicio
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Table & Map */}
                     <div className="mt-4 grid grid-cols-2 gap-4">
-                      {/* Table */}
                       <div className="">
                         <TableDraw
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
                           onCoordenadasUpdate={setCoordenadas}
-                          onCenterUpdate={handleCenterUpdate} // 🔹 Pasamos la función
+                          onCenterUpdate={handleCenterUpdate}
                           ref={tableRef}
                         ></TableDraw>
                       </div>
@@ -896,7 +1037,7 @@ export default function App({
                           <Mapa
                             recorrido={recorrido}
                             marcadores={coordenadas}
-                            centro={centroMapa} // 🔹 Pasamos el centro del mapa
+                            centro={centroMapa}
                           />
                         ) : (
                           <div className="rounded-lg bg-white p-3">
@@ -908,6 +1049,9 @@ export default function App({
                         )}
                       </div>
                     </div>
+                    <p>
+                        <strong>CodServicio:</strong> {selectedRow.codServicio}
+                      </p>
 
                     {/* <div className="mt-6 flex">
                       <p>
@@ -965,7 +1109,12 @@ export default function App({
                 >
                   Guardar
                 </Button>
-                <Button color="danger" onPress={onClose}>
+                <Button
+                  color="danger"
+                  onPress={() => {
+                    onClose();
+                  }}
+                >
                   Cerrar
                 </Button>
               </ModalFooter>
