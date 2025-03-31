@@ -8,11 +8,7 @@ import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import { FaCar } from 'react-icons/fa';
 import { FaUserTie } from 'react-icons/fa6';
-import {
-  GoogleMap,
-  Marker,
-  useJsApiLoader,
-} from '@react-google-maps/api';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import axios from 'axios';
 
 interface ItemData {
@@ -43,6 +39,7 @@ interface ContainerProps {
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
+  coordenadas?: { wx: string; wy: string }[]; // Nuevo prop opcional
 }
 
 const center = {
@@ -57,20 +54,27 @@ export default function Container({
   onUpdateGrupo,
   onUpdateConductor,
   onUpdateUnidad,
+  coordenadas,
 }: ContainerProps) {
-
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
-  const [conductor, setConductor] = useState<string>("");
-  const [conductores, setConductores] = useState<{ codigo: number; apepate: string }[]>([]);
-  const [filteredOptions, setFilteredOptions] = useState<{ codigo: number; apepate: string }[]>([]);
+  const [conductor, setConductor] = useState<string>('');
+  const [conductores, setConductores] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
+  const [filteredOptions, setFilteredOptions] = useState<
+    { codigo: number; apepate: string }[]
+  >([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-
-  const [unidad, setUnidad] = useState<string>("");
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>([]);
-  const [filteredUnidades, setFilteredUnidades] = useState<{ id: number; codunidad: string }[]>([]);
+  const [unidad, setUnidad] = useState<string>('');
+  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
+    [],
+  );
+  const [filteredUnidades, setFilteredUnidades] = useState<
+    { id: number; codunidad: string }[]
+  >([]);
   const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -79,6 +83,18 @@ export default function Container({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
+  
+  const [mapCenter, setMapCenter] = useState(center);
+
+  useEffect(() => {
+    if (coordenadas && coordenadas.length > 0) {
+      const firstCoord = coordenadas[0]; // Toma la primera coordenada como referencia
+      setMapCenter({
+        lat: parseFloat(firstCoord.wy),
+        lng: parseFloat(firstCoord.wx),
+      });
+    }
+  }, [coordenadas]);
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -106,8 +122,10 @@ export default function Container({
     fetchConductores();
     fetchUnidades();
   }, []);
-  
-  const handleConductorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleConductorChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const newConductor = event.target.value;
     setConductor(newConductor);
 
@@ -314,8 +332,6 @@ export default function Container({
 
         <div className="footerTep">
           <div className="dataConductorUnidad">
-
-
             <div className="relative">
               <input
                 type="text"
@@ -416,10 +432,18 @@ export default function Container({
                               width: '100%',
                               height: '100%',
                             }}
-                            center={center}
-                            zoom={14}
+                            center={mapCenter}
+                            zoom={15}
                           >
-                            <Marker position={center} />
+                            {coordenadas?.map((coord, index) => (
+                              <Marker
+                                key={index}
+                                position={{
+                                  lat: parseFloat(coord.wy),
+                                  lng: parseFloat(coord.wx),
+                                }}
+                              />
+                            ))}
                           </GoogleMap>
                         </div>
                       ) : (

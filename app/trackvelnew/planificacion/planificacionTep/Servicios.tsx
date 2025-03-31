@@ -98,6 +98,7 @@ export default function App({
     const fetchData = async () => {
       setLoading(true);
       const groupedData = await obtenerDatosYAgrupar(empresa, dato);
+      console.log(groupedData);
 
       const nuevosGrupos = groupedData.map((grupo) => ({
         ...grupo,
@@ -254,7 +255,6 @@ export default function App({
         if (grupo.personas && grupo.personas.length > 0) {
           acc[`container${index}`] = grupo.personas.map(
             (persona: any, idx: any) => {
-              // console.log(`Procesando persona ${persona.nombre} en grupo ${grupo.id}`);
               return {
                 id: String(persona.idCliente),
                 orderItem: idx + 1,
@@ -269,12 +269,14 @@ export default function App({
                 empresa: grupo.empresa,
                 fecha: grupo.fecha,
                 horaprog: grupo.horaprog,
+                wx: persona.wx, // ✅ Agregar coordenadas
+                wy: persona.wy, // ✅ Agregar coordenadas
                 acciones: (
                   <div className="accionesItems">
                     <Button
                       color="success"
                       size="sm"
-                      onClick={() =>
+                      onPress={() =>
                         handleMoverAGrupoNuevo(Number(persona.idCliente))
                       }
                     >
@@ -284,7 +286,7 @@ export default function App({
                     <Button
                       color="danger"
                       size="sm"
-                      onClick={() =>
+                      onPress={() =>
                         handleEliminarDelArray(Number(persona.idCliente))
                       }
                     >
@@ -305,6 +307,8 @@ export default function App({
         }
         return acc;
       }, {});
+      console.log("Nuevo Items:", nuevoItems); // ✅ Mostrar en consola
+
       setItems(nuevoItems);
     }
   }, [grupos, gruposFiltrados]);
@@ -777,6 +781,7 @@ export default function App({
                       id={key}
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
+                      coordenadas={gruposFiltrados[index]?.coordenadas}
                       onUpdateGrupo={(id: number, nuevaFecha: string) =>
                         handleUpdateGrupo(id, nuevaFecha)
                       }

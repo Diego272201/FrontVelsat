@@ -279,7 +279,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={device ? { lat: device.lastValidLatitude, lng: device.lastValidLongitude } : initialCenter}
+      center={device ? { lat: device.lastValidLatitude + 0.009, lng: device.lastValidLongitude } : initialCenter}
       zoom={14}
       onLoad={onLoad}
     />

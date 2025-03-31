@@ -58,6 +58,7 @@ interface Grupo {
   conductor: string ;
   unidad: string ;
   codConductor: string;
+  coordenadas: { wx: string; wy: string }[]; // Agregar coordenadas
 }
 
 export const obtenerDatosYAgrupar = async (
@@ -95,6 +96,7 @@ export const obtenerDatosYAgrupar = async (
             },
             conductor: item.servicio.conductor.apepate ,
             unidad: item.servicio.unidad.codunidad,
+            coordenadas: [], // Inicializar coordenadas
           });
         }
         gruposMap.get(numGrupo)?.personas.push({
@@ -104,10 +106,16 @@ export const obtenerDatosYAgrupar = async (
           nombre: item.nombre,
           direccion: item.lugar.direccion,
           distrito: item.lugar.distrito,
+          wx: item.lugar.wx,
+          wy: item.lugar.wy,
           fechaItem: item.horaprog,
           area: item.empresa,
           eliminado:item.eliminado,
           orden: parseInt(item.orden, 10),
+        });
+        gruposMap.get(numGrupo)?.coordenadas.push({
+          wx: item.lugar.wx,
+          wy: item.lugar.wy,
         });
       });
       
@@ -133,6 +141,7 @@ export const obtenerDatosYAgrupar = async (
           },
           conductor: item.servicio.conductor.apepate ,
           unidad: item.servicio.unidad.codunidad,
+          coordenadas: [], // Inicializar coordenadas
         };
         let it = 0;
         while (it < datos.length) {
@@ -154,6 +163,11 @@ export const obtenerDatosYAgrupar = async (
 
               area: currentItem.empresa,
             });
+            grupo.coordenadas.push({
+              wx: currentItem.lugar.wx,
+              wy: currentItem.lugar.wy,
+            });
+
             datos.splice(it, 1);
           } else {
             it++;

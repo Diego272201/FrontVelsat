@@ -1,6 +1,11 @@
-import { GoogleMap, Marker, Polyline, useLoadScript } from "@react-google-maps/api";
-import { useEffect, useState } from "react";
-
+import {
+  GoogleMap,
+  Marker,
+  Polyline,
+  useLoadScript,
+} from '@react-google-maps/api';
+import { useEffect, useState } from 'react';
+import { getMarkerSVG } from './ui/getMarkerSVG'; // importa la función
 interface MapaProps {
   recorrido: { lat: number; lng: number }[];
   marcadores: { lat: number; lng: number }[];
@@ -8,18 +13,17 @@ interface MapaProps {
 }
 
 const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
-
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
   const [zoom, setZoom] = useState(12); // 🔹 Zoom inicial en 12
-  const [isFirstLoad, setIsFirstLoad] = useState(true); 
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: API_KEY,
   });
 
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
-    marcadores.length > 0 ? marcadores[0] : { lat: -12.0464, lng: -77.0428 }
+    marcadores.length > 0 ? marcadores[0] : { lat: -12.0464, lng: -77.0428 },
   );
 
   useEffect(() => {
@@ -33,32 +37,24 @@ const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
   useEffect(() => {
     if (marcadores.length > 0) {
       setMapCenter(marcadores[0]);
-      setZoom(12)
+      setZoom(12);
     }
   }, [marcadores]);
-  
-  const markerIcons = [
-    "/house1.png",
-    "/house2.png",
-    "/house3.png",
-    "/house4.png",
-    "/house5.png"
-  ];
 
   return (
-    <div className="flex items-center justify-center rounded-lg bg-white p-4 shadow-md w-full h-[350px]">
+    <div className="flex h-[350px] w-full items-center justify-center rounded-lg bg-white p-4 shadow-md">
       {isLoaded ? (
         <GoogleMap
-          mapContainerStyle={{ width: "100%", height: "100%" }}
+          mapContainerStyle={{ width: '100%', height: '100%' }}
           center={mapCenter}
-          zoom={zoom} 
+          zoom={zoom}
         >
           {/* Dibuja el recorrido con una línea */}
           {recorrido.length > 1 && (
             <Polyline
               path={recorrido}
               options={{
-                strokeColor: "#FF0000",
+                strokeColor: '#FF0000',
                 strokeOpacity: 0.8,
                 strokeWeight: 3,
               }}
@@ -67,14 +63,17 @@ const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
 
           {/* Agrega los marcadores en los puntos */}
           {marcadores.map((punto, index) => {
-            const iconUrl = markerIcons[index % markerIcons.length] || ""; // Evitar undefined
+            const markerSvg = getMarkerSVG(index + 1);
             return (
               <Marker
                 key={index}
                 position={punto}
                 icon={{
-                  url: iconUrl,
-                  scaledSize: new window.google.maps.Size(40, 60), // Ajusta tamaño
+                  url:
+                    'data:image/svg+xml;charset=UTF-8,' +
+                    encodeURIComponent(markerSvg),
+                    scaledSize: new window.google.maps.Size(40, 50),
+                    anchor: new window.google.maps.Point(20, 45),
                 }}
               />
             );
