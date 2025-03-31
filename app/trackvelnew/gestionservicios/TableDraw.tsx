@@ -32,6 +32,8 @@ interface RowData {
   wx: string;
   fechafin:string;
   feccancelpas:string;
+  codlugar:string;
+
 }
 
 interface Props {
@@ -39,6 +41,19 @@ interface Props {
   onCoordenadasUpdate: (coordenadas: { lat: number; lng: number }[]) => void;
   onCenterUpdate?: (coordenadas: { lat: number; lng: number }) => void;
   fecha: string;
+  horaAtencion: string;
+  horaAto: string;
+  dataAgregada: {
+    nombre: string;
+    codigo: string;
+    codlugar: number;
+    direccion: string;
+    distrito: string;
+    wx: string;
+    wy: string;
+  }[];
+  agregarTrigger:number;
+  areaLan:string;
 }
 
 const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index: number; onUbicar: (coords: { lat: number; lng: number }) => void; onCancelar: (codigo: number) => void }) => {
@@ -94,9 +109,84 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
 };
 
 const DragAndDropTable = forwardRef(
-  ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha }: Props, ref) => {
+  ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha ,dataAgregada,agregarTrigger,areaLan,horaAtencion, horaAto  }: Props, ref) => {
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [tempData, setTempData] = useState<typeof dataAgregada>([]); // Estado local para manejar los datos agregados
+
+
+    const parseFecha = (fechaStr: string | null) => {
+      if (!fechaStr) return null;
+    
+      try {
+        const fecha = new Date(fechaStr); // Convertir el string a un objeto Date
+    
+        if (isNaN(fecha.getTime())) {
+          console.error("Fecha inválida:", fechaStr);
+          return null;
+        }
+    
+        // Extraer componentes de la fecha
+        const dia = fecha.getDate().toString().padStart(2, "0");
+        const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); // Enero es 0
+        const año = fecha.getFullYear();
+        const horas = fecha.getHours().toString().padStart(2, "0");
+        const minutos = fecha.getMinutes().toString().padStart(2, "0");
+    
+        return `${dia}/${mes}/${año} ${horas}:${minutos}`;
+      } catch (error) {
+        console.error("Error al parsear la fecha:", error);
+        return null;
+      }
+    };
+    
+    // Probamos el useEffect
+ 
+    
+    
+
+    useEffect(() => {
+      console.log("📥 Nueva data recibida en dataAgregada:", dataAgregada);
+
+      setTempData([]);
+      setTimeout(() => {
+        setTempData(dataAgregada); 
+      }, 0); 
+    }, [agregarTrigger]); 
+
+    useEffect(() => {
+      console.log("tempData actualizado:", tempData);
+    }, [tempData]);
+    
+
+    useEffect(() => {
+      if (tempData.length > 0) {
+        setData((prevData: any) => {
+          let ultimoOrden = prevData.length > 0 ? parseInt(prevData[prevData.length - 1].orden) : 0;
+
+          const nuevosItems = tempData.map((item) => ({
+            orden: (++ultimoOrden).toString(),
+            area: areaLan,
+            codigo: Number(item.codigo),
+            nombre: item.nombre,
+            direccion: item.direccion,
+            distrito: item.distrito,
+            estado: "NW",
+            wy: item.wy || "",
+            wx: item.wx || "",
+            fechafin: null,
+            feccancelpas: null,
+            codlugar: item.codlugar,
+
+          }));
+
+          return [...prevData, ...nuevosItems];
+        });
+
+        setTempData([]); 
+      }
+    }, [tempData]);
+    
 
 
 
@@ -202,25 +292,55 @@ const DragAndDropTable = forwardRef(
 
     const actualizarOrdenEnServidor = async () => {
       if (!codServicio || data.length === 0) return;
-
+    
       const API_URL = `http://66.240.210.125:8586/api/Preplan/actualizarOrden`;
 
+      const fechaFinal = data.length > 0 ? parseFecha(horaAto) : fecha;
+
+    
       const payload = {
         codservicio: codServicio,
-        fecha: fecha,
-        listapuntos: data.map(({ codigo, orden }) => ({
-          codigo,
-          orden,
-        })),
+        fecha: fechaFinal,
+        listapuntos: data.map(({ codigo, orden, codlugar, estado }) => {
+          if (codlugar) {
+            // Si tiene `codlugar`, es un nuevo registro y debe enviarse con estructura completa
+            return {
+              estado: estado || "NW",
+              fecha: parseFecha(horaAtencion),
+              lugar: {
+                codlugar: codlugar.toString(),
+              },
+              pasajero: {
+                codigo: codigo.toString(),
+              },
+              servicio: {
+                codservicio: codServicio.toString(),
+              },
+              orden: orden.toString(),
+              arealan:areaLan,
+              
+            };
+          } else {
+            // Si no tiene `codlugar`, es un registro existente y solo enviamos `codigo` y `orden`
+            return {
+              codigo: codigo,
+              orden: orden.toString(),
+            };
+          }
+        }),
       };
-
+    
+      console.log("Payload enviado al servidor:", JSON.stringify(payload, null, 2));
+    
       try {
         const response = await axios.put(API_URL, payload);
-        toast.success('Orden actualizada con éxito.');
+        toast.success('Datos actualizados con éxito.');
       } catch (error) {
+        console.error("Error en la actualización:", error);
         toast.error('Error al actualizar la orden.');
       }
     };
+    
 
     useImperativeHandle(ref, () => ({
       actualizarOrdenEnServidor,

@@ -20,11 +20,12 @@ import {
 import axios from 'axios';
 import { toast } from 'sonner';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
-import { FaCar, FaUserTie } from 'react-icons/fa';
+import { FaCar, FaUser, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
 import SeguirUnidad from '@/app/request/seguirUnidad';
+import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
 
 const getFormattedDate = () => {
   const peruTime = new Date(
@@ -35,64 +36,6 @@ const getFormattedDate = () => {
   const month = String(peruTime.getMonth() + 1).padStart(2, '0');
   const day = String(peruTime.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const parseFecha = (fechaStr: string | null) => {
-  if (!fechaStr) return null;
-  const [dia, mes, añoHora] = fechaStr.split('/');
-  const [año, hora] = añoHora.split(' ');
-  return new Date(`${año}-${mes}-${dia}T${hora}:00`).getTime();
-};
-
-const getEstadoYColor = (item: any) => {
-  const fechaActual = new Date().getTime();
-  const fechaProg = parseFecha(item.fecplan);
-  const fechaInicio = parseFecha(item.newfechaini);
-  const fechaFin = parseFecha(item.newfechafni);
-  const fechaATO = parseFecha(item.fecha);
-
-  if (!fechaProg) return { estado: 'ERROR', color: '#C9CECD' };
-
-  if (item.estado === 'C') return { estado: 'CN', color: '#E5AFEF' };
-
-  let estado = 'AS';
-  let color = '#AFD5EF';
-
-  if (!item.unidad?.codunidad) {
-    estado = 'NA';
-    color = '#FDBDAA';
-  } else {
-    // 🚨 Verificamos si ya pasó la fecha programada pero no ha iniciado
-    if (fechaActual > fechaProg && !fechaInicio) {
-      estado = 'NI';
-      color = '#868887';
-    }
-
-    // Si el servicio ha finalizado
-    if (fechaFin && fechaATO) {
-      const diferenciaFin = fechaFin - fechaATO;
-      if (item.tipo === 'I') {
-        estado = diferenciaFin > 60000 ? 'FT' : 'FA';
-        color = diferenciaFin > 60000 ? '#FAFAAD' : '#CFFBAC';
-      } else {
-        estado = 'FA';
-        color = '#CFFBAC';
-      }
-    }
-
-    // Si el servicio está en proceso
-    if (fechaInicio && !fechaFin) {
-      if (fechaATO) {
-        const diferencia = fechaActual - fechaATO;
-        if (item.tipo === 'I' || item.tipo === 'S') {
-          estado = diferencia < 7200000 ? 'PR' : 'PR';
-          color = '#EBF9F8';
-        }
-      }
-    }
-  }
-
-  return { estado, color };
 };
 
 const columns = [
@@ -147,10 +90,13 @@ export default function App({
   // const [isOpenA, setIsOpenA] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [isOpenD, setIsOpenD] = useState(false);
 
-  const [refreshFlagCancelar, setRefreshFlagCancelar] = useState(false);
+  const handleModificarServicio = () => {
+    setIsEditing(true);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: any) => {
@@ -165,11 +111,10 @@ export default function App({
     };
   }, []);
 
-  const handleClickOption = (callback:any) => {
+  const handleClickOption = (callback: any) => {
     callback();
     setIsOpenD(false);
   };
-
 
   const [recorrido, setRecorrido] = useState<{ lat: number; lng: number }[]>(
     [],
@@ -229,7 +174,9 @@ export default function App({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const [selectedRow, setSelectedRow] = useState<any>(null);
-  const [previousSelectedCod, setPreviousSelectedCod] = useState<string | null>(null);
+  const [previousSelectedCod, setPreviousSelectedCod] = useState<string | null>(
+    null,
+  );
 
   const [conductor, setConductor] = useState<string>('');
   const [conductores, setConductores] = useState<
@@ -252,6 +199,114 @@ export default function App({
   const [unidadSeleccionadaA, setUnidadSeleccionadaA] = useState<string | null>(
     null,
   );
+
+  const [pasajero, setPasajero] = useState('');
+
+const [sugerencias, setSugerencias] = useState<
+  { apepate: string; codigo: string; codlugar: number; direccion: string; distrito: string, wx:string,wy:string }[]
+>([]);
+
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  const [seleccionado, setSeleccionado] = useState(false);
+
+  const seleccionarPasajero = (nombre: string, codigo: string, codlugar: number, direccion: string, distrito: string, wx:string, wy:string) => {
+    console.log('Pasajero seleccionado:', nombre, 'Código:', codigo);
+    console.log('Lugar:', 'CodLugar:', codlugar, 'Dirección:', direccion, 'Distrito:', distrito, "Latitud",wx, "Longitud", wy);
+    
+    setPasajero(nombre);
+    setSugerencias([]);
+    setMostrarSugerencias(false);
+    setSeleccionado(true);
+  };
+
+  useEffect(() => {
+    const fetchPasajeros = async () => {
+      if (pasajero.length < 1) {
+        setSugerencias([]);
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `http://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+        );
+
+        const resultados = response.data.map((item: any) => ({
+          apepate: item.apepate,
+          codigo: item.codigo,
+          codlugar: item.lugar?.codlugar || 0, 
+        direccion: item.lugar?.direccion || 'No disponible',
+        distrito: item.lugar?.distrito || 'No disponible',
+        wx:item.lugar?.wx  || "",
+        wy:item.lugar?.wy  || "",
+        }));
+
+        setSugerencias(resultados);
+      } catch (error) {
+        console.error('Error al obtener pasajeros:', error);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      fetchPasajeros();
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [pasajero, seleccionado]);
+
+
+
+  const [horaAtencion, setHoraAtencion] = useState('');
+  const [horaAto, setHoraAto] = useState('');
+
+  const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>(""); // Inicializamos con ""
+  const [horaAtoFinal, setHoraAtoFinal] = useState<string>("");
+
+  useEffect(() => {
+    setIsEditing(false);
+    setHoraAtencion("");
+    setHoraAto("");
+    setPasajero(""); // Limpiar el input del pasajero
+    setSugerencias([]); // Limpiar las sugerencias si es necesario
+    setSeleccionado(false); // Resetear el estado de selección
+  }, [selectedRow]);
+  
+
+
+const [dataSeleccionada, setDataSeleccionada] = useState<
+  { nombre: string; codigo: string; codlugar: number; direccion: string; distrito: string; horaAtencion: string; horaAto: string,wx:string,wy:string }[]
+>([]);
+
+const [agregarTrigger, setAgregarTrigger] = useState(0);
+
+const handleAgregar = () => {
+  if (!pasajero || !horaAtencion || !horaAto) {
+    console.warn("Faltan datos para agregar.");
+    return;
+  }
+
+  const nuevaData = {
+    nombre: pasajero,
+    codigo: sugerencias.find((item) => item.apepate === pasajero)?.codigo || '',
+    codlugar: sugerencias.find((item) => item.apepate === pasajero)?.codlugar || 0,
+    direccion: sugerencias.find((item) => item.apepate === pasajero)?.direccion || 'No disponible',
+    distrito: sugerencias.find((item) => item.apepate === pasajero)?.distrito || 'No disponible',
+    wx: sugerencias.find((item) => item.apepate === pasajero)?.wx || 'No disponible',
+    wy: sugerencias.find((item) => item.apepate === pasajero)?.wy || 'No disponible',
+    horaAtencion,
+    horaAto,
+  };
+
+  setDataSeleccionada([nuevaData]); // Reemplaza la data anterior
+  setAgregarTrigger((prev) => prev + 1); // Cambia el trigger
+  setHoraAtencionFinal(horaAtencion);
+  setHoraAtoFinal(horaAto);
+};
+
+useEffect(() => {
+  console.log("📌 dataSeleccionada actualizada:", dataSeleccionada);
+}, [dataSeleccionada]);
+
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -323,7 +378,6 @@ export default function App({
     setShowDropdown(false);
   };
 
-
   const formatData = (rawData: any[]) => {
     return rawData.map((item: any) => {
       const { estado, color } = getEstadoYColor(item);
@@ -364,27 +418,23 @@ export default function App({
     });
   };
 
+  // Sirve para actulizar los datos del modal al cambiar en opciones de servcio y llevarme al servcio que estana al incio
 
-  //Sirve para actulizar los datos del modal al cambiar en opciones de servcio y llevarme al servcio que estana al incio 
-
-  useEffect(() => {
-    if (previousSelectedCod && data.length > 0) {
-      const updatedRow = data.find((item) => item.codServicio === previousSelectedCod);
-      if (updatedRow) {
-        setSelectedRow({ ...updatedRow });
-        setTimeout(() => {
-          document.getElementById(`row-${previousSelectedCod}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 100); 
-      }
-    }
-  }, [data]);
-  
-  
-  
+  // useEffect(() => {
+  //   if (previousSelectedCod && data.length > 0) {
+  //     const updatedRow = data.find((item) => item.codServicio === previousSelectedCod);
+  //     if (updatedRow) {
+  //       setSelectedRow({ ...updatedRow });
+  //       setTimeout(() => {
+  //         document.getElementById(`row-${previousSelectedCod}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  //       }, 100);
+  //     }
+  //   }
+  // }, [data]);
 
   const handleRowClick = (row: any) => {
     setSelectedRow(row);
-    setPreviousSelectedCod(row.codServicio); 
+    setPreviousSelectedCod(row.codServicio);
     onOpen();
   };
 
@@ -415,7 +465,6 @@ export default function App({
     refreshFlag,
     refreshFlagDelete,
     refreshFlagAsignar,
-    refreshFlagCancelar,
   ]);
 
   useEffect(() => {
@@ -447,7 +496,7 @@ export default function App({
     };
 
     fetchPasajeroData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete,refreshFlagCancelar]);
+  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
 
   useEffect(() => {
     setSelectedKeys([]);
@@ -524,34 +573,77 @@ export default function App({
     setUnidadA('');
   };
 
-  const handleCancelarAsignacion = async(codServicio:string)=> {
-
-      try {
-        const response = await axios.put(`http://66.240.210.125:8586/api/Preplan/canasig/${codServicio}`);
-        toast.success('Asignación cancelada correctamente.');
-        setRefreshFlagCancelar(prev => !prev); 
-
-      } catch (error) {      
-        toast.error('Error al cancelar la asignación.');
-      }
-  }
-
-
-
-  const handleCancelarServicio = async(codServicio:string)=>{
-
+  const handleCancelarAsignacion = async (codServicio: string) => {
     try {
-      const response = await axios.delete(`http://66.240.210.125:8586/api/Preplan/cancelar/${codServicio}`)
-      toast.success('Servicio cancelada correctamente.');
-      setRefreshFlagCancelar(prev => !prev); 
+      await axios.put(
+        `http://66.240.210.125:8586/api/Preplan/canasig/${codServicio}`,
+      );
 
+      setData((prevData) => {
+        return prevData.map((item) => {
+          if (item.codServicio === codServicio) {
+            const updatedItem = { ...item, unidad: null, conductor: null };
 
+            const { estado, color } = getEstadoYColorVerifica(updatedItem);
+            return { ...updatedItem, estado, color };
+          }
+          return item;
+        });
+      });
+
+      if (selectedRow?.codServicio === codServicio) {
+        const updatedRow = {
+          ...selectedRow,
+          unidad: null,
+          conductor: null,
+          ...getEstadoYColorVerifica({
+            ...selectedRow,
+            unidad: null,
+            conductor: null,
+          }),
+        };
+
+        setSelectedRow(updatedRow);
+      }
+
+      toast.success('Asignación cancelada correctamente.');
+    } catch (error) {
+      toast.error('Error al cancelar la asignación.');
+    }
+  };
+
+  const handleCancelarServicio = async (codServicio: string) => {
+    try {
+      await axios.delete(
+        `http://66.240.210.125:8586/api/Preplan/cancelar/${codServicio}`,
+      );
+
+      setData((prevData) =>
+        prevData.map((item) => {
+          if (item.codServicio === codServicio) {
+            const updatedItem = { ...item, estado: 'C' };
+            const { estado, color } = getEstadoYColorVerifica(updatedItem); // Solo obtenemos el color
+
+            return { ...updatedItem, color, estado };
+          }
+          return item;
+        }),
+      );
+
+      if (selectedRow?.codServicio === codServicio) {
+        const updatedRow = {
+          ...selectedRow,
+          ...getEstadoYColorVerifica({ ...selectedRow, estado: 'C' }),
+        };
+
+        setSelectedRow(updatedRow);
+      }
+
+      toast.success('Servicio cancelado correctamente.');
     } catch (error) {
       toast.error('Error al cancelar el servicio.');
-
     }
-
-  }
+  };
 
   const eliminarServicio = async () => {
     const result = await Swal.fire({
@@ -566,7 +658,7 @@ export default function App({
 
     if (!result.isConfirmed) return;
 
-    const payload = [{ codservicio: selectedRow.codServicio }]; 
+    const payload = [{ codservicio: selectedRow.codServicio }];
 
     try {
       await axios.delete(
@@ -642,6 +734,15 @@ export default function App({
       setIsOpenD(false);
     }
   }, [isOpen]);
+
+  const handleAgregarLimpiar= () => {
+  
+    setPasajero("");
+    setHoraAtencion("");
+    setHoraAto("");
+  };
+  
+  
 
   return (
     <div>
@@ -899,28 +1000,108 @@ export default function App({
 
                           <div className="grid grid-cols-5 items-center gap-2 p-2">
                             <p className="font-semibold">Modificar Servicio:</p>
-                            <input
-                              type="text"
-                              placeholder="Ingrese Nombre Pasajero"
-                              className="col-span-1 rounded border bg-gray-200 p-1.5"
-                              disabled
-                            />
-                            <input
-                              type="text"
-                              placeholder="Hora Atención"
-                              className="col-span-1 rounded border bg-gray-200 p-1.5"
-                              disabled
-                            />
-                            <input
-                              type="text"
-                              placeholder="Nueva Hora Ato"
-                              className="col-span-1 rounded border bg-gray-200 p-1.5"
-                              disabled
-                            />
-                            <button className="rounded-md bg-gray-500 px-4 py-1.5 text-white">
+                            <div>
+                              <div>
+                                <input
+                                  id="inputPasajero"
+                                  type="text"
+                                  className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-3 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
+                                  placeholder="Ingrese Nombre del Pasajero"
+                                  disabled={!isEditing}
+                                  value={pasajero}
+                                  onChange={(e) => {
+                                    if (seleccionado) {
+                                      setSeleccionado(false);
+                                      return;
+                                    }
+                                    setPasajero(e.target.value);
+                                    setMostrarSugerencias(true);
+                                  }}
+                                  onFocus={() => {
+                                    if (sugerencias.length > 0 && !seleccionado)
+                                      setMostrarSugerencias(true);
+                                  }}
+                                  onBlur={() =>
+                                    setTimeout(
+                                      () => setMostrarSugerencias(false),
+                                      100,
+                                    )
+                                  }
+                                />
+
+                                {mostrarSugerencias &&
+                                  sugerencias.length > 0 && (
+                                    <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg ">
+                                      {sugerencias.map((item, index) => (
+                                        <li
+                                          key={index}
+                                          className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            seleccionarPasajero(item.apepate, item.codigo, item.codlugar, item.direccion, item.distrito, item.wx, item.wy);
+
+
+                                            setMostrarSugerencias(false);
+                                            setSugerencias([]); 
+
+                                            setTimeout(() => {
+                                              const input =
+                                                document.getElementById(
+                                                  'inputPasajero',
+                                                );
+                                              input?.blur(); 
+                                            }, 100); 
+                                          }}
+                                        >
+                                          {item.apepate}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                              </div>
+                            </div>
+
+                    
+
+                              <input
+                                type="datetime-local"
+                                id="fechaA"
+                                value={horaAtencion}
+                                onChange={(e) =>
+                                  setHoraAtencion(e.target.value)
+                                }
+                                className={`col-span-1 rounded border bg-gray-200 p-1 ${
+                                  !horaAtencion ? 'text-gray-400' : 'text-black'
+                                }`}
+                                disabled={!isEditing}
+                              />
+                           
+                          
+
+                              <input
+                                id="fecha"
+                                type="datetime-local"
+                                value={horaAto}
+                                onChange={(e) =>
+                                  setHoraAto(e.target.value)
+                                }
+                                className={`col-span-1 rounded border bg-gray-200 p-1 ${
+                                  !horaAto ? 'text-gray-400' : 'text-black'
+                                }`}
+                                disabled={!isEditing}
+                              />
+                            <button className="rounded-md bg-gray-500 px-4 py-1.5 text-white" 
+                              onClick={()=>{
+                                handleAgregar(); 
+                                handleAgregarLimpiar(); 
+                              }}
+
+                            >
                               Agregar
                             </button>
                           </div>
+
+
                         </div>
                       </div>
 
@@ -958,9 +1139,10 @@ export default function App({
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                                       onClick={() =>
                                         handleClickOption(() =>
-
-                                        handleCancelarServicio(selectedRow.codServicio)
-                                      )
+                                          handleCancelarServicio(
+                                            selectedRow.codServicio,
+                                          ),
+                                        )
                                       }
                                     >
                                       Cancelar Servicio
@@ -974,9 +1156,10 @@ export default function App({
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                                       onClick={() =>
                                         handleClickOption(() =>
-
-                                        handleCancelarAsignacion(selectedRow.codServicio)
-                                      )
+                                          handleCancelarAsignacion(
+                                            selectedRow.codServicio,
+                                          ),
+                                        )
                                       }
                                     >
                                       Cancelar Asignación
@@ -990,8 +1173,7 @@ export default function App({
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                                       onClick={() =>
                                         handleClickOption(() =>
-                                        {}
-
+                                          handleModificarServicio(),
                                         )
                                       }
                                     >
@@ -1024,9 +1206,14 @@ export default function App({
                         <TableDraw
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
+                          horaAtencion={horaAtencionFinal} 
+                          horaAto={horaAtoFinal} 
+                          dataAgregada={dataSeleccionada}  
+                          agregarTrigger={agregarTrigger}                        
                           onCoordenadasUpdate={setCoordenadas}
                           onCenterUpdate={handleCenterUpdate}
                           ref={tableRef}
+                          areaLan={selectedRow.empresaSinNumber}
                         ></TableDraw>
                       </div>
 
@@ -1050,8 +1237,8 @@ export default function App({
                       </div>
                     </div>
                     <p>
-                        <strong>CodServicio:</strong> {selectedRow.codServicio}
-                      </p>
+                      <strong>CodServicio:</strong> {selectedRow.codServicio}
+                    </p>
 
                     {/* <div className="mt-6 flex">
                       <p>
