@@ -102,6 +102,8 @@ export default function Page() {
   >([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
+
+  
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
 
   const [numeroServicio, setNumeroServicio] = useState('');
@@ -601,10 +603,10 @@ export default function Page() {
                             key={index}
                             className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                             onMouseDown={(e) => {
-                              e.preventDefault(); // Evita que el input pierda foco antes de tiempo
+                              e.preventDefault(); 
                               seleccionarPasajero(item.apepate, item.codlan);
 
-                              setMostrarSugerencias(false); // Oculta el autocompletado
+                              setMostrarSugerencias(false); 
                               setSugerencias([]); // Limpia las sugerencias
 
                               setTimeout(() => {
