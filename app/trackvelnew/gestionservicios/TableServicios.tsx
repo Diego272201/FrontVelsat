@@ -38,20 +38,46 @@ const getFormattedDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-const columns = [
-  { key: 'select', label: '' },
-  { key: 'area', label: 'Área' },
-  { key: 'numero', label: 'Número' },
-  { key: 'tipo', label: 'Tipo' },
-  { key: 'empresa', label: 'Empresa' },
-  { key: 'grupo', label: 'Grupo Turismo' },
-  { key: 'horaProg', label: 'Hora Prog.' },
-  { key: 'horaAto', label: 'Hora ATO' },
-  { key: 'controlAto', label: 'Control ATO' },
-  { key: 'unidad', label: 'Unidad' },
-  { key: 'conductor', label: 'Conductor' },
-  { key: 'estado', label: 'Estado' },
-];
+
+const parseFecha = (fechaStr: string | null) => {
+  if (!fechaStr) return null;
+
+  try {
+    const fecha = new Date(fechaStr); 
+
+    if (isNaN(fecha.getTime())) {
+      console.error("Fecha inválida:", fechaStr);
+      return null;
+    }
+
+    const dia = fecha.getDate().toString().padStart(2, "0");
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); 
+    const año = fecha.getFullYear();
+    const horas = fecha.getHours().toString().padStart(2, "0");
+    const minutos = fecha.getMinutes().toString().padStart(2, "0");
+
+    return `${dia}/${mes}/${año} ${horas}:${minutos}`;
+  } catch (error) {
+    console.error("Error al parsear la fecha:", error);
+    return null;
+  }
+};
+
+
+  const columns = [
+    { key: 'select', label: '' },
+    { key: 'area', label: 'Área' },
+    { key: 'numero', label: 'Número' },
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'empresa', label: 'Empresa' },
+    { key: 'grupo', label: 'Grupo Turismo' },
+    { key: 'horaProg', label: 'Hora Prog.' },
+    { key: 'horaAto', label: 'Hora ATO' },
+    { key: 'controlAto', label: 'Control ATO' },
+    { key: 'unidad', label: 'Unidad' },
+    { key: 'conductor', label: 'Conductor' },
+    { key: 'estado', label: 'Estado' },
+  ];
 
 export default function App({
   isVisible,
@@ -202,17 +228,45 @@ export default function App({
 
   const [pasajero, setPasajero] = useState('');
 
-const [sugerencias, setSugerencias] = useState<
-  { apepate: string; codigo: string; codlugar: number; direccion: string; distrito: string, wx:string,wy:string }[]
->([]);
+  const [sugerencias, setSugerencias] = useState<
+    {
+      apepate: string;
+      codigo: string;
+      codlugar: number;
+      direccion: string;
+      distrito: string;
+      wx: string;
+      wy: string;
+    }[]
+  >([]);
 
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
 
-  const seleccionarPasajero = (nombre: string, codigo: string, codlugar: number, direccion: string, distrito: string, wx:string, wy:string) => {
+  const seleccionarPasajero = (
+    nombre: string,
+    codigo: string,
+    codlugar: number,
+    direccion: string,
+    distrito: string,
+    wx: string,
+    wy: string,
+  ) => {
     console.log('Pasajero seleccionado:', nombre, 'Código:', codigo);
-    console.log('Lugar:', 'CodLugar:', codlugar, 'Dirección:', direccion, 'Distrito:', distrito, "Latitud",wx, "Longitud", wy);
-    
+    console.log(
+      'Lugar:',
+      'CodLugar:',
+      codlugar,
+      'Dirección:',
+      direccion,
+      'Distrito:',
+      distrito,
+      'Latitud',
+      wx,
+      'Longitud',
+      wy,
+    );
+
     setPasajero(nombre);
     setSugerencias([]);
     setMostrarSugerencias(false);
@@ -234,11 +288,11 @@ const [sugerencias, setSugerencias] = useState<
         const resultados = response.data.map((item: any) => ({
           apepate: item.apepate,
           codigo: item.codigo,
-          codlugar: item.lugar?.codlugar || 0, 
-        direccion: item.lugar?.direccion || 'No disponible',
-        distrito: item.lugar?.distrito || 'No disponible',
-        wx:item.lugar?.wx  || "",
-        wy:item.lugar?.wy  || "",
+          codlugar: item.lugar?.codlugar || 0,
+          direccion: item.lugar?.direccion || 'No disponible',
+          distrito: item.lugar?.distrito || 'No disponible',
+          wx: item.lugar?.wx || '',
+          wy: item.lugar?.wy || '',
         }));
 
         setSugerencias(resultados);
@@ -254,59 +308,72 @@ const [sugerencias, setSugerencias] = useState<
     return () => clearTimeout(delayDebounce);
   }, [pasajero, seleccionado]);
 
-
-
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
 
-  const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>(""); // Inicializamos con ""
-  const [horaAtoFinal, setHoraAtoFinal] = useState<string>("");
+  const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>(''); // Inicializamos con ""
+  const [horaAtoFinal, setHoraAtoFinal] = useState<string>('');
 
   useEffect(() => {
     setIsEditing(false);
-    setHoraAtencion("");
-    setHoraAto("");
-    setPasajero(""); // Limpiar el input del pasajero
+    setHoraAtencion('');
+    setHoraAto('');
+    setPasajero(''); // Limpiar el input del pasajero
     setSugerencias([]); // Limpiar las sugerencias si es necesario
     setSeleccionado(false); // Resetear el estado de selección
   }, [selectedRow]);
-  
 
+  const [dataSeleccionada, setDataSeleccionada] = useState<
+    {
+      nombre: string;
+      codigo: string;
+      codlugar: number;
+      direccion: string;
+      distrito: string;
+      horaAtencion: string;
+      wx: string;
+      wy: string;
+    }[]
+  >([]);
 
-const [dataSeleccionada, setDataSeleccionada] = useState<
-  { nombre: string; codigo: string; codlugar: number; direccion: string; distrito: string; horaAtencion: string; horaAto: string,wx:string,wy:string }[]
->([]);
+  const [agregarTrigger, setAgregarTrigger] = useState(0);
 
-const [agregarTrigger, setAgregarTrigger] = useState(0);
+  const handleAgregar = () => {
+    if (!pasajero || !horaAtencion || !horaAto) {
+      toast.error('Faltan datos para agregar.');
+      return;
+    }
 
-const handleAgregar = () => {
-  if (!pasajero || !horaAtencion || !horaAto) {
-    console.warn("Faltan datos para agregar.");
-    return;
-  }
+    const nuevaData = {
+      nombre: pasajero,
+      codigo:
+        sugerencias.find((item) => item.apepate === pasajero)?.codigo || '',
+      codlugar:
+        sugerencias.find((item) => item.apepate === pasajero)?.codlugar || 0,
+      direccion:
+        sugerencias.find((item) => item.apepate === pasajero)?.direccion ||
+        'No disponible',
+      distrito:
+        sugerencias.find((item) => item.apepate === pasajero)?.distrito ||
+        'No disponible',
+      wx:
+        sugerencias.find((item) => item.apepate === pasajero)?.wx ||
+        'No disponible',
+      wy:
+        sugerencias.find((item) => item.apepate === pasajero)?.wy ||
+        'No disponible',
+      horaAtencion,
+     
+    };
 
-  const nuevaData = {
-    nombre: pasajero,
-    codigo: sugerencias.find((item) => item.apepate === pasajero)?.codigo || '',
-    codlugar: sugerencias.find((item) => item.apepate === pasajero)?.codlugar || 0,
-    direccion: sugerencias.find((item) => item.apepate === pasajero)?.direccion || 'No disponible',
-    distrito: sugerencias.find((item) => item.apepate === pasajero)?.distrito || 'No disponible',
-    wx: sugerencias.find((item) => item.apepate === pasajero)?.wx || 'No disponible',
-    wy: sugerencias.find((item) => item.apepate === pasajero)?.wy || 'No disponible',
-    horaAtencion,
-    horaAto,
+    setDataSeleccionada([nuevaData]); // Reemplaza la data anterior
+    setAgregarTrigger((prev) => prev + 1); // Cambia el trigger
+    setHoraAtencionFinal(horaAtencion);
   };
 
-  setDataSeleccionada([nuevaData]); // Reemplaza la data anterior
-  setAgregarTrigger((prev) => prev + 1); // Cambia el trigger
-  setHoraAtencionFinal(horaAtencion);
-  setHoraAtoFinal(horaAto);
-};
-
-useEffect(() => {
-  console.log("📌 dataSeleccionada actualizada:", dataSeleccionada);
-}, [dataSeleccionada]);
-
+  useEffect(() => {
+    console.log('📌 dataSeleccionada actualizada:', dataSeleccionada);
+  }, [dataSeleccionada]);
 
   useEffect(() => {
     const fetchConductores = async () => {
@@ -679,11 +746,9 @@ useEffect(() => {
   const formatFecha = (fechaStr: string | null | undefined) => {
     if (!fechaStr) return '';
 
-    // Separar la fecha de la hora
     const [fecha, hora] = fechaStr.split(' ');
     if (!fecha || !hora) return '';
 
-    // Extraer día, mes y año
     const [dia, mes, año] = fecha.split('/');
     if (!dia || !mes || !año) return '';
 
@@ -728,6 +793,7 @@ useEffect(() => {
       setRecorrido([]);
     };
   }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
+  
 
   useEffect(() => {
     if (!isOpen) {
@@ -735,11 +801,27 @@ useEffect(() => {
     }
   }, [isOpen]);
 
-  const handleAgregarLimpiar= () => {
-  
-    setPasajero("");
-    setHoraAtencion("");
-    setHoraAto("");
+  const handleAgregarLimpiar = () => {
+    setPasajero('');
+    setHoraAtencion('');
+  };
+
+
+  const handleGuardarHoraAto = () => {
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.codServicio === selectedRow?.codServicio
+          ? { 
+              ...item, 
+              horaAto: horaAto ? horaAto.split('T')[1].slice(0, 5) : item.horaAto,
+              // Actualizar la fechaCompleta al formato YYYY-MM-DD HH:mm
+              fechaCompleta: horaAto
+                ? parseFecha(horaAto)
+                : item.fechaCompleta
+            }
+          : item
+      )
+    );
   };
   
   
@@ -889,7 +971,7 @@ useEffect(() => {
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Servicio:</p>
                             <p className="col-span-3">
-                              {selectedRow?.fechaCompleta} - {selectedRow.tipo}{' '}
+                            {horaAto ? parseFecha(horaAto) : selectedRow?.fechaCompleta} - {selectedRow.tipo}{' '}
                               ({selectedRow.numero}) -{' '}
                               {selectedRow.empresaSinNumber}
                             </p>
@@ -999,70 +1081,87 @@ useEffect(() => {
                           </div>
 
                           <div className="grid grid-cols-5 items-center gap-2 p-2">
+
                             <p className="font-semibold">Modificar Servicio:</p>
-                            <div>
-                              <div>
-                                <input
-                                  id="inputPasajero"
-                                  type="text"
-                                  className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-3 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
-                                  placeholder="Ingrese Nombre del Pasajero"
-                                  disabled={!isEditing}
-                                  value={pasajero}
-                                  onChange={(e) => {
-                                    if (seleccionado) {
-                                      setSeleccionado(false);
-                                      return;
-                                    }
-                                    setPasajero(e.target.value);
-                                    setMostrarSugerencias(true);
-                                  }}
-                                  onFocus={() => {
-                                    if (sugerencias.length > 0 && !seleccionado)
-                                      setMostrarSugerencias(true);
-                                  }}
-                                  onBlur={() =>
-                                    setTimeout(
-                                      () => setMostrarSugerencias(false),
-                                      100,
-                                    )
+
+                            <div className="flex flex-col">
+                              <label
+                                htmlFor="inputPasajero"
+                                className="mb-1 text-xs font-medium text-gray-700"
+                              >
+                                Ingrese Pasajero:
+                              </label>
+                              <input
+                                id="inputPasajero"
+                                type="text"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-300 px-16 py-1.5 ps-3 text-sm focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
+                                placeholder="Ingrese Nombre del Pasajero"
+                                disabled={!isEditing}
+                                value={pasajero}
+                                onChange={(e) => {
+                                  if (seleccionado) {
+                                    setSeleccionado(false);
+                                    return;
                                   }
-                                />
+                                  setPasajero(e.target.value);
+                                  setMostrarSugerencias(true);
+                                }}
+                                onFocus={() => {
+                                  if (sugerencias.length > 0 && !seleccionado)
+                                    setMostrarSugerencias(true);
+                                }}
+                                onBlur={() =>
+                                  setTimeout(
+                                    () => setMostrarSugerencias(false),
+                                    100,
+                                  )
+                                }
+                              />
 
-                                {mostrarSugerencias &&
-                                  sugerencias.length > 0 && (
-                                    <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg ">
-                                      {sugerencias.map((item, index) => (
-                                        <li
-                                          key={index}
-                                          className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                          onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            seleccionarPasajero(item.apepate, item.codigo, item.codlugar, item.direccion, item.distrito, item.wx, item.wy);
+                              {mostrarSugerencias && sugerencias.length > 0 && (
+                                <ul className="fixed z-[9999] mt-14 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
+                                  {sugerencias.map((item, index) => (
+                                    <li
+                                      key={index}
+                                      className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        seleccionarPasajero(
+                                          item.apepate,
+                                          item.codigo,
+                                          item.codlugar,
+                                          item.direccion,
+                                          item.distrito,
+                                          item.wx,
+                                          item.wy,
+                                        );
 
+                                        setMostrarSugerencias(false);
+                                        setSugerencias([]);
 
-                                            setMostrarSugerencias(false);
-                                            setSugerencias([]); 
-
-                                            setTimeout(() => {
-                                              const input =
-                                                document.getElementById(
-                                                  'inputPasajero',
-                                                );
-                                              input?.blur(); 
-                                            }, 100); 
-                                          }}
-                                        >
-                                          {item.apepate}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )}
-                              </div>
+                                        setTimeout(() => {
+                                          const input =
+                                            document.getElementById(
+                                              'inputPasajero',
+                                            );
+                                          input?.blur();
+                                        }, 100);
+                                      }}
+                                    >
+                                      {item.apepate}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
 
-                    
-
+                            <div className="flex flex-col">
+                              <label
+                                htmlFor="fechaA"
+                                className="mb-1 text-xs font-medium text-gray-700"
+                              >
+                                Hora Atención:
+                              </label>
                               <input
                                 type="datetime-local"
                                 id="fechaA"
@@ -1075,33 +1174,39 @@ useEffect(() => {
                                 }`}
                                 disabled={!isEditing}
                               />
-                           
-                          
+                            </div>
 
+                            <div className="flex flex-col">
+                              <label
+                                htmlFor="fecha"
+                                className="mb-1 text-xs font-medium text-gray-700"
+                              >
+                                Nueva Hora Ato:
+                              </label>
                               <input
                                 id="fecha"
                                 type="datetime-local"
                                 value={horaAto}
-                                onChange={(e) =>
-                                  setHoraAto(e.target.value)
-                                }
+                                onChange={(e) => setHoraAto(e.target.value)}
                                 className={`col-span-1 rounded border bg-gray-200 p-1 ${
                                   !horaAto ? 'text-gray-400' : 'text-black'
                                 }`}
                                 disabled={!isEditing}
                               />
-                            <button className="rounded-md bg-gray-500 px-4 py-1.5 text-white" 
-                              onClick={()=>{
-                                handleAgregar(); 
-                                handleAgregarLimpiar(); 
-                              }}
+                            </div>
 
+                            <div className="flex flex-col h-[100%]  justify-end">
+                            <button
+                              className="rounded-md bg-gray-500 px-4 py-1.5 text-white"
+                              onClick={() => {
+                                handleAgregar();
+                                handleAgregarLimpiar();
+                              }}
                             >
                               Agregar
                             </button>
+                            </div>
                           </div>
-
-
                         </div>
                       </div>
 
@@ -1206,10 +1311,10 @@ useEffect(() => {
                         <TableDraw
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
-                          horaAtencion={horaAtencionFinal} 
-                          horaAto={horaAtoFinal} 
-                          dataAgregada={dataSeleccionada}  
-                          agregarTrigger={agregarTrigger}                        
+                          horaAtencion={horaAtencionFinal}
+                          horaAto={horaAto ? parseFecha(horaAto) : selectedRow?.fechaCompleta}
+                          dataAgregada={dataSeleccionada}
+                          agregarTrigger={agregarTrigger}
                           onCoordenadasUpdate={setCoordenadas}
                           onCenterUpdate={handleCenterUpdate}
                           ref={tableRef}
@@ -1281,6 +1386,9 @@ useEffect(() => {
                       <p>Fecha Fin: {selectedRow?.fechafin}</p>
                       <p>Fecha Ini: {selectedRow?.fechaini}</p>
                     </div> */}
+
+<p>Fecha completa: {selectedRow?.fechaCompleta}</p>
+
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>
@@ -1290,6 +1398,7 @@ useEffect(() => {
                 <Button
                   color="success"
                   onPress={() => {
+                    handleGuardarHoraAto();
                     tableRef.current?.actualizarOrdenEnServidor();
                     onClose();
                   }}

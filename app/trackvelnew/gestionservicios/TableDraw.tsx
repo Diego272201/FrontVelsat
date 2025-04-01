@@ -119,16 +119,15 @@ const DragAndDropTable = forwardRef(
       if (!fechaStr) return null;
     
       try {
-        const fecha = new Date(fechaStr); // Convertir el string a un objeto Date
+        const fecha = new Date(fechaStr); 
     
         if (isNaN(fecha.getTime())) {
           console.error("Fecha inválida:", fechaStr);
           return null;
         }
     
-        // Extraer componentes de la fecha
         const dia = fecha.getDate().toString().padStart(2, "0");
-        const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); // Enero es 0
+        const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); 
         const año = fecha.getFullYear();
         const horas = fecha.getHours().toString().padStart(2, "0");
         const minutos = fecha.getMinutes().toString().padStart(2, "0");
@@ -140,7 +139,6 @@ const DragAndDropTable = forwardRef(
       }
     };
     
-    // Probamos el useEffect
  
     
     
@@ -203,8 +201,10 @@ const DragAndDropTable = forwardRef(
     };
 
     const handleCancelar = async (codigo: number) => {
+      console.log('Código a cancelar:', codigo);
+
       try {
-        await axios.put('http://66.240.210.125:8586/api/Preplan', { codigo });
+        await axios.put("http://66.240.210.125:8586/api/Preplan/UpdateEstado" , {codigo});
         toast.success('Pasajero cancelado con éxito.');   
         setData((prevData) =>
           prevData.map((item) => {
@@ -290,17 +290,27 @@ const DragAndDropTable = forwardRef(
       console.log(data);
     }, [data]);
 
+
+    useEffect(() => {
+      console.log("Cambios"+horaAto);
+    }, [horaAto]);
+
     const actualizarOrdenEnServidor = async () => {
+
+      console.log("Holii"+fecha)
+      console.log("Atro"+horaAto)
+      console.log(tempData.length)
+
       if (!codServicio || data.length === 0) return;
     
       const API_URL = `http://66.240.210.125:8586/api/Preplan/actualizarOrden`;
 
-      const fechaFinal = data.length > 0 ? parseFecha(horaAto) : fecha;
+      const fechaFinal = tempData.length > 0 ? parseFecha(horaAto) : fecha;
 
     
       const payload = {
         codservicio: codServicio,
-        fecha: fechaFinal,
+        fecha: horaAto,
         listapuntos: data.map(({ codigo, orden, codlugar, estado }) => {
           if (codlugar) {
             // Si tiene `codlugar`, es un nuevo registro y debe enviarse con estructura completa
@@ -411,6 +421,8 @@ const DragAndDropTable = forwardRef(
                     ))}
               </tbody>
             </table>
+
+            <div>{horaAto}</div>
           </div>
         </SortableContext>
       </DndContext>
