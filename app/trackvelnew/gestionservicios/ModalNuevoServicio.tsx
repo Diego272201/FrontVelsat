@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 interface NuevoServicioModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  onServicioAgregado: () => void;
 }
 
 const clientes = [
@@ -85,6 +86,7 @@ function SortableItem({
 export default function NuevoServicioModal({
   isOpen,
   onOpenChange,
+  onServicioAgregado ,
 }: NuevoServicioModalProps) {
   const parseFecha = (fechaISO: string | null): string | null => {
     if (!fechaISO) return null;
@@ -367,50 +369,63 @@ export default function NuevoServicioModal({
 
     setPasajeros(pasajerosOrdenados);
   };
-
   async function agregarServicio(
     datos: any,
     onClose: () => void,
     setLoading: (loading: boolean) => void,
-    resetForm: () => void ,
+    resetForm: () => void,
+    onServicioAgregado: () => void
   ) {
-    const url =
-      'http://66.240.210.125:8586/api/Preplan/AgregarServicio?usuario=movilbus';
-
+    // Verificación de datos obligatorios
+    if (
+      !datos.conductor?.codigo ||
+      !datos.empresa ||
+      !datos.fecha ||
+      !datos.fecpreplan ||
+      !datos.tipo ||
+      !datos.unidad?.codunidad ||
+      !datos.listapuntos.length
+    ) {
+      toast.error("Todos los campos son obligatorios, incluyendo al menos un pasajero en la lista.");
+      return;
+    }
+  
+    const url = "http://66.240.210.125:8586/api/Preplan/AgregarServicio?usuario=movilbus";
+  
     try {
       setLoading(true);
-      console.log(
-        '📤 Enviando datos a la API:',
-        JSON.stringify(datos, null, 2),
-      ); 
-
+      console.log("📤 Enviando datos a la API:", JSON.stringify(datos, null, 2));
+  
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(datos),
       });
-
+  
       if (!response.ok) {
-        throw new Error(
-          `Error en la solicitud: ${response.status} - ${response.statusText}`,
-        );
+        throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
       }
-
+  
       const data = await response.json();
-      console.log('✅ Respuesta de la API:', data);
-      toast.success('Datos guardados');
+      console.log("✅ Respuesta de la API:", data);
+      toast.success("Datos guardados correctamente");
       resetForm();
       onClose();
+      onServicioAgregado();
       return data;
     } catch (error) {
-      toast.error('Erro al enviar la data');
+      toast.error("Error al enviar los datos");
+      console.error("⛔ Error:", error);
       return null;
     } finally {
       setLoading(false);
     }
   }
+  
+
+
 
   // Ejemplo de uso
   const datosServicio = {
@@ -689,58 +704,53 @@ export default function NuevoServicioModal({
                     items={pasajeros.map((p) => p.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <table className="w-full border-collapse overflow-hidden rounded-lg shadow-lg">
-                      <thead>
-                        <tr className="bg-gray-800 text-white">
-                          <th className="px-4 py-2 text-left">Orden</th>
-                          <th className="px-4 py-2 text-left">Código</th>
-                          <th className="px-4 py-2 text-left">Nombre</th>
-                          <th className="px-4 py-2 text-left">Dirección</th>
-                          <th className="px-4 py-2 text-left">Distrito</th>
-                          <th className="px-4 py-2 text-left">Hora</th>
-                          <th className="px-4 py-2 text-center">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-slate-100">
-                        {pasajeros.map((pasajero, index) => (
-                          <SortableItem key={pasajero.id} id={pasajero.id}>
-                            {({ listeners }) => (
-                              <>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {index + 1}
-                                </td>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {pasajero.codigo}
-                                </td>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {pasajero.nombre}
-                                </td>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {pasajero.direccion}
-                                </td>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {pasajero.distrito}
-                                </td>
-                                <td className="px-4 py-3" {...listeners}>
-                                  {pasajero.hora}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      eliminarPasajero(pasajero.id);
-                                    }}
-                                    className="rounded-lg bg-red-500 px-3 py-1 text-white transition hover:bg-red-600"
-                                  >
-                                    Eliminar
-                                  </button>
-                                </td>
-                              </>
-                            )}
-                          </SortableItem>
-                        ))}
-                      </tbody>
-                    </table>
+               {pasajeros.length > 0 ? (
+  <table className="w-full border-collapse overflow-hidden rounded-lg shadow-lg">
+    <thead>
+      <tr className="bg-gray-800 text-white">
+        <th className="px-4 py-2 text-left">Orden</th>
+        <th className="px-4 py-2 text-left">Código</th>
+        <th className="px-4 py-2 text-left">Nombre</th>
+        <th className="px-4 py-2 text-left">Dirección</th>
+        <th className="px-4 py-2 text-left">Distrito</th>
+        <th className="px-4 py-2 text-left">Hora</th>
+        <th className="px-4 py-2 text-center">Acciones</th>
+      </tr>
+    </thead>
+    <tbody className="bg-slate-100">
+      {pasajeros.map((pasajero, index) => (
+        <SortableItem key={pasajero.id} id={pasajero.id}>
+          {({ listeners }) => (
+            <>
+              <td className="px-4 py-3" {...listeners}>{index + 1}</td>
+              <td className="px-4 py-3" {...listeners}>{pasajero.codigo}</td>
+              <td className="px-4 py-3" {...listeners}>{pasajero.nombre}</td>
+              <td className="px-4 py-3" {...listeners}>{pasajero.direccion}</td>
+              <td className="px-4 py-3" {...listeners}>{pasajero.distrito}</td>
+              <td className="px-4 py-3" {...listeners}>{pasajero.hora}</td>
+              <td className="px-4 py-3 text-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    eliminarPasajero(pasajero.id);
+                  }}
+                  className="rounded-lg bg-red-500 px-3 py-1 text-white transition hover:bg-red-600"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </>
+          )}
+        </SortableItem>
+      ))}
+    </tbody>
+  </table>
+) : (
+  <div className="text-center py-4 text-gray-500">
+    No se han agregado pasajeros.
+  </div>
+)}
+
                   </SortableContext>
                 </DndContext>
               </div>
@@ -756,7 +766,8 @@ export default function NuevoServicioModal({
                     datosServicio,
                     () => onOpenChange(false),
                     setLoading,
-                    resetForm 
+                    resetForm,
+                    onServicioAgregado  
                   )
                 }
                 isDisabled={loading}

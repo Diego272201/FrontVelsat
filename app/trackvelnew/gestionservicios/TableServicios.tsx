@@ -91,6 +91,7 @@ export default function App({
   onSelectionChange,
   selectedDate,
   refreshFlag,
+  refreshFlagServicio,
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -103,6 +104,7 @@ export default function App({
   onSelectionChange: (selected: string[]) => void;
   selectedDate: string | null;
   refreshFlag: boolean;
+  refreshFlagServicio:boolean;
 }) {
   const [coordenadas, setCoordenadas] = useState<
     { lat: number; lng: number }[]
@@ -448,7 +450,7 @@ export default function App({
   const formatData = (rawData: any[]) => {
     return rawData.map((item: any) => {
       const { estado, color } = getEstadoYColor(item);
-      const numpax = item.numpax ? parseInt(item.numpax, 10) - 1 : 0;
+      const numpax = item.numpax && parseInt(item.numpax, 10) > 0 ? parseInt(item.numpax, 10) - 1 : 0;
       return {
         key: item.codservicio,
         codServicio: item.codservicio,
@@ -532,6 +534,7 @@ export default function App({
     refreshFlag,
     refreshFlagDelete,
     refreshFlagAsignar,
+    refreshFlagServicio
   ]);
 
   useEffect(() => {
@@ -563,26 +566,35 @@ export default function App({
     };
 
     fetchPasajeroData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete]);
+  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete,refreshFlagServicio]);
 
   useEffect(() => {
     setSelectedKeys([]);
     onSelectionChange([]);
   }, [selectedDate]);
 
+
+  useEffect(() => {
+    console.log("Empresa es"+selectedEmpresa);
+  }, [selectedEmpresa]);
+
   const filteredData = useMemo(() => {
     const unidadLimpia = selectedUnidad ? selectedUnidad.split('-')[0] : null;
-
-    return data.filter(
-      (item) =>
+  
+    return data.filter((item) => {
+      // Extraer solo el nombre de la empresa sin el (numpax)
+      const empresaLimpia = item.empresa.split(' (')[0];
+  
+      return (
         (selectedArea ? item.area === selectedArea : true) &&
-        (selectedEmpresa ? item.empresa === selectedEmpresa : true) &&
+        (selectedEmpresa ? empresaLimpia === selectedEmpresa : true) &&
         (selecteServicio ? item.tipo === selecteServicio : true) &&
         (selecteNumServicio ? item.numero === selecteNumServicio : true) &&
         (unidadLimpia
           ? item.unidad.toLowerCase() === unidadLimpia.toLowerCase()
-          : true),
-    );
+          : true)
+      );
+    });
   }, [
     data,
     selectedArea,
@@ -591,6 +603,7 @@ export default function App({
     selecteNumServicio,
     selectedUnidad,
   ]);
+  
 
   const items = useMemo(() => {
     return filteredData;
@@ -806,6 +819,15 @@ export default function App({
     setHoraAtencion('');
   };
 
+  const handleLimpiarAll = ()=>{
+    
+    setConductor('');
+    setUnidadA('');
+    setPasajero('');
+    setHoraAtencion('');
+    setHoraAto('');
+  }
+
 
   const handleGuardarHoraAto = () => {
     setData((prevData) =>
@@ -834,12 +856,12 @@ export default function App({
           style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-200">
+            <thead className="sticky top-0 z-10 bg-gray-700">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#212529]"
+                    className="px-4 py-2 uppercase text-[#ffffff]"
                     style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
                   >
                     {column.label}
@@ -853,7 +875,7 @@ export default function App({
                 <tr key={index} className="border-t">
                   {columns.map((column) => (
                     <td key={column.key} className="px-4 py-2">
-                      <div className="h-4 w-full animate-pulse rounded bg-gray-300"></div>
+                      <div className="h-4 w-full animate-pulse rounded bg-slate-200"></div>
                     </td>
                   ))}
                 </tr>
@@ -864,15 +886,15 @@ export default function App({
       ) : (
         <div
           className="overflow-auto rounded-lg border border-gray-300"
-          style={{ height: `calc(100vh - ${isVisible ? 300 : 118}px)` }}
+          style={{ height: `calc(100vh - ${isVisible ? 265 : 110}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-200">
+            <thead className="sticky top-0 z-10 bg-gray-700">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#212529]"
+                    className="px-4 py-2 uppercase text-[#ffffff]"
                     style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
                   >
                     {column.label}
@@ -947,8 +969,12 @@ export default function App({
 
       <Modal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        className="full max-w-none"
+        onOpenChange={(open) => {
+          onOpenChange(); // Mantiene el comportamiento original
+          if (!open) {
+            handleLimpiarAll(); // Llama a handleLimpiarAll solo cuando se cierra
+          }
+        }}        className="full max-w-none"
         scrollBehavior="inside"
       >
         <ModalContent style={{ marginTop: '80px' }}>
@@ -1409,6 +1435,7 @@ export default function App({
                   color="danger"
                   onPress={() => {
                     onClose();
+                    handleLimpiarAll();
                   }}
                 >
                   Cerrar

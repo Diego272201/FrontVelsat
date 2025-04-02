@@ -1,9 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
-import { FaUser } from 'react-icons/fa6';
+import { FaCalendarDay, FaUser } from 'react-icons/fa6';
 import { useSession } from 'next-auth/react';
-import { IoCarSport } from 'react-icons/io5';
+import { IoCarSport, IoSpeedometer } from 'react-icons/io5';
 import { IoCalendar } from 'react-icons/io5';
 import ButtonDownload from '@/app/components/ui/Button';
 import { useLocation } from 'react-router-dom';
@@ -12,6 +12,7 @@ import TableSpeed from '@/app/components/table/TableSpeed';
 import SelectRows from '@/app/components/ui/SelectRows';
 import ButtonDownloadSpeed from '@/app/components/ui/ButtonDownloadSpeed';
 import { Toaster } from 'sonner';
+import { BiSolidReport } from 'react-icons/bi';
 
 
 export default function ReporteVelocidad() {
@@ -27,12 +28,6 @@ export default function ReporteVelocidad() {
   const username = session?.user.username;
 
   const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
-
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
-
-  const handleSelectRowsChange = (value: number) => {
-    setSelectedRowsPerPage(value);
-  };
 
 
   const formatDate = (dateString: any) => {
@@ -55,54 +50,50 @@ export default function ReporteVelocidad() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-      <div className="stick">
-        <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE DE VELOCIDAD</h2>
-          <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
-        </div>
+   <div className="stick">
+         
+    
+         <div className="datosReporting">
+           <div className="fristData flex items-center gap-6">
+             <div className="dataFecha flex-1">
+               <p className="flex items-center gap-2  rounded-lg border-white bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-md dark:bg-gray-800 dark:text-gray-300">
+                 <FaCalendarDay  className="text-sm text-white" />
+                 <span className="font-semibold text-white">
+                   Fecha De Inicio: {formatDate(startDate)}
+                 </span>
+               </p>
+             </div>
+ 
+             {/* Línea horizontal */}
+             <div className="h-px flex-1 bg-gray-300 dark:bg-gray-600"></div>
+ 
+             {/* Sección central destacada */}
+             <div className="flex flex-col items-center rounded-lg border border-blue-300 bg-blue-100 px-6 py-2 shadow-md dark:border-blue-700 dark:bg-blue-900">
+               <h2 className="resaltarT text-center">
+               REPORTE DE VELOCIDAD : {deviceId?.toUpperCase()}
+                 <IoSpeedometer  size={25} />
+               </h2>
+               <span className="text-small font-extrabold text-blue-900 dark:text-blue-100">
+               Velocidad superior a 10
 
-        <div className="datosReporting">
-          <div className="fristData">
-            <div className="userReporte">
-              <FaUser style={{ color: '#0d3b66' }} size={22} />
-              <p>
-                <span className="resaltar"> USUARIO: </span>
-                {session?.user.username.toUpperCase()}
-              </p>
-            </div>
-            <div className="userReporte">
-              <IoCarSport style={{ color: '#0d3b66' }} size={22} />
-
-              <p>
-                <span className="resaltar">UNIDAD:</span>{' '}
-                {deviceId?.toUpperCase()}
-              </p>
-            </div>
-          </div>
-
-          <div className="fristDataa">
-            <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">DESDE: </span>
-                {formatDate(startDate)}
-              </p>
-            </div>
-            <div className="alinearDate">
-              <IoCalendar style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">HASTA: </span>
-                {formatDate(endDate)}
-              </p>
-            </div>
-          </div>
-          <div className="selectRows">
-            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
-          </div>
-        </div>
-
-        <Toaster />
-      </div>
+               </span>
+             </div>
+ 
+             {/* Línea horizontal */}
+             <div className="h-px flex-1 bg-gray-300 dark:bg-gray-600"></div>
+ 
+             <div className="dataFecha flex-1 ">
+               <p className="flex items-center gap-2  rounded-lg border-white bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 shadow-md dark:bg-gray-800 dark:text-gray-300">
+                 <FaCalendarDay  className="text-sm text-white" />
+                 <span className="font-semibold text-white">
+                   Fecha De Inicio: {formatDate(endDate)}
+                 </span>
+               </p>
+             </div>
+             
+           </div>
+         </div>
+       </div>
 
       <ButtonDownloadSpeed
           startDate={startDate || ''}
@@ -117,8 +108,6 @@ export default function ReporteVelocidad() {
       <div>
         <TableSpeed
           url={tableUrl}
-          selectedRowsPerPage={selectedRowsPerPage}
-          onSelectedRowsPerPageChange={handleSelectRowsChange}
         ></TableSpeed>
       </div>
     </div>

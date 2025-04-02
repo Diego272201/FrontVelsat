@@ -30,6 +30,7 @@ import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
 import { HiCalendarDateRange } from 'react-icons/hi2';
 import { CgChevronRightR } from 'react-icons/cg';
+import { RiCheckboxMultipleFill } from 'react-icons/ri';
 
 const empresas = [
   'ABNER MATOS',
@@ -103,7 +104,6 @@ export default function Page() {
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
 
-  
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
 
   const [numeroServicio, setNumeroServicio] = useState('');
@@ -147,6 +147,8 @@ export default function Page() {
   const [searchDate, setSearchDate] = useState<string | null>(null);
 
   const [refreshFlag, setRefreshFlag] = useState(false);
+
+  const [refreshFlagServicio, setRefreshFlagServicio] = useState(false);
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -406,11 +408,11 @@ export default function Page() {
                 onClick={onOpen}
                 className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
               >
-                <MdNewLabel size={20} color='#343a40'/>
+                <MdNewLabel size={20} color="#343a40" />
                 Nuevo Servicio
               </button>
 
-              <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} />
+              <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} onServicioAgregado={() => setRefreshFlagServicio ((prev) => !prev)}/>
 
               <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300">
                 Nuevo Servicio Turismo
@@ -419,7 +421,7 @@ export default function Page() {
                 className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
                 onClick={() => setIsVisibleAsignar((prev) => !prev)}
               >
-                <MdDesignServices size={20} color='#343a40' />
+                <MdDesignServices size={20} color="#343a40" />
                 Asignar Servicio
               </button>
             </div>
@@ -437,10 +439,10 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido" >
+          <div id="contenido">
             <div className="fristFileT">
               <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2">
+                <div className="relative flex items-center pb-1">
                   <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
                     <HiCalendarDateRange className="h-5 w-5 text-gray-600" />
                     Fecha a Consultar
@@ -451,7 +453,7 @@ export default function Page() {
                   <div>
                     <input
                       type="date"
-                      className="rounded-md border bg-gray-100 p-1 focus:outline-none"
+                      className="w-full rounded-md border bg-gray-200 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -479,10 +481,10 @@ export default function Page() {
                     </button>
                   </div>
 
-                  <div className="selectTipoA">
+                  <div className="w-[250px]">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
+                      className="mt-1 w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                     >
                       <option value="">Seleccione Empresa</option>
                       <option value="Empresa 1">Empresa 1</option>
@@ -496,11 +498,6 @@ export default function Page() {
                       <FaClipboard size={20} />
                       Resumen
                     </button>
-
-                    <button className="container-btn-file">
-                      <FaClipboard size={20} />
-                      Resumen 2
-                    </button>
                   </div>
                 </div>
               </div>
@@ -508,7 +505,7 @@ export default function Page() {
 
             <div className="fristFileT">
               <div className="filtrosPlanificacion">
-                <div className="relative flex items-center pb-2">
+                <div className="relative flex items-center pb-0.5">
                   <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
                     <AiOutlineFilter className="h-5 w-5 text-gray-600" />
                     Filtros de Búsqueda
@@ -519,7 +516,7 @@ export default function Page() {
                   <div className="inputFiltros">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200"
+                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedArea}
                       onChange={(e) => setSelectedArea(e.target.value)}
                     >
@@ -534,7 +531,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
+                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
@@ -549,18 +546,18 @@ export default function Page() {
                     </select>
                   </div>
 
-                  <div className="max-w-lg">
+                  <div className="w-[240px] max-w-lg">
                     <select
                       id="tipo-servicio"
-                      className="block w-full rounded-lg border bg-gray-200 p-1.5 text-sm text-gray-800 focus:outline-none dark:border-stone-200 "
+                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={tipoServicio}
                       onChange={(e) => setTipoServicio(e.target.value)}
                     >
                       <option value="" disabled>
                         Seleccione Tipo Servicio
                       </option>
-                      <option value="I">Recojo</option>
-                      <option value="S">Reparto</option>
+                      <option value="RECOJO">Recojo</option>
+                      <option value="REPARTO">Reparto</option>
                       <option value="TRF IN">TRF IN</option>
                       <option value="TRF OUT">TRF OUT</option>
                       <option value="CITY TOUR">CITY TOUR</option>
@@ -573,7 +570,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
+                      className="w-full rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -603,10 +600,10 @@ export default function Page() {
                             key={index}
                             className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                             onMouseDown={(e) => {
-                              e.preventDefault(); 
+                              e.preventDefault();
                               seleccionarPasajero(item.apepate, item.codlan);
 
-                              setMostrarSugerencias(false); 
+                              setMostrarSugerencias(false);
                               setSugerencias([]); // Limpia las sugerencias
 
                               setTimeout(() => {
@@ -633,14 +630,14 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-lg border border-gray-300 bg-gray-200 p-1.5 text-center shadow-sm dark:placeholder:text-gray-700"
+                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                     />
                   </div>
 
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm  focus:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-stone-200 dark:placeholder:text-gray-700"
+                      className="peer block w-full rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Unidad"
                       value={unidad}
                       onChange={handleUnidadChange}
@@ -694,7 +691,7 @@ export default function Page() {
             style={{
               background: '#fff',
               paddingBottom: '5px',
-              paddingLeft: '10px',
+              paddingLeft: '5px',
               paddingTop: '5px',
               borderRadius: '10px',
               marginTop: '10px',
@@ -704,7 +701,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-96 rounded-lg border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+              className="w-96 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                   placeholder="Conductor"
                   value={conductor}
                   onChange={handleConductorChange}
@@ -736,7 +733,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="peer block w-full rounded-lg border-transparent bg-gray-200 px-4 py-1.5 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
+                  className="w-46 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                   placeholder="Unidad"
                   value={unidadA}
                   onChange={handleUnidadAChange}
@@ -765,16 +762,16 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="flex gap-2 pr-2">
+            <div className="flex gap-2 pr-1">
               <button
-                className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-white transition hover:bg-blue-600"
+                className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-sm text-white transition hover:bg-blue-600"
                 onClick={asignarServicios}
               >
-                Asignar <MdOutlineTask className="h-4 w-4" />
+                Asignar <RiCheckboxMultipleFill className="h-4 w-4" />
               </button>
 
               <button
-                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-white transition hover:bg-red-500"
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-sm text-white transition hover:bg-red-500"
                 onClick={eliminarServicio}
               >
                 Eliminar <MdDelete className="h-4 w-4" />
@@ -797,6 +794,7 @@ export default function Page() {
           onSelectionChange={setSelectedServices}
           selectedDate={searchDate}
           refreshFlag={refreshFlag}
+          refreshFlagServicio={refreshFlagServicio}
         ></TableServicios>
       </div>
     </div>

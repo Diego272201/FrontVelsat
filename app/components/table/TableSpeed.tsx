@@ -28,17 +28,17 @@ interface Row {
 
 interface AppProps {
   url: string; 
-  selectedRowsPerPage: number;
-  onSelectedRowsPerPageChange: (value: number) => void;
+
 }
 
-export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
+export default function App({ url}: AppProps) {
 
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   useEffect(() => {
     if (baseUrl) {
@@ -64,22 +64,38 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
 
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
+  useEffect(() => {
+    const calculateRowsPerPage = () => {
+      const totalHeight = window.innerHeight; // Altura total de la ventana
+      const availableHeight = totalHeight - 180; // Resta el div de 200px arriba
+      const rowHeight = 40; // Aproximado de la altura de cada fila en píxeles
+      const calculatedRows = Math.max(
+        Math.floor(availableHeight / rowHeight),
+        5,
+      ); // Mínimo 5 filas
+      setRowsPerPage(calculatedRows);
+    };
 
-  const pages = Math.ceil(rows.length / selectedRowsPerPage);
+    calculateRowsPerPage();
+    window.addEventListener('resize', calculateRowsPerPage);
+
+    return () => window.removeEventListener('resize', calculateRowsPerPage);
+  }, []);
+
+  const pages = Math.ceil(rows.length / rowsPerPage);
 
   const items = React.useMemo(() => {
-    const start = (page - 1) * selectedRowsPerPage;
-    const end = start + selectedRowsPerPage;
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
 
     return rows.slice(start, end);
-  }, [page, rows, selectedRowsPerPage]);
+  }, [page, rows, rowsPerPage]);
 
   return (
     <div>
       <Table
         isHeaderSticky
         selectionMode="single"
-        align='left'
         color="primary"
         aria-label="Example table with client side pagination"
         bottomContent={
@@ -98,6 +114,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
           </div>
         }
         classNames={{
+          base: 'max-h-[88vh] overflow-scroll tablaReport',
           wrapper: 'min-h-[222px]',
         }}
       >
@@ -130,7 +147,7 @@ export default function App({ url, selectedRowsPerPage, onSelectedRowsPerPageCha
               <TableCell >
                 <div className='centerMap'>
                 <a href="#" >
-                  <Image src="/map.png" alt="" width={25} height={'1000'}/>
+                  <Image src="/map.png" alt="" width={20} height={20} />
                 </a>
                 </div>
   

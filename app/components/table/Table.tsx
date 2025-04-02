@@ -73,7 +73,7 @@ export default function App({ url }: AppProps) {
   useEffect(() => {
     const calculateRowsPerPage = () => {
       const totalHeight = window.innerHeight; // Altura total de la ventana
-      const availableHeight = totalHeight - 200; // Resta el div de 200px arriba
+      const availableHeight = totalHeight - 180; // Resta el div de 200px arriba
       const rowHeight = 40; // Aproximado de la altura de cada fila en píxeles
       const calculatedRows = Math.max(
         Math.floor(availableHeight / rowHeight),
