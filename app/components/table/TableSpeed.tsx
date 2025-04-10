@@ -8,13 +8,12 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
-
+import useCalculateRowsPerPage from './useCalculateRowsPerPage';
 
 interface Row {
   item: number;
@@ -27,18 +26,15 @@ interface Row {
 }
 
 interface AppProps {
-  url: string; 
-
+  url: string;
 }
 
-export default function App({ url}: AppProps) {
-
+export default function App({ url }: AppProps) {
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   useEffect(() => {
     if (baseUrl) {
@@ -51,7 +47,6 @@ export default function App({ url}: AppProps) {
 
     const fetchData = async () => {
       try {
-        console.log('La base es:' + baseUrl);
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data.result;
         setRows(data);
@@ -64,23 +59,9 @@ export default function App({ url}: AppProps) {
 
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
-  useEffect(() => {
-    const calculateRowsPerPage = () => {
-      const totalHeight = window.innerHeight; // Altura total de la ventana
-      const availableHeight = totalHeight - 180; // Resta el div de 200px arriba
-      const rowHeight = 40; // Aproximado de la altura de cada fila en píxeles
-      const calculatedRows = Math.max(
-        Math.floor(availableHeight / rowHeight),
-        5,
-      ); // Mínimo 5 filas
-      setRowsPerPage(calculatedRows);
-    };
 
-    calculateRowsPerPage();
-    window.addEventListener('resize', calculateRowsPerPage);
 
-    return () => window.removeEventListener('resize', calculateRowsPerPage);
-  }, []);
+  const rowsPerPage = useCalculateRowsPerPage(40, 5,180);  
 
   const pages = Math.ceil(rows.length / rowsPerPage);
 
@@ -118,39 +99,64 @@ export default function App({ url}: AppProps) {
           wrapper: 'min-h-[222px]',
         }}
       >
-        <TableHeader className='VERh'>
-          <TableColumn key="item" className='headerColumT'>ITEM</TableColumn>
-          <TableColumn key="fecha" className='headerColumT'>VELOCIDAD</TableColumn>
-          <TableColumn key="hora" className='headerColumT'>FECHA</TableColumn>
-          <TableColumn key="speedKPH" className='headerColumT'>HORA</TableColumn>
-          <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
-          <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
-          <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
-          <TableColumn className='headerColumT'>VER MAPA</TableColumn>
+        <TableHeader className="VERh">
+          <TableColumn key="item" className="headerColumT">
+            ITEM
+          </TableColumn>
+          <TableColumn key="fecha" className="headerColumT">
+            VELOCIDAD
+          </TableColumn>
+          <TableColumn key="hora" className="headerColumT">
+            FECHA
+          </TableColumn>
+          <TableColumn key="speedKPH" className="headerColumT">
+            HORA
+          </TableColumn>
+          <TableColumn key="latitude" className="headerColumT">
+            LATITUD
+          </TableColumn>
+          <TableColumn key="longitude" className="headerColumT">
+            LONGITUD
+          </TableColumn>
+          <TableColumn key="address" className="headerColumT">
+            UBICACIÓN
+          </TableColumn>
+          <TableColumn className="headerColumT">VER MAPA</TableColumn>
         </TableHeader>
 
-        <TableBody 
-            emptyContent={
-              isLoading ? <Spinner /> : <div>No hay datos para las fechas ingresadas</div>
-            } 
-            items={isLoading || rows.length === 0 ? [] : items}
-          >
+        <TableBody
+          emptyContent={
+            isLoading ? (
+              <Spinner />
+            ) : (
+              <div>No hay datos para las fechas ingresadas</div>
+            )
+          }
+          items={isLoading || rows.length === 0 ? [] : items}
+        >
           {(item) => (
             <TableRow key={item.item}>
-              <TableCell className='centerCell'>{item.item}</TableCell>
-              <TableCell className='centerCell'>{item.speedKPH.toFixed(2) + ' Km/h'}</TableCell>
-              <TableCell className='centerCell'>{item.date}</TableCell>
-              <TableCell className='centerCell'>{item.time}</TableCell>
-              <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
-              <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
-              <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
-              <TableCell >
-                <div className='centerMap'>
-                <a href="#" >
-                  <Image src="/map.png" alt="" width={20} height={20} />
-                </a>
+              <TableCell className="centerCell">{item.item}</TableCell>
+              <TableCell className="centerCell">
+                {item.speedKPH.toFixed(2) + ' Km/h'}
+              </TableCell>
+              <TableCell className="centerCell">{item.date}</TableCell>
+              <TableCell className="centerCell">{item.time}</TableCell>
+              <TableCell className="centerCell locationColumnU">
+                {item.latitude}
+              </TableCell>
+              <TableCell className="centerCell locationColumnU">
+                {item.longitude}
+              </TableCell>
+              <TableCell className="centerCell locationColumn">
+                {item.address}
+              </TableCell>
+              <TableCell>
+                <div className="centerMap">
+                  <a href="#">
+                    <Image src="/map.png" alt="" width={20} height={20} />
+                  </a>
                 </div>
-  
               </TableCell>
             </TableRow>
           )}

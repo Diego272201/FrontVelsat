@@ -1,17 +1,12 @@
 'use client';
-import { HiOutlineDocumentReport } from 'react-icons/hi';
 import React, { useEffect, useMemo, useState } from 'react';
-import { FaCalendarCheck } from 'react-icons/fa';
 import { IoCarSport } from 'react-icons/io5';
 import '@/app/styles/table.css';
-import { Tabs, Tab, Card, CardBody } from '@nextui-org/react';
-import SelectRows from '@/app/components/ui/SelectRows';
+import { Tabs, Tab } from '@nextui-org/react';
 import { useLocation } from 'react-router-dom';
 import { useSession } from 'next-auth/react';
 import { Toaster } from 'sonner';
-import ButtonKilometerPage from '@/app/components/ui/ButtonKilometerPage';
-import { IoSpeedometer } from 'react-icons/io5';
-import { FaUser } from 'react-icons/fa6';
+
 import axios from 'axios';
 import {
   Table,
@@ -23,8 +18,12 @@ import {
   Pagination,
   Spinner,
 } from '@nextui-org/react';
-import VistaUnidad from '@/app/components/ui/VistaUnidad'; // Importación estática
+import VistaUnidad from '@/app/components/ui/VistaUnidad';
 import { useApi } from '@/context/ApiContext';
+import ReporteHeader from '@/app/components/ReporteHeader';
+import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
+import useCalculateRowsPerPage from '@/app/components/table/useCalculateRowsPerPage';
+import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 
 interface Row {
   item: number;
@@ -35,21 +34,29 @@ interface Row {
 
 export default function Page() {
   const { data: session } = useSession();
+
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
   const [rows, setRows] = useState<Row[]>([]);
+
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
-  const [selectedUrl, setSelectedUrl] = useState('');
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
-  const [loading, setLoading] = useState(true);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
   const [imagesLoading, setImagesLoading] = useState(true);
+
+  const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
+
+  console.log('toy aca' + deviceId);
+
+  useEffect(() => {
+    const isAll = deviceId === 'Todas las unidades';
+    setIsAllUnitsSelected(isAll);
+  }, [deviceId]);
 
   const defaultTab = useMemo(() => {
     return deviceId === 'Todas las unidades' ? 'tabla' : 'vista';
@@ -65,80 +72,41 @@ export default function Page() {
     }
   }, [baseUrl]);
 
+  const username = session?.user.username;
+
   useEffect(() => {
-    if (!isBaseUrlReady) return;
+    if (!session?.user?.username || !baseUrl) return;
 
-    if (session) {
-      const userName = session.user.username;
-      console.log('Username:', userName);
+    const userName = session.user.username;
 
-      const tableUrlAll = `/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
-      const tableUrlOnly = `/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}/${userName}`;
+    const tableUrlAll = `/api/Kilometer/kilometerall/${startDate}/${endDate}/${userName}`;
+    const tableUrlOnly = `/api/Kilometer/kilometer/${startDate}/${endDate}/${deviceId}/${userName}`;
 
-      const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
+    const url = deviceId === 'Todas las unidades' ? tableUrlAll : tableUrlOnly;
 
-      setSelectedUrl(url);
-      setLoading(false);
+    setIsLoading(true);
 
-      const fetchData = async () => {
-        let success = false;
-        while (!success) {
-          try {
-            const response = await axios.get(`${baseUrl}${url}`);
-            const data = response.data.result.listaKilometros;
-            setRows(data);
-            success = true;
-          } catch (error) {
-            console.error('Error fetching data:', error);
-          } finally {
-            setIsLoading(!success); // Mantener isLoading en true si no tuvo éxito
-          }
-        }
-      };
-      fetchData();
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${baseUrl}${url}`);
+        const data = response.data?.result?.listaKilometros || [];
+        setRows(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setRows([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      console.log('Selected URL:', url);
-    }
-  }, [session, startDate, endDate, deviceId, isBaseUrlReady, baseUrl]);
-
-  const pages = Math.ceil(rows.length / selectedRowsPerPage);
-
-  const items = useMemo(() => {
-    const start = (page - 1) * selectedRowsPerPage;
-    const end = start + selectedRowsPerPage;
-    return rows.slice(start, end);
-  }, [page, rows, selectedRowsPerPage]);
-
-  const handleSelectRowsChange = (value: number) => {
-    setSelectedRowsPerPage(value);
-  };
-
-  const formatDate = (dateString: any) => {
-    if (!dateString) return '';
-
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-
-    const formattedDay = day < 10 ? `0${day}` : day;
-    const formattedMonth = month < 10 ? `0${month}` : month;
-    const formattedHours = hours < 10 ? `0${hours}` : hours;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-    return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
-  };
-
-  const namedown = deviceId === 'Todas las unidades' ? 'downloadExcelKall' : 'downloadExcelK';
-  const updatedDeviceId = deviceId === 'Todas las unidades' ? session?.user.username || '' : deviceId;
+    fetchData();
+  }, [session?.user?.username, deviceId, baseUrl, startDate, endDate]);
 
   useEffect(() => {
     if (selectedTab === 'vista' && rows.length > 0) {
       let loadedImages = 0;
       const totalImages = rows.length;
-      setImagesLoading(true); // Start loading
+      setImagesLoading(true);
 
       const checkAllImagesLoaded = () => {
         if (loadedImages === totalImages) {
@@ -148,7 +116,7 @@ export default function Page() {
 
       rows.forEach((row) => {
         const img = new Image();
-        img.src = '/UnidadK.webp'; // Path to your image
+        img.src = '/UnidadK.webp';
         img.onload = () => {
           loadedImages += 1;
           checkAllImagesLoaded();
@@ -161,66 +129,42 @@ export default function Page() {
     }
   }, [selectedTab, rows]);
 
+  const rowsPerPage = useCalculateRowsPerPage(40, 5, 200);
+
+  const pages = Math.ceil(rows.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return rows.slice(start, end);
+  }, [page, rows, rowsPerPage]);
+
   return (
     <div className="tablaReport tablaReportMargen">
-      <div className="stick">
-        <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE KILOMETRAJE</h2>
-          <IoSpeedometer size={22} style={{ color: '#0d3b66' }} />
-        </div>
-
-        <div className="datosReporting">
-          <div className="fristData">
-            <div className="userReporte">
-              <FaUser style={{ color: '#0d3b66' }} size={22} />
-              <p>
-                <span className="resaltar"> USUARIO: </span>
-                {session?.user.username.toUpperCase()}
-              </p>
-            </div>
-            <div className="userReporte">
-              <IoCarSport style={{ color: '#0d3b66' }} size={22} />
-              <p>
-                <span className="resaltar">UNIDAD:</span> {deviceId?.toUpperCase()}
-              </p>
-            </div>
-          </div>
-
-          <div className="fristDataa">
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">DESDE: </span>
-                {formatDate(startDate)}
-              </p>
-            </div>
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">HASTA: </span>
-                {formatDate(endDate)}
-              </p>
-            </div>
-          </div>
-
-          {selectedTab === 'tabla' && (
-            <div className="selectRows">
-              <SelectRows onChange={handleSelectRowsChange} />
-            </div>
-          )}
-        </div>
-      </div>
+      <ReporteHeader
+        title="REPORTE KILOMETRAJE"
+        deviceId={deviceId ?? ''}
+        startDate={startDate ?? ''}
+        endDate={endDate ?? ''}
+        extraInfo={''}
+        formatDate={formatDate}
+        icon={<IoCarSport size={25} />}
+      />
       <Toaster />
 
-      <ButtonKilometerPage
+      <ButtonDownloadFloat
         startDate={startDate || ''}
         endDate={endDate || ''}
-        devideId={updatedDeviceId || ''}
-        namedown={namedown}
+        devideId={deviceId || ''}
+        namedown="downloadExcelK"
         namedesc="kilometraje"
-      ></ButtonKilometerPage>
+        username={username || ''}
+        nameurl="reportekilometraje"
+        isKilometrajeAll={isAllUnitsSelected}
+      ></ButtonDownloadFloat>
 
-      <div>
+      <div className="-mt-[70px]">
         <div className="flex w-full flex-col">
           <Tabs
             aria-label="Tabs variants"
@@ -229,13 +173,31 @@ export default function Page() {
             onSelectionChange={(key) => setSelectedTab(key.toString())}
           >
             <Tab key="tabla" title="Tabla">
-              {loading ? (
-                <div>Loading...</div>
+              {isLoading ? (
+                <div className="space-y-4 p-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex animate-pulse space-x-4 border-b border-gray-300 py-2"
+                    >
+                      <div className="relative h-6 w-12 overflow-hidden rounded bg-gray-100">
+                        <div className="absolute inset-0 animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100"></div>
+                      </div>
+
+                      <div className="relative h-6 flex-1 overflow-hidden rounded bg-gray-100">
+                        <div className="absolute inset-0 animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100"></div>
+                      </div>
+
+                      <div className="relative h-6 w-20 overflow-hidden rounded bg-gray-100">
+                        <div className="absolute inset-0 animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div>
                   <Table
                     selectionMode="single"
-                    align="left"
                     color="primary"
                     aria-label="Example table with client side pagination"
                     bottomContent={
@@ -285,10 +247,10 @@ export default function Page() {
                             {item.item}
                           </TableCell>
                           <TableCell className="centerCell">
-                            {item.deviceId}
+                            {item.deviceId.toUpperCase()}
                           </TableCell>
                           <TableCell className="centerCell">
-                            {(item.maximo-item.minimo).toFixed(2) + ' Km'}
+                            {(item.maximo - item.minimo).toFixed(2) + ' Km'}
                           </TableCell>
                         </TableRow>
                       )}
@@ -312,7 +274,9 @@ export default function Page() {
                       key={row.item}
                       item={row.item}
                       deviceId={row.deviceId}
-                      kilometros={parseFloat((row.maximo - row.minimo).toFixed(2))}
+                      kilometros={parseFloat(
+                        (row.maximo - row.minimo).toFixed(2),
+                      )}
                     />
                   ))}
                 </div>

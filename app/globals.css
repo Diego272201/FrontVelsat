@@ -121,11 +121,6 @@ body {
   }
 }
 
-/* .stick{
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
- } */
 
 .viewDevice {
   display: flex;
@@ -140,7 +135,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: #ced4da;
+  background: #ffffff;
   border-radius: 5px 0px 0px 5px;
 }
 
@@ -150,12 +145,12 @@ body {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  background: #dee2e6;
+  background: #ffffff;
   border-radius: 0px 5px 5px 0px;
 }
 
 .odometer {
-  font-size: 60px;
+  font-size: 40px;
   border: solid 1px #003049;
 
   border-radius: 5px;
@@ -168,7 +163,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 20px;
+  font-size: 16px;
   gap: 10px;
   color: #18191a;
 }
@@ -199,20 +194,7 @@ body {
   justify-content: center;
 }
 
-.listUnidad {
-  overflow-y: auto;
-  height: 70vh;
-  position: relative; 
-  padding-right: 15px; 
-}
 
-.listUnidad::-webkit-scrollbar {
-  width: 4px;
-}
-.listUnidad::-webkit-scrollbar-thumb {
-  background: #474e58;
-  border-radius: 10px;
-}
 
 .errorMesageUserI{
   margin-top: 0px;

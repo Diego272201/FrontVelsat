@@ -6,17 +6,16 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  useDisclosure,
   Link,
 } from '@nextui-org/react';
 import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
-import { Toaster } from 'sonner';
-import ButtonSpeedModal from '@/app/components/ui/ButtonSpeedModal';
+import { toast, Toaster } from 'sonner';
 import Image from 'next/image';
 import { Input } from '@nextui-org/react';
 import { IoSpeedometerSharp } from 'react-icons/io5';
 import { useSession } from 'next-auth/react';
+import ButtonDownload from '@/app/components/ui/ButtonDownloadModal';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -37,7 +36,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
   namedesc,
   showDownloadButton,
 }) => {
-  const { data: session } = useSession();  
+  const { data: session } = useSession();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -58,6 +57,31 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
 
   const handleSpeedCar = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSpeedCar(event.target.value);
+  };
+
+  const handleShowReport = () => {
+    if (!selectedDeviceId || !startDate || !endDate || !speedCar) {
+      toast.error('Rellenar campos necesarios', {
+        className: 'toast-slide-in',
+        richColors: true,
+      });
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 3) {
+      toast.error('El límite de fechas es de 3 días', {
+        className: 'toast-slide-in',
+        richColors: true,
+      });
+    } else {
+      const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}&speedCar=${encodeURIComponent(speedCar)}`;
+      window.open(url, '_blank');
+    }
   };
 
   return (
@@ -85,12 +109,18 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
               <div className="selectdates">
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Inicial</span>
-                  <App onDateSelect={handleStartDateSelect} />
+                  <App
+                    backgroundColor="#e9ecef"
+                    onDateSelect={handleStartDateSelect}
+                  />
                 </div>
 
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Final</span>
-                  <App onDateSelect={handleEndDateSelect} />
+                  <App
+                    backgroundColor="#e9ecef"
+                    onDateSelect={handleEndDateSelect}
+                  />
                 </div>
               </div>
 
@@ -116,15 +146,17 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                 {showDownloadButton && (
                   <div className="download">
                     <Toaster />
-
-                    <ButtonSpeedModal
+                    <ButtonDownload
                       startDate={startDate}
                       endDate={endDate}
                       devideId={selectedDeviceId}
+                      namedown="downloadExcelV"
+                      namedesc="velocidad"
+                      nameurl="reportevelocidad"
+                      username={username || ""}
                       speedCar={speedCar}
-                      namedown={namedown}
-                      namedesc={namedesc}
-                      username={username || ''}
+                  
+
                     />
                   </div>
                 )}
@@ -136,7 +168,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                     Cancelar
                   </Button>
                   <Button
-                    href={`/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}&speedCar=${encodeURIComponent(speedCar)}`}
+                    onPress={handleShowReport}
                     as={Link}
                     target="_blank"
                     color="primary"

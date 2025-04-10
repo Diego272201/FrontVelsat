@@ -1,19 +1,13 @@
 'use client';
 
 import TableStops from '@/app/components/table/TableStops';
-import { HiOutlineDocumentReport } from 'react-icons/hi';
-import React, { useContext, useEffect, useState } from 'react';
-import ButtonDownload from '@/app/components/ui/Button';
-import { IoCalendar } from 'react-icons/io5';
+import React from 'react';
 import '@/app/styles/table.css';
-import { IoCarSport } from 'react-icons/io5';
-import { FaUser } from 'react-icons/fa6';
-import SelectRows from '@/app/components/ui/SelectRows';
 import { useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
-import { FaCalendarCheck } from 'react-icons/fa';
 import { useSession } from 'next-auth/react';
+import ReporteHeader from '@/app/components/ReporteHeader';
+import { FaRegStopCircle } from "react-icons/fa";
 
 export default function Page() {
   const { data: session } = useSession();
@@ -30,11 +24,6 @@ export default function Page() {
 
   const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}/${username}`;
 
-  const [selectedRowsPerPage, setSelectedRowsPerPage] = useState<number>(15);
-
-  const handleSelectRowsChange = (value: number) => {
-    setSelectedRowsPerPage(value);
-  };
 
   //FORMATEAR FECHA
   const formatDate = (dateString: any) => {
@@ -57,53 +46,17 @@ export default function Page() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-      <div className="stick">
-        <div className="headerRG">
-          <h2 className="resaltar text-center">REPORTE DE PARADAS</h2>
-          <HiOutlineDocumentReport size={22} style={{ color: '#0d3b66' }} />
-        </div>
+           <ReporteHeader
+             title="REPORTE DE PARADAS"
+             deviceId={deviceId ?? ""}
+             startDate={startDate ?? ""}
+             endDate={endDate ?? ""}
+             extraInfo=""
+             formatDate={formatDate}
+             icon={<FaRegStopCircle    size={25} />}
 
-        <div className="datosReporting">
-          <div className="fristData">
-            <div className="userReporte">
-              <FaUser style={{ color: '#0d3b66' }} size={22} />
-              <p>
-                <span className="resaltar"> USUARIO: </span>
-                {session?.user.username.toUpperCase()}
-              </p>
-            </div>
-            <div className="userReporte">
-              <IoCarSport style={{ color: '#0d3b66' }} size={22} />
+           />
 
-              <p>
-                <span className="resaltar">UNIDAD:</span>{' '}
-                {deviceId?.toUpperCase()}
-              </p>
-            </div>
-          </div>
-
-          <div className="fristDataa">
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">DESDE: </span>
-                {formatDate(startDate)}
-              </p>
-            </div>
-            <div className="alinearDate">
-              <FaCalendarCheck style={{ color: '#0d3b66' }} />
-              <p>
-                <span className="resaltar">HASTA: </span>
-                {formatDate(endDate)}
-              </p>
-            </div>
-          </div>
-          <div className="selectRows">
-            <SelectRows onChange={(value) => handleSelectRowsChange(value)} />
-          </div>
-        </div>
-        <Toaster />
-      </div>
 
       <ButtonDownloadFloat
           startDate={startDate || ''}
@@ -112,13 +65,13 @@ export default function Page() {
           namedown="downloadExcelS"
           namedesc="paradas"
           username= {username || ''}
+          nameurl='reporteparadas'
         ></ButtonDownloadFloat>
 
       <div>
         <TableStops
           url={tableUrl}
-          selectedRowsPerPage={selectedRowsPerPage}
-          onSelectedRowsPerPageChange={handleSelectRowsChange}
+
         ></TableStops>
       </div>
     </div>

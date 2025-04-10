@@ -8,12 +8,12 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
+import useCalculateRowsPerPage from './useCalculateRowsPerPage';
 
 interface Row {
   item: number;
@@ -35,7 +35,6 @@ export default function App({ url }: AppProps) {
   const [isLoading, setIsLoading] = useState(true);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   useEffect(() => {
     if (baseUrl) {
@@ -48,11 +47,8 @@ export default function App({ url }: AppProps) {
 
     const fetchData = async () => {
       try {
-        console.log('La base es:' + baseUrl);
-        console.log('La url es:' + url);
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
-
         if (data && Array.isArray(data.result.listaTablas)) {
           setRows(data.result.listaTablas);
         } else {
@@ -70,23 +66,8 @@ export default function App({ url }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  useEffect(() => {
-    const calculateRowsPerPage = () => {
-      const totalHeight = window.innerHeight; // Altura total de la ventana
-      const availableHeight = totalHeight - 180; // Resta el div de 200px arriba
-      const rowHeight = 40; // Aproximado de la altura de cada fila en píxeles
-      const calculatedRows = Math.max(
-        Math.floor(availableHeight / rowHeight),
-        5,
-      ); // Mínimo 5 filas
-      setRowsPerPage(calculatedRows);
-    };
+  const rowsPerPage = useCalculateRowsPerPage(40, 5,180);  
 
-    calculateRowsPerPage();
-    window.addEventListener('resize', calculateRowsPerPage);
-
-    return () => window.removeEventListener('resize', calculateRowsPerPage);
-  }, []);
 
   const pages = Math.ceil(rows.length / rowsPerPage);
 

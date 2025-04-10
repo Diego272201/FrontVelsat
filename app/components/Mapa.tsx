@@ -5,23 +5,20 @@ import {
   useLoadScript,
 } from '@react-google-maps/api';
 import { useEffect, useState } from 'react';
-import { getMarkerSVG } from './ui/getMarkerSVG'; // importa la función
+import { getMarkerSVG } from './ui/getMarkerSVG';
+import Loader from './Loader';
 interface MapaProps {
   recorrido: { lat: number; lng: number }[];
   marcadores: { lat: number; lng: number }[];
-  centro?: { lat: number; lng: number } | null; // 🔹 Nuevo prop
+  centro?: { lat: number; lng: number } | null;
 }
 
 const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
-
-  const [zoom, setZoom] = useState(12); // 🔹 Zoom inicial en 12
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-
+  const [zoom, setZoom] = useState(12);
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: API_KEY,
   });
-
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(
     marcadores.length > 0 ? marcadores[0] : { lat: -12.0464, lng: -77.0428 },
   );
@@ -29,17 +26,12 @@ const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
   useEffect(() => {
     if (centro) {
       setMapCenter(centro);
-      setZoom(15); // 🔹 Siempre pone zoom en 15 al cambiar `centro`
-      setIsFirstLoad(false); // 🔹 Ya no es la primera carga
-    }
-  }, [centro]);
-
-  useEffect(() => {
-    if (marcadores.length > 0) {
+      setZoom(15);
+    } else if (marcadores.length > 0) {
       setMapCenter(marcadores[0]);
       setZoom(12);
     }
-  }, [marcadores]);
+  }, [centro, marcadores]);
 
   return (
     <div className="flex h-[350px] w-full items-center justify-center rounded-lg bg-white p-4 shadow-md">
@@ -72,15 +64,17 @@ const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
                   url:
                     'data:image/svg+xml;charset=UTF-8,' +
                     encodeURIComponent(markerSvg),
-                    scaledSize: new window.google.maps.Size(40, 50),
-                    anchor: new window.google.maps.Point(20, 45),
+                  scaledSize: new window.google.maps.Size(40, 50),
+                  anchor: new window.google.maps.Point(20, 45),
                 }}
               />
             );
           })}
         </GoogleMap>
       ) : (
-        <p>Cargando mapa...</p>
+        <div>
+          <Loader></Loader>
+        </div>
       )}
     </div>
   );

@@ -11,18 +11,18 @@ export default function Page() {
   const { baseUrl } = useApi();
 
   const fetchData = async () => {
-    if (!baseUrl) return; 
-    
+    if (!baseUrl) return;
+
     try {
       const response = await axios.get(`${baseUrl}/api/Turnos/movilbus`);
-      console.log("La url es: " + `${baseUrl}`);
+      console.log('La url es: ' + `${baseUrl}`);
 
       const data = response.data.map((item: any) => ({
         codigo: item.codigo,
         empresa: item.empresa,
         area: item.area,
         subarea: item.subarea,
-        rol: item.codrl, 
+        rol: item.codrl,
         hora: item.hora,
         tipo: item.tipo,
         programacion: item.programa,
@@ -31,17 +31,21 @@ export default function Page() {
       const ingresoDataFiltrada = data.filter((item: any) => item.tipo === 'I');
       const salidaDataFiltrada = data.filter((item: any) => item.tipo === 'S');
 
-      const ingresoDataConNumeracion = ingresoDataFiltrada.map((item: any, index: number) => ({
-        ...item,
-        id: index + 1,
-        n: index + 1,
-      }));
+      const ingresoDataConNumeracion = ingresoDataFiltrada.map(
+        (item: any, index: number) => ({
+          ...item,
+          id: index + 1,
+          n: index + 1,
+        }),
+      );
 
-      const salidaDataConNumeracion = salidaDataFiltrada.map((item: any, index: number) => ({
-        ...item,
-        id: index + 1,
-        n: index + 1,
-      }));
+      const salidaDataConNumeracion = salidaDataFiltrada.map(
+        (item: any, index: number) => ({
+          ...item,
+          id: index + 1,
+          n: index + 1,
+        }),
+      );
 
       setIngresoData(ingresoDataConNumeracion);
       setSalidaData(salidaDataConNumeracion);
@@ -52,21 +56,29 @@ export default function Page() {
 
   useEffect(() => {
     fetchData();
-  }, [baseUrl]); 
+  }, [baseUrl]);
 
   const handleSaveSuccess = () => {
-    fetchData(); 
+    fetchData();
   };
 
   return (
     <div className="contenetTurnos">
       <div className="ingreso">
-        {/* <h2 className='tituloTunos'>Turnos de Ingreso</h2> */}
-        <TablaTurno users={ingresoData} title="Ingreso" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
+        <TablaTurno
+          users={ingresoData}
+          title="INGRESO"
+          onSaveSuccess={handleSaveSuccess}
+          onEditSuccess={handleSaveSuccess}
+        />
       </div>
       <div className="salida">
-        {/* <h2 className='tituloTunos'>Turnos de Salida</h2> */}
-        <TablaTurno users={salidaData} title="Salida" onSaveSuccess={handleSaveSuccess} onEditSuccess={handleSaveSuccess}/>
+        <TablaTurno
+          users={salidaData}
+          title="SALIDA"
+          onSaveSuccess={handleSaveSuccess}
+          onEditSuccess={handleSaveSuccess}
+        />
       </div>
     </div>
   );

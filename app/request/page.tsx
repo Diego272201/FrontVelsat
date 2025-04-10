@@ -46,10 +46,10 @@ export default function RequestPage() {
   const [fechaActual, setFechaActual] = useState<fechaActual>();
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
-  const { baseUrl, setBaseUrl } = useApi();
+  const { baseUrl } = useApi();
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (status === 'authenticated' && session && baseUrl) {
       const username = session.user.username;
       const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
       const connection = new signalR.HubConnectionBuilder()
@@ -77,12 +77,28 @@ export default function RequestPage() {
         setAllMarkersLoaded(true);
       });
     }
-  }, [status, session, setBaseUrl]);
-
+  }, [status, session, baseUrl]);
+  
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
+
+  // Guardar el estado en localStorage cuando el mapa esté cargado
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem('mapLoaded', 'true');
+
+      setMapLoaded(true); 
+    }
+  }, [isLoaded]);
+
+  // Recuperar el estado de isLoaded desde localStorage
+  const [mapLoaded, setMapLoaded] = useState<boolean>(() => {
+    return localStorage.getItem('mapLoaded') === 'true';
+  });
+
+
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
@@ -414,30 +430,30 @@ export default function RequestPage() {
     [],
   );
 
+
+  
+
   return (
-    <>
-      {!isLoaded || !markersLoaded || !allMarkersLoaded ? (
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-          }}
-        >
-          <Loader />
-        </div>
-      ) : (
-        <GoogleMap
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={6}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={memoizedMapOptions}
-        ></GoogleMap>
-      )}
-      <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
-    </>
+<>
+
+{isLoaded && mapLoaded ? (
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={center}
+      zoom={6}
+      onLoad={onLoad}
+      onUnmount={onUnmount}
+      options={memoizedMapOptions}
+    >
+      {/* Aquí iría cualquier componente que desees colocar dentro del mapa */}
+    </GoogleMap>
+  ) : (
+    <Loader />
+  )}
+
+<Sidebar centerMap={centerMap} centerUnit={centerUnit} />
+
+</>
+
   );
 }

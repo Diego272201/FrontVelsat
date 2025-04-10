@@ -18,14 +18,14 @@ export function Item(props: ItemProps) {
 
   const style = {
     width: '100%',
-    height: 50,
+    height: 40,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    margin: '5px 0px 5px 0px',
+    margin: '0px 0px 2.5px 0px',
     background: '#e9ecef',
-    fontSize: '14px', 
-
+    fontSize: '13px',
+    paddingLeft: '5px',
   };
 
   return (

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
-import { IoMdSave } from 'react-icons/io';
+import { IoIosAddCircle, IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
 import {
   Modal,
@@ -22,11 +22,9 @@ import axios from 'axios';
 
 interface Props {
   title: string;
-  icon: React.ReactNode;
-  contenido: string;
 }
 
-export default function App({ title, icon, contenido }: Props) {
+export default function App({ title }: Props) {
   const {
     register,
     handleSubmit,
@@ -37,7 +35,7 @@ export default function App({ title, icon, contenido }: Props) {
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
-  
+
   const onSubmit = handleSubmit((data) => {
     console.log(data);
   });
@@ -55,20 +53,15 @@ export default function App({ title, icon, contenido }: Props) {
 
   return (
     <>
-      <Tooltip color="primary" content={contenido}>
         <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-          <Button
-            onPress={onOpen}
-            isIconOnly
-            variant="light"
-            color="primary"
-            size="sm"
-            className="btnEdit"
+          <button
+            onClick={onOpen}
+            className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600"
           >
-            {icon}
-          </Button>
+            <IoIosAddCircle className="text-white" size={18} />
+            Nuevo
+          </button>
         </span>
-      </Tooltip>
 
       <Modal
         size="2xl"

@@ -1,18 +1,22 @@
-import React, { useState } from 'react'
+import React from 'react';
 import { FaDownload } from 'react-icons/fa';
 import '@/app/styles/components.css';
 import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
+import { validateDateRange } from '../dates/convertToCustomFormat ';
 
 interface DownloadParameterProps {
   startDate: string;
   endDate: string;
-  devideId: string;
+  devideId?: string;
   namedown: string;
   namedesc: string;
   username: string;
+  nameurl: string;
+  speedCar?: string;
+  isKilometrajeAll?: boolean;
 }
 
 export default function ButtonDownloadFloat({
@@ -21,67 +25,84 @@ export default function ButtonDownloadFloat({
   devideId,
   namedown,
   namedesc,
-  username
+  username,
+  nameurl,
+  speedCar,
+  isKilometrajeAll = false,
 }: DownloadParameterProps) {
-
-  const { baseUrl, setBaseUrl } = useApi();
-
+  const { baseUrl } = useApi();
 
   const handleDownload = async () => {
-    const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in', position:'bottom-left'});
+    const toastId = toast.loading('Descarga en proceso...', {
+      className: 'toast-slide-in',
+      position: 'bottom-left',
+    });
 
-    if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
-      toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
-      return;
-    }
+    const errorMsg = validateDateRange(startDate, endDate);
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 5) {
-      toast.error('El límite de fechas es de 5 días', { id: toastId, className: 'toast-slide-in', richColors:true});
+    if (errorMsg) {
+      toast.error(errorMsg, {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
     try {
-      const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`,
-        {
-          responseType: 'arraybuffer',
-        },
-      );
+      let url = `${baseUrl}/api`;
+
+      if (nameurl === 'reportekilometraje') {
+        url += isKilometrajeAll
+          ? `/Kilometer/downloadExcelKall/${startDate}/${endDate}/${username}`
+          : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
+      } else if (nameurl === 'reportevelocidad') {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+      } else {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
+      }
+
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+      });
 
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-      const url = window.URL.createObjectURL(blob);
-      const fileName = `reporte_${namedesc}_gps_${devideId}.xlsx`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
 
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const fileName = `reporte_${namedesc}_gps_${devideId || 'todos'}.xlsx`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
-
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
 
-      toast.success('Descarga completada', { id: toastId, className:'toast-slide-in', richColors:true});
-
+      toast.success('Descarga completada', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
-      setBaseUrl;
+      toast.error('Error al descargar el archivo', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     }
-    setBaseUrl;
   };
 
   return (
     <div className="whatsapp-btn">
-    <button className="download-btn" onClick={handleDownload}>
-      <FaDownload />
-    </button>
-  </div>
-  )
+      <div className="tooltip-wrapper">
+        <span className="tooltip-text">Descargar Excel</span>
+        <button className="download-btn" onClick={handleDownload}>
+          <FaDownload />
+        </button>
+      </div>
+    </div>
+  );
 }

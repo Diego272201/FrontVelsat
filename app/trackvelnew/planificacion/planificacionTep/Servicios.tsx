@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -438,7 +438,6 @@ export default function App({
     }
     setActiveId(null);
   }
-
   const intercambiarClientes = (
     grupoIndex: number,
     activeIndex: number,
@@ -449,10 +448,10 @@ export default function App({
         console.error(`Error: grupoIndex fuera de rango (${grupoIndex})`);
         return prevGrupos;
       }
-
+  
       let nuevosGrupos = [...prevGrupos];
       let personasGrupo = [...nuevosGrupos[grupoIndex].personas];
-
+  
       if (
         activeIndex < 0 ||
         activeIndex >= personasGrupo.length ||
@@ -465,26 +464,29 @@ export default function App({
         });
         return prevGrupos;
       }
-
+  
       // 🔹 Mover el elemento sin perder datos
       const [movedItem] = personasGrupo.splice(activeIndex, 1);
       personasGrupo.splice(overIndex, 0, movedItem);
-
-      // 🔹 Reasignar idCliente en orden
+  
+      // 🔹 Reasignar idCliente dentro del grupo, manteniendo el orden
+      // Aquí nos aseguramos de que los idCliente dentro del grupo se reordenan correctamente
       personasGrupo = personasGrupo.map((persona, index) => ({
         ...persona,
-        idCliente: index + 1, // Ahora el primer elemento tendrá idCliente = 1, el segundo = 2, etc.
+        idCliente: nuevosGrupos[grupoIndex].personas[index].idCliente,
       }));
-
+  
+      // 🔹 Reasignar los grupos
       nuevosGrupos[grupoIndex] = {
         ...nuevosGrupos[grupoIndex],
         personas: personasGrupo,
       };
-
+  
       console.log('Nuevo estado de grupos:', nuevosGrupos);
       return nuevosGrupos;
     });
   };
+  
 
   const moverClienteOtroGrupo = (
     idCliente: number,
@@ -653,6 +655,7 @@ export default function App({
         const codConductorStr = String(codConductor);
 
         const codUnidad = unidades[grupo.id] ?? grupo.unidad ?? "";
+
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codigo) || 0,
           horaprog: String(grupo.horaprog),
@@ -681,7 +684,6 @@ export default function App({
     ];
 
     console.log('Datos a enviar:', JSON.stringify(dataToSend, null, 2));
-
     if (dataToSend.length === 0) {
       console.warn('No hay datos válidos para enviar a la API.');
       return;
@@ -700,13 +702,16 @@ export default function App({
     }
   };
 
+  
+  const guardarCallback = useCallback(() => {
+    handleGuardar(grupos, eliminados, conductores, unidades);
+  }, [grupos, eliminados, conductores, unidades]);
+  
   useEffect(() => {
     if (onGuardar) {
-      onGuardar(
-        () => () => handleGuardar(grupos, eliminados, conductores, unidades),
-      );
+      onGuardar(() => guardarCallback);
     }
-  }, [grupos, eliminados, conductores, unidades]);
+  }, [guardarCallback]);
 
   const handleRestore = (item: any) => {
     setEliminados((prevEliminados) =>

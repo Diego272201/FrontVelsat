@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import React, { useEffect, useState } from 'react';
+import React, {  useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -8,13 +8,12 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  Tooltip,
+  
 } from '@nextui-org/react';
-import { PlusIcon } from './PlusIcon';
 import { Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@nextui-org/react';
 import { ImUserPlus } from 'react-icons/im';
-import { MdAddToPhotos } from 'react-icons/md';
+import { MdAddToPhotos, MdEdit } from 'react-icons/md';
 import { TimeInput } from '@nextui-org/react';
 import { ClockCircleLinearIcon } from './ClockCircleLinearIcon';
 import { Time } from '@internationalized/date';
@@ -22,7 +21,6 @@ import { SelectorIcon } from './SelectorIcon';
 import { IoSave } from 'react-icons/io5';
 import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
-import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
 import { toast, Toaster } from 'sonner';
 
 interface User {
@@ -71,16 +69,17 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hora, setHora] = useState<Time>(
+  const [hora, setHora] = useState<Time | null>(
     new Time(
       parseInt(user.hora.slice(0, 2), 10),
       parseInt(user.hora.slice(3, 5), 10),
     ),
   );
+  
 
   const onSubmit = async (data: any, onClose: () => void) => {
     if (Object.keys(errors).length === 0) {
-      const formattedHora = hora.toString().slice(0, 5);
+      const formattedHora = hora?.toString().slice(0, 5);
       data.hora = formattedHora;
 
       switch (data.programacion) {
@@ -115,7 +114,7 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
           putData,
         );
         onEditSuccess();
-        toast.success('Turno actualizado exitosamente')
+        toast.success('Turno actualizado exitosamente');
         console.log('Datos actualizados correctamente', putData);
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
@@ -130,20 +129,21 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
 
   return (
     <>
-      <Tooltip color="primary" content="Editar Turno">
-        <span className="cursor-pointer text-sm text-[#0d47a1] active:opacity-50">
-          <Button
-            onPress={onOpen}
-            isIconOnly
-            variant="light"
-            color="primary"
-            size="sm"
-            className="btnEdit"
+      <div className="inline-block6 relative h-6 w-7">
+        <div className="group relative h-full w-full">
+          <button
+            onClick={onOpen}
+            type="button"
+            className="flex h-full w-full items-center justify-center rounded-lg bg-blue-200 text-white hover:bg-blue-300 focus:outline-none"
           >
-            <EditIcon />
-          </Button>
-        </span>
-      </Tooltip>
+            <MdEdit size={18} className="text-blue-800" />
+          </button>
+
+          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-500 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            Editar turno
+          </div>
+        </div>
+      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
         <form
@@ -280,9 +280,7 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
             )}
           </ModalContent>
         </form>
-
       </Modal>
-
     </>
   );
 }

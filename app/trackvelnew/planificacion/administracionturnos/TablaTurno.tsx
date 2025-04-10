@@ -14,7 +14,6 @@ import {
   Dropdown,
   DropdownMenu,
   DropdownItem,
-  Pagination,
   Selection,
   SortDescriptor,
   Select,
@@ -26,15 +25,16 @@ import { ChevronDownIcon } from './ChevronDownIcon';
 import { SearchIcon } from './SearchIcon';
 import { capitalize } from './utils';
 import ModalTurnos from './ModalTurnos';
-import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
 import ModalTurnoEdit from './ModalTurnoEdit';
 import Swal from 'sweetalert2';
+import { MdDelete } from 'react-icons/md';
+
 const columns = [
   { name: 'N°', uid: 'n', sortable: true },
   { name: 'EMPRESA', uid: 'empresa', sortable: true },
   { name: 'ÁREA', uid: 'area', sortable: true },
   { name: 'SUB ÁREA', uid: 'subarea', sortable: true },
-  { name: 'ROL', uid: 'rol' }, 
+  { name: 'ROL', uid: 'rol' },
   { name: 'HORA', uid: 'hora' },
   { name: 'PRO', uid: 'programacion', sortable: true },
   { name: 'OPERACIONES', uid: 'operaciones' },
@@ -70,13 +70,33 @@ export default function App({
     new Set(columns.map((c) => c.uid)),
   );
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
+
   const [rowsPerPage, setRowsPerPage] = useState(8);
+
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'n',
     direction: 'ascending',
   });
   const [page, setPage] = useState(1);
   const [uniqueAreas, setUniqueAreas] = useState<string[]>([]);
+
+  useEffect(() => {
+    const calculateRowsPerPage = () => {
+      const totalHeight = window.innerHeight;
+      const availableHeight = totalHeight - 155;
+      const rowHeight = 40;
+      const calculatedRows = Math.max(
+        Math.floor(availableHeight / rowHeight),
+        5,
+      );
+      setRowsPerPage(calculatedRows);
+    };
+
+    calculateRowsPerPage();
+    window.addEventListener('resize', calculateRowsPerPage);
+
+    return () => window.removeEventListener('resize', calculateRowsPerPage);
+  }, []);
 
   useEffect(() => {
     axios
@@ -90,6 +110,7 @@ export default function App({
   }, []);
 
   const pages = Math.ceil(users.length / rowsPerPage);
+
   const hasSearchFilter = Boolean(filterValue);
 
   const headerColumns = React.useMemo(() => {
@@ -118,6 +139,10 @@ export default function App({
     return filteredUsers;
   }, [users, filterValue, areaFilter]);
 
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
+
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -141,7 +166,7 @@ export default function App({
 
   const handleDelete = async (codigo: number) => {
     try {
-      await axios.delete(`https://localhost:7223/api/Turnos/${codigo}`);
+      await axios.delete(`http://66.240.210.125:8586/api/Turnos/${codigo}`);
       onSaveSuccess();
       console.log('Elimnado ...');
     } catch (error) {
@@ -161,7 +186,7 @@ export default function App({
       cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
-        handleDelete(codigo); 
+        handleDelete(codigo);
       }
     });
   };
@@ -179,39 +204,34 @@ export default function App({
         );
       case 'operaciones':
         return (
-          <div className="relative flex items-center gap-3">
+          <div className="relative flex items-center gap-3 justify-center">
             <ModalTurnoEdit
               user={user}
               titleM={title}
               onEditSuccess={onEditSuccess}
             />
 
-            <Tooltip color="danger" content="Eliminar Turno">
-              <span className="cursor-pointer text-sm text-danger active:opacity-50">
-                <Button
-                  isIconOnly
-                  variant="light"
-                  color="danger"
-                  size="sm"
-                  className="btnDelete"
+            <div className="relative inline-block h-6 w-7">
+              <div className="group relative h-full w-full">
+                <button
                   onClick={() => confirmDelete(user.codigo)}
+                  type="button"
+                  className="flex h-full w-full items-center justify-center rounded-lg bg-red-100 hover:bg-red-200 focus:outline-none"
                 >
-                  <DeleteIcon />
-                </Button>
-              </span>
-            </Tooltip>
+                  <MdDelete size={16} className="text-red-700" />
+                </button>
+
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  Eliminar turno
+                </div>
+              </div>
+            </div>
           </div>
         );
       default:
         return cellValue;
     }
   }, []);
-
-  const onRowsPerPageChange = React.useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(e.target.value));
-      setPage(1);
-    },[]);
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -234,7 +254,7 @@ export default function App({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <h2 className="tituloTunos">Turnos de {title}</h2>{' '}
+        <h2 className="tituloTunos">TURNOS DE {title}</h2>
         <div className="flex items-end justify-between gap-3">
           <Input
             isClearable
@@ -302,19 +322,8 @@ export default function App({
         </div>
         <div className="flex items-center justify-between">
           <span className="totalItems text-small text-default-400">
-            Total {users.length} items
+            Total : {users.length} items
           </span>
-          <label className="totalItems flex items-center text-small text-default-400">
-            Filas por página :
-            <select
-              className="totalItems bg-transparent text-small text-default-400 outline-none"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="8">8</option>
-              <option value="12">12</option>
-              <option value="15">15</option>
-            </select>
-          </label>
         </div>
       </div>
     );
@@ -322,42 +331,72 @@ export default function App({
     filterValue,
     visibleColumns,
     onSearchChange,
-    onRowsPerPageChange,
     users.length,
     hasSearchFilter,
   ]);
 
   const bottomContent = React.useMemo(() => {
+    const maxVisiblePages = 6;
+    const startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+    const endPage = Math.min(pages, startPage + maxVisiblePages - 1);
+
     return (
-      <div className="flex items-center justify-between px-2 py-2">
-        <Pagination
-          classNames={{
-            cursor: 'bg-[#FF6300] text-background',
-          }}
-          color="default"
-          isDisabled={hasSearchFilter}
-          page={page}
-          total={pages}
-          variant="light"
-          onChange={setPage}
-          size="sm"
-        />
+      <div className="flex w-[400px] items-center px-2 py-2 ">
+        <div className="flex items-center gap-2">
+          {page > 1 && (
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-sm text-blue-500 hover:bg-blue-100"
+            >
+              Anterior
+            </button>
+          )}
+
+          {Array.from({ length: endPage - startPage + 1 }, (_, index) => {
+            const pageNumber = startPage + index;
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => handlePageChange(pageNumber)}
+                className={`rounded-lg px-4 py-2 text-sm 
+                  ${
+                    page === pageNumber
+                      ? 'bg-blue-500 text-white'
+                      : 'border border-blue-500 bg-white text-blue-500 hover:bg-blue-100'
+                  }
+                `}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+
+          {page < pages && (
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-sm text-blue-500 hover:bg-blue-100"
+            >
+              Siguiente
+            </button>
+          )}
+
+          <span className="ml-4 text-sm text-blue-500">
+            {page}/{pages}
+          </span>
+        </div>
       </div>
     );
-  }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
+  }, [page, pages, users.length]);
 
   const classNames = React.useMemo(
     () => ({
       wrapper: ['max-h-[382px]', 'max-w-3xl'],
       th: ['bg-transparent', 'text-default-500', 'border-b', 'border-divider'],
       td: [
-        // changing the rows border radius
-        // first
         'group-data-[first=true]:first:before:rounded-none',
         'group-data-[first=true]:last:before:rounded-none',
-        // middle
         'group-data-[middle=true]:before:rounded-none',
-        // last
+
         'group-data-[last=true]:first:before:rounded-none',
         'group-data-[last=true]:last:before:rounded-none',
       ],
@@ -373,19 +412,10 @@ export default function App({
       aria-label="Example table with custom cells, pagination and sorting"
       bottomContent={bottomContent}
       bottomContentPlacement="outside"
-      // checkboxesProps={{
-      //   classNames: {
-      //     wrapper:
-      //       'after:bg-[#FF6300] after:text-background text-background checkB',
-      //   },
-      // }}
       classNames={classNames}
-      // selectedKeys={selectedKeys}
-      // selectionMode="multiple"
       sortDescriptor={sortDescriptor}
       topContent={topContent}
       topContentPlacement="outside"
-      // visibleColumns={visibleColumns}
       onSelectionChange={setSelectedKeys}
       onSortChange={setSortDescriptor}
     >

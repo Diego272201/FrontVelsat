@@ -1,39 +1,31 @@
-'use client';
+import { FaRegStopCircle } from "react-icons/fa";
+import { formatDate } from "../components/dates/convertToCustomFormat ";
+import ReporteHeader from "../components/ReporteHeader";
+import Loader from "../components/Loader";
 
-import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import * as signalR from '@microsoft/signalr';
 
-interface DeviceData {
-  deviceId: string;
-  lastValidLatitude: number;
-  lastValidLongitude: number;
-}
+export default async function DashboardPage() {
 
-const Dashboard = () => {
-  const { data: session, status } = useSession();
-
-  if (status === 'loading') {
-    return <p>Loading...</p>;
-  }
-
-  if (status === "unauthenticated") {
-    return <p>No estás autenticado</p>;
-  }
   return (
-    <>
- 
-    <div>
-      <h1>Dashboard</h1>
-      <p>Username: {session?.user.username}</p>
-    </div>
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">Dashboard de Unidades</h1>
 
-    <div>
+
+           <ReporteHeader
+                   title="REPORTE DE PARADAS"
+                   deviceId={""}
+                   startDate={ ""}
+                   endDate={ ""}
+                   extraInfo=""
+                   formatDate={formatDate}
+                   icon={<FaRegStopCircle    size={25} />}
       
+                 />
+
+      <div className="space-y-2">
+        luis
+        <Loader></Loader>
+      </div>
     </div>
-
-    </>
   );
-};
-
-export default Dashboard;
+}

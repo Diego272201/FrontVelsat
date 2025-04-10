@@ -58,7 +58,7 @@ interface Grupo {
   conductor: string ;
   unidad: string ;
   codConductor: string;
-  coordenadas: { wx: string; wy: string }[]; // Agregar coordenadas
+  coordenadas: { wx: string; wy: string }[];
 }
 
 export const obtenerDatosYAgrupar = async (

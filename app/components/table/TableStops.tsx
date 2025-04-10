@@ -8,13 +8,12 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
   Spinner,
 } from '@nextui-org/react';
 import axios from 'axios';
-import SelectRows from '@/app/components/ui/SelectRows';
 import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
+import useCalculateRowsPerPage from './useCalculateRowsPerPage';
 
 interface Row {
   item: number;
@@ -29,12 +28,10 @@ interface Row {
 }
 
 interface AppProps {
-  url: string; 
-  selectedRowsPerPage: number;
-  onSelectedRowsPerPageChange: (value: number) => void;
+  url: string;
 }
 
-export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageChange }: AppProps) {
+export default function App({ url }: AppProps) {
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,8 +49,6 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
 
     const fetchData = async () => {
       try {
-        console.log('La base es:' + baseUrl);
-        console.log('La url es:' + url);
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data.result;
         setRows(data);
@@ -67,86 +62,114 @@ export default function App({  url, selectedRowsPerPage, onSelectedRowsPerPageCh
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const pages = Math.ceil(rows.length / selectedRowsPerPage);
+  const rowsPerPage = useCalculateRowsPerPage(40, 5,180);  
+
+
+  const pages = Math.ceil(rows.length / rowsPerPage);
 
   const items = React.useMemo(() => {
-    const start = (page - 1) * selectedRowsPerPage;
-    const end = start + selectedRowsPerPage;
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
 
     return rows.slice(start, end);
-  }, [page, rows, selectedRowsPerPage]);
+  }, [page, rows, rowsPerPage]);
 
   return (
     <div>
-    <Table
-      isHeaderSticky
-      selectionMode="single"
-      align='left'
-      color="primary"
-      aria-label="Example table with client side pagination"
-      bottomContent={
-        <div className="flex w-full justify-center">
-          {rows.length > 0 && (
-            <Pagination
-              isCompact
-              showControls
-              showShadow
-              color="primary"
-              page={page}
-              total={pages}
-              onChange={(page) => setPage(page)}
-            />
-          )}
-        </div>
-      }
-      classNames={{
-        base: "max-h-[78vh] overflow-scroll tablaReport",
+      <Table
+        isHeaderSticky
+        selectionMode="single"
+        color="primary"
+        aria-label="Example table with client side pagination"
+        bottomContent={
+          <div className="flex w-full justify-center">
+            {rows.length > 0 && (
+              <Pagination
+                isCompact
+                showControls
+                showShadow
+                color="primary"
+                page={page}
+                total={pages}
+                onChange={(page) => setPage(page)}
+              />
+            )}
+          </div>
+        }
+        classNames={{
+          base: 'max-h-[88vh] overflow-scroll tablaReport',
+          wrapper: 'min-h-[222px]',
+        }}
+      >
+        <TableHeader className="VERh">
+          <TableColumn key="item" className="headerColumT">
+            ITEM
+          </TableColumn>
+          <TableColumn key="fechainicial" className="headerColumT">
+            FECHA INICIO
+          </TableColumn>
+          <TableColumn key="horainicial" className="headerColumT">
+            HORA INICIO
+          </TableColumn>
+          <TableColumn key="fechafinal" className="headerColumT">
+            FECHA FINAL
+          </TableColumn>
+          <TableColumn key="horafinal" className="headerColumT">
+            HORA FINAL
+          </TableColumn>
+          <TableColumn key="speedKPH" className="headerColumT">
+            TIEMPO TOTAL
+          </TableColumn>
+          <TableColumn key="latitude" className="headerColumT">
+            LATITUD
+          </TableColumn>
+          <TableColumn key="longitude" className="headerColumT">
+            LONGITUD
+          </TableColumn>
+          <TableColumn key="address" className="headerColumT">
+            UBICACIÓN
+          </TableColumn>
+          <TableColumn className="headerColumT">VER MAPA</TableColumn>
+        </TableHeader>
 
-        wrapper: 'min-h-[222px]',
-      }}
-    >
-      <TableHeader className='VERh'>
-        <TableColumn key="item" className='headerColumT'>ITEM</TableColumn>
-        <TableColumn key="fechainicial" className='headerColumT'>FECHA INICIO</TableColumn>
-        <TableColumn key="horainicial" className='headerColumT'>HORA INICIO</TableColumn>
-        <TableColumn key="fechafinal" className='headerColumT'>FECHA FINAL</TableColumn>
-        <TableColumn key="horafinal" className='headerColumT'>HORA FINAL</TableColumn>
-        <TableColumn key="speedKPH" className='headerColumT'>TIEMPO TOTAL</TableColumn>
-        <TableColumn key="latitude" className='headerColumT'>LATITUD</TableColumn>
-        <TableColumn key="longitude" className='headerColumT'>LONGITUD</TableColumn>
-        <TableColumn key="address" className='headerColumT'>UBICACIÓN</TableColumn>
-        <TableColumn className='headerColumT'>VER MAPA</TableColumn>
-      </TableHeader>
-
-      <TableBody 
+        <TableBody
           emptyContent={
-            isLoading ? <Spinner /> : <div>No hay datos para las fechas ingresadas</div>
-          } 
+            isLoading ? (
+              <Spinner />
+            ) : (
+              <div>No hay datos para las fechas ingresadas</div>
+            )
+          }
           items={isLoading || rows.length === 0 ? [] : items}
         >
-        {(item) => (
-          <TableRow key={item.item}>
-            <TableCell className='centerCell'>{item.item}</TableCell>
-            <TableCell className='centerCell'>{item.startDate}</TableCell>
-            <TableCell className='centerCell'>{item.startTime}</TableCell>
-            <TableCell className='centerCell'>{item.endDate}</TableCell>
-            <TableCell className='centerCell'>{item.endTime}</TableCell>
-            <TableCell className='centerCell'>{item.totalTime}</TableCell>
-            <TableCell className='centerCell locationColumnU'>{item.latitude}</TableCell>
-            <TableCell className='centerCell locationColumnU'>{item.longitude}</TableCell>
-            <TableCell className='centerCell locationColumn'>{item.address}</TableCell>
-            <TableCell >
-              <div className='centerMap'>
-              <a href="#" >
-                <Image src="/map.png" alt="" width={25} height={'1000'}/>
-              </a>
-              </div>
-   
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          {(item) => (
+            <TableRow key={item.item}>
+              <TableCell className="centerCell">{item.item}</TableCell>
+              <TableCell className="centerCell">{item.startDate}</TableCell>
+              <TableCell className="centerCell">{item.startTime}</TableCell>
+              <TableCell className="centerCell">{item.endDate}</TableCell>
+              <TableCell className="centerCell">{item.endTime}</TableCell>
+              <TableCell className="centerCell">{item.totalTime}</TableCell>
+              <TableCell className="centerCell locationColumnU">
+                {item.latitude}
+              </TableCell>
+              <TableCell className="centerCell locationColumnU">
+                {item.longitude}
+              </TableCell>
+              <TableCell className="centerCell locationColumn">
+                {item.address}
+              </TableCell>
+              <TableCell>
+                <div className="centerMap">
+                  <a href="#">
+                    <Image src="/map.png" alt="" width={20} height={20} />
+                  </a>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

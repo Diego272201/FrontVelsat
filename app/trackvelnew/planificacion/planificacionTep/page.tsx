@@ -6,25 +6,18 @@ import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/planiTep.css';
 import { FaDatabase, FaFileAlt, FaFileExcel } from 'react-icons/fa';
-import { DatePicker } from '@nextui-org/date-picker';
 import Servicios from './Servicios';
 import axios from 'axios';
 import { MdDelete, MdFilterAlt } from 'react-icons/md';
-import App from '@/app/components/TimePicker';
 import ModalObtenerServicios from './ModalObtenerServicios';
 import ProgressBar from '@/app/components/ui/ProgressBar';
 import { IoSave } from 'react-icons/io5';
 import { IoSendSharp } from 'react-icons/io5';
 import { MdHomeRepairService } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
-import ModalErroresCarga from './reporteerrores/ModalErroresCarga';
 import ModalReporteErrores from './reporteerrores/ModalErroresCarga';
-import { AiOutlineFilter } from 'react-icons/ai';
-import { CgChevronRightR } from 'react-icons/cg';
 
 export default function Page() {
-  const [date, setDate] = useState('');
-
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(
     null,
@@ -41,6 +34,7 @@ export default function Page() {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
   };
 
+  const [unidad, setUnidad] = useState('');
   const [guardar, setGuardar] = useState<() => void>(() => () => {});
   const [datosServicios, setDatosServicios] = useState({
     totalGrupos: 0,
@@ -341,7 +335,9 @@ export default function Page() {
               <span className="border-b-2 border-white px-4 py-2 pb-0.5 font-semibold uppercase leading-none text-white">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
               </span>
-            </div>{' '}
+            </div>
+            <div className="w-px h-[30px] bg-white"></div>
+
             <ProgressBar value={porcentajeLlenado}></ProgressBar>
           </div>
 
@@ -365,7 +361,6 @@ export default function Page() {
                     <FaFileAlt className="h-5 w-5 text-gray-600" />
                     Carga de Archivos
                   </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-400 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
@@ -490,7 +485,6 @@ export default function Page() {
                     <FaDatabase className="h-5 w-5 text-gray-600" />
                     Obtener Datos
                   </span>
-                  <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                 </div>
 
                 <div className="cabeceraArchivos">
@@ -537,7 +531,7 @@ export default function Page() {
                     <ModalObtenerServicios
                       isOpen={isOpen}
                       onOpenChange={onOpenChange}
-                      onRespuesta={manejarRespuestaModal} // Pasamos la función para manejar la respuesta del modal
+                      onRespuesta={manejarRespuestaModal}
                     />
                     <Button color="primary" onPress={handlePublicar}>
                       Publicar
@@ -555,7 +549,6 @@ export default function Page() {
                       <MdFilterAlt className="h-5 w-5 text-gray-600" />
                       Filtrar Datos
                     </span>
-                    <div className="h-[1px] flex-grow bg-gradient-to-r from-transparent via-stone-500 to-transparent"></div>
                   </div>
 
                   <div className="cabeceraArchivos">
@@ -591,9 +584,9 @@ export default function Page() {
 
                     <Button
                       color={modoVista === 'Eliminados' ? 'danger' : 'success'}
-                      onClick={alternarEstado}
+                      onPress={alternarEstado}
                     >
-                      {modoVista}{' '}
+                      {modoVista}
                     </Button>
                   </div>
                 </div>
@@ -631,49 +624,16 @@ export default function Page() {
                       </div>
                     </div>
                   </div>
-                </div>{' '}
+                </div>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      <div></div>
-      {excelData.length > 0 && (
-        <div style={{ overflow: 'auto', height: '70vh' }}>
-          <h3>Datos del archivo:</h3>
-          <p></p>
-          <table className="table-auto border-collapse border border-gray-400">
-            <tbody>
-              {excelData.map((row, index) => (
-                <tr key={index}>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.CodigoOracle}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.Nombre}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.Subarea}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.Area}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.Rol}
-                  </td>
-                  <td className="border border-gray-400 px-4 py-2">
-                    {row.Empresa}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
       <div
         className="grupoServicios overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 310 : 110}px)` }}
+        style={{ height: `calc(100vh - ${isVisible ? 290 : 110}px)` }}
       >
         {empresaConfirmada && dato && (
           <Servicios
@@ -689,8 +649,6 @@ export default function Page() {
             modoVista={modoVista}
           />
         )}
-
-        <p>el dato {dato}</p>
       </div>
     </div>
   );

@@ -22,7 +22,7 @@ export default function App({
     if (initialDateTime) {
       const [date, time] = initialDateTime.split('T');
       setSelectedDate(date);
-      setSelectedTime(time?.slice(0, 5) || ''); 
+      setSelectedTime(time?.slice(0, 5) || '');
     }
   }, [initialDateTime]);
 
@@ -56,7 +56,7 @@ export default function App({
   };
 
   return (
-    <div className='dateFt'>
+    <div className="dateFt">
       <input
         id="dateInput"
         type="date"

@@ -1,21 +1,25 @@
 .contenetTurnos {
   display: flex;
   padding-top: 10px;
-  padding-left: 20px;
-  padding-bottom: 20px;
-  padding-right: 20px;
+  padding-left: 10px;
+  padding-bottom: 10px;
+  padding-right: 10px;
   gap: 20px;
   overflow-y: auto;
-  height: 92vh;
+  margin-top: -5px;
+  height: 95vh;
 }
 
 .tituloTunos {
   box-sizing: border-box;
-  font-size: 18px;
-  background: #dddedf;
-  border-radius: 5px;
-  padding: 5px;
-  margin-bottom: 10px;
+  font-size: 13px;
+  background: #104ab8;
+  padding: 6px;
+  color: #ffffff;
+  margin-left: -5px;
+  margin-right: -5px;
+  display: flex;
+  justify-content: center;
 }
 
 .colorIcono {
@@ -31,8 +35,6 @@
 .ingreso {
   width: 50%;
   background: rgb(255, 255, 255);
-  border-radius: 10px;
-  padding: 10px;
   height: auto;
   overflow-y: auto;
 }
@@ -40,8 +42,6 @@
 .salida {
   width: 50%;
   background: rgb(255, 255, 255);
-  border-radius: 10px;
-  padding: 10px;
   height: auto;
   overflow-y: auto;
 }
@@ -62,10 +62,12 @@
   border-radius: 10px;
 }
 
+
 .tableScrooll {
-  height: 85vh;
+  height: 92.5vh;
   overflow-y: auto;
-  
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .tableScrooll::-webkit-scrollbar {
@@ -146,7 +148,6 @@
   background: #dddedf;
   font-weight: 500;
   color: rgb(39, 38, 38);
-  padding: -10px;
   font-size: 11px;
 }
 

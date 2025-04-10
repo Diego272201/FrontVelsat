@@ -1,20 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
-import '@/app/styles/pasajeros.css';
-import { AiFillPlayCircle } from 'react-icons/ai';
-import {
-  Autocomplete,
-  AutocompleteItem,
-  Button,
-  Input,
-  Tooltip,
-} from '@nextui-org/react';
-import { EyeIcon } from '@/app/components/table/operaciones/EyeIcon';
-import { EditIcon } from '@/app/components/table/operaciones/EditIcon';
-import { DeleteIcon } from '@/app/components/table/operaciones/DeleteIcon';
-import { IoIosAddCircle } from 'react-icons/io';
 import ModalPasajeros from './ModalPasajeros';
-import { BiEditAlt } from 'react-icons/bi';
+import { BiEditAlt, BiTrash } from 'react-icons/bi';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
@@ -24,16 +11,16 @@ interface Pasajero {
   apellidos: string;
 }
 
-
-
 export default function Page() {
   const [pasajeros, setPasajeros] = useState<
     { value: number; label: string }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [selectedCodCliente, setSelectedCodCliente] = useState<number | null>(null); 
-
+  const [selectedCodCliente, setSelectedCodCliente] = useState<number | null>(
+    null,
+  );
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -57,9 +44,8 @@ export default function Page() {
     fetchPasajeros();
   }, []);
 
-
   const filteredPasajeros = useMemo(() => {
-    if (query.length < 6) return [];
+    if (query.length < 2) return [];
     return pasajeros.filter((pasajero) =>
       pasajero.label?.toLowerCase().includes(query.toLowerCase() || ''),
     );
@@ -69,101 +55,136 @@ export default function Page() {
     setQuery(value);
   }, 300);
 
-
-  const handleSelectionChange = (key: React.Key) => {
-    const selectedValue = Number(key); // Convertir el key a número
-    const selectedPasajero = pasajeros.find((pasajero) => pasajero.value === selectedValue);
+  const handleSelectionChange = (value: number) => {
+    const selectedPasajero = pasajeros.find(
+      (pasajero) => pasajero.value === value,
+    );
     if (selectedPasajero) {
+      setInputValue(selectedPasajero.label); // Mostrar en el input
+      setQuery(''); // Oculta el dropdown
+      setSelectedCodCliente(selectedPasajero.value);
       console.log('Apellido:', selectedPasajero.label);
       console.log('CodCliente:', selectedPasajero.value);
-      setSelectedCodCliente(selectedPasajero.value);
     }
   };
 
   return (
-    <div className="gestionPasajeros">
-      <div className="titleP">
-        <h2 className="title">Gestion de Pasajeros</h2>
+    <div className="m-4 space-y-10 bg-gray-200 shadow-md">
+      {/* Título principal */}
+      <div className="flex justify-center bg-gray-50 p-4">
+        <h2 className="text-lg font-bold text-gray-800">
+          GESTIÓN DE PASAJEROS
+        </h2>
       </div>
+      {/* Buscador por nombre */}
 
-      <div className="subContent">
-        <AiFillPlayCircle color="#FF6300" />
-        <div className="flex w-full flex-col gap-4">
-          <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-            <Autocomplete
-              size="lg"
-              variant="underlined"
-              label="Búsqueda de Usuarios por Nombre:"
-              onInputChange={handleSearchChange}
-              isLoading={loading}
-              defaultItems={filteredPasajeros}
-              onSelectionChange={handleSelectionChange}
-            >
-              {(item) => (
-                <AutocompleteItem key={item.value}>
-                  {item.label}
-                </AutocompleteItem>
+      <div className="space-y-4 px-4">
+        <div className="flex items-center gap-2 ">
+          <h3 className="text-lg font-semibold text-gray-700">
+            Búsqueda por Nombre
+          </h3>
+        </div>
+
+        {/* Contenedor de input + botones */}
+        <div className="flex w-full gap-4">
+          {/* Input - 50% */}
+          <div className="w-1/2">
+            <div className="relative w-full">
+              <input
+                id="busqueda"
+                type="text"
+                placeholder="Buscar Pasajero"
+                className="w-full rounded-md border bg-white p-2 ps-4 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  handleSearchChange(e.target.value);
+                }}
+                value={inputValue}
+              />
+
+              {query.length >= 2 && (
+                <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                  {filteredPasajeros.length > 0 ? (
+                    filteredPasajeros.map((pasajero) => (
+                      <li
+                        key={pasajero.value}
+                        onClick={() => handleSelectionChange(pasajero.value)}
+                        className="cursor-pointer px-4 py-2 hover:bg-green-100"
+                      >
+                        {pasajero.label}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-4 py-2 text-sm text-gray-500">
+                      No se encontraron pasajeros
+                    </li>
+                  )}
+                </ul>
               )}
-            </Autocomplete>
+            </div>
+          </div>
+
+          {/* Botones - 50% */}
+          <div className="flex w-1/2 justify-end gap-2">
+            <ModalPasajeros title="Nuevo Pasajero" />
+            <ModalPasajerosEdit
+              title="Detalle Pasajero"
+              codCliente={selectedCodCliente}
+            />
+            <button className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600">
+              <BiTrash className="text-white" size={18} />
+              Eliminar
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="relative flex items-center gap-2">
-          <ModalPasajeros
-            title="Nuevo Pasajero"
-            icon={<IoIosAddCircle size={22} color="#0ead69" />}
-            contenido="Nuevo"
-          ></ModalPasajeros>
+      {/* Búsqueda por código */}
+      <div className="space-y-4 px-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-700">
+            Búsqueda por Código
+          </h3>
+        </div>
 
-          <ModalPasajerosEdit
-            title="Detalle Pasajero"
-            icon={<BiEditAlt size={22} color="#0582ca" />}
-            contenido="Detalle"
-            codCliente={selectedCodCliente}
+        {/* Input 70% + Botón 30% */}
+        <div className="flex w-full gap-4">
+          <input
+            type="text"
+            placeholder="Ingrese Código"
+            className="flex-[0.7] rounded-md border bg-white p-2 ps-4 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
           />
-
-          <Tooltip color="danger" content="Eliminar">
-            <span className="cursor-pointer text-lg text-danger active:opacity-50">
-              <DeleteIcon />
-            </span>
-          </Tooltip>
+          <button className="inline-flex flex-[0.3] items-center justify-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-blue-600">
+            <BiEditAlt className="text-white" size={18} />
+            Editar
+          </button>
         </div>
       </div>
 
-      <div className="subContent">
-        <div className="subStart">
-          <AiFillPlayCircle color="#FF6300" />
-          Búsqueda de Usuarios por Código:
+      {/* Carga Masiva */}
+      <div className="space-y-4 px-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-700">Carga Masiva</h3>
         </div>
-
-        <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-          <Input type="text" variant="underlined" color="primary" />
-        </div>
-
-        <div className="relative flex items-center gap-2">
-          <Tooltip color="primary" content="Detalle">
-            <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-              <EditIcon color="#2e7ff9" />
+        <form className="flex flex-col items-start gap-3">
+          <label
+            htmlFor="file-input"
+            className="w-full cursor-pointer rounded-lg border border-dashed border-gray-400 bg-gray-50 p-6 text-center hover:bg-gray-100"
+          >
+            <span className="block font-medium text-gray-600">
+              Suelte los archivos aquí
             </span>
-          </Tooltip>
-        </div>
-      </div>
-
-      <div className="cargaMasiva">
-        <div className="subStart titleCargaM">
-          <AiFillPlayCircle color="#FF6300" />
-          Carga Masiva:
-        </div>
-
-        <form className="form">
-          <label htmlFor="file-input" className="drop-container">
-            <span className="drop-title">Suelte los archivos aquí</span>
-            o
-            <input type="file" accept="/*" id="file-input" />
-            <Button color="primary" type="submit">
-              Cargar
-            </Button>
+            <span className="text-sm text-gray-400">
+              o haga clic para seleccionar
+            </span>
+            <input type="file" id="file-input" className="hidden" />
           </label>
+          <button
+            type="submit"
+            className="mb-4 mt-2 rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
+          >
+            Cargar
+          </button>
         </form>
       </div>
     </div>

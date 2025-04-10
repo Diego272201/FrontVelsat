@@ -9,32 +9,41 @@ import { useApi } from '@/context/ApiContext';
 interface DownloadParameterProps {
   startDate: string;
   endDate: string;
-  devideId: string;
+  devideId?: string;
   namedown: string;
   namedesc: string;
-  speedCar: string;
   username: string;
+  nameurl: string;
+  speedCar?: string; // solo para velocidad
+  isKilometrajeAll?: boolean; // solo para kilometraje "all"
 }
 
-export default function ButtonSpeedModal({
+export default function ButtonDownload({
   startDate,
   endDate,
   devideId,
   namedown,
   namedesc,
-  speedCar,
   username,
+  nameurl,
+  speedCar,
+  isKilometrajeAll = false,
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const { baseUrl, setBaseUrl } = useApi();
 
-
   const handleDownload = async () => {
-    const toastId = toast.loading('Descarga en proceso...', {className:'toast-slide-in'});
+    const toastId = toast.loading('Descarga en proceso...', {
+      className: 'toast-slide-in',
+    });
 
-    if (!startDate || !endDate || !devideId || !namedown || !namedesc || !speedCar) {
-      toast.error('Rellenar campos necesarios', { id: toastId, className:'toast-slide-in', richColors:true});
+    if (!startDate || !endDate || !devideId || !namedown || !namedesc) {
+      toast.error('Rellenar campos necesarios', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
@@ -44,7 +53,11 @@ export default function ButtonSpeedModal({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays > 3) {
-      toast.error('El límite de fechas es de 3 días', { id: toastId, className: 'toast-slide-in', richColors:true});
+      toast.error('El límite de fechas es de 3 días', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
@@ -59,54 +72,62 @@ export default function ButtonSpeedModal({
         });
       }, 150);
 
-      const response = await axios.get(
-        `${baseUrl}/api/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`,
-        {
-          responseType: 'arraybuffer',
-          onDownloadProgress: (progressEvent) => {
-            if (progressEvent.total !== undefined) {
-              const progressPercent = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total,
-              );
-              setProgress(progressPercent);
-            }
-          },
+      let url = `${baseUrl}/api`;
+
+      if (nameurl === 'reportekilometraje') {
+        url += isKilometrajeAll
+          ? `/Kilometer/downloadExcelKall/${startDate}/${endDate}/${username}`
+          : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
+      } else if (nameurl === 'reportevelocidad') {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+      } else {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
+      }
+
+      console.log('AScacac' + url);
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        onDownloadProgress: (e) => {
+          if (e.total) {
+            const percent = Math.round((e.loaded * 100) / e.total);
+            setProgress(percent);
+          }
         },
-      );
+      });
 
       clearInterval(interval);
 
       const blob = new Blob([response.data], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-      const url = window.URL.createObjectURL(blob);
-      const fileName = `reporte_${namedesc}_gps_${devideId}.xlsx`;
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', fileName);
-
-      link.addEventListener('load', () => {
-        setIsLoading(false);
-        setProgress(0);
-      });
-
+      link.href = downloadUrl;
+      link.setAttribute(
+        'download',
+        `reporte_${namedesc}_gps_${devideId || 'todos'}.xlsx`,
+      );
       document.body.appendChild(link);
       link.click();
-
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(downloadUrl);
 
-      toast.success('Descarga completada', { id: toastId, className:'toast-slide-in', richColors:true});
-
+      toast.success('Descarga completada', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
+      toast.error('Error al descargar el archivo', {
+        id: toastId,
+        className: 'toast-slide-in',
+        richColors: true,
+      });
+    } finally {
       setIsLoading(false);
       setProgress(0);
-      setBaseUrl;
     }
-    setProgress(0);
-    setIsLoading(false);
-    setBaseUrl;
   };
 
   return (

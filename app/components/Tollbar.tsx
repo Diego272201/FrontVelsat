@@ -3,20 +3,19 @@ import '@/app/styles/tollbar.css';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import AppModalPrueba from '../trackvelnew/estadistica/reportegeneral/ModalPrueba';
-import ModalKilo from '../trackvelnew/estadistica/reportekilometraje/ModalKilo';
+import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
 import { RiFullscreenLine } from 'react-icons/ri';
 import { IoMdExit } from 'react-icons/io';
 import { FaUserAlt } from 'react-icons/fa';
-import { MdChevronRight } from "react-icons/md";
-import { GrServices } from "react-icons/gr";
-import { GrPlan } from "react-icons/gr";
-import { RiGpsFill } from "react-icons/ri";
-import { MdDisplaySettings } from "react-icons/md";
-import { TbReportSearch } from "react-icons/tb";
+import { MdChevronRight } from 'react-icons/md';
+import { GrServices } from 'react-icons/gr';
+import { GrPlan } from 'react-icons/gr';
+import { RiGpsFill } from 'react-icons/ri';
+import { MdDisplaySettings } from 'react-icons/md';
+import { TbReportSearch } from 'react-icons/tb';
 
 const Tollbar = () => {
   const { data: session } = useSession();
@@ -145,7 +144,6 @@ const Tollbar = () => {
             >
               <div className="optMenu">
                 Gestión de Servicios
-                {/* <GrServices /> */}
                 <i className="dropdown-iconn">
                   <IoMdArrowDropdown />
                 </i>
@@ -237,7 +235,6 @@ const Tollbar = () => {
             >
               <div className="optMenu">
                 Planificación
-                {/* <GrPlan /> */}
                 <i className="dropdown-iconn">
                   <IoMdArrowDropdown />
                 </i>
@@ -275,10 +272,7 @@ const Tollbar = () => {
               className={activeLink === 2 ? 'active' : ''}
               onClick={() => handleLinkClick(2)}
             >
-              <div className="optMenu">
-                Puntos de Interés
-                {/* <RiGpsFill /> */}
-              </div>
+              <div className="optMenu">Puntos de Interés</div>
             </Link>
           </li>
           <li className="dropdown">
@@ -288,10 +282,7 @@ const Tollbar = () => {
               className={activeLink === 3 ? 'active' : ''}
               onClick={() => handleLinkClick(3)}
             >
-              <div className="optMenu">
-                Operaciones
-                {/* <MdDisplaySettings /> */}
-              </div>
+              <div className="optMenu">Operaciones</div>
             </Link>
           </li>
           <li className="dropdown">
@@ -301,10 +292,7 @@ const Tollbar = () => {
               className={activeLink === 4 ? 'active' : ''}
               onClick={() => handleLinkClick(4)}
             >
-              <div className="optMenu">
-                Reportes
-                {/* <TbReportSearch /> */}
-              </div>
+              <div className="optMenu">Reportes</div>
 
               <i className="dropdown-iconn">
                 <IoMdArrowDropdown />
@@ -318,9 +306,7 @@ const Tollbar = () => {
             >
               <div className="containerEstad"></div>
               <li onClick={openModalSpeed}>
-                <a title="Reporte de Velocidad">
-                  Reporte de Velocidad
-                </a>
+                <a title="Reporte de Velocidad">Reporte de Velocidad</a>
               </li>
 
               <li onClick={openModalStops}>
@@ -335,9 +321,7 @@ const Tollbar = () => {
                 <a title="Detalle Recorrido">Detalle Recorrido</a>
               </li>
               <li onClick={openModalKilometers}>
-                <a title="Reporte de Kilometraje">
-                  Reporte de Kilometraje
-                </a>
+                <a title="Reporte de Kilometraje">Reporte de Kilometraje</a>
               </li>
               <li>
                 <a href="#" title="Paradas Bruscas">
@@ -372,15 +356,22 @@ const Tollbar = () => {
               <button>
                 <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
               </button>
-
-              <button  onClick={() => signOut({ callbackUrl: '/' })}>
-                <IoMdExit size={'22px'} />
-              </button>
+              <div className="group relative flex items-center">
+                <button
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  className="p-2"
+                >
+                  <IoMdExit size={22} />
+                </button>
+                <div className="absolute left-1/2 top-full z-10 mt-0.5 -translate-x-1/2 whitespace-nowrap rounded bg-red-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  Salir
+                </div>
+              </div>
             </div>
           </li>
         </ul>
       </div>
-      <AppModalPrueba
+      <AppModalReportes
         isOpen={isModalOpen}
         onClose={closeModal}
         titulo="REPORTE GENERAL"
@@ -389,7 +380,7 @@ const Tollbar = () => {
         namedesc="general"
         showDownloadButton={true}
       />
-      <AppModalPrueba
+      <AppModalReportes
         isOpen={isModalOpenStops}
         onClose={closeModalStops}
         titulo="REPORTE DE PARADAS"
@@ -398,7 +389,7 @@ const Tollbar = () => {
         namedesc="paradas"
         showDownloadButton={true}
       />
-      <AppModalPrueba
+      <AppModalReportes
         isOpen={isModalOpenDetails}
         onClose={closeModalDetails}
         titulo="DETALLE RECORRIDO"
@@ -418,14 +409,15 @@ const Tollbar = () => {
         showDownloadButton={true}
       />
 
-      <ModalKilo
+      <AppModalReportes
         isOpen={isModalOpenKilometer}
         onClose={closeModalKilometers}
-        titulo="DETALLE DE KILOMETRAJE"
+        titulo="REPORTE DE KILOMETRAJE"
         nameurl="reportekilometraje"
         namedown="downloadExcelK"
         namedesc="kilometraje"
         showDownloadButton={true}
+        useSelectAll={true}
       />
 
       <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
@@ -442,7 +434,11 @@ const Tollbar = () => {
             onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
           >
             <a href="#">
-              <div className='icon_options'><GrServices /></div>Gestión de Servicios</a>
+              <div className="icon_options">
+                <GrServices />
+              </div>
+              Gestión de Servicios
+            </a>
             <i
               className={`dropdown-icon ${isServicesMenuOpen ? 'rotate' : ''}`}
             ></i>
@@ -456,23 +452,24 @@ const Tollbar = () => {
                 Unidades
               </a>
 
-              <a
-                href="#"
-                title="Programación"
-                onClick={toggleProgramacionMenu}
-              >
+              <a href="#" title="Programación" onClick={toggleProgramacionMenu}>
                 Programación
                 <i
                   className={`dropdown-icon ${isProgramacionMenuOpen ? 'rotate' : ''}`}
-                >
-                </i>
+                ></i>
               </a>
-              {isProgramacionMenuOpen &&(
-              <div className="submenu-nested">
-                <a href="#" title="Asignar Conductor/Unidad">Asignar Conductor/Unidad</a>
-                <a href="#" title="Carga de Archivo">Carga de Archivo</a>
-                <a href="#" title="Carga de Servicios">Carga de Servicios</a>
-              </div>
+              {isProgramacionMenuOpen && (
+                <div className="submenu-nested">
+                  <a href="#" title="Asignar Conductor/Unidad">
+                    Asignar Conductor/Unidad
+                  </a>
+                  <a href="#" title="Carga de Archivo">
+                    Carga de Archivo
+                  </a>
+                  <a href="#" title="Carga de Servicios">
+                    Carga de Servicios
+                  </a>
+                </div>
               )}
 
               <a href="#" title="Control de Servicios">
@@ -492,11 +489,13 @@ const Tollbar = () => {
         </div>
 
         <div className="sidebar-section">
-          <div
-            className="menu-item"
-            onClick={togglePlanificacionMenu}
-          >
-            <a href="#"> <div className='icon_options'><GrPlan /></div>Planificación</a>
+          <div className="menu-item" onClick={togglePlanificacionMenu}>
+            <a href="#">
+              <div className="icon_options">
+                <GrPlan />
+              </div>
+              Planificación
+            </a>
             <i
               className={`dropdown-icon ${isPlanificacionMenuOpen ? 'rotate' : ''}`}
             ></i>
@@ -517,27 +516,36 @@ const Tollbar = () => {
         </div>
 
         <div className="sidebar-section">
-          <div
-            className="menu-item"
-          >
-            <a href="#"> <div className='icon_options'><RiGpsFill /></div>Punto de Interés</a>
+          <div className="menu-item">
+            <a href="#">
+              {' '}
+              <div className="icon_options">
+                <RiGpsFill />
+              </div>
+              Punto de Interés
+            </a>
           </div>
         </div>
 
         <div className="sidebar-section">
-          <div
-            className="menu-item"
-          >
-            <a href="#"><div className='icon_options'><MdDisplaySettings /></div>Operaciones</a>
+          <div className="menu-item">
+            <a href="#">
+              <div className="icon_options">
+                <MdDisplaySettings />
+              </div>
+              Operaciones
+            </a>
           </div>
         </div>
 
         <div className="sidebar-section">
-          <div
-            className="menu-item"
-            onClick={toggleReportesMenu}
-          >
-            <a href="#"><div className='icon_options'><TbReportSearch /></div>Reportes</a>
+          <div className="menu-item" onClick={toggleReportesMenu}>
+            <a href="#">
+              <div className="icon_options">
+                <TbReportSearch />
+              </div>
+              Reportes
+            </a>
             <i
               className={`dropdown-icon ${isReportesMenuOpen ? 'rotate' : ''}`}
             ></i>
@@ -577,7 +585,6 @@ const Tollbar = () => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

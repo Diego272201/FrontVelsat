@@ -19,11 +19,10 @@ import {
 import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
+import { BiEditAlt } from 'react-icons/bi';
 
 interface Props {
   title: string;
-  icon: React.ReactNode;
-  contenido: string;
   codCliente: number | null;
 }
 
@@ -40,9 +39,7 @@ interface Pasajero {
   wx: string;
 }
 
-
-export default function App({ title, icon, contenido, codCliente  }: Props) {
-
+export default function App({ title,  codCliente }: Props) {
   useEffect(() => {
     if (codCliente !== null) {
       console.log('CodCliente en ModalPasajerosEdit:', codCliente);
@@ -60,14 +57,14 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
       codlan: '',
       apellidos: '',
       telefono: '',
-      sexo: '', 
+      sexo: '',
       empresa: '',
       zona: '',
       direccion: '',
       distrito: '',
       wy: '',
-      wx: ''
-    }
+      wx: '',
+    },
   });
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -86,7 +83,6 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
       });
   }, []);
 
-
   useEffect(() => {
     if (codCliente !== null && isTarifaLoaded) {
       axios
@@ -94,12 +90,12 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
         .then((response) => {
           const pasajeroData = response.data[0];
           console.log('Datos del pasajero:', pasajeroData);
-   
+
           reset({
             codlan: pasajeroData.codlan || '',
             apellidos: pasajeroData.apellidos || '',
             telefono: pasajeroData.telefono || '',
-            sexo: pasajeroData.sexo === 'M' ? 'masculino' : 'femenino', 
+            sexo: pasajeroData.sexo === 'M' ? 'masculino' : 'femenino',
             empresa: pasajeroData.empresa || '',
             zona: pasajeroData.zona || '',
             direccion: pasajeroData.direccion || '',
@@ -107,8 +103,6 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
             wy: pasajeroData.wy || '',
             wx: pasajeroData.wx || '',
           });
-
-
         })
         .catch((error) => {
           console.log('Error fetching pasajero detail: ', error);
@@ -122,20 +116,15 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
 
   return (
     <>
-      <Tooltip color="primary" content={contenido}>
-        <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-          <Button
-            onPress={onOpen}
-            isIconOnly
-            variant="light"
-            color="primary"
-            size="sm"
-            className="btnEdit"
-          >
-            {icon}
-          </Button>
-        </span>
-      </Tooltip>
+      <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
+        <button
+          onClick={onOpen}
+          className="inline-flex items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-blue-600"
+        >
+          <BiEditAlt className="text-white" size={18} />
+          Editar
+        </button>
+      </span>
 
       <Modal
         size="2xl"
@@ -167,7 +156,6 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
                           placeholder="Atn2017"
                           labelPlacement="outside"
                           {...register('codlan', { required: true })}
-
                         />
                         {errors.codlan && (
                           <span className="errorMesageUserI">
@@ -183,7 +171,6 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
                           placeholder="Nombre del pasajero"
                           labelPlacement="outside"
                           {...register('apellidos', { required: true })}
-
                         />
                         {errors.apellidos && (
                           <span className="errorMesageUserI">
@@ -199,7 +186,7 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
                           placeholder="912789654"
                           labelPlacement="outside"
                           {...register('telefono')}
-                          />
+                        />
                       </div>
                     </div>
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
@@ -211,7 +198,7 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
                         disableSelectorIconRotation
                         selectorIcon={<SelectorIcon />}
                         {...register('sexo')}
-                        >
+                      >
                         <SelectItem key="masculino">Masculino</SelectItem>
                         <SelectItem key="femenino">Femenino</SelectItem>
                       </Select>
@@ -277,7 +264,7 @@ export default function App({ title, icon, contenido, codCliente  }: Props) {
                         {...register('zona')}
                         isDisabled={!isTarifaLoaded}
                       >
-                      {tarifa.map((item, index) => (
+                        {tarifa.map((item, index) => (
                           <SelectItem key={index} value={item.zona}>
                             {item.zona}
                           </SelectItem>

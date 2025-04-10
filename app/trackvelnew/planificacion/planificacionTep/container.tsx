@@ -6,10 +6,15 @@ import {
 } from '@dnd-kit/sortable';
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
-import { FaCar } from 'react-icons/fa';
-import { FaUserTie } from 'react-icons/fa6';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
-import axios from 'axios';
+import {
+  formatDate,
+  formatDateToISO,
+} from '@/app/components/dates/convertToCustomFormat ';
+import InputUnidad from '@/app/components/inputs/InputUnidad';
+import InputConductor from '@/app/components/inputs/InputConductor';
+
+// Esta la estructura de cada tabla, lo usamos para formar los grupos
 
 interface ItemData {
   id: string;
@@ -30,6 +35,8 @@ interface Grupo {
   destinoGrupo: string;
   fecha: string;
   horaprog: string;
+  conductor: string;
+  unidad: string;
 }
 
 interface ContainerProps {
@@ -39,7 +46,7 @@ interface ContainerProps {
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
-  coordenadas?: { wx: string; wy: string }[]; // Nuevo prop opcional
+  coordenadas?: { wx: string; wy: string }[];
 }
 
 const center = {
@@ -56,39 +63,23 @@ export default function Container({
   onUpdateUnidad,
   coordenadas,
 }: ContainerProps) {
+  
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
-
-  const [conductor, setConductor] = useState<string>('');
-  const [conductores, setConductores] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [filteredOptions, setFilteredOptions] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const [unidad, setUnidad] = useState<string>('');
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
-    [],
-  );
-  const [filteredUnidades, setFilteredUnidades] = useState<
-    { id: number; codunidad: string }[]
-  >([]);
-  const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
-
+  const [conductor, setConductor] = useState(grupo.conductor || '');
+  const [unidad, setUnidad] = useState(grupo.unidad || '');
   const [isOpen, setIsOpen] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
-  
+
   const [mapCenter, setMapCenter] = useState(center);
 
   useEffect(() => {
     if (coordenadas && coordenadas.length > 0) {
-      const firstCoord = coordenadas[0]; // Toma la primera coordenada como referencia
+      const firstCoord = coordenadas[0];
       setMapCenter({
         lat: parseFloat(firstCoord.wy),
         lng: parseFloat(firstCoord.wx),
@@ -96,124 +87,19 @@ export default function Container({
     }
   }, [coordenadas]);
 
-  useEffect(() => {
-    const fetchConductores = async () => {
-      try {
-        const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
-        );
-        setConductores(response.data);
-      } catch (error) {
-        console.error('Error al obtener conductores:', error);
-      }
-    };
-
-    const fetchUnidades = async () => {
-      try {
-        const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/unidades',
-        );
-        setUnidades(response.data);
-      } catch (error) {
-        console.error('Error al obtener unidades:', error);
-      }
-    };
-
-    fetchConductores();
-    fetchUnidades();
-  }, []);
-
-  const handleConductorChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const newConductor = event.target.value;
-    setConductor(newConductor);
-
-    if (newConductor.trim() === '') {
-      setFilteredOptions([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    const filtered = conductores.filter((c) =>
-      c.apepate.toLowerCase().includes(newConductor.toLowerCase()),
-    );
-
-    setFilteredOptions(filtered);
-    setShowDropdown(filtered.length > 0);
-  };
-
-  const handleSelectConductor = (codigo: number, apepate: string) => {
-    console.log(`🚗 Conductor seleccionado: ${apepate} (Código: ${codigo})`);
-    setConductor(apepate); // Mostrar el nombre en el input
-    setShowDropdown(false);
-
-    if (onUpdateConductor) {
-      onUpdateConductor(grupo.id, codigo); // Guardar el código
-    } else {
-      console.warn('onUpdateConductor no está definido.');
-    }
-  };
-
-  const handleUnidadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newUnidad = event.target.value;
-    setUnidad(newUnidad);
-
-    if (newUnidad.trim() === '') {
-      setFilteredUnidades([]);
-      setShowDropdownUnidad(false);
-      return;
-    }
-
-    const filtered = unidades.filter((u) =>
-      (u.codunidad ?? '').toLowerCase().includes(newUnidad.toLowerCase()),
-    );
-
-    setFilteredUnidades(filtered);
-    setShowDropdownUnidad(filtered.length > 0);
-  };
-
-  const handleSelectUnidad = (codunidad: string) => {
-    console.log(`🚌 Unidad seleccionada: ${codunidad}`);
-    setUnidad(codunidad);
-    setShowDropdownUnidad(false);
-
-    if (onUpdateUnidad) {
-      onUpdateUnidad(grupo.id, codunidad);
-    } else {
-      console.warn('onUpdateUnidad no está definido.');
-    }
-  };
-
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
   };
 
-  const formatDateToCustom = (fecha?: string) => {
-    if (!fecha) return '';
-
-    const isoRegex = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
-    const match = fecha.match(isoRegex);
-
-    if (!match) return '';
-
-    const [, year, month, day, hours, minutes] = match;
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  };
-
   const handleEndDateSelect = (date: string) => {
-    console.log('Fecha seleccionada antes de conversión:', date);
-
     setEndDate(date);
-
-    const formattedDate = formatDateToCustom(date);
+    const formattedDate = formatDate(date);
 
     if (!formattedDate) {
       console.error('Error: Fecha inválida después de conversión.');
       return;
     }
 
-    console.log('Fecha convertida a formato deseado:', formattedDate);
     onUpdateGrupo(grupo.id, formattedDate);
   };
 
@@ -233,18 +119,6 @@ export default function Container({
     id,
   });
 
-  const formatDateToISO = (fecha?: string) => {
-    if (!fecha) return '';
-
-    const regex = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/;
-    const match = fecha.match(regex);
-
-    if (!match) return '';
-
-    const [, day, month, year, hours, minutes] = match;
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
   return (
     <SortableContext
       id={id}
@@ -262,8 +136,8 @@ export default function Container({
         }}
       >
         <table className="rwd-table">
-          <thead style={{ color: '#fff' }}>
-            <tr>
+          <thead style={{ color: '#fff'}}>
+            <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
               <th>Tipo: {grupo.tipo}</th>
               <th>Empresa: {grupo.empresa}</th>
@@ -310,8 +184,8 @@ export default function Container({
               <th>Tarifa: Tarifa Delta Delta</th>
             </tr>
 
-            <tr>
-              <th>
+            <tr >
+              <th >
                 <div className="headTable">
                   <div className="num">N°</div>
                   <div className="nombre">Nombre</div>
@@ -333,69 +207,25 @@ export default function Container({
         <div className="footerTep">
           <div className="dataConductorUnidad">
             <div className="relative">
-              <input
-                type="text"
-                className="peer block w-96 rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500  disabled:pointer-events-none disabled:opacity-50"
-                placeholder="Conductor"
+              <InputConductor
                 value={conductor}
-                onChange={handleConductorChange}
-                onFocus={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                onChange={setConductor}
+                onSelect={(codigo, apepate) => {
+                  setConductor(apepate);
+                  onUpdateConductor?.(grupo.id, codigo);
+                }}
               />
-
-              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
-                <FaUserTie color="#343a40" />
-              </div>
-
-              {showDropdown && filteredOptions.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
-                  {filteredOptions.map((conductor) => (
-                    <li
-                      key={conductor.codigo}
-                      className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                      onClick={() =>
-                        handleSelectConductor(
-                          conductor.codigo,
-                          conductor.apepate,
-                        )
-                      }
-                    >
-                      {conductor.apepate}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
 
             <div className="relative">
-              <input
-                type="text"
-                className="peer block w-full rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500 disabled:pointer-events-none disabled:opacity-50"
-                placeholder="Unidad"
+              <InputUnidad
                 value={unidad}
-                onChange={handleUnidadChange}
-                onFocus={() => setShowDropdownUnidad(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowDropdownUnidad(false), 200)
-                }
+                onChange={setUnidad}
+                onSelect={(codunidad) => {
+                  setUnidad(codunidad);
+                  onUpdateUnidad?.(grupo.id, codunidad);
+                }}
               />
-              <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
-                <FaCar color="#343a40" />
-              </div>
-
-              {showDropdownUnidad && filteredUnidades.length > 0 && (
-                <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
-                  {filteredUnidades.map((unidad) => (
-                    <li
-                      key={unidad.id}
-                      className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                      onClick={() => handleSelectUnidad(unidad.codunidad)}
-                    >
-                      {unidad.codunidad}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
 
             <div>Duracion: (Ida desde el Aeropuerto) Calculando ...</div>
@@ -424,7 +254,6 @@ export default function Container({
                         Ruta programada - Grupo 1
                       </h2>
 
-                      {/* Muestra el mapa solo si la API está cargada */}
                       {isLoaded ? (
                         <div className="h-[500px] w-full">
                           <GoogleMap
@@ -450,7 +279,6 @@ export default function Container({
                         <p>Cargando mapa...</p>
                       )}
 
-                      {/* Botón para cerrar */}
                       <button
                         onClick={() => setIsOpen(false)}
                         className="mt-4 rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"

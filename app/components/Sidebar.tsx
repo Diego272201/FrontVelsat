@@ -24,21 +24,21 @@ interface UnidadData {
 
 export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
-  const {data: session, status} = useSession();
+  const {data: session} = useSession();
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
   const { baseUrl} = useApi();
-  
+
+
+
+
   const fetchData = useCallback(async (username: string) => {
 
     try {
-   
       const response = await axios.get(`${baseUrl}/api/DeviceList/simplified/${username}`);
-
-      console.log("La url es: " + `${baseUrl}`)
 
       setUnidades(response.data);
       setIsLoading(true);
@@ -50,10 +50,12 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   }, [baseUrl]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session) {
+    if (session?.user.username && baseUrl) {
       fetchData(session.user.username);
+
     }
-  }, [status, session, fetchData]);
+  }, [fetchData, session?.user.username,baseUrl]);
+  
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -62,6 +64,8 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const hideMenu = () => {
     setShowDropdown(false);
   };
+
+
 
   const handleSelectUnit = useCallback((coords: { latitud: number, longitud: number }) => {
     centerUnit(coords);

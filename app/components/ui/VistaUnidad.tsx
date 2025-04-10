@@ -21,7 +21,7 @@ export default function VistaUnidad({ item, deviceId, kilometros }: Props) {
           observer.disconnect();
         }
       },
-      { threshold: 0.1 } // Adjust threshold as needed
+      { threshold: 0.1 } 
     );
 
     if (ref.current) {
@@ -43,8 +43,8 @@ export default function VistaUnidad({ item, deviceId, kilometros }: Props) {
         {isVisible && (
           <Image
             src="/UnidadK.webp"
-            width={300}
-            height={300}
+            width={150}
+            height={150}
             alt="Picture of the author"
             loading="lazy"
           />
@@ -52,9 +52,11 @@ export default function VistaUnidad({ item, deviceId, kilometros }: Props) {
 
         <div className="deviceOnly devicePadding">
           <SiPagespeedinsights />
-          Unidad: {deviceId}
+          Unidad: {deviceId.toUpperCase()}
         </div>
       </div>
+      <div className="border-l-2 mx-1 h-full"></div>
+
 
       <div className="odometroDiv">
         <div className="odometer" id="odometer">

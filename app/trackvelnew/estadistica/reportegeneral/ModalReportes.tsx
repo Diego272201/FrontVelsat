@@ -9,11 +9,13 @@ import {
   useDisclosure,
   Link,
 } from '@nextui-org/react';
+import Select from '@/app/components/selectUI/Select';
 import App from '@/app/components/TimePicker';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
-import ButtonKilometerModal from '@/app/components/ui/ButtonKilometerModal';
+import ButtonDownload from '@/app/components/ui/ButtonDownloadModal';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import Selectall from '@/app/components/selectUI/Selectall';
 
 interface AppModalProps {
@@ -24,10 +26,10 @@ interface AppModalProps {
   namedown: string;
   namedesc: string;
   showDownloadButton: boolean;
+  useSelectAll?: boolean;
 }
 
-
-const AppModalPrueba: React.FC<AppModalProps> = ({
+const AppModalReportes: React.FC<AppModalProps> = ({
   isOpen,
   onClose,
   titulo,
@@ -35,13 +37,23 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   namedown,
   namedesc,
   showDownloadButton,
+  useSelectAll = false,
 }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const { data: session } = useSession();
+  const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
+
+  const username = session?.user.username;
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
+    console.log("aCA TOY:" +selectedDeviceId)
+    
+  const isAll = deviceId === "Todas las unidades";
+  setIsAllUnitsSelected(isAll);
+  console.log(isAllUnitsSelected)
   };
 
   const handleStartDateSelect = (date: string) => {
@@ -90,18 +102,22 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
             </ModalHeader>
             <ModalBody>
               <div className="selectunitRange">
-                <Selectall onSelect={handleSelect}></Selectall>
+              {useSelectAll ? (
+                  <Selectall onSelect={handleSelect} />
+                ) : (
+                  <Select onSelect={handleSelect} />
+                )}
               </div>
 
               <div className="selectdates">
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Inicial</span>
-                  <App onDateSelect={handleStartDateSelect} />
+                  <App backgroundColor='#e9ecef' onDateSelect={handleStartDateSelect} />
                 </div>
 
                 <div className="dataLabel">
                   <span className="spanLabel">Fecha Final</span>
-                  <App onDateSelect={handleEndDateSelect} />
+                  <App backgroundColor='#e9ecef' onDateSelect={handleEndDateSelect} />
                 </div>
               </div>
             </ModalBody>
@@ -109,12 +125,15 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
               <div className="footerModal">
                 {showDownloadButton && (
                   <div className="download">
-                    <ButtonKilometerModal
+                    <ButtonDownload
                       startDate={startDate}
                       endDate={endDate}
                       devideId={selectedDeviceId}
                       namedown={namedown}
                       namedesc={namedesc}
+                      nameurl={nameurl}
+                      username={username || ''}
+                      isKilometrajeAll={isAllUnitsSelected}
                     />
                   </div>
                 )}
@@ -146,4 +165,4 @@ const AppModalPrueba: React.FC<AppModalProps> = ({
   );
 };
 
-export default AppModalPrueba;
+export default AppModalReportes;

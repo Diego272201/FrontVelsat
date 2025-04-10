@@ -9,7 +9,6 @@ import {
   Button,
   useDisclosure,
 } from '@nextui-org/react';
-import { PlusIcon } from './PlusIcon';
 import { Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@nextui-org/react';
 import { ImUserPlus } from 'react-icons/im';
@@ -19,22 +18,22 @@ import { ClockCircleLinearIcon } from './ClockCircleLinearIcon';
 import { Time } from '@internationalized/date';
 import { SelectorIcon } from './SelectorIcon';
 import { IoSave } from 'react-icons/io5';
-import { IoMdCloseCircle } from 'react-icons/io';
+import { IoMdAdd, IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
 import { toast, Toaster } from 'sonner';
 
 interface Props {
   titleM: string;
-  onSaveSuccess: () => void; 
+  onSaveSuccess: () => void;
 }
 
-export default function App({ titleM, onSaveSuccess}: Props) {
+export default function App({ titleM, onSaveSuccess }: Props) {
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    clearErrors
+    clearErrors,
   } = useForm();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -53,8 +52,7 @@ export default function App({ titleM, onSaveSuccess}: Props) {
       });
   }, []);
 
-   // Resetear el formulario al cerrar el modal
-   useEffect(() => {
+  useEffect(() => {
     if (isOpen || !isOpen) {
       reset();
       clearErrors();
@@ -65,19 +63,19 @@ export default function App({ titleM, onSaveSuccess}: Props) {
     if (Object.keys(errors).length === 0) {
       const formattedHora = hora.toString().slice(0, 5);
       data.hora = formattedHora;
-  
+
       switch (data.programacion) {
         case 'actual':
-          data.programacion = "1";
+          data.programacion = '1';
           break;
         case 'futura':
-          data.programacion = "2";
+          data.programacion = '2';
           break;
         case 'pasada':
-          data.programacion = "3";
+          data.programacion = '3';
           break;
         default:
-          data.programacion = "1";
+          data.programacion = '1';
       }
 
       const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
@@ -89,24 +87,25 @@ export default function App({ titleM, onSaveSuccess}: Props) {
         subarea: data.subarea,
         empresa: data.empresa,
         programa: data.programacion,
-      }
+      };
 
       console.log('Datos a enviar:', postData);
 
       try {
-        setIsSubmitting(true); 
-        await axios.post('https://localhost:7223/api/Turnos/movilbus', postData);
+        setIsSubmitting(true);
+        await axios.post(
+          'https://localhost:7223/api/Turnos/movilbus',
+          postData,
+        );
         console.log('Datos enviados correctamente', postData);
         onSaveSuccess();
-        toast.success('Turno creado exitosamente')
+        toast.success('Turno creado exitosamente');
         onClose();
-      } catch (error){
+      } catch (error) {
         console.error('Error al enviar los datos:', error);
-
-      } finally{
-        setIsSubmitting(false); 
+      } finally {
+        setIsSubmitting(false);
       }
-
     } else {
       console.log('Errores de validación:', errors);
     }
@@ -114,19 +113,22 @@ export default function App({ titleM, onSaveSuccess}: Props) {
 
   return (
     <>
-    <Toaster richColors  />
+      <Toaster richColors />
 
       <Button
         onPress={onOpen}
-        style={{ background: '#FF6300' }}
+        style={{ background: '#F7931E', color:"#212529" }}
         className="text-background"
-        endContent={<PlusIcon />}
+        endContent={<IoMdAdd  />}
         size="sm"
       >
         Nuevo Turno
       </Button>
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
-        <form action="" onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}>
+        <form
+          action=""
+          onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}
+        >
           <ModalContent>
             {(onClose) => (
               <>
@@ -220,7 +222,7 @@ export default function App({ titleM, onSaveSuccess}: Props) {
                         label="Hora"
                         labelPlacement="outside"
                         value={hora}
-                        onChange={(value) => setHora(value)}
+                        onChange={(value) => setHora(value || new Time(12))}
                         startContent={
                           <ClockCircleLinearIcon className="pointer-events-none flex-shrink-0 text-xl text-default-400" />
                         }
@@ -250,12 +252,7 @@ export default function App({ titleM, onSaveSuccess}: Props) {
                         )}
                       </div>
                     </div>
-                    {/* <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-
-                  <h2 className='mensajeIngreso'>Tipo (Ingreso/Salida) : Ingreso <FaCheck />
-                  </h2>
-
-                  </div> */}
+           
                   </div>
                 </ModalBody>
                 <ModalFooter>
@@ -263,7 +260,11 @@ export default function App({ titleM, onSaveSuccess}: Props) {
                     Cerrar
                     <IoMdCloseCircle size={16} />
                   </Button>
-                  <Button color="primary" type="submit" isDisabled={isSubmitting}>
+                  <Button
+                    color="primary"
+                    type="submit"
+                    isDisabled={isSubmitting}
+                  >
                     Guardar
                     <IoSave size={16} />
                   </Button>
