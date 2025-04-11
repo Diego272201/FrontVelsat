@@ -33,7 +33,10 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
   const { baseUrl} = useApi();
 
 
-
+  const username = useMemo(() => {
+    return localStorage.getItem('currentUser') || '';
+  }, []);
+  
 
   const fetchData = useCallback(async (username: string) => {
 
@@ -54,7 +57,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
       fetchData(session.user.username);
 
     }
-  }, [fetchData, session?.user.username,baseUrl]);
+  }, [fetchData, username,baseUrl]);
   
 
   const showMenu = () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { useApi } from '@/context/ApiContext';
@@ -11,7 +11,11 @@ interface SelectProps {
 export default function App({ onSelect }: SelectProps) {
   const { data: session } = useSession();
   const { baseUrl } = useApi();
-  const username = session?.user.username;
+
+    const username = useMemo(() => {
+      return localStorage.getItem('currentUser') || '';
+    }, []);
+    
 
   const [deviceIds, setDeviceIds] = useState<
     { value: string; label: string }[]

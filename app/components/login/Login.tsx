@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import "@/app/styles/login.css";
 import { Button, Input } from '@nextui-org/react';
 import { EyeSlashFilledIcon } from './EyeFilledIcon';
@@ -9,6 +9,8 @@ import Image from 'next/image';
 import { Toaster, toast } from 'sonner';
 import { EyeFilledIcon } from './EyeSlashFilledIcon';
 import Slider from './Slider';
+import { useApi } from '@/context/ApiContext';
+import * as signalR from '@microsoft/signalr';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -16,9 +18,86 @@ export default function Login() {
   const [clave, setClave] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const router = useRouter();
+  const [servidorUrl, setServidorUrl] = useState('');
 
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
+  const { baseUrl } = useApi();
+
+
+  
+  const obtenerServidor = async (usuario: string) => {
+    try {
+      const response = await fetch(`http://66.240.210.125:8586/api/Server/${usuario}`);
+      const data = await response.json();
+
+      if (data.servidor) {
+        return data.servidor;
+      } else {
+        throw new Error('No se encontró el campo "servidor" en la respuesta');
+      }
+    } catch (error) {
+      console.error('Error al obtener servidor:', error);
+      setErrors(['No se pudo obtener el servidor para el usuario.']);
+      return null;
+    }
+  };
+
+
+  
+  useEffect(() => {
+    if (login.length > 0) {
+      console.log("wua wua " + login);
+  
+      const fetchServidor = async () => {
+        const url = await obtenerServidor(login);
+        if (url) setServidorUrl(url);
+      };
+  
+      fetchServidor();
+    }
+
+    console.log("wua wua 2 " + servidorUrl);
+
+  }, [login]); // No olvides poner las dependencias del efecto
+  
+
+  useEffect(() => {
+    if (servidorUrl) {
+      console.log("servidorUrl actualizado:", servidorUrl);
+    }
+  }, [servidorUrl]);
+
+
+
+
+  const handleSignalRConnection = async (username: string) => {
+   
+
+    const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl)
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    try {
+      await connection.start();
+      await connection.invoke('UnirGrupo', username);
+      console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
+      
+      connection.on('ActualizarDatos', (datos) => {
+        console.log('Datos recibidos de SignalR:', datos);
+        localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
+        localStorage.setItem(`deviceList_${username}`, JSON.stringify(datos.datosDevice));
+
+      });
+    } catch (error) {
+      console.error('Error al conectar con SignalR:', error);
+    }
+  };
+
+  
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -35,11 +114,16 @@ export default function Login() {
         toast.error('Error: ' + responseNextAuth.error, { id: toastId });
       } else {
         toast.success('¡Autenticación exitosa!', { id: toastId });
+
+        const username = login;
+        handleSignalRConnection(username);
+        localStorage.setItem('currentUser', username);
+
         router.push('/trackvelnew');
 
       }
     },
-    [login, clave, router],
+    [login, clave, router,baseUrl],
   );
 
   
