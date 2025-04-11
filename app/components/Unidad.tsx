@@ -12,9 +12,11 @@ interface UnidadProps {
   onSelectUnit: (coords: { latitud: number, longitud: number }) => void;
   lastCheckedId: string | null;
   onCheckboxChange: (id: string) => void;
+  username: string;
+
 }
 
-const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit, lastCheckedId, onCheckboxChange }) => {
+const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit, lastCheckedId, onCheckboxChange,username }) => {
   const [isChecked, setIsChecked] = useState(false); 
 
   useEffect(() => {
@@ -55,7 +57,8 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
       </div>
 
       <div className="img-listacarro">
-        <Image src="/UnidadK.webp" alt="carrito" width={'1000'} height={'1000'}/>
+        <Image   src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
+ alt="carrito" width={'1000'} height={'1000'}/>
       </div>
 
       <div className="codigo-carro">

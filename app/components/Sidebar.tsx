@@ -167,6 +167,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
                 onSelectUnit={handleSelectUnit}
                 lastCheckedId={lastCheckedId}
                 onCheckboxChange={handleCheckboxChange}
+                username={username}
               />
             ))
           )}
