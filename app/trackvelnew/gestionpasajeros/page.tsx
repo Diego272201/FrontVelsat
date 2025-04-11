@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ModalPasajeros from './ModalPasajeros';
 import { BiEditAlt, BiTrash } from 'react-icons/bi';
 import axios from 'axios';
@@ -21,6 +21,37 @@ export default function Page() {
     null,
   );
   const [inputValue, setInputValue] = useState('');
+
+  const [codigoQuery, setCodigoQuery] = useState('');
+  const [codigoInputValue, setCodigoInputValue] = useState('');
+  const [codigoResultados, setCodigoResultados] = useState<
+    { codigo: string; codlan: string; apepate: string }[]
+  >([]);
+  const [selectedCodigo, setSelectedCodigo] = useState<string | null>(null);
+
+  const fetchPasajerosPorCodigo = useCallback(
+    debounce(async (value: string) => {
+      if (value.length < 2) {
+        setCodigoResultados([]);
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          `http://66.240.210.125:8586/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
+        );
+        const data = response.data.map((item: any) => ({
+          codigo: item.codigo,
+          codlan: item.codlan,
+          apepate: item.apepate,
+        }));
+        setCodigoResultados(data);
+      } catch (error) {
+        console.error('Error al buscar por código:', error);
+      }
+    }, 300),
+    [],
+  );
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -44,6 +75,10 @@ export default function Page() {
     fetchPasajeros();
   }, []);
 
+  useEffect(() => {
+    console.log('wua wua' + selectedCodigo);
+  });
+
   const filteredPasajeros = useMemo(() => {
     if (query.length < 2) return [];
     return pasajeros.filter((pasajero) =>
@@ -60,8 +95,8 @@ export default function Page() {
       (pasajero) => pasajero.value === value,
     );
     if (selectedPasajero) {
-      setInputValue(selectedPasajero.label); // Mostrar en el input
-      setQuery(''); // Oculta el dropdown
+      setInputValue(selectedPasajero.label); 
+      setQuery(''); 
       setSelectedCodCliente(selectedPasajero.value);
       console.log('Apellido:', selectedPasajero.label);
       console.log('CodCliente:', selectedPasajero.value);
@@ -70,13 +105,12 @@ export default function Page() {
 
   return (
     <div className="m-4 space-y-10 bg-gray-200 shadow-md">
-      {/* Título principal */}
+
       <div className="flex justify-center bg-gray-50 p-4">
         <h2 className="text-lg font-bold text-gray-800">
           GESTIÓN DE PASAJEROS
         </h2>
       </div>
-      {/* Buscador por nombre */}
 
       <div className="space-y-4 px-4">
         <div className="flex items-center gap-2 ">
@@ -85,9 +119,7 @@ export default function Page() {
           </h3>
         </div>
 
-        {/* Contenedor de input + botones */}
         <div className="flex w-full gap-4">
-          {/* Input - 50% */}
           <div className="w-1/2">
             <div className="relative w-full">
               <input
@@ -124,7 +156,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Botones - 50% */}
           <div className="flex w-1/2 justify-end gap-2">
             <ModalPasajeros title="Nuevo Pasajero" />
             <ModalPasajerosEdit
@@ -139,7 +170,6 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Búsqueda por código */}
       <div className="space-y-4 px-4">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold text-gray-700">
@@ -147,17 +177,47 @@ export default function Page() {
           </h3>
         </div>
 
-        {/* Input 70% + Botón 30% */}
         <div className="flex w-full gap-4">
           <input
             type="text"
             placeholder="Ingrese Código"
             className="flex-[0.7] rounded-md border bg-white p-2 ps-4 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+            value={codigoInputValue}
+            onChange={(e) => {
+              setCodigoInputValue(e.target.value);
+              setCodigoQuery(e.target.value);
+              fetchPasajerosPorCodigo(e.target.value);
+            }}
           />
-          <button className="inline-flex flex-[0.3] items-center justify-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-blue-600">
-            <BiEditAlt className="text-white" size={18} />
-            Editar
-          </button>
+
+          {codigoQuery.length >= 2 && (
+            <ul className="absolute z-10 mt-10 max-h-60 w-[70%] overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+              {codigoResultados.length > 0 ? (
+                codigoResultados.map((item) => (
+                  <li
+                    key={item.codigo}
+                    onClick={() => {
+                      setCodigoInputValue(`${item.codlan} - ${item.apepate}`);
+                      setSelectedCodigo(item.codigo);
+                      setCodigoQuery('');
+                    }}
+                    className="cursor-pointer px-4 py-2 hover:bg-blue-100"
+                  >
+                    {item.codlan}
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-2 text-sm text-gray-500">
+                  No se encontraron resultados
+                </li>
+              )}
+            </ul>
+          )}
+
+          <ModalPasajerosEdit
+            title="Detalle Pasajero"
+            codCliente={Number(selectedCodigo)}
+          />
         </div>
       </div>
 

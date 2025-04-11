@@ -22,10 +22,7 @@ export default async function DashboardPage() {
       
                  />
 
-      <div className="space-y-2">
-        luis
-        <Loader></Loader>
-      </div>
+ 
     </div>
   );
 }

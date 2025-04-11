@@ -47,7 +47,6 @@ export default function Login() {
   
   useEffect(() => {
     if (login.length > 0) {
-      console.log("wua wua " + login);
   
       const fetchServidor = async () => {
         const url = await obtenerServidor(login);
@@ -57,9 +56,8 @@ export default function Login() {
       fetchServidor();
     }
 
-    console.log("wua wua 2 " + servidorUrl);
 
-  }, [login]); // No olvides poner las dependencias del efecto
+  }, [login,servidorUrl]); 
   
 
   useEffect(() => {

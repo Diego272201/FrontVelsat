@@ -112,7 +112,7 @@ const DragAndDropTable = forwardRef(
   ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha ,dataAgregada,agregarTrigger,areaLan,horaAtencion, horaAto  }: Props, ref) => {
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tempData, setTempData] = useState<typeof dataAgregada>([]); // Estado local para manejar los datos agregados
+    const [tempData, setTempData] = useState<typeof dataAgregada>([]); 
 
 
     const parseFecha = (fechaStr: string | null) => {
@@ -150,7 +150,7 @@ const DragAndDropTable = forwardRef(
       setTimeout(() => {
         setTempData(dataAgregada); 
       }, 0); 
-    }, [agregarTrigger]); 
+    }, [agregarTrigger,dataAgregada]); 
 
     useEffect(() => {
       console.log("tempData actualizado:", tempData);
@@ -183,7 +183,7 @@ const DragAndDropTable = forwardRef(
 
         setTempData([]); 
       }
-    }, [tempData]);
+    }, [tempData,areaLan]);
     
 
 
@@ -429,5 +429,7 @@ const DragAndDropTable = forwardRef(
     );
   },
 );
+
+DragAndDropTable.displayName = "DragAndDropTable";
 
 export default DragAndDropTable;
