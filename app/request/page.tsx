@@ -47,58 +47,76 @@ export default function RequestPage() {
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
   const { baseUrl } = useApi();
+  
+  const username = session?.user?.username || '';
 
   useEffect(() => {
-    if (status === 'authenticated' && session && baseUrl) {
-      const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
-      const connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
-        .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
+    if (deviceList && deviceList.length > 0) {
+      return;
+    }
 
-      connection
-        .start()
-        .then(() => connection.invoke('UnirGrupo', username))
-        .then(() => {
-          console.log(
-            `Conexión SiganlR establecida y unida al grupo: ${username}`,
-          );
-          setMarkersLoaded(true);
-        })
-        .catch((error) => {
-          console.error('Error al conectar con SignalR: ', error);
-        });
+    const storedFechaActual = localStorage.getItem(`fechaActual_${username}`);
+    const storedDeviceList = localStorage.getItem(`deviceList_${username}`);
+
+    console.log("dsat de " +storedFechaActual)
+
+    if (storedFechaActual && storedDeviceList) {
+      setFechaActual({ fechaActual: storedFechaActual });
+      setDeviceList(JSON.parse(storedDeviceList));
+    } else {
+      console.error('No se encontraron datos en el almacenamiento local.');
+    }
+  }, [deviceList]); 
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const username = session?.user?.username || ''; 
+      handleSignalRConnection(username);
+    }, 3000); 
+
+    return () => clearTimeout(timer); 
+  }, [session]);
+
+  const handleSignalRConnection = async (username: string) => {
+    const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl)
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    try {
+      await connection.start();
+      await connection.invoke('UnirGrupo', username);
+      console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
 
       connection.on('ActualizarDatos', (datos) => {
-        setFechaActual(datos.fechaActual);
+        console.log('Datos recibidos de SignalR wuaaaaaaaa:', datos);
+
+        setFechaActual({ fechaActual: datos.fechaActual });
         setDeviceList(datos.datosDevice);
-        setAllMarkersLoaded(true);
       });
+    } catch (error) {
+      console.error('Error al conectar con SignalR:', error);
     }
-  }, [status, session, baseUrl]);
-  
+  };
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  // Guardar el estado en localStorage cuando el mapa esté cargado
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('mapLoaded', 'true');
 
-      setMapLoaded(true); 
+      setMapLoaded(true);
     }
   }, [isLoaded]);
 
-  // Recuperar el estado de isLoaded desde localStorage
   const [mapLoaded, setMapLoaded] = useState<boolean>(() => {
     return localStorage.getItem('mapLoaded') === 'true';
   });
-
-
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
@@ -326,29 +344,21 @@ export default function RequestPage() {
           }
         }
       });
-
       function getPopupContent(device: any) {
         return `
-        <div class="bg-gray-800 text-white p-4 rounded-lg  w-56 relative text-xs">
-            <button id="close-btn-${device.deviceId}" class="absolute top-2 right-2 text-white hover:text-red-500 text-lg font-bold">&times;</button>
-            
-            <h3 class="text-sm font-semibold border-b border-gray-600 pb-1 mb-2">Unidad: ${device.deviceId.toUpperCase()}</h3>
-            
-            <p><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
-            <p><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
-            
-            <hr class="my-2 border-gray-600">
-            
-            <h4 class="font-medium text-gray-300 uppercase">Último Reporte</h4>
-            <p> ${formatFecha(fechaActual)}</p>
-            <p><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</p>
-            <p><strong>Ubicación:</strong> ${device.direccion}</p>
-            
-            <a href="#" class="follow-link mt-3 block bg-blue-600 hover:bg-blue-700 text-white text-center py-1.5 rounded-md text-sm 
-            font-medium transition-all" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+            <div class="content-custom-popup" id="content2-${device.deviceId}">
+                            <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
 
-        </div>
-    `;
+        <h3 class="popup-title">Unidad: ${device.deviceId.toUpperCase()}</h3>
+        <p><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
+        <p><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
+                <br>
+        <h4 class="popup-subtitle">Último Reporte</h4>
+   <p>${fechaActual ? formatFecha(fechaActual.fechaActual) : 'Fecha no disponible'}</p>                  <span><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
+                <span><strong>Ubicación:</strong> ${device.direccion} </span>
+          <a href="" class="follow-link" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+            </div>
+        `;
       }
     },
     [deviceList, getMarkerIcon],
@@ -380,7 +390,6 @@ export default function RequestPage() {
 
   const centerUnit = useCallback(
     (coords: { latitud: number; longitud: number }) => {
-      
       if (mapRef.current) {
         const centerCoords = { lat: coords.latitud, lng: coords.longitud };
         mapRef.current.setCenter(centerCoords);
@@ -430,30 +439,24 @@ export default function RequestPage() {
     [],
   );
 
-
-  
-
   return (
-<>
+    <>
+      {isLoaded && mapLoaded ? (
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={center}
+          zoom={6}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={memoizedMapOptions}
+        >
+          {/* Aquí iría cualquier componente que desees colocar dentro del mapa */}
+        </GoogleMap>
+      ) : (
+        <Loader />
+      )}
 
-{isLoaded && mapLoaded ? (
-    <GoogleMap
-      mapContainerStyle={containerStyle}
-      center={center}
-      zoom={6}
-      onLoad={onLoad}
-      onUnmount={onUnmount}
-      options={memoizedMapOptions}
-    >
-      {/* Aquí iría cualquier componente que desees colocar dentro del mapa */}
-    </GoogleMap>
-  ) : (
-    <Loader />
-  )}
-
-<Sidebar centerMap={centerMap} centerUnit={centerUnit} />
-
-</>
-
+      <Sidebar centerMap={centerMap} centerUnit={centerUnit} />
+    </>
   );
 }

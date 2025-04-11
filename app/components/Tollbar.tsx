@@ -1,7 +1,7 @@
 'use client';
 import '@/app/styles/tollbar.css';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import { signOut, useSession } from 'next-auth/react';
@@ -20,6 +20,10 @@ import { TbReportSearch } from 'react-icons/tb';
 const Tollbar = () => {
   const { data: session } = useSession();
 
+  const username = useMemo(() => {
+    return localStorage.getItem('currentUser') || '';
+  }, []);
+  
   const [activeLink, setActiveLink] = useState(null);
 
   const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
@@ -129,7 +133,7 @@ const Tollbar = () => {
           <div className="dataUser">
             <h3 className="userInicio">
               TRACKVEL SYSTEM : BIENVENIDO{' '}
-              {session?.user.username.toUpperCase()}
+              {username.toUpperCase()}
             </h3>
           </div>
         </a>
