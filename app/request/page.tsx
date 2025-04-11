@@ -102,22 +102,19 @@ export default function RequestPage() {
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
 
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem('mapLoaded', 'true');
-
-      setMapLoaded(true);
-    }
-  }, [isLoaded]);
-
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
-      setMapLoaded(storedMapLoaded);
+      if (isLoaded) {
+        localStorage.setItem('mapLoaded', 'true');
+        setMapLoaded(true);
+      } else {
+        const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
+        setMapLoaded(storedMapLoaded);
+      }
     }
-  }, []);
+  }, [isLoaded]);
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
