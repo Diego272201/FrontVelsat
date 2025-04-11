@@ -38,46 +38,44 @@ const getFormattedDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-
 const parseFecha = (fechaStr: string | null) => {
   if (!fechaStr) return null;
 
   try {
-    const fecha = new Date(fechaStr); 
+    const fecha = new Date(fechaStr);
 
     if (isNaN(fecha.getTime())) {
-      console.error("Fecha inválida:", fechaStr);
+      console.error('Fecha inválida:', fechaStr);
       return null;
     }
 
-    const dia = fecha.getDate().toString().padStart(2, "0");
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); 
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
     const año = fecha.getFullYear();
-    const horas = fecha.getHours().toString().padStart(2, "0");
-    const minutos = fecha.getMinutes().toString().padStart(2, "0");
+    const horas = fecha.getHours().toString().padStart(2, '0');
+    const minutos = fecha.getMinutes().toString().padStart(2, '0');
 
     return `${dia}/${mes}/${año} ${horas}:${minutos}`;
   } catch (error) {
-    console.error("Error al parsear la fecha:", error);
+    console.error('Error al parsear la fecha:', error);
     return null;
   }
 };
 
-
-  const columns = [
-    { key: 'select', label: '' },
-    { key: 'area', label: 'Área' },
-    { key: 'numero', label: 'Número' },
-    { key: 'tipo', label: 'Tipo' },
-    { key: 'empresa', label: 'Empresa' },
-    { key: 'grupo', label: 'Grupo Turismo' },
-    { key: 'horaProg', label: 'Hora Prog.' },
-    { key: 'horaAto', label: 'Hora ATO' },
-    { key: 'controlAto', label: 'Control ATO' },
-    { key: 'unidad', label: 'Unidad' },
-    { key: 'conductor', label: 'Conductor' },
-    { key: 'estado', label: 'Estado' },
-  ];
+const columns = [
+  { key: 'select', label: '' },
+  { key: 'area', label: 'Área' },
+  { key: 'numero', label: 'Número' },
+  { key: 'tipo', label: 'Tipo' },
+  { key: 'empresa', label: 'Empresa' },
+  { key: 'grupo', label: 'Grupo Turismo' },
+  { key: 'horaProg', label: 'Hora Prog.' },
+  { key: 'horaAto', label: 'Hora ATO' },
+  { key: 'controlAto', label: 'Control ATO' },
+  { key: 'unidad', label: 'Unidad' },
+  { key: 'conductor', label: 'Conductor' },
+  { key: 'estado', label: 'Estado' },
+];
 
 export default function App({
   isVisible,
@@ -104,7 +102,7 @@ export default function App({
   onSelectionChange: (selected: string[]) => void;
   selectedDate: string | null;
   refreshFlag: boolean;
-  refreshFlagServicio:boolean;
+  refreshFlagServicio: boolean;
 }) {
   const [coordenadas, setCoordenadas] = useState<
     { lat: number; lng: number }[]
@@ -365,7 +363,6 @@ export default function App({
         sugerencias.find((item) => item.apepate === pasajero)?.wy ||
         'No disponible',
       horaAtencion,
-     
     };
 
     setDataSeleccionada([nuevaData]); // Reemplaza la data anterior
@@ -450,7 +447,10 @@ export default function App({
   const formatData = (rawData: any[]) => {
     return rawData.map((item: any) => {
       const { estado, color } = getEstadoYColor(item);
-      const numpax = item.numpax && parseInt(item.numpax, 10) > 0 ? parseInt(item.numpax, 10) - 1 : 0;
+      const numpax =
+        item.numpax && parseInt(item.numpax, 10) > 0
+          ? parseInt(item.numpax, 10) - 1
+          : 0;
       return {
         key: item.codservicio,
         codServicio: item.codservicio,
@@ -534,7 +534,7 @@ export default function App({
     refreshFlag,
     refreshFlagDelete,
     refreshFlagAsignar,
-    refreshFlagServicio
+    refreshFlagServicio,
   ]);
 
   useEffect(() => {
@@ -566,25 +566,30 @@ export default function App({
     };
 
     fetchPasajeroData();
-  }, [selectedPasajeroCodlan, selectedDate, refreshFlag, refreshFlagDelete,refreshFlagServicio]);
+  }, [
+    selectedPasajeroCodlan,
+    selectedDate,
+    refreshFlag,
+    refreshFlagDelete,
+    refreshFlagServicio,
+  ]);
 
   useEffect(() => {
     setSelectedKeys([]);
     onSelectionChange([]);
   }, [selectedDate]);
 
-
   useEffect(() => {
-    console.log("Empresa es"+selectedEmpresa);
+    console.log('Empresa es' + selectedEmpresa);
   }, [selectedEmpresa]);
 
   const filteredData = useMemo(() => {
     const unidadLimpia = selectedUnidad ? selectedUnidad.split('-')[0] : null;
-  
+
     return data.filter((item) => {
       // Extraer solo el nombre de la empresa sin el (numpax)
       const empresaLimpia = item.empresa.split(' (')[0];
-  
+
       return (
         (selectedArea ? item.area === selectedArea : true) &&
         (selectedEmpresa ? empresaLimpia === selectedEmpresa : true) &&
@@ -603,7 +608,6 @@ export default function App({
     selecteNumServicio,
     selectedUnidad,
   ]);
-  
 
   const items = useMemo(() => {
     return filteredData;
@@ -806,7 +810,6 @@ export default function App({
       setRecorrido([]);
     };
   }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
-  
 
   useEffect(() => {
     if (!isOpen) {
@@ -819,34 +822,30 @@ export default function App({
     setHoraAtencion('');
   };
 
-  const handleLimpiarAll = ()=>{
-    
+  const handleLimpiarAll = () => {
     setConductor('');
     setUnidadA('');
     setPasajero('');
     setHoraAtencion('');
     setHoraAto('');
-  }
-
+  };
 
   const handleGuardarHoraAto = () => {
     setData((prevData) =>
       prevData.map((item) =>
         item.codServicio === selectedRow?.codServicio
-          ? { 
-              ...item, 
-              horaAto: horaAto ? horaAto.split('T')[1].slice(0, 5) : item.horaAto,
+          ? {
+              ...item,
+              horaAto: horaAto
+                ? horaAto.split('T')[1].slice(0, 5)
+                : item.horaAto,
               // Actualizar la fechaCompleta al formato YYYY-MM-DD HH:mm
-              fechaCompleta: horaAto
-                ? parseFecha(horaAto)
-                : item.fechaCompleta
+              fechaCompleta: horaAto ? parseFecha(horaAto) : item.fechaCompleta,
             }
-          : item
-      )
+          : item,
+      ),
     );
   };
-  
-  
 
   return (
     <div>
@@ -974,7 +973,8 @@ export default function App({
           if (!open) {
             handleLimpiarAll(); // Llama a handleLimpiarAll solo cuando se cierra
           }
-        }}        className="full max-w-none"
+        }}
+        className="full max-w-none"
         scrollBehavior="inside"
       >
         <ModalContent style={{ marginTop: '80px' }}>
@@ -997,8 +997,10 @@ export default function App({
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Servicio:</p>
                             <p className="col-span-3">
-                            {horaAto ? parseFecha(horaAto) : selectedRow?.fechaCompleta} - {selectedRow.tipo}{' '}
-                              ({selectedRow.numero}) -{' '}
+                              {horaAto
+                                ? parseFecha(horaAto)
+                                : selectedRow?.fechaCompleta}{' '}
+                              - {selectedRow.tipo} ({selectedRow.numero}) -{' '}
                               {selectedRow.empresaSinNumber}
                             </p>
                           </div>
@@ -1107,7 +1109,6 @@ export default function App({
                           </div>
 
                           <div className="grid grid-cols-5 items-center gap-2 p-2">
-
                             <p className="font-semibold">Modificar Servicio:</p>
 
                             <div className="flex flex-col">
@@ -1221,16 +1222,16 @@ export default function App({
                               />
                             </div>
 
-                            <div className="flex flex-col h-[100%]  justify-end">
-                            <button
-                              className="rounded-md bg-gray-500 px-4 py-1.5 text-white"
-                              onClick={() => {
-                                handleAgregar();
-                                handleAgregarLimpiar();
-                              }}
-                            >
-                              Agregar
-                            </button>
+                            <div className="flex h-[100%] flex-col  justify-end">
+                              <button
+                                className="rounded-md bg-gray-500 px-4 py-1.5 text-white"
+                                onClick={() => {
+                                  handleAgregar();
+                                  handleAgregarLimpiar();
+                                }}
+                              >
+                                Agregar
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1338,7 +1339,11 @@ export default function App({
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
                           horaAtencion={horaAtencionFinal}
-                          horaAto={horaAto ? parseFecha(horaAto) : selectedRow?.fechaCompleta}
+                          horaAto={
+                            horaAto
+                              ? parseFecha(horaAto)
+                              : selectedRow?.fechaCompleta
+                          }
                           dataAgregada={dataSeleccionada}
                           agregarTrigger={agregarTrigger}
                           onCoordenadasUpdate={setCoordenadas}
@@ -1413,8 +1418,7 @@ export default function App({
                       <p>Fecha Ini: {selectedRow?.fechaini}</p>
                     </div> */}
 
-<p>Fecha completa: {selectedRow?.fechaCompleta}</p>
-
+                    <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>

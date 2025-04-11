@@ -307,7 +307,7 @@ export default function App({
         }
         return acc;
       }, {});
-      console.log("Nuevo Items:", nuevoItems); // ✅ Mostrar en consola
+      console.log('Nuevo Items:', nuevoItems); // ✅ Mostrar en consola
 
       setItems(nuevoItems);
     }
@@ -448,10 +448,10 @@ export default function App({
         console.error(`Error: grupoIndex fuera de rango (${grupoIndex})`);
         return prevGrupos;
       }
-  
+
       let nuevosGrupos = [...prevGrupos];
       let personasGrupo = [...nuevosGrupos[grupoIndex].personas];
-  
+
       if (
         activeIndex < 0 ||
         activeIndex >= personasGrupo.length ||
@@ -464,29 +464,28 @@ export default function App({
         });
         return prevGrupos;
       }
-  
+
       // 🔹 Mover el elemento sin perder datos
       const [movedItem] = personasGrupo.splice(activeIndex, 1);
       personasGrupo.splice(overIndex, 0, movedItem);
-  
+
       // 🔹 Reasignar idCliente dentro del grupo, manteniendo el orden
       // Aquí nos aseguramos de que los idCliente dentro del grupo se reordenan correctamente
       personasGrupo = personasGrupo.map((persona, index) => ({
         ...persona,
         idCliente: nuevosGrupos[grupoIndex].personas[index].idCliente,
       }));
-  
+
       // 🔹 Reasignar los grupos
       nuevosGrupos[grupoIndex] = {
         ...nuevosGrupos[grupoIndex],
         personas: personasGrupo,
       };
-  
+
       console.log('Nuevo estado de grupos:', nuevosGrupos);
       return nuevosGrupos;
     });
   };
-  
 
   const moverClienteOtroGrupo = (
     idCliente: number,
@@ -643,9 +642,7 @@ export default function App({
     eliminados: any[],
     conductoresActualizados: any,
     unidadesActualizadas: any,
-  ) => 
-  
-  {
+  ) => {
     const dataToSend = [
       // Datos de los grupos (no eliminados)
       ...data.flatMap((grupo, grupoIndex) => {
@@ -654,7 +651,7 @@ export default function App({
         const codConductor = conductores[grupo.id] ?? grupo.codConductor ?? 0;
         const codConductorStr = String(codConductor);
 
-        const codUnidad = unidades[grupo.id] ?? grupo.unidad ?? "";
+        const codUnidad = unidades[grupo.id] ?? grupo.unidad ?? '';
 
         return grupo.personas.map((persona: any, personaIndex: any) => ({
           codigo: Number(persona.codigo) || 0,
@@ -702,11 +699,10 @@ export default function App({
     }
   };
 
-  
   const guardarCallback = useCallback(() => {
     handleGuardar(grupos, eliminados, conductores, unidades);
   }, [grupos, eliminados, conductores, unidades]);
-  
+
   useEffect(() => {
     if (onGuardar) {
       onGuardar(() => guardarCallback);
@@ -786,7 +782,11 @@ export default function App({
                       id={key}
                       items={items[key] || []}
                       grupo={gruposFiltrados[index]}
-                      coordenadas={gruposFiltrados[index]?.coordenadas}
+                      coordenadas={gruposFiltrados[index]?.personas
+                        ?.filter((p: any) => p.wx && p.wy)
+                        .map((p: any) => ({ wx: p.wx, wy: p.wy, nombre: p.nombre,
+                          direccion: p.direccion }))
+                      }
                       onUpdateGrupo={(id: number, nuevaFecha: string) =>
                         handleUpdateGrupo(id, nuevaFecha)
                       }

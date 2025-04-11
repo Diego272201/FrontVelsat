@@ -6,13 +6,19 @@ import {
 } from '@dnd-kit/sortable';
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import {
+  GoogleMap,
+  InfoWindow,
+  Marker,
+  useJsApiLoader,
+} from '@react-google-maps/api';
 import {
   formatDate,
   formatDateToISO,
 } from '@/app/components/dates/convertToCustomFormat ';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
+import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 
 // Esta la estructura de cada tabla, lo usamos para formar los grupos
 
@@ -46,12 +52,19 @@ interface ContainerProps {
   onUpdateGrupo: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
-  coordenadas?: { wx: string; wy: string }[];
+  coordenadas?: {
+    wx: string;
+    wy: string;
+    nombre?: string;
+    direccion?: string;
+  }[];
 }
 
-const center = {
-  lat: -12.0464,
-  lng: -77.0428,
+type MarkerData = {
+  wx: string;
+  wy: string;
+  nombre?: string;
+  direccion?: string;
 };
 
 export default function Container({
@@ -63,29 +76,17 @@ export default function Container({
   onUpdateUnidad,
   coordenadas,
 }: ContainerProps) {
-  
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
   const [conductor, setConductor] = useState(grupo.conductor || '');
   const [unidad, setUnidad] = useState(grupo.unidad || '');
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
   });
-
-  const [mapCenter, setMapCenter] = useState(center);
-
-  useEffect(() => {
-    if (coordenadas && coordenadas.length > 0) {
-      const firstCoord = coordenadas[0];
-      setMapCenter({
-        lat: parseFloat(firstCoord.wy),
-        lng: parseFloat(firstCoord.wx),
-      });
-    }
-  }, [coordenadas]);
 
   const handleStartDateSelect = (date: string) => {
     setStartDate(date);
@@ -136,7 +137,7 @@ export default function Container({
         }}
       >
         <table className="rwd-table">
-          <thead style={{ color: '#fff'}}>
+          <thead style={{ color: '#fff' }}>
             <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
               <th>Tipo: {grupo.tipo}</th>
@@ -184,8 +185,8 @@ export default function Container({
               <th>Tarifa: Tarifa Delta Delta</th>
             </tr>
 
-            <tr >
-              <th >
+            <tr>
+              <th>
                 <div className="headTable">
                   <div className="num">N°</div>
                   <div className="nombre">Nombre</div>
@@ -241,17 +242,33 @@ export default function Container({
               <div>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(true)}
+                  onClick={() => {
+                    setIsOpen(true);
+                  }}
                   className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   Ruta
                 </button>
 
                 {isOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                    onClick={() => setIsOpen(false)} // Cierra al hacer clic fuera
+                  >
+                    <div
+                      className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
+                      onClick={(e) => e.stopPropagation()} // Previene el cierre si se hace clic dentro
+                    >
+                      {/* Botón X de cierre en la esquina */}
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="absolute right-4 top-4 text-3xl font-bold text-gray-500 hover:text-gray-700"
+                      >
+                        &times;
+                      </button>
+
                       <h2 className="mb-4 text-lg font-semibold">
-                        Ruta programada - Grupo 1
+                        Ruta programada - Grupo {grupo.id}
                       </h2>
 
                       {isLoaded ? (
@@ -261,18 +278,81 @@ export default function Container({
                               width: '100%',
                               height: '100%',
                             }}
-                            center={mapCenter}
-                            zoom={15}
+                            center={{
+                              lat: -12.061171148647077,
+                              lng: -77.03599608048779,
+                            }}
+                            zoom={11}
                           >
-                            {coordenadas?.map((coord, index) => (
-                              <Marker
-                                key={index}
+                            {coordenadas?.map((coord, index) => {
+                              const markerSvg = getMarkerSVG(index + 1);
+                              return (
+                                <Marker
+                                  key={index}
+                                  position={{
+                                    lat: parseFloat(coord.wy),
+                                    lng: parseFloat(coord.wx),
+                                  }}
+                                  onClick={() => setSelectedMarker(coord)} // coord incluye nombre y direccion
+                                  icon={{
+                                    url:
+                                      'data:image/svg+xml;charset=UTF-8,' +
+                                      encodeURIComponent(markerSvg),
+                                    scaledSize: new window.google.maps.Size(
+                                      40,
+                                      50,
+                                    ),
+                                    anchor: new window.google.maps.Point(
+                                      20,
+                                      45,
+                                    ),
+                                  }}
+                                />
+                              );
+                            })}
+                            {selectedMarker && (
+                              <InfoWindow
                                 position={{
-                                  lat: parseFloat(coord.wy),
-                                  lng: parseFloat(coord.wx),
+                                  lat: parseFloat(selectedMarker.wy),
+                                  lng: parseFloat(selectedMarker.wx),
                                 }}
-                              />
-                            ))}
+                                onCloseClick={() => setSelectedMarker(null)}
+                              >
+                                <div style={{ maxWidth: '200px' }}>
+                                  <h3
+                                    className="text-base font-bold text-gray-800"
+                                    style={{
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                    title={selectedMarker.nombre} // Esto muestra el texto completo al hacer hover
+                                  >
+                                    {selectedMarker.nombre
+                                      ? selectedMarker.nombre.length > 36
+                                        ? `${selectedMarker.nombre.slice(0, 36)}...`
+                                        : selectedMarker.nombre
+                                      : 'Sin nombre'}
+                                  </h3>
+
+                                  <p
+                                    className="text-sm text-gray-600"
+                                    style={{
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                    title={selectedMarker.direccion}
+                                  >
+                                    {selectedMarker.direccion
+                                      ? selectedMarker.direccion.length > 36
+                                        ? `${selectedMarker.direccion.slice(0, 36)}...`
+                                        : selectedMarker.direccion
+                                      : 'Sin dirección'}
+                                  </p>
+                                </div>
+                              </InfoWindow>
+                            )}
                           </GoogleMap>
                         </div>
                       ) : (
