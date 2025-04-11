@@ -51,15 +51,10 @@ export default function RequestPage() {
   const username = session?.user?.username || '';
 
   useEffect(() => {
-    if (deviceList && deviceList.length > 0) {
-      return;
-    }
-    if (typeof window !== 'undefined') {
-      const storedFechaActual = localStorage.getItem(`fechaActual_${username}`);
-      const storedDeviceList = localStorage.getItem(`deviceList_${username}`);
-
-      console.log('dsat de ' + storedFechaActual);
-
+    if (typeof window !== 'undefined' && session?.user?.username) {
+      const storedFechaActual = localStorage.getItem(`fechaActual_${session.user.username}`);
+      const storedDeviceList = localStorage.getItem(`deviceList_${session.user.username}`);
+  
       if (storedFechaActual && storedDeviceList) {
         setFechaActual({ fechaActual: storedFechaActual });
         setDeviceList(JSON.parse(storedDeviceList));
@@ -67,7 +62,7 @@ export default function RequestPage() {
         console.error('No se encontraron datos en el almacenamiento local.');
       }
     }
-  }, [deviceList]);
+  }, [session]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
