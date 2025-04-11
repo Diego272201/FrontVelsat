@@ -106,7 +106,10 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
       <td className="border p-1">{row.estado}</td>
     </tr>
   );
+  
 };
+
+SortableRow.displayName = 'SortableRow';  // Aquí asignamos el nombre al componente
 
 const DragAndDropTable = forwardRef(
   ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha ,dataAgregada,agregarTrigger,areaLan,horaAtencion, horaAto  }: Props, ref) => {
@@ -432,4 +435,5 @@ const DragAndDropTable = forwardRef(
 
 DragAndDropTable.displayName = "DragAndDropTable";
 
+DragAndDropTable.displayName = 'DragAndDropTable';
 export default DragAndDropTable;
