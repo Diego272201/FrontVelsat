@@ -1,5 +1,7 @@
 'use client'
-import SeguirUnidad from '@/app/request/seguirUnidad';
+import dynamic from 'next/dynamic';
+
+const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), { ssr: false });
 import React from 'react';
 import '@/app/styles/trackvelnew.css';
 
