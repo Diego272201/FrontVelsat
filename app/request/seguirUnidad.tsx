@@ -40,15 +40,15 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   const popupsRef = useRef<{ [key: string]: any }>({});
   const { baseUrl, setBaseUrl } = useApi();
 
-  const getDeviceIdFromUrl = () => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('deviceId');
-    }
-    return null;
-  };
-
   useEffect(() => {
+    const getDeviceIdFromUrl = () => {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('deviceId');
+      }
+      return null;
+    };
+    
     const deviceIdFinal = deviceId || getDeviceIdFromUrl();
     if (!deviceIdFinal) return; // Asegura que deviceIdFinal tiene un valor antes de continuar
   
