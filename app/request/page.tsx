@@ -113,8 +113,10 @@ export default function RequestPage() {
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
   useEffect(() => {
-    const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
-    setMapLoaded(storedMapLoaded);
+    if (typeof window !== 'undefined') {
+      const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
+      setMapLoaded(storedMapLoaded);
+    }
   }, []);
 
   const formatFecha = useCallback((fecha: any) => {
