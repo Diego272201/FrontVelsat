@@ -433,7 +433,7 @@ const DragAndDropTable = forwardRef(
   },
 );
 
-DragAndDropTable.displayName = "DragAndDropTable";
 
 DragAndDropTable.displayName = 'DragAndDropTable';
+
 export default DragAndDropTable;
