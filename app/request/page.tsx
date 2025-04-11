@@ -47,34 +47,35 @@ export default function RequestPage() {
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
   const { baseUrl } = useApi();
-  
+
   const username = session?.user?.username || '';
 
   useEffect(() => {
     if (deviceList && deviceList.length > 0) {
       return;
     }
+    if (typeof window !== 'undefined') {
+      const storedFechaActual = localStorage.getItem(`fechaActual_${username}`);
+      const storedDeviceList = localStorage.getItem(`deviceList_${username}`);
 
-    const storedFechaActual = localStorage.getItem(`fechaActual_${username}`);
-    const storedDeviceList = localStorage.getItem(`deviceList_${username}`);
+      console.log('dsat de ' + storedFechaActual);
 
-    console.log("dsat de " +storedFechaActual)
-
-    if (storedFechaActual && storedDeviceList) {
-      setFechaActual({ fechaActual: storedFechaActual });
-      setDeviceList(JSON.parse(storedDeviceList));
-    } else {
-      console.error('No se encontraron datos en el almacenamiento local.');
+      if (storedFechaActual && storedDeviceList) {
+        setFechaActual({ fechaActual: storedFechaActual });
+        setDeviceList(JSON.parse(storedDeviceList));
+      } else {
+        console.error('No se encontraron datos en el almacenamiento local.');
+      }
     }
-  }, [deviceList]); 
+  }, [deviceList]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      const username = session?.user?.username || ''; 
+      const username = session?.user?.username || '';
       handleSignalRConnection(username);
-    }, 3000); 
+    }, 3000);
 
-    return () => clearTimeout(timer); 
+    return () => clearTimeout(timer);
   }, [session]);
 
   const handleSignalRConnection = async (username: string) => {
@@ -114,9 +115,12 @@ export default function RequestPage() {
     }
   }, [isLoaded]);
 
-  const [mapLoaded, setMapLoaded] = useState<boolean>(() => {
-    return localStorage.getItem('mapLoaded') === 'true';
-  });
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
+    setMapLoaded(storedMapLoaded);
+  }, []);
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
