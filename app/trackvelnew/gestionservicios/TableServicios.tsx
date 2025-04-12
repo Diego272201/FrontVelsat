@@ -282,7 +282,7 @@ export default function App({
 
       try {
         const response = await axios.get(
-          `http://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `https://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -378,7 +378,7 @@ export default function App({
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
+          'https://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
         );
         setConductores(response.data);
       } catch (error) {
@@ -393,7 +393,7 @@ export default function App({
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/unidades',
+          'https://66.240.210.125:8586/api/Preplan/unidades',
         );
         setUnidadesA(response.data);
       } catch (error) {
@@ -515,7 +515,7 @@ export default function App({
 
       const currentDate = selectedDate || getFormattedDate();
 
-      const API_URL = `http://66.240.210.125:8586/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
+      const API_URL = `https://66.240.210.125:8586/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
 
       try {
         const response = await axios.get(API_URL);
@@ -547,7 +547,7 @@ export default function App({
     const fetchPasajeroData = async () => {
       const currentDate = selectedDate || getFormattedDate();
 
-      const API_URL = `http://66.240.210.125:8586/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
+      const API_URL = `https://66.240.210.125:8586/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
 
       setLoading(true);
       setErrorPasajero(null);
@@ -643,7 +643,7 @@ export default function App({
 
     try {
       const response = await axios.post(
-        'http://66.240.210.125:8586/api/Preplan/AsignarServicio',
+        'https://66.240.210.125:8586/api/Preplan/AsignarServicio',
         payload,
       );
       toast.success('Asignación realizada con éxito.');
@@ -660,7 +660,7 @@ export default function App({
   const handleCancelarAsignacion = async (codServicio: string) => {
     try {
       await axios.put(
-        `http://66.240.210.125:8586/api/Preplan/canasig/${codServicio}`,
+        `https://66.240.210.125:8586/api/Preplan/canasig/${codServicio}`,
       );
 
       setData((prevData) => {
@@ -699,7 +699,7 @@ export default function App({
   const handleCancelarServicio = async (codServicio: string) => {
     try {
       await axios.delete(
-        `http://66.240.210.125:8586/api/Preplan/cancelar/${codServicio}`,
+        `https://66.240.210.125:8586/api/Preplan/cancelar/${codServicio}`,
       );
 
       setData((prevData) =>
@@ -746,7 +746,7 @@ export default function App({
 
     try {
       await axios.delete(
-        'http://66.240.210.125:8586/api/Preplan/eliminacionmultiple',
+        'https://66.240.210.125:8586/api/Preplan/eliminacionmultiple',
         {
           data: payload,
         },
@@ -788,7 +788,7 @@ export default function App({
     const fechaInicial = formatFecha(selectedRow?.fechaini);
     const fechaFinal = formatFecha(selectedRow?.fechafin);
 
-    const API_URL = `http://66.240.210.125:8586/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
+    const API_URL = `https://66.240.210.125:8586/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
 
     console.log('🚀 Llamando a la API con URL:', API_URL);
 

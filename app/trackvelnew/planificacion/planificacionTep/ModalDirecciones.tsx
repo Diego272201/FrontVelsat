@@ -40,7 +40,7 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
       setIsLoading(true);
 
       axios
-        .get(`http://66.240.210.125:8586/api/Preplan/lugares/${codCliente}`)
+        .get(`https://66.240.210.125:8586/api/Preplan/lugares/${codCliente}`)
         .then((response) => {
           setLugares(response.data);
         })
@@ -61,7 +61,7 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
 
     setIsSaving(true);
     try {
-      const url = `http://66.240.210.125:8586/api/Preplan/direccion/${selectedValue}/${codigo}`;
+      const url = `https://66.240.210.125:8586/api/Preplan/direccion/${selectedValue}/${codigo}`;
       await axios.put(url);
       toast.success('Dirección guardada correctamente.');
       setShouldRefetch(true);
