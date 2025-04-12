@@ -43,7 +43,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
 
   useEffect(() => {
     axios
-      .get('http://66.240.210.125:8586/api/Turnos/empresa/movilbus')
+      .get('https://66.240.210.125:8586/api/Turnos/empresa/movilbus')
       .then((response) => {
         setEmpresas(response.data);
       })
@@ -94,7 +94,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.post(
-          'https://localhost:7223/api/Turnos/movilbus',
+          'https://66.240.210.125:8586/api/Turnos/movilbus',
           postData,
         );
         console.log('Datos enviados correctamente', postData);

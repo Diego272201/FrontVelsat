@@ -13,6 +13,13 @@ import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
+import dynamic from 'next/dynamic';
+
+// Use dynamic import with ssr: false for the Google Map component
+const DynamicGoogleMap = dynamic(
+  () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
+  { ssr: false }
+);
 
 const containerStyle = {
   width: '100%',
@@ -38,6 +45,9 @@ interface fechaActual {
 }
 
 export default function RequestPage() {
+  // Add flag to track if we're in client-side environment
+  const isClient = typeof window !== 'undefined';
+  
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -46,32 +56,42 @@ export default function RequestPage() {
   const [fechaActual, setFechaActual] = useState<fechaActual>();
 
   const { baseUrl } = useApi();
+  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
 
+  // Load data from localStorage only on client side
   useEffect(() => {
-    if (typeof window !== 'undefined' && session?.user?.username) {
-      const storedFechaActual = localStorage.getItem(`fechaActual_${session.user.username}`);
-      const storedDeviceList = localStorage.getItem(`deviceList_${session.user.username}`);
-  
-      if (storedFechaActual && storedDeviceList) {
-        setFechaActual({ fechaActual: storedFechaActual });
-        setDeviceList(JSON.parse(storedDeviceList));
-      } else {
-        console.error('No se encontraron datos en el almacenamiento local.');
+    if (isClient && session?.user?.username) {
+      try {
+        const storedFechaActual = localStorage.getItem(`fechaActual_${session.user.username}`);
+        const storedDeviceList = localStorage.getItem(`deviceList_${session.user.username}`);
+    
+        if (storedFechaActual && storedDeviceList) {
+          setFechaActual({ fechaActual: storedFechaActual });
+          setDeviceList(JSON.parse(storedDeviceList));
+        } else {
+          console.error('No se encontraron datos en el almacenamiento local.');
+        }
+      } catch (error) {
+        console.error('Error accessing localStorage:', error);
       }
     }
-  }, [session]);
+  }, [isClient, session]);
 
   useEffect(() => {
+    if (!isClient) return; // Skip on server side
+    
     const timer = setTimeout(() => {
       const username = session?.user?.username || '';
       handleSignalRConnection(username);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [session]);
+  }, [session, isClient]);
 
   const handleSignalRConnection = async (username: string) => {
+    if (!isClient) return;
+    
     const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl)
@@ -85,10 +105,16 @@ export default function RequestPage() {
       console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
 
       connection.on('ActualizarDatos', (datos) => {
-        console.log('Datos recibidos de SignalR wuaaaaaaaa:', datos);
+        console.log('Datos recibidos de SignalR:', datos);
 
         setFechaActual({ fechaActual: datos.fechaActual });
         setDeviceList(datos.datosDevice);
+        
+        // Store in localStorage
+        if (username) {
+          localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
+          localStorage.setItem(`deviceList_${username}`, JSON.stringify(datos.datosDevice));
+        }
       });
     } catch (error) {
       console.error('Error al conectar con SignalR:', error);
@@ -101,19 +127,25 @@ export default function RequestPage() {
   });
 
   useEffect(() => {
+    if (!isClient) return;
+    
     if (isLoaded) {
-      localStorage.setItem('mapLoaded', 'true');
-
-      setMapLoaded(true);
+      try {
+        localStorage.setItem('mapLoaded', 'true');
+        setMapLoaded(true);
+      } catch (error) {
+        console.error('Error setting mapLoaded in localStorage:', error);
+        setMapLoaded(true); // Fallback to true if localStorage fails
+      }
+    } else {
+      try {
+        const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
+        setMapLoaded(storedMapLoaded);
+      } catch (error) {
+        console.error('Error getting mapLoaded from localStorage:', error);
+      }
     }
-  }, [isLoaded]);
-
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-
-  useEffect(() => {
-    const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
-    setMapLoaded(storedMapLoaded);
-  }, []);
+  }, [isLoaded, isClient]);
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
@@ -140,6 +172,8 @@ export default function RequestPage() {
   }, []);
 
   const getMarkerIcon = useCallback((heading: number) => {
+    if (!isClient) return null;
+    
     const directions = [
       { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
       {
@@ -189,7 +223,7 @@ export default function RequestPage() {
     return direction
       ? { url: direction.url, scaledSize: direction.size }
       : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-  }, []);
+  }, [isClient]);
 
   const getEstado = useCallback(
     (speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'),
@@ -198,7 +232,7 @@ export default function RequestPage() {
 
   const createMarkersAndPopups = useCallback(
     (map: google.maps.Map) => {
-      if (!map) return;
+      if (!map || !isClient) return;
 
       const existingMarkers = markersRef.current;
       const existingPopups = popupsRef.current;
@@ -212,9 +246,11 @@ export default function RequestPage() {
         if (existingMarkers[device.deviceId]) {
           // Actualiza la posición del marcador existente
           existingMarkers[device.deviceId].setPosition(position);
-          existingMarkers[device.deviceId].setIcon(
-            getMarkerIcon(device.lastValidHeading),
-          );
+          
+          const icon = getMarkerIcon(device.lastValidHeading);
+          if (icon) {
+            existingMarkers[device.deviceId].setIcon(icon);
+          }
 
           // Actualiza la fecha actual en el contenido del popup
           const popupContent2 = document.querySelector(
@@ -291,10 +327,11 @@ export default function RequestPage() {
           popup2.setMap(null);
           existingPopups[device.deviceId] = popup2;
 
+          const icon = getMarkerIcon(device.lastValidHeading);
           const marker = new google.maps.Marker({
             position,
             map,
-            icon: getMarkerIcon(device.lastValidHeading),
+            icon: icon || undefined,
           });
 
           marker.addListener('click', () => {
@@ -358,10 +395,12 @@ export default function RequestPage() {
         `;
       }
     },
-    [deviceList, getMarkerIcon],
+    [deviceList, getMarkerIcon, getEstado, getDireccion, formatFecha, fechaActual, isClient],
   );
 
   const handleFollowLinkClick = useCallback((e: MouseEvent) => {
+    if (!isClient) return;
+    
     const target = e.target as HTMLElement;
     if (target.classList.contains('follow-link')) {
       e.preventDefault();
@@ -369,14 +408,16 @@ export default function RequestPage() {
       const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
       window.open(url, '_blank');
     }
-  }, []);
+  }, [isClient]);
 
   useEffect(() => {
+    if (!isClient) return;
+    
     document.addEventListener('click', handleFollowLinkClick);
     return () => {
       document.removeEventListener('click', handleFollowLinkClick);
     };
-  }, [handleFollowLinkClick]);
+  }, [handleFollowLinkClick, isClient]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -405,10 +446,10 @@ export default function RequestPage() {
   );
 
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current && isClient) {
       createMarkersAndPopups(mapRef.current);
     }
-  }, [createMarkersAndPopups]);
+  }, [createMarkersAndPopups, isClient]);
 
   const onLoad = useCallback(
     (map: google.maps.Map) => {
@@ -419,11 +460,13 @@ export default function RequestPage() {
   );
 
   const onUnmount = useCallback(() => {
+    if (!isClient) return;
+    
     Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
     Object.values(popupsRef.current).forEach((popup) => popup.setMap(null));
     markersRef.current = {};
     popupsRef.current = {};
-  }, []);
+  }, [isClient]);
 
   const memoizedMapOptions = useMemo(
     () => ({
@@ -436,10 +479,15 @@ export default function RequestPage() {
     [],
   );
 
+  // If we're on the server, return minimal UI with a loader
+  if (!isClient) {
+    return <Loader />;
+  }
+
   return (
     <>
       {isLoaded && mapLoaded ? (
-        <GoogleMap
+        <DynamicGoogleMap
           mapContainerStyle={containerStyle}
           center={center}
           zoom={6}
@@ -448,7 +496,7 @@ export default function RequestPage() {
           options={memoizedMapOptions}
         >
           {/* Aquí iría cualquier componente que desees colocar dentro del mapa */}
-        </GoogleMap>
+        </DynamicGoogleMap>
       ) : (
         <Loader />
       )}

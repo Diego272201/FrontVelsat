@@ -73,7 +73,7 @@ export default function App({ title,  codCliente }: Props) {
 
   useEffect(() => {
     axios
-      .get('http://66.240.210.125:8586/api/Pasajero/Tarifa/movilbus')
+      .get('https://66.240.210.125:8586/api/Pasajero/Tarifa/movilbus')
       .then((response) => {
         setTarifa(response.data);
         setIsTarifaLoaded(true);
@@ -86,7 +86,7 @@ export default function App({ title,  codCliente }: Props) {
   useEffect(() => {
     if (codCliente !== null && isTarifaLoaded) {
       axios
-        .get(`http://66.240.210.125:8586/api/Pasajero/Detail/${codCliente}`)
+        .get(`https://66.240.210.125:8586/api/Pasajero/Detail/${codCliente}`)
         .then((response) => {
           const pasajeroData = response.data[0];
           console.log('Datos del pasajero:', pasajeroData);

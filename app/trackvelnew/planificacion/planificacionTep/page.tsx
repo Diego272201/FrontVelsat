@@ -230,7 +230,7 @@ export default function Page() {
 
         try {
           const response = await axios.post(
-            `http://66.240.210.125:8586/api/preplan/insert?fecact=${fecact}&tipo=${encodeURIComponent(selectedEmpresa)}`,
+            `https://66.240.210.125:8586/api/preplan/insert?fecact=${fecact}&tipo=${encodeURIComponent(selectedEmpresa)}`,
             filteredData,
           );
           console.log(response.data);
@@ -267,7 +267,7 @@ export default function Page() {
 
     try {
       const response = await axios.post(
-        `http://66.240.210.125:8586/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
+        `https://66.240.210.125:8586/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
       );
       toast.success('Datos enviados correctamente.');
       console.log('Respuesta de la API:', response.data);
@@ -294,7 +294,7 @@ export default function Page() {
     }
 
     const fecact = formatFechaAMD(selectedDate);
-    const url = `http://66.240.210.125:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
+    const url = `https://66.240.210.125:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
     try {
       const response = await axios({
         method: 'PUT',

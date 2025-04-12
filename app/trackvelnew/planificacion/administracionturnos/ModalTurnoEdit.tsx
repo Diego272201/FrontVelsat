@@ -110,7 +110,7 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.put(
-          `https://localhost:7223/api/Turnos/${user.codigo}`,
+          `https://66.240.210.125:8586/api/Turnos/${user.codigo}`,
           putData,
         );
         onEditSuccess();

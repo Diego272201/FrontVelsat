@@ -207,7 +207,7 @@ const DragAndDropTable = forwardRef(
       console.log('Código a cancelar:', codigo);
 
       try {
-        await axios.put("http://66.240.210.125:8586/api/Preplan/UpdateEstado" , {codigo});
+        await axios.put("https://66.240.210.125:8586/api/Preplan/UpdateEstado" , {codigo});
         toast.success('Pasajero cancelado con éxito.');   
         setData((prevData) =>
           prevData.map((item) => {
@@ -239,7 +239,7 @@ const DragAndDropTable = forwardRef(
     useEffect(() => {
       if (!codServicio) return;
     
-      const API_URL = `http://66.240.210.125:8586/api/Preplan/PasajeroList?codservicio=${codServicio}`;
+      const API_URL = `https://66.240.210.125:8586/api/Preplan/PasajeroList?codservicio=${codServicio}`;
       setLoading(true);
     
       axios
@@ -306,7 +306,7 @@ const DragAndDropTable = forwardRef(
 
       if (!codServicio || data.length === 0) return;
     
-      const API_URL = `http://66.240.210.125:8586/api/Preplan/actualizarOrden`;
+      const API_URL = `https://66.240.210.125:8586/api/Preplan/actualizarOrden`;
 
       const fechaFinal = tempData.length > 0 ? parseFecha(horaAto) : fecha;
 

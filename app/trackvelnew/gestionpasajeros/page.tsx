@@ -38,7 +38,7 @@ export default function Page() {
 
       try {
         const response = await axios.get(
-          `http://66.240.210.125:8586/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
+          `https://66.240.210.125:8586/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
         );
         const data = response.data.map((item: any) => ({
           codigo: item.codigo,
@@ -58,7 +58,7 @@ export default function Page() {
       try {
         setLoading(true);
         const response = await axios.get<Pasajero[]>(
-          'http://66.240.210.125:8586/api/Pasajero',
+          'https://66.240.210.125:8586/api/Pasajero',
         );
         const data = response.data.map((pasajero) => ({
           value: pasajero.codcliente,

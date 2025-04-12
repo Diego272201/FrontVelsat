@@ -143,7 +143,7 @@ export default function NuevoServicioModal({
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
+          'https://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
         );
         setConductores(response.data);
       } catch (error) {
@@ -158,7 +158,7 @@ export default function NuevoServicioModal({
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          'http://66.240.210.125:8586/api/Preplan/unidades',
+          'https://66.240.210.125:8586/api/Preplan/unidades',
         );
         setUnidadesA(response.data);
       } catch (error) {
@@ -293,7 +293,7 @@ export default function NuevoServicioModal({
 
       try {
         const response = await axios.get(
-          `http://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `https://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -390,7 +390,7 @@ export default function NuevoServicioModal({
       return;
     }
   
-    const url = "http://66.240.210.125:8586/api/Preplan/AgregarServicio?usuario=movilbus";
+    const url = "https://66.240.210.125:8586/api/Preplan/AgregarServicio?usuario=movilbus";
   
     try {
       setLoading(true);
