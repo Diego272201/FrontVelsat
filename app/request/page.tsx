@@ -44,11 +44,9 @@ export default function RequestPage() {
   const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
   const popupsRef = useRef<{ [key: string]: google.maps.OverlayView }>({});
   const [fechaActual, setFechaActual] = useState<fechaActual>();
-  const [markersLoaded, setMarkersLoaded] = useState(false);
-  const [allMarkersLoaded, setAllMarkersLoaded] = useState(false);
+
   const { baseUrl } = useApi();
 
-  const username = session?.user?.username || '';
 
   useEffect(() => {
     if (typeof window !== 'undefined' && session?.user?.username) {

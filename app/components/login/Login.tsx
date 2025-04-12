@@ -28,7 +28,7 @@ export default function Login() {
   
   const obtenerServidor = async (usuario: string) => {
     try {
-      const response = await fetch(`http://66.240.210.125:8586/api/Server/${usuario}`);
+      const response = await fetch(`https://66.240.210.125:8586/api/Server/${usuario}`);
       const data = await response.json();
 
       if (data.servidor) {

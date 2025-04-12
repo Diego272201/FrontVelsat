@@ -1,7 +1,7 @@
 'use client';
 import '@/app/styles/tollbar.css';
 import { IoMdArrowDropdown, IoMdArrowDropleft } from 'react-icons/io';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import { signOut, useSession } from 'next-auth/react';
@@ -18,7 +18,6 @@ import { MdDisplaySettings } from 'react-icons/md';
 import { TbReportSearch } from 'react-icons/tb';
 
 const Tollbar = () => {
-  const { data: session } = useSession();
 
   const [username, setUsername] = useState('');
 

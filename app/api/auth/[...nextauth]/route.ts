@@ -4,7 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 
 
 const getServerUrl = async (username: string) => {
-  const res = await fetch(`http://66.240.210.125:8586/api/Server/${username}`);
+  const res = await fetch(`https://66.240.210.125:8586/api/Server/${username}`);
   const data = await res.json();
   return data.servidor;
 };
@@ -42,7 +42,7 @@ const handler = NextAuth({
           throw new Error('Error de autenticación');
         }
         if (user) {
-          user.serverUrl = serverUrl; // Añadir serverUrl al usuario
+          user.serverUrl = serverUrl;
           return user;
         }
       },

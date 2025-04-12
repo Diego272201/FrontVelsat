@@ -10,7 +10,7 @@ const UrlLogin = '/api/Login/login';
 
 export { getSimplifiedDeviceListUrl, getDeviceListUrl, UrlLogin };
 
-export const API_BASE_URL = 'http://66.240.210.125:8586/api/Preplan';
+export const API_BASE_URL = 'https://66.240.210.125:8586/api/Preplan';
 
 export const getApiConductoresUrl = (usuario: string) => `${API_BASE_URL}/conductores?usuario=${usuario}`;
 

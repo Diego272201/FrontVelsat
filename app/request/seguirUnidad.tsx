@@ -50,7 +50,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
     };
     
     const deviceIdFinal = deviceId || getDeviceIdFromUrl();
-    if (!deviceIdFinal) return; // Asegura que deviceIdFinal tiene un valor antes de continuar
+    if (!deviceIdFinal) return; 
   
     if (status === 'authenticated' && session) {
       const username = session.user.username;

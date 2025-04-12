@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { useSession } from 'next-auth/react';
 import { useApi } from '@/context/ApiContext';
 import { getDeviceListUrlSelect } from '../urlsApi/urlApi';
 
@@ -9,7 +8,6 @@ interface SelectProps {
 }
 
 export default function App({ onSelect }: SelectProps) {
-  const { data: session } = useSession();
   const { baseUrl } = useApi();
 
     const username = useMemo(() => {
