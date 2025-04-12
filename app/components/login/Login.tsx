@@ -28,7 +28,7 @@ export default function Login() {
   
   const obtenerServidor = async (usuario: string) => {
     try {
-      const response = await fetch(`https://66.240.210.125:8586/api/Server/${usuario}`);
+      const response = await fetch(`https://velsat.pe:8586/api/Server/${usuario}`);
       const data = await response.json();
 
       if (data.servidor) {
@@ -102,11 +102,17 @@ export default function Login() {
       event.preventDefault();
       const toastId = toast.loading('Autenticando...');
       setErrors([]);
-      const responseNextAuth = await signIn('credentials', {
-        login,
-        clave,
-        redirect: false,
-      });
+
+    const responseNextAuth = await signIn('credentials', {
+  login,
+  clave,
+  redirect: false,
+  callbackUrl: '/trackvelnew'
+});
+
+
+      console.log('Respuesta de NextAuth:', responseNextAuth);
+      
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
         toast.error('Error: ' + responseNextAuth.error, { id: toastId });

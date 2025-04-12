@@ -3,27 +3,45 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 
-const getServerUrl = async (username: string) => {
-  const res = await fetch(`https://66.240.210.125:8586/api/Server/${username}`);
-  const data = await res.json();
-  return data.servidor;
-};
+console.log("🔥 EL ARCHIVO DE NextAuth SE ESTÁ EJECUTANDO");
 
+
+
+const getServerUrl = async (username: string) => {
+  try {
+    const res = await fetch(`https://velsat.pe:8586/api/Server/${username}`);
+    if (!res.ok) {
+      throw new Error('No se pudo obtener la URL del servidor');
+    }
+    const data = await res.json();
+    console.log("Servidor recibido:", data.servidor);
+    return data.servidor;
+  } catch (error) {
+    console.error('Error al obtener la URL del servidor:', error);
+    throw new Error('Error al obtener la URL del servidor');
+  }
+};
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
+      id: 'credentials',
       credentials: {
         login: { label: 'Login', type: 'text' },
         clave: { label: 'Clave', type: 'password' },
       },
       async authorize(credentials, req) {
+        
+        console.log("📥 Entrando a authorize...");
+        console.log("Credenciales recibidas:", credentials);
+
         if (!credentials?.login || !credentials.clave) {
           throw new Error('Credenciales no proporcionadas');
         }
         const serverUrl = await getServerUrl(credentials.login);
-      const urlLogin = `${serverUrl}${UrlLogin}`;
-
+      const urlLogin = `${serverUrl}/api/Login/login`;
+      
+      console.log('URL de login:', urlLogin);
         const res = await fetch(urlLogin, {
           method: 'POST',
           body: JSON.stringify({
@@ -41,10 +59,12 @@ const handler = NextAuth({
           }
           throw new Error('Error de autenticación');
         }
-        if (user) {
+        if (res.ok && user && user.token) {
           user.serverUrl = serverUrl;
           return user;
         }
+        return null;
+        
       },
     }),
   ],
