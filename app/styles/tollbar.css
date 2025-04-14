@@ -7,8 +7,8 @@
 
 .dataUser{
   display: flex;
-  margin-top: -8px;
 }
+
 .tollbar-bg{
   background: #113eb9;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 2% 70%, 1% 90%, 0 90%);
@@ -94,7 +94,7 @@ h2{
 
 .logo {
   margin-left: 16px;
-  width: 35%;
+  width: 400px;
   height: 32px;
   cursor: pointer;
   display: flex;
@@ -102,11 +102,11 @@ h2{
   align-items: center;
   color: #fff;
   gap: 10px;
+  margin-top: -5.5px;
 }
 
 .logo img{
   width: 20px;
-  margin-right: 5px;
 
 }
 
@@ -162,18 +162,14 @@ font-size: 0.88rem;
   width: 100%;
 }
 
-@media (min-width: 1355px) {
+@media (min-width: 1100px) {
   .menu-icon {
       display: none;
   }
 }
 
-@media (max-width: 1355px) {
-  .logo{
-    width: 90%;
-    font-size: 10px;
-  }
-  
+@media (max-width: 1100px) {
+
   .navigation {
       display: none;
   }
@@ -331,6 +327,13 @@ font-size: 0.88rem;
   }
 }
 
+
+@media (max-width: 418px) {
+.userInicio{
+  font-size: 10px;
+}
+}
+
 /* Hover effect for dropdown items */
 .dropdown-menue li:hover {
   background-color: #ff9c5a;
@@ -428,17 +431,7 @@ font-size: 0.88rem;
   display: none;
 }
 
-@media (max-width: 1355px) {
-  .mobile-only-button {
-    color: #ffffff;
-    display: flex;
-    position: absolute;
-    top: 9px;
-    right: 10px;
-    cursor: pointer;
-    gap: 5px;
-  }
-}
+
 
 /* Estilos para el sidebar */
 .sidebar {
@@ -569,7 +562,20 @@ font-size: 0.88rem;
   background-color: #FB7B0F;
 }
 
-@media screen and (max-width: 1355px) {
+@media (max-width: 1100px) {
+  .mobile-only-button {
+    color: #ffffff;
+    display: flex;
+    position: absolute;
+    top: 1px;
+    right: 10px;
+    cursor: pointer;
+    gap: 10px;
+    padding: 5px;
+  }
+}
+
+@media screen and (max-width: 1100px) {
   .mobile-only-button {
     display: flex;
   }

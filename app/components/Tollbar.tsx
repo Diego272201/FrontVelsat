@@ -16,6 +16,8 @@ import { GrPlan } from 'react-icons/gr';
 import { RiGpsFill } from 'react-icons/ri';
 import { MdDisplaySettings } from 'react-icons/md';
 import { TbReportSearch } from 'react-icons/tb';
+import { SlMenu } from "react-icons/sl";
+import { IoExitSharp } from 'react-icons/io5';
 
 const Tollbar = () => {
 
@@ -123,18 +125,21 @@ const Tollbar = () => {
       <div className="menu__bar">
         <div className="mobile-only-button">
           <button onClick={() => signOut({ callbackUrl: '/' })}>
-            <IoMdExit size={'20px'} />
+            <IoMdExit  size={25} />
           </button>
           <button>
-            <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
+            <RiFullscreenLine onClick={toggleFullScreen} size={20} />
           </button>
           <button onClick={toggleSidebar}>
-            <FaUserAlt size={'18px'} />
+            <SlMenu   size={20} />
           </button>
         </div>
 
         <a href="/trackvelnew" title="Logo" className="logo">
-          <Image src="/LogoWeb.png" alt="" width={'1000'} height={'1000'} />
+        <div className='logitoTollbar'>
+        <Image src="/LogoWeb.png" alt="" width={'1000'} height={'1000'} />
+
+        </div>
           <div className="dataUser">
             <h3 className="userInicio">
               TRACKVEL SYSTEM : BIENVENIDO{' '}

@@ -2,10 +2,6 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 
-console.log("🔥 EL ARCHIVO DE NextAuth SE ESTÁ EJECUTANDO");
-
-
-
 const getServerUrl = async (username: string) => {
   try {
     const res = await fetch(`https://velsat.pe:8586/api/Server/${username}`);
@@ -31,9 +27,6 @@ const handler = NextAuth({
       },
       async authorize(credentials, req) {
         
-        console.log("📥 Entrando a authorize...");
-        console.log("Credenciales recibidas:", credentials);
-
         if (!credentials?.login || !credentials.clave) {
           throw new Error('Credenciales no proporcionadas');
         }

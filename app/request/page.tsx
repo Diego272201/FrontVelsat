@@ -6,19 +6,17 @@ import React, {
   useRef,
   useMemo,
 } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
-import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
 
-// Use dynamic import with ssr: false for the Google Map component
 const DynamicGoogleMap = dynamic(
-  () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
-  { ssr: false }
+  () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
+  { ssr: false },
 );
 
 const containerStyle = {
@@ -45,27 +43,26 @@ interface fechaActual {
 }
 
 export default function RequestPage() {
-  // Add flag to track if we're in client-side environment
   const isClient = typeof window !== 'undefined';
-  
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
   const popupsRef = useRef<{ [key: string]: google.maps.OverlayView }>({});
   const [fechaActual, setFechaActual] = useState<fechaActual>();
-
-  const { baseUrl } = useApi();
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
 
-  // Load data from localStorage only on client side
   useEffect(() => {
     if (isClient && session?.user?.username) {
       try {
-        const storedFechaActual = localStorage.getItem(`fechaActual_${session.user.username}`);
-        const storedDeviceList = localStorage.getItem(`deviceList_${session.user.username}`);
-    
+        const storedFechaActual = localStorage.getItem(
+          `fechaActual_${session.user.username}`,
+        );
+        const storedDeviceList = localStorage.getItem(
+          `deviceList_${session.user.username}`,
+        );
+
         if (storedFechaActual && storedDeviceList) {
           setFechaActual({ fechaActual: storedFechaActual });
           setDeviceList(JSON.parse(storedDeviceList));
@@ -79,20 +76,28 @@ export default function RequestPage() {
   }, [isClient, session]);
 
   useEffect(() => {
-    if (!isClient) return; // Skip on server side
-    
+    if (!isClient) return; 
+
     const timer = setTimeout(() => {
       const username = session?.user?.username || '';
       handleSignalRConnection(username);
-    }, 3000);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [session, isClient]);
 
   const handleSignalRConnection = async (username: string) => {
     if (!isClient) return;
-    
-    const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
+
+    const servidorUrl = localStorage.getItem('servidorUrl');
+
+    if (!servidorUrl) {
+      console.error('No se encontró servidorUrl en localStorage.');
+      return;
+    }
+
+    const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
+
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl)
       .withAutomaticReconnect()
@@ -105,16 +110,8 @@ export default function RequestPage() {
       console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
 
       connection.on('ActualizarDatos', (datos) => {
-        console.log('Datos recibidos de SignalR:', datos);
-
         setFechaActual({ fechaActual: datos.fechaActual });
         setDeviceList(datos.datosDevice);
-        
-        // Store in localStorage
-        if (username) {
-          localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
-          localStorage.setItem(`deviceList_${username}`, JSON.stringify(datos.datosDevice));
-        }
       });
     } catch (error) {
       console.error('Error al conectar con SignalR:', error);
@@ -128,14 +125,14 @@ export default function RequestPage() {
 
   useEffect(() => {
     if (!isClient) return;
-    
+
     if (isLoaded) {
       try {
         localStorage.setItem('mapLoaded', 'true');
         setMapLoaded(true);
       } catch (error) {
         console.error('Error setting mapLoaded in localStorage:', error);
-        setMapLoaded(true); // Fallback to true if localStorage fails
+        setMapLoaded(true); 
       }
     } else {
       try {
@@ -171,59 +168,66 @@ export default function RequestPage() {
     return 'Desconocido';
   }, []);
 
-  const getMarkerIcon = useCallback((heading: number) => {
-    if (!isClient) return null;
-    
-    const directions = [
-      { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
-      {
-        range: [22.51, 67.5],
-        url: '/topright.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [67.51, 112.5],
-        url: '/right.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [112.51, 157.5],
-        url: '/downright.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [157.51, 202.5],
-        url: '/down.png',
-        size: new google.maps.Size(25, 35),
-      },
-      {
-        range: [202.51, 247.5],
-        url: '/downleft.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [247.51, 292.5],
-        url: '/left.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [292.51, 337.5],
-        url: '/topleft.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [337.51, 360.0],
-        url: '/up.png',
-        size: new google.maps.Size(25, 35),
-      },
-    ];
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-    return direction
-      ? { url: direction.url, scaledSize: direction.size }
-      : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-  }, [isClient]);
+  const getMarkerIcon = useCallback(
+    (heading: number) => {
+      if (!isClient) return null;
+
+      const directions = [
+        {
+          range: [0, 22.5],
+          url: '/up.png',
+          size: new google.maps.Size(25, 35),
+        },
+        {
+          range: [22.51, 67.5],
+          url: '/topright.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [67.51, 112.5],
+          url: '/right.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [112.51, 157.5],
+          url: '/downright.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [157.51, 202.5],
+          url: '/down.png',
+          size: new google.maps.Size(25, 35),
+        },
+        {
+          range: [202.51, 247.5],
+          url: '/downleft.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [247.51, 292.5],
+          url: '/left.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [292.51, 337.5],
+          url: '/topleft.png',
+          size: new google.maps.Size(42, 25),
+        },
+        {
+          range: [337.51, 360.0],
+          url: '/up.png',
+          size: new google.maps.Size(25, 35),
+        },
+      ];
+      const direction = directions.find(
+        (d) => heading >= d.range[0] && heading <= d.range[1],
+      );
+      return direction
+        ? { url: direction.url, scaledSize: direction.size }
+        : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
+    },
+    [isClient],
+  );
 
   const getEstado = useCallback(
     (speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'),
@@ -246,7 +250,7 @@ export default function RequestPage() {
         if (existingMarkers[device.deviceId]) {
           // Actualiza la posición del marcador existente
           existingMarkers[device.deviceId].setPosition(position);
-          
+
           const icon = getMarkerIcon(device.lastValidHeading);
           if (icon) {
             existingMarkers[device.deviceId].setIcon(icon);
@@ -259,7 +263,6 @@ export default function RequestPage() {
           if (popupContent2) {
             popupContent2.innerHTML = getPopupContent(device);
 
-            // Asignar el evento de cierre si aún no está asignado
             const closeButton = popupContent2.querySelector(
               `#close-btn-${device.deviceId}`,
             );
@@ -273,7 +276,6 @@ export default function RequestPage() {
 
           existingPopups[device.deviceId].draw();
         } else {
-          // Crear un nuevo marcador y popup
           const content1 = document.createElement('div');
 
           content1.innerHTML = `<div id="content" class=" bg-[#fca311] text-gray-800 px-2 py-1.5 rounded-md mt-4">${device.deviceId.toUpperCase()}</div>`;
@@ -367,7 +369,6 @@ export default function RequestPage() {
 
           existingMarkers[device.deviceId] = marker;
 
-          // Asignar el evento de cierre solo una vez al crear el popup
           const closeButton = content2.querySelector(
             `#close-btn-${device.deviceId}`,
           );
@@ -380,39 +381,49 @@ export default function RequestPage() {
       });
       function getPopupContent(device: any) {
         return `
-            <div class="content-custom-popup" id="content2-${device.deviceId}">
-                            <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
-
-        <h3 class="popup-title">Unidad: ${device.deviceId.toUpperCase()}</h3>
-        <p><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
-        <p><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
-                <br>
-        <h4 class="popup-subtitle">Último Reporte</h4>
-   <p>${fechaActual ? formatFecha(fechaActual.fechaActual) : 'Fecha no disponible'}</p>                  <span><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
-                <span><strong>Ubicación:</strong> ${device.direccion} </span>
-          <a href="" class="follow-link" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
-            </div>
+          <div class="content-custom-popup" id="content2-${device.deviceId}">
+          <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
+          <h3 class="popup-title">Unidad: ${device.deviceId.toUpperCase()}</h3>
+          <p><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
+          <p><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
+          <br>
+          <h4 class="popup-subtitle">Último Reporte</h4>
+          <p>${fechaActual ? formatFecha(fechaActual.fechaActual) : 'Fecha no disponible'}</p>                  <span><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
+          <span><strong>Ubicación:</strong> ${device.direccion} </span>
+          <a href="" class="follow-link" data-device-id="${device.  deviceId}">🔍 Seguir Unidad</a>
+          </div>
         `;
       }
     },
-    [deviceList, getMarkerIcon, getEstado, getDireccion, formatFecha, fechaActual, isClient],
+    [
+      deviceList,
+      getMarkerIcon,
+      getEstado,
+      getDireccion,
+      formatFecha,
+      fechaActual,
+      isClient,
+    ],
   );
 
-  const handleFollowLinkClick = useCallback((e: MouseEvent) => {
-    if (!isClient) return;
-    
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('follow-link')) {
-      e.preventDefault();
-      const deviceID = target.getAttribute('data-device-id');
-      const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
-      window.open(url, '_blank');
-    }
-  }, [isClient]);
+  const handleFollowLinkClick = useCallback(
+    (e: MouseEvent) => {
+      if (!isClient) return;
+
+      const target = e.target as HTMLElement;
+      if (target.classList.contains('follow-link')) {
+        e.preventDefault();
+        const deviceID = target.getAttribute('data-device-id');
+        const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
+        window.open(url, '_blank');
+      }
+    },
+    [isClient],
+  );
 
   useEffect(() => {
     if (!isClient) return;
-    
+
     document.addEventListener('click', handleFollowLinkClick);
     return () => {
       document.removeEventListener('click', handleFollowLinkClick);
@@ -461,7 +472,7 @@ export default function RequestPage() {
 
   const onUnmount = useCallback(() => {
     if (!isClient) return;
-    
+
     Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
     Object.values(popupsRef.current).forEach((popup) => popup.setMap(null));
     markersRef.current = {};
@@ -479,7 +490,6 @@ export default function RequestPage() {
     [],
   );
 
-  // If we're on the server, return minimal UI with a loader
   if (!isClient) {
     return <Loader />;
   }
@@ -487,18 +497,20 @@ export default function RequestPage() {
   return (
     <>
       {isLoaded && mapLoaded ? (
-        <DynamicGoogleMap
-          mapContainerStyle={containerStyle}
-          center={center}
-          zoom={6}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={memoizedMapOptions}
-        >
-          {/* Aquí iría cualquier componente que desees colocar dentro del mapa */}
-        </DynamicGoogleMap>
+        <div className="relative">
+          <DynamicGoogleMap
+            mapContainerStyle={containerStyle}
+            center={center}
+            zoom={6}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            options={memoizedMapOptions}
+          ></DynamicGoogleMap>
+        </div>
       ) : (
-        <Loader />
+        <div className="flex h-screen w-full items-center justify-center">
+          <Loader />
+        </div>
       )}
 
       <Sidebar centerMap={centerMap} centerUnit={centerUnit} />

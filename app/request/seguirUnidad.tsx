@@ -7,7 +7,6 @@ import { useSession } from 'next-auth/react';
 import { useApi } from '@/context/ApiContext';
 
 
-
 const initialCenter = {
   lat: -12.046591525826495,
   lng: -77.04689047482863,
@@ -38,7 +37,8 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
   const popupsRef = useRef<{ [key: string]: any }>({});
-  const { baseUrl, setBaseUrl } = useApi();
+  
+  const servidorUrl = localStorage.getItem('servidorUrl');
 
   useEffect(() => {
     const getDeviceIdFromUrl = () => {
@@ -54,7 +54,8 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   
     if (status === 'authenticated' && session) {
       const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
+
+      const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
   
       const connection = new signalR.HubConnectionBuilder().withUrl(hubUrl).build();
       connection.start()
@@ -69,7 +70,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
         }
       });
     }
-  }, [status, session, deviceId, baseUrl]);
+  }, [status, session, deviceId,servidorUrl]);
   
   
 

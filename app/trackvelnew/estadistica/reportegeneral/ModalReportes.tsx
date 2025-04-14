@@ -49,7 +49,6 @@ const AppModalReportes: React.FC<AppModalProps> = ({
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
-    console.log("aCA TOY:" +selectedDeviceId)
     
   const isAll = deviceId === "Todas las unidades";
   setIsAllUnitsSelected(isAll);

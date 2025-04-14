@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
 import { getDeviceListUrlSelect } from '../urlsApi/urlApi';
+import { useSession } from 'next-auth/react';
 
 interface SelectProps {
   onSelect: (deviceId: string) => void;
@@ -9,11 +10,10 @@ interface SelectProps {
 
 export default function App({ onSelect }: SelectProps) {
   const { baseUrl } = useApi();
+    const { data: session } = useSession();
+  
+  const username = session?.user.username;
 
-    const username = useMemo(() => {
-      return localStorage.getItem('currentUser') || '';
-    }, []);
-    
 
   const [deviceIds, setDeviceIds] = useState<
     { value: string; label: string }[]

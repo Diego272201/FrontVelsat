@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
-import "@/app/styles/login.css";
+import '@/app/styles/login.css';
 import { Button, Input } from '@nextui-org/react';
 import { EyeSlashFilledIcon } from './EyeFilledIcon';
 import { signIn } from 'next-auth/react';
@@ -24,11 +24,11 @@ export default function Login() {
 
   const { baseUrl } = useApi();
 
-
-  
   const obtenerServidor = async (usuario: string) => {
     try {
-      const response = await fetch(`https://velsat.pe:8586/api/Server/${usuario}`);
+      const response = await fetch(
+        `https://velsat.pe:8586/api/Server/${usuario}`,
+      );
       const data = await response.json();
 
       if (data.servidor) {
@@ -43,35 +43,26 @@ export default function Login() {
     }
   };
 
-
-  
   useEffect(() => {
     if (login.length > 0) {
-  
       const fetchServidor = async () => {
         const url = await obtenerServidor(login);
         if (url) setServidorUrl(url);
+        localStorage.setItem('servidorUrl', servidorUrl);
       };
-  
+
       fetchServidor();
     }
-
-
-  }, [login,servidorUrl]); 
-  
+  }, [login, servidorUrl]);
 
   useEffect(() => {
     if (servidorUrl) {
-      console.log("servidorUrl actualizado:", servidorUrl);
+      console.log('servidorUrl actualizado:', servidorUrl);
     }
   }, [servidorUrl]);
 
 
-
-
   const handleSignalRConnection = async (username: string) => {
-   
-
     const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl)
@@ -83,19 +74,18 @@ export default function Login() {
       await connection.start();
       await connection.invoke('UnirGrupo', username);
       console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
-      
-      connection.on('ActualizarDatos', (datos) => {
-        console.log('Datos recibidos de SignalR:', datos);
-        localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
-        localStorage.setItem(`deviceList_${username}`, JSON.stringify(datos.datosDevice));
 
+      connection.on('ActualizarDatos', (datos) => {
+        localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
+        localStorage.setItem(
+          `deviceList_${username}`,
+          JSON.stringify(datos.datosDevice),
+        );
       });
     } catch (error) {
       console.error('Error al conectar con SignalR:', error);
     }
   };
-
-  
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -103,34 +93,39 @@ export default function Login() {
       const toastId = toast.loading('Autenticando...');
       setErrors([]);
 
-    const responseNextAuth = await signIn('credentials', {
-  login,
-  clave,
-  redirect: false,
-  callbackUrl: '/trackvelnew'
-});
+      if (!login || !clave) {
+        setErrors(['Complete usuario y contraseña']);
+        toast.error('Complete usuario y contraseña', { id: toastId });
+        return;
+      }
+
+      const responseNextAuth = await signIn('credentials', {
+        login,
+        clave,
+        redirect: false,
+        callbackUrl: '/trackvelnew',
+      });
 
 
-      console.log('Respuesta de NextAuth:', responseNextAuth);
-      
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
-        toast.error('Error: ' + responseNextAuth.error, { id: toastId });
+        toast.error('Error: Usuario o contraseña incorrectos.' , { id: toastId });
       } else {
         toast.success('¡Autenticación exitosa!', { id: toastId });
 
         const username = login;
+
+  
         handleSignalRConnection(username);
+
         localStorage.setItem('currentUser', username);
 
         router.push('/trackvelnew');
-
       }
     },
-    [login, clave, router,baseUrl],
+    [login, clave, router, baseUrl],
   );
 
-  
   return (
     <div className="login">
       <div className="imgLogin">
@@ -165,7 +160,7 @@ export default function Login() {
                 className="focus:outline-none"
                 type="button"
                 onClick={toggleVisibility}
-                aria-label={"Mostrar Ocultar contraseña"}
+                aria-label={'Mostrar Ocultar contraseña'}
               >
                 {isVisible ? (
                   <EyeSlashFilledIcon className="pointer-events-none text-2xl text-default-400" />
@@ -176,16 +171,13 @@ export default function Login() {
             }
             type={isVisible ? 'text' : 'password'}
           />
-          <Button className="buttonLogin" type="submit"         
-        >
+          <Button className="buttonLogin" type="submit">
             Iniciar sesión
           </Button>
         </form>
       </div>
 
-      <Toaster closeButton richColors  ></Toaster>
-
-
+      <Toaster closeButton richColors></Toaster>
     </div>
   );
 }

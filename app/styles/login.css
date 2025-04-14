@@ -1,80 +1,85 @@
 @import 'colors.css';
 
-.login{
-    background: var(--PrimaryGray);
-    width: 100%;
-    display: flex;
+.login {
+  background: var(--PrimaryGray);
+  width: 100%;
+  display: flex;
 }
 
-/* -- SLIDER STARTS-- */
-.imgLogin{
-    width: 75%;
-    height: 100vh;
-}
-/* -- SLIDER ENDS-- */
-
-.formLogin{
-    width: 25%;
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    flex-wrap: wrap;
+.imgLogin {
+  width: 72%;
+  height: 100vh;
 }
 
-.imgCenter{
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    height: 200px;
+.formLogin {
+  width: 28%;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  flex-wrap: wrap;
+}
+
+.imgCenter {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
 }
 
 .imgCenter img {
-    width: 210px;
+  width: 210px;
 }
 
-h2{
-    color: var(--PrimaryBlue);
-    text-align: center;
-    font-size: 20px;
-    font-weight: 500;
-    margin-top: -30px;
-    margin-bottom: 25px;
+h2 {
+  color: var(--PrimaryBlue);
+  text-align: center;
+  font-size: 20px;
+  font-weight: 500;
+  margin-top: -30px;
+  margin-bottom: 25px;
 }
 
-.inputsf{
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-    gap: 21px;
-    z-index: 1;
-    position: relative;
+.inputsf {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 21px;
+  z-index: 1;
+  position: relative;
 }
 
-.buttonLogin{
-    color: #fff;
-    background: var(--PrimaryGradientBlue);
+.buttonLogin {
+  color: #fff;
+  background: var(--PrimaryGradientBlue);
 }
 
 .custom-input label {
-    position: absolute;
-    align-self: self-start;
-    z-index: 1000;
-  }
-
-@media screen and (max-width: 1000px){
-    .login{
-        flex-direction: column-reverse;
-    }
-    
-    .imgLogin{
-        display: none;
-    }
-
-    .formLogin{
-        width: 100vw;
-        padding: 0 20% 0 20%;
-        height: 100vh;
-    }
+  position: absolute;
+  align-self: self-start;
+  z-index: 1000;
 }
 
-/*-- ESTILOS DEL PAGE LOGIN --*/
+@media screen and (max-width: 1400px) {
+  .imgLogin {
+    width: 60%;
+  }
+
+  .formLogin {
+    width: 40%;
+  }
+}
+
+@media screen and (max-width: 930px) {
+  .login {
+    flex-direction: column-reverse;
+  }
+
+  .imgLogin {
+    display: none;
+  }
+
+  .formLogin {
+    width: 100vw;
+    height: 100vh;
+  }
+}
