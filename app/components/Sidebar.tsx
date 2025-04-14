@@ -51,6 +51,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
       setIsLoading(false);
     }
   }, [baseUrl]);
+  
 
   useEffect(() => {
     if (session?.user.username && baseUrl) {
