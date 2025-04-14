@@ -1,22 +1,27 @@
 'use client';
-import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+import Momento from '../components/Momento';
 
-// Cargar el componente solo en el cliente
-const MomentoComponent = dynamic(() => import('../components/Momento'), { ssr: false });
-
-export default function MomentoPage() {
+function MomentoContent() {
   const searchParams = useSearchParams();
-
+  
   const lat = parseFloat(searchParams.get('lat') || '0');
   const lng = parseFloat(searchParams.get('lng') || '0');
   const dvc = searchParams.get('deviceId') || '';
   const dir = searchParams.get('dir') || '';
-
+  
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <MomentoComponent latitude={lat} longitude={lng} deviceId={dvc} direccion={dir} />
-    </Suspense>
+    <Momento latitude={lat} longitude={lng} deviceId={dvc} direccion={dir} />
+  );
+}
+
+export default function MomentoPage() {
+  return (
+    <div>
+      <Suspense fallback={<div>Cargando...</div>}>
+        <MomentoContent />
+      </Suspense>
+    </div>
   );
 }
