@@ -7,7 +7,7 @@ import { useLocation } from 'react-router-dom';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import { useSession } from 'next-auth/react';
 import ReporteHeader from '@/app/components/ReporteHeader';
-import { FaRegStopCircle } from "react-icons/fa";
+import { FaRegStopCircle } from 'react-icons/fa';
 
 export default function Page() {
   const { data: session } = useSession();
@@ -21,9 +21,7 @@ export default function Page() {
 
   const username = session?.user.username;
 
-
   const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}/${username}`;
-
 
   //FORMATEAR FECHA
   const formatDate = (dateString: any) => {
@@ -46,33 +44,28 @@ export default function Page() {
 
   return (
     <div className="tablaReport tablaReportMargen">
-           <ReporteHeader
-             title="REPORTE DE PARADAS"
-             deviceId={deviceId ?? ""}
-             startDate={startDate ?? ""}
-             endDate={endDate ?? ""}
-             extraInfo=""
-             formatDate={formatDate}
-             icon={<FaRegStopCircle    size={25} />}
-
-           />
-
+      <ReporteHeader
+        title="REPORTE DE PARADAS"
+        deviceId={deviceId ?? ''}
+        startDate={startDate ?? ''}
+        endDate={endDate ?? ''}
+        extraInfo=""
+        formatDate={formatDate}
+        icon={<FaRegStopCircle size={25} />}
+      />
 
       <ButtonDownloadFloat
-          startDate={startDate || ''}
-          endDate={endDate || ''}
-          devideId={deviceId || ''}
-          namedown="downloadExcelS"
-          namedesc="paradas"
-          username= {username || ''}
-          nameurl='reporteparadas'
-        ></ButtonDownloadFloat>
+        startDate={startDate || ''}
+        endDate={endDate || ''}
+        devideId={deviceId || ''}
+        namedown="downloadExcelS"
+        namedesc="paradas"
+        username={username || ''}
+        nameurl="reporteparadas"
+      ></ButtonDownloadFloat>
 
       <div>
-        <TableStops
-          url={tableUrl}
-
-        ></TableStops>
+        <TableStops url={tableUrl} deviceId={deviceId ?? ''} />
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export default function ReporteVelocidad() {
       />
 
       <div>
-        <TableSpeed url={tableUrl}></TableSpeed>
+        <TableSpeed url={tableUrl} deviceId={deviceId ?? ''}/>
       </div>
     </div>
   );

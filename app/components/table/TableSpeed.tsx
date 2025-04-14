@@ -27,9 +27,10 @@ interface Row {
 
 interface AppProps {
   url: string;
+  deviceId: string;
 }
 
-export default function App({ url }: AppProps) {
+export default function App({ url, deviceId }: AppProps) {
   const [page, setPage] = React.useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,8 +61,7 @@ export default function App({ url }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-
-  const rowsPerPage = useCalculateRowsPerPage(40, 5,180);  
+  const rowsPerPage = useCalculateRowsPerPage(40, 5, 180);
 
   const pages = Math.ceil(rows.length / rowsPerPage);
 
@@ -153,8 +153,17 @@ export default function App({ url }: AppProps) {
               </TableCell>
               <TableCell>
                 <div className="centerMap">
-                  <a href="#">
-                    <Image src="/map.png" alt="" width={20} height={20} />
+                  <a
+                    href={`/VerMapa?lat=${item.latitude}&lng=${item.longitude}&deviceId=${deviceId}&dir=${item.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Image
+                      src="/map.png"
+                      alt="Ver Mapa"
+                      width={20}
+                      height={20}
+                    />
                   </a>
                 </div>
               </TableCell>

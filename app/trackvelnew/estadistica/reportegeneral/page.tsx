@@ -76,7 +76,7 @@ export default function Page() {
       />
 
       <div>
-        <Table url={tableUrl} />
+        <Table url={tableUrl} deviceId={deviceId ?? ''}/>
       </div>
     </div>
   );

@@ -70,7 +70,11 @@ export default function RequestPageDetail() {
         });
       } else {
         setMarkersData(response.data.result);
-        setIsMarkersLoaded(true); // Marcadores cargados
+        setIsMarkersLoaded(true);
+        setMapCenter({
+          lat: response.data.result[0].latitude,
+          lng: response.data.result[0].longitude,
+        });
       }
     } catch (error) {
       console.error('Error fetching data:', error);

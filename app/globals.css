@@ -202,3 +202,8 @@ body {
   color: #c1121f;
 
 }
+
+/* Oculta el botón de cerrar del InfoWindow */
+.gm-ui-hover-effect {
+  display: none !important;
+}
