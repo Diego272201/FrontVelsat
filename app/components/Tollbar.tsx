@@ -9,7 +9,6 @@ import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
 import { RiFullscreenLine } from 'react-icons/ri';
 import { IoMdExit } from 'react-icons/io';
-import { FaUserAlt } from 'react-icons/fa';
 import { MdChevronRight } from 'react-icons/md';
 import { GrServices } from 'react-icons/gr';
 import { GrPlan } from 'react-icons/gr';
@@ -17,9 +16,7 @@ import { RiGpsFill } from 'react-icons/ri';
 import { MdDisplaySettings } from 'react-icons/md';
 import { TbReportSearch } from 'react-icons/tb';
 import { SlMenu } from 'react-icons/sl';
-import { IoExitSharp } from 'react-icons/io5';
 import { useApi } from '@/context/ApiContext';
-import { TfiMenuAlt } from 'react-icons/tfi';
 import { GiHamburgerMenu } from 'react-icons/gi';
 
 const Tollbar = () => {
