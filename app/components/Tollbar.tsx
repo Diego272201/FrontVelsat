@@ -182,31 +182,7 @@ const Tollbar = () => {
                 <li onClick={openModalKilometers}>
                   <a title="Reporte de Kilometraje">Reporte de Kilometraje</a>
                 </li>
-                <li>
-                  <a href="#" title="Paradas Bruscas">
-                    Paradas Bruscas
-                  </a>
-                </li>
-                <li>
-                  <a href="#" title="Encendido Motor">
-                    Encendido Motor
-                  </a>
-                </li>
-                <li>
-                  <a href="#" title="Desconexión Batería">
-                    Desconexión Batería
-                  </a>
-                </li>
-                <li>
-                  <a href="#" title="Gráficas">
-                    Gráficas
-                  </a>
-                </li>
-                <li>
-                  <a href="#" title="Reporte de GeoVelocidad">
-                    Reporte de GeoVelocidad
-                  </a>
-                </li>
+                
               </ul>
             </li>
 
@@ -604,33 +580,7 @@ const Tollbar = () => {
                 >
                   Reporte de Kilometraje
                 </button>
-                <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
-                  Paradas Bruscas
-                </button>
-                <a
-                  href="#"
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-700 transition hover:bg-blue-100"
-                >
-                  Encendido Motor
-                </a>
-                <a
-                  href="#"
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-700 transition hover:bg-blue-100"
-                >
-                  Desconexión Batería
-                </a>
-                <a
-                  href="#"
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-700 transition hover:bg-blue-100"
-                >
-                  Gráficas
-                </a>
-                <a
-                  href="#"
-                  className="block rounded-lg px-3 py-1.5 text-sm text-gray-700 transition hover:bg-blue-100"
-                >
-                  Reporte de GeoVelocidad
-                </a>
+                
               </div>
             )}
           </div>
