@@ -453,12 +453,13 @@ font-size: 0.88rem;
 .close-sidebar {
   position: absolute;
   right: 5px;
-  margin-top: 10px;
+  margin-top: 5px;
   background: none;
   border: none;
-  font-size: 30px;
+  font-size: 25px;
   color: #fff;
   cursor: pointer;
+  background: #1C5ED8;
 }
 
 .sidebar div{
@@ -479,13 +480,16 @@ font-size: 0.88rem;
 }
 
 .menu_sidebar{
-  color: #ffffff;
-  font-size: 1.2rem;
-  font-family: sans-serif;
+  color: #212529;
+  font-size: 12px;
   font-weight: 500;
   display: flex;
-  margin-top: 14px;
-  margin-left: 14px;
+  margin-top: 0px;
+  background: #F7931E;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  height: 35px;
 }
 
 .icon_menu{
