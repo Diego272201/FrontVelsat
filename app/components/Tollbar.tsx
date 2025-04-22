@@ -20,6 +20,9 @@ import { useApi } from '@/context/ApiContext';
 import { GiHamburgerMenu } from 'react-icons/gi';
 import Profile from './Profile';
 
+import { useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+
 const Tollbar = () => {
   const [username, setUsername] = useState('');
 
@@ -120,6 +123,28 @@ const Tollbar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const searchParams = useSearchParams();
+
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const deviceId = searchParams.get('deviceId');
+
+  const pathname = usePathname();
+  const isSedapalDetalleRecorrido =
+    username.toLowerCase() === 'sedapal' &&
+    pathname.includes('detallerecorrido');
+
+  const formatDateTime = (input: string | null) => {
+    if (!input) return '';
+    const date = new Date(input);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = String(date.getFullYear());
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
   return (
     <div className="tollbar menu__wrapper">
       <div className="tollbar-bg"></div>
@@ -146,6 +171,37 @@ const Tollbar = () => {
             </h3>
           </div>
         </a>
+
+        {isSedapalDetalleRecorrido && (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              justifyContent: 'start',
+              alignItems: 'start',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: 'bold',
+                textAlign: 'start',
+                color: '#fff',
+                marginTop: '-5px',
+                marginLeft: '-120px',
+              }}
+            >
+              &nbsp;&nbsp;|&nbsp;&nbsp; Fechas:{' '}
+              <span style={{ fontWeight: 'normal' }}>
+                {formatDateTime(startDate)} - {formatDateTime(endDate)}
+              </span>{' '}
+              &nbsp;&nbsp;|&nbsp;&nbsp; Unidad:{' '}
+              <span style={{ fontWeight: 'normal' }}>
+                {deviceId?.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        )}
 
         {baseUrl === 'https://sub.velsat.pe:8586' ? (
           <ul className="navigation">
@@ -550,32 +606,47 @@ const Tollbar = () => {
             {isReportesMenuOpen && (
               <div className="ml-5 mt-2 space-y-1">
                 <button
-                  onClick={openModalSpeed}
+                  onClick={() => {
+                    openModalSpeed();
+                    toggleSidebar();
+                  }}
                   className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                 >
                   Reporte de Velocidad
                 </button>
 
                 <button
-                  onClick={openModalStops}
+                  onClick={() => {
+                    openModalStops();
+                    toggleSidebar();
+                  }}
                   className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                 >
                   Reporte de Paradas
                 </button>
                 <button
-                  onClick={openModal}
+                  onClick={() => {
+                    openModal();
+                    toggleSidebar();
+                  }}
                   className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                 >
                   Reporte General
                 </button>
                 <button
-                  onClick={openModalDetails}
+                  onClick={() => {
+                    openModalDetails();
+                    toggleSidebar();
+                  }}
                   className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                 >
                   Detalle Recorrido
                 </button>
                 <button
-                  onClick={openModalKilometers}
+                  onClick={() => {
+                    openModalKilometers();
+                    toggleSidebar();
+                  }}
                   className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                 >
                   Reporte de Kilometraje
@@ -584,166 +655,238 @@ const Tollbar = () => {
             )}
           </div>
         ) : (
-          <div>
-            <div className="sidebar-section">
+          <div className="mb-4 space-y-2">
+            {/* Gestión de Servicios */}
+            <div>
               <div
-                className="menu-item menu-item-first"
+                className="flex cursor-pointer items-center justify-between bg-gray-100 p-1 transition hover:bg-gray-200"
                 onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
               >
-                <a href="#">
-                  <div className="icon_options">
-                    <GrServices />
-                  </div>
-                  Gestión de Servicios
-                </a>
-                <i
-                  className={`dropdown-icon ${isServicesMenuOpen ? 'rotate' : ''}`}
-                ></i>
+                <div className="flex items-center gap-3">
+                  <GrServices className="text-xl text-blue-600" />
+                  <span className="font-medium text-gray-800">
+                    Gestión de Servicios
+                  </span>
+                </div>
+                <svg
+                  className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isServicesMenuOpen ? 'rotate-90' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </div>
 
               {isServicesMenuOpen && (
-                <div className="submenu">
-                  <a href="#" title="Conductores">
+                <div className="ml-5 mt-2 space-y-1">
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Conductores
-                  </a>
-                  <a href="#" title="Unidades">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Unidades
-                  </a>
+                  </button>
 
-                  <a
-                    href="#"
-                    title="Programación"
-                    onClick={toggleProgramacionMenu}
-                  >
-                    Programación
-                    <i
-                      className={`dropdown-icon ${isProgramacionMenuOpen ? 'rotate' : ''}`}
-                    ></i>
-                  </a>
-                  {isProgramacionMenuOpen && (
-                    <div className="submenu-nested">
-                      <a href="#" title="Asignar Conductor/Unidad">
-                        Asignar Conductor/Unidad
-                      </a>
-                      <a href="#" title="Carga de Archivo">
-                        Carga de Archivo
-                      </a>
-                      <a href="#" title="Carga de Servicios">
-                        Carga de Servicios
-                      </a>
+                  {/* Submenú Programación */}
+                  <div>
+                    <div
+                      className="flex cursor-pointer items-center justify-between rounded-lg px-3 py-1.5 text-sm text-white hover:bg-blue-100 hover:text-gray-800"
+                      onClick={toggleProgramacionMenu}
+                    >
+                      <span>Programación</span>
+                      <svg
+                        className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isProgramacionMenuOpen ? 'rotate-90' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
                     </div>
-                  )}
+                    {isProgramacionMenuOpen && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
+                          Asignar Conductor/Unidad
+                        </button>
+                        <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
+                          Carga de Archivo
+                        </button>
+                        <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
+                          Carga de Servicios
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                  <a href="#" title="Control de Servicios">
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Control de Servicios
-                  </a>
-                  <a href="#" title="Detalle de Servicios">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Detalle de Servicios
-                  </a>
-                  <a href="#" title="Control de Servicios">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Control LATAM
-                  </a>
-                  <a href="#" title="Detalle de Servicios">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Duración de Servicios
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
 
-            <div className="sidebar-section">
-              <div className="menu-item" onClick={togglePlanificacionMenu}>
-                <a href="#">
-                  <div className="icon_options">
-                    <GrPlan />
-                  </div>
-                  Planificación
-                </a>
-                <i
-                  className={`dropdown-icon ${isPlanificacionMenuOpen ? 'rotate' : ''}`}
-                ></i>
+            {/* Planificación */}
+            <div>
+              <div
+                className="flex cursor-pointer items-center justify-between bg-gray-100 p-1 transition hover:bg-gray-200"
+                onClick={togglePlanificacionMenu}
+              >
+                <div className="flex items-center gap-3">
+                  <GrPlan className="text-xl text-blue-600" />
+                  <span className="font-medium text-gray-800">
+                    Planificación
+                  </span>
+                </div>
+                <svg
+                  className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isPlanificacionMenuOpen ? 'rotate-90' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </div>
+
               {isPlanificacionMenuOpen && (
-                <div className="submenu">
-                  <a href="#" title="Conductores">
+                <div className="ml-5 mt-2 space-y-1">
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Administración de Turnos
-                  </a>
-                  <a href="#" title="Unidades">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Planificación Servicios
-                  </a>
-                  <a href="#" title="Unidades">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Re-Planificación Servicios
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
 
-            <div className="sidebar-section">
-              <div className="menu-item">
-                <a href="#">
-                  {' '}
-                  <div className="icon_options">
-                    <RiGpsFill />
-                  </div>
-                  Punto de Interés
-                </a>
-              </div>
+            {/* Punto de Interés */}
+            <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">
+              <RiGpsFill className="text-xl text-blue-600" />
+              <span className="font-medium text-gray-800">
+                Punto de Interés
+              </span>
             </div>
 
-            <div className="sidebar-section">
-              <div className="menu-item">
-                <a href="#">
-                  <div className="icon_options">
-                    <MdDisplaySettings />
-                  </div>
-                  Operaciones
-                </a>
-              </div>
+            {/* Operaciones */}
+            <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">
+              <MdDisplaySettings className="text-xl text-blue-600" />
+              <span className="font-medium text-gray-800">Operaciones</span>
             </div>
 
-            <div className="sidebar-section">
-              <div className="menu-item" onClick={toggleReportesMenu}>
-                <a href="#">
-                  <div className="icon_options">
-                    <TbReportSearch />
-                  </div>
-                  Reportes
-                </a>
-                <i
-                  className={`dropdown-icon ${isReportesMenuOpen ? 'rotate' : ''}`}
-                ></i>
+            {/* Reportes */}
+            <div>
+              <div
+                className="flex cursor-pointer items-center justify-between bg-gray-100 p-1 transition hover:bg-gray-200"
+                onClick={toggleReportesMenu}
+              >
+                <div className="flex items-center gap-3">
+                  <TbReportSearch className="text-xl text-blue-600" />
+                  <span className="font-medium text-gray-800">Reportes</span>
+                </div>
+                <svg
+                  className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isReportesMenuOpen ? 'rotate-90' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
               </div>
+
               {isReportesMenuOpen && (
-                <div className="submenu">
-                  <a onClick={openModalSpeed} title="Reporte Velocidad">
+                <div className="ml-5 mt-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      openModalSpeed();
+                      toggleSidebar();
+                    }}
+                    className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
+                  >
                     Reporte de Velocidad
-                  </a>
-                  <a onClick={openModalStops} title="Reporte Paradas">
+                  </button>
+                  <button
+                    onClick={() => {
+                      openModalStops();
+                      toggleSidebar();
+                    }}
+                    className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
+                  >
                     Reporte de Paradas
-                  </a>
-                  <a onClick={openModal} title="Reporte General">
+                  </button>
+                  <button
+                    onClick={() => {
+                      openModal();
+                      toggleSidebar();
+                    }}
+                    className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
+                  >
                     Reporte General
-                  </a>
-                  <a onClick={openModalDetails} title="Detalle Recorrido">
+                  </button>
+                  <button
+                    onClick={() => {
+                      openModalDetails();
+                      toggleSidebar();
+                    }}
+                    className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
+                  >
                     Detalle Recorrido
-                  </a>
-                  <a onClick={openModalKilometers} title="Reporte Kilometraje">
+                  </button>
+                  <button
+                    onClick={() => {
+                      openModalKilometers();
+                      toggleSidebar();
+                    }}
+                    className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
+                  >
                     Reporte de Kilometraje
-                  </a>
-                  <a href="#" title="Paradas Bruscas">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Paradas Bruscas
-                  </a>
-                  <a href="#" title="Encendido Motor">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Encendido Motor
-                  </a>
-                  <a href="#" title="Desconexion Bateria">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Desconexión Batería
-                  </a>
-                  <a href="#" title="Graficas">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Gráficas
-                  </a>
-                  <a href="#" title="Reporte GeoVelocidad">
+                  </button>
+                  <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Reporte de GeoVelocidad
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
