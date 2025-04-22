@@ -68,7 +68,7 @@
   flex-direction: row;
   list-style-type: none;
   align-items: center;
-  gap: 30px;
+  gap: 2px;
   padding: 0px;
 
 }
@@ -127,7 +127,7 @@ font-size: 0.88rem;
 }
 
 .navigation > li > a {
-  color: #ffffff;
+  
   border-bottom: 2px solid transparent;
   transition: all 0.3s ease;
   text-decoration: none;
@@ -144,18 +144,7 @@ font-size: 0.88rem;
   color: #ffffff;
 }
 
-.navigation > li > a::before,
-.navigation > li > a.active::before {
-  content: '';
-  background: #fff;
-  display: block;
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  transition: all 0.2s ease-in-out;
-}
+
 
 .navigation > li > a:hover::before,
 .navigation > li > a.active::before {
@@ -271,12 +260,11 @@ font-size: 0.88rem;
   top: 100%;
   left: 0;
   width: 150px;
-  background-color: #F7931E;
+  background-color: #fff;
   display: none;
-  margin-top: 8px;
+  margin-top: 0px;
   z-index: 20;
   border: none;
-  border-radius: 0 0 8px 8px;
 }
 
 .planificacion{
@@ -299,7 +287,7 @@ font-size: 0.88rem;
   cursor: pointer;
   transition: background-color 0.2s ease;
   text-align: right;
-  border-bottom: 1px solid #fdfdfd;
+  border-bottom: 0.5px solid #e5e5e5;
 }
 
 .dropdown-menue li:last-child {
@@ -336,7 +324,7 @@ font-size: 0.88rem;
 
 /* Hover effect for dropdown items */
 .dropdown-menue li:hover {
-  background-color: #ff9c5a;
+  background-color: #e5e5e5;
 }
 
 .dropdown-menue li a{
@@ -383,10 +371,9 @@ font-size: 0.88rem;
 .dropdown-menue-left{
   display: none;
   position: absolute;
-  background-color: #F7931E;
-  left: -168px;
+  background-color: #fff;
+  left: -158px;
   top: 64px;
-  border-radius: 8px 0 0 8px;
 }
 
 .ProgramacionHover:hover .dropdown-menue-left{
@@ -417,14 +404,17 @@ font-size: 0.88rem;
 }
 
 .exitToolbar{
-  background: transparent;
-  color: white;
+  color: rgb(8, 8, 8);
   width: 50px;
+  height: 35.8px;
   display: flex;
-  justify-content: end;
+  justify-content: center;
+  align-items: center;
   gap: 5px;
-  margin-right: -10px;
   margin-top: -5px;
+  margin-right: -22px;
+
+  background: #fb8500;
 }
 
 .mobile-only-button {

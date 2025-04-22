@@ -18,6 +18,7 @@ import { TbReportSearch } from 'react-icons/tb';
 import { SlMenu } from 'react-icons/sl';
 import { useApi } from '@/context/ApiContext';
 import { GiHamburgerMenu } from 'react-icons/gi';
+import Profile from './Profile';
 
 const Tollbar = () => {
   const [username, setUsername] = useState('');
@@ -182,23 +183,16 @@ const Tollbar = () => {
                 <li onClick={openModalKilometers}>
                   <a title="Reporte de Kilometraje">Reporte de Kilometraje</a>
                 </li>
-                
               </ul>
             </li>
 
             <li className="dropdown">
-              <Link
-                href="#"
-                title="Estadísticas"
-              
-              >
+              <Link href="#" title="Estadísticas">
                 <div className="optMenu">Recreación</div>
                 <i className="dropdown-iconn">
                   <IoMdArrowDropdown />
                 </i>
               </Link>
-
-     
             </li>
 
             <li className="dropdown">
@@ -222,18 +216,18 @@ const Tollbar = () => {
           </ul>
         ) : (
           <ul className="navigation">
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title=" Gestión de Servicios"
                 className={activeLink === 0 ? 'active' : ''}
                 onClick={() => handleLinkClick(0)}
               >
-                <div className="optMenu">
+                <div style={{ color: '#212529', fontSize: '12px' }}>
                   Gestión de Servicios
-                  <i className="dropdown-iconn">
-                    <IoMdArrowDropdown />
-                  </i>
                 </div>
               </Link>
 
@@ -313,18 +307,18 @@ const Tollbar = () => {
               </ul>
             </li>
 
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff] "
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title="Planificación"
                 className={activeLink === 1 ? 'active' : ''}
                 onClick={() => handleLinkClick(1)}
               >
-                <div className="optMenu">
+                <div style={{ color: '#212529', fontSize: '12px' }}>
                   Planificación
-                  <i className="dropdown-iconn">
-                    <IoMdArrowDropdown />
-                  </i>
                 </div>
               </Link>
 
@@ -352,38 +346,50 @@ const Tollbar = () => {
               </ul>
             </li>
 
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title="Puntos de Interés"
                 className={activeLink === 2 ? 'active' : ''}
                 onClick={() => handleLinkClick(2)}
               >
-                <div className="optMenu">Puntos de Interés</div>
+                <div style={{ color: '#212529', fontSize: '12px' }}>
+                  Puntos de Interés
+                </div>
               </Link>
             </li>
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title="Operaciones"
                 className={activeLink === 3 ? 'active' : ''}
                 onClick={() => handleLinkClick(3)}
               >
-                <div className="optMenu">Operaciones</div>
+                <div style={{ color: '#212529', fontSize: '12px' }}>
+                  Operaciones
+                </div>
               </Link>
             </li>
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fcbf49]"
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title="Estadísticas"
                 className={activeLink === 4 ? 'active' : ''}
                 onClick={() => handleLinkClick(4)}
               >
-                <div className="optMenu">Reportes</div>
+                <div style={{ color: '#212529', fontSize: '12px' }}>
+                  Reportes
+                </div>
 
-                <i className="dropdown-iconn">
-                  <IoMdArrowDropdown />
-                </i>
               </Link>
 
               <ul
@@ -438,24 +444,16 @@ const Tollbar = () => {
               </ul>
             </li>
 
-            <li className="dropdown">
+           
               <div className="exitToolbar">
-                <button>
-                  <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
-                </button>
-                <div className="group relative flex items-center">
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="p-2"
-                  >
-                    <IoMdExit size={22} />
-                  </button>
-                  <div className="absolute left-1/2 top-full z-10 mt-0.5 -translate-x-1/2 whitespace-nowrap rounded bg-red-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    Salir
+                
+             
+                  <div className="flex w-[50px] items-center justify-center p-0">
+                    <Profile toggleFullScreen={toggleFullScreen} />
                   </div>
-                </div>
+               
               </div>
-            </li>
+          
           </ul>
         )}
       </div>
@@ -516,7 +514,9 @@ const Tollbar = () => {
         <div className="menu_sidebar">
           <div className="flex items-center gap-2">
             <GiHamburgerMenu className="text-xl text-[#343a40]" />
-            <span className="text-[#343a40]" style={{fontSize:'14px'}}>MENÚ</span>
+            <span className="text-[#343a40]" style={{ fontSize: '14px' }}>
+              MENÚ
+            </span>
           </div>
         </div>
 
@@ -580,7 +580,6 @@ const Tollbar = () => {
                 >
                   Reporte de Kilometraje
                 </button>
-                
               </div>
             )}
           </div>
