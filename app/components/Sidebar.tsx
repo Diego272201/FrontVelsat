@@ -6,13 +6,15 @@ import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import { FcSearch } from "react-icons/fc";
+import { FcSearch } from 'react-icons/fc';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
+import SelectSidebar from './selectUI/SelectSidebar';
 
 interface SidebarProps {
   centerMap: () => void;
-  centerUnit: (coords: { latitud: number, longitud: number }) => void;
+  centerUnit: (coords: { latitud: number; longitud: number }) => void;
+  onFilteredIdsChange?: (ids: string[] | null) => void;
 }
 
 interface UnidadData {
@@ -22,43 +24,73 @@ interface UnidadData {
   lastValidLongitude: number;
 }
 
-export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
-
-  const {data: session} = useSession();
+export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: SidebarProps) {
+  const { data: session } = useSession();
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(true);
   const [lastCheckedId, setLastCheckedId] = useState<string | null>(null);
   const [idLoading, setIsLoading] = useState(true);
-  const { baseUrl} = useApi();
+  const { baseUrl } = useApi();
 
+  const [rutaSeleccionada, setRutaSeleccionada] = useState('');
+  const [filteredDeviceIds, setFilteredDeviceIds] = useState<string[] | null>(
+    null,
+  );
 
   const username = useMemo(() => {
     return localStorage.getItem('currentUser') || '';
   }, []);
-  
 
-  const fetchData = useCallback(async (username: string) => {
+  const fetchData = useCallback(
+    async (username: string) => {
+      try {
+        const response = await axios.get(
+          `${baseUrl}/api/DeviceList/simplified/${username}`,
+        );
 
-    try {
-      const response = await axios.get(`${baseUrl}/api/DeviceList/simplified/${username}`);
-
-      setUnidades(response.data);
-      setIsLoading(true);
-    } catch (error) {
-      console.error('Error al obtener datos:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [baseUrl]);
-  
+        setUnidades(response.data);
+        setIsLoading(true);
+      } catch (error) {
+        console.error('Error al obtener datos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [baseUrl],
+  );
 
   useEffect(() => {
     if (session?.user.username && baseUrl) {
       fetchData(session.user.username);
-
     }
-  }, [fetchData, username,baseUrl]);
+  }, [fetchData, username, baseUrl]);
+
+  useEffect(() => {
+    const fetchFiltroSedapal = async () => {
+      if (rutaSeleccionada && rutaSeleccionada !== 'Todas') {
+        try {
+          const response = await axios.get(
+            `${baseUrl}/api/Reporting/filtersedapal?rutadefault=${encodeURIComponent(rutaSeleccionada)}`,
+          );
+          const ids = response.data;
+          setFilteredDeviceIds(ids);
+          onFilteredIdsChange?.(ids); // <-- pasa a RequestPage
+        } catch (error) {
+          console.error('Error al obtener filtros de Sedapal:', error);
+          setFilteredDeviceIds([]);
+          onFilteredIdsChange?.([]); // también actualiza si hubo error
+        }
+      } else {
+        setFilteredDeviceIds(null);
+        onFilteredIdsChange?.(null);
+      }
+    };
+  
+    if (username === 'sedapal') {
+      fetchFiltroSedapal();
+    }
+  }, [rutaSeleccionada, baseUrl, username]);
   
 
   const showMenu = () => {
@@ -69,29 +101,44 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
     setShowDropdown(false);
   };
 
-
-
-  const handleSelectUnit = useCallback((coords: { latitud: number, longitud: number }) => {
-    centerUnit(coords);
-  }, [centerUnit]);
-
+  const handleSelectUnit = useCallback(
+    (coords: { latitud: number; longitud: number }) => {
+      centerUnit(coords);
+    },
+    [centerUnit],
+  );
 
   const handleCheckboxChange = useCallback((id: string) => {
     setLastCheckedId(id);
   }, []);
 
-  const filteredUnidades = useMemo(() => 
-    unidades.filter((unidad) =>
-      unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase())
-    ), [unidades, searchTerm]);
+  const filteredUnidades = useMemo(() => {
+    const baseFiltrado = unidades.filter((unidad) =>
+      unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(e.target.value);
-    };
+    if (filteredDeviceIds) {
+      return baseFiltrado.filter((unidad) =>
+        filteredDeviceIds.includes(unidad.deviceId.toLowerCase()),
+      );
+    }
+
+    return baseFiltrado;
+  }, [unidades, searchTerm, filteredDeviceIds]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   return (
     <div className="sidebarScroll">
-      <input type="radio" name="opcion" id="muestra" onClick={showMenu} defaultChecked={showDropdown} />
+      <input
+        type="radio"
+        name="opcion"
+        id="muestra"
+        onClick={showMenu}
+        defaultChecked={showDropdown}
+      />
       <input
         type="radio"
         name="opcion"
@@ -126,7 +173,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
         <div className="menu">
           <div className="unidades">
-            Total de unidades: {unidades.length}
+            Total de unidades: {filteredUnidades.length}
             <div className="imap">
               <a href="#" onClick={centerMap}>
                 <TbView360 size={23} />
@@ -136,7 +183,7 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
 
           <div className="search">
             <div className="iconS">
-              <FcSearch  className="iconSearch" />
+              <FcSearch className="iconSearch" />
             </div>
             <input
               className="input"
@@ -144,34 +191,41 @@ export default function Sidebar({ centerMap, centerUnit }: SidebarProps) {
               placeholder="Buscar Unidad"
               value={searchTerm}
               onChange={handleSearchChange}
-              style={{ borderRadius: '0px'}}
-              />
+              style={{ borderRadius: '0px' }}
+            />
           </div>
-
-          <div className="unidadesScroll">
-
-            {idLoading ? (
-              <div className="centerSpinner">
-              <Spinner /> 
-
-              </div>
-            
-            ) :( 
-
-            filteredUnidades.map((unidad, index) => (
-              <Unidad
-                key={index}
-                codigoUnidad={unidad.deviceId.toUpperCase()}
-                velocidad={unidad.lastValidSpeed}
-                latitud={unidad.lastValidLatitude}
-                longitud={unidad.lastValidLongitude}
-                onSelectUnit={handleSelectUnit}
-                lastCheckedId={lastCheckedId}
-                onCheckboxChange={handleCheckboxChange}
-                username={username}
-              />
-            ))
+          {username === 'sedapal' && (
+            <div className="search">
+              <SelectSidebar onRutaChange={setRutaSeleccionada} />
+            </div>
           )}
+
+          <div
+            className={`unidadesScroll mt-2.5 overflow-y-scroll ${
+              username === 'sedapal'
+                ? 'max-h-[calc(100vh-33%)]'
+                : 'max-h-[calc(100vh-29%)]'
+            }`}
+          >
+            {idLoading ? (
+             <div className="h-[500px] flex items-center justify-center w-full">
+             <Spinner />
+           </div>
+            ) : (
+              filteredUnidades.map((unidad, index) => (
+                <Unidad
+                  key={index}
+                  codigoUnidad={unidad.deviceId.toUpperCase()}
+                  velocidad={unidad.lastValidSpeed}
+                  latitud={unidad.lastValidLatitude}
+                  longitud={unidad.lastValidLongitude}
+                  onSelectUnit={handleSelectUnit}
+                  lastCheckedId={lastCheckedId}
+                  onCheckboxChange={handleCheckboxChange}
+                  username={username}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>

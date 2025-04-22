@@ -61,32 +61,6 @@ export default function Login() {
     }
   }, [servidorUrl]);
 
-
-  const handleSignalRConnection = async (username: string) => {
-    const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl)
-      .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
-
-    try {
-      await connection.start();
-      await connection.invoke('UnirGrupo', username);
-      console.log(`Conexión SignalR establecida y unida al grupo: ${username}`);
-
-      connection.on('ActualizarDatos', (datos) => {
-        localStorage.setItem(`fechaActual_${username}`, datos.fechaActual);
-        localStorage.setItem(
-          `deviceList_${username}`,
-          JSON.stringify(datos.datosDevice),
-        );
-      });
-    } catch (error) {
-      console.error('Error al conectar con SignalR:', error);
-    }
-  };
-
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -106,20 +80,15 @@ export default function Login() {
         callbackUrl: '/trackvelnew',
       });
 
-
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
-        toast.error('Error: Usuario o contraseña incorrectos.' , { id: toastId });
+        toast.error('Error: Usuario o contraseña incorrectos.', {
+          id: toastId,
+        });
       } else {
         toast.success('¡Autenticación exitosa!', { id: toastId });
-
         const username = login;
-
-  
-        handleSignalRConnection(username);
-
         localStorage.setItem('currentUser', username);
-
         router.push('/trackvelnew');
       }
     },
