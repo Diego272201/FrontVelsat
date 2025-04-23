@@ -191,7 +191,7 @@ const Tollbar = () => {
                 marginLeft: '-120px',
               }}
             >
-              &nbsp;&nbsp;|&nbsp;&nbsp; Fechas:{' '}
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp; Fechas:{' '}
               <span style={{ fontWeight: 'normal' }}>
                 {formatDateTime(startDate)} - {formatDateTime(endDate)}
               </span>{' '}
