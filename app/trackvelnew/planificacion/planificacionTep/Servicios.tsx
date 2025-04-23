@@ -688,7 +688,7 @@ export default function App({
 
     try {
       const response = await axios.put(
-        'https://66.240.210.125:8586/api/Preplan/save?usuario=movilbus',
+        'https://velsat.pe:8586/api/Preplan/save?usuario=movilbus',
         dataToSend,
         { headers: { 'Content-Type': 'application/json' } },
       );

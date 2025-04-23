@@ -6,6 +6,7 @@ import { BiTrash } from 'react-icons/bi';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
+import { useApi } from '@/context/ApiContext';
 
 interface Pasajero {
   codcliente: number;
@@ -26,6 +27,15 @@ export default function PasajeroContent() {
   >([]);
   const [selectedCodigo, setSelectedCodigo] = useState<string | null>(null);
 
+ const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+
+  useEffect(() => {
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
+    }
+  }, [baseUrl]);
+
   const fetchPasajerosPorCodigo = useCallback(
     debounce(async (value: string) => {
       if (value.length < 2) {
@@ -35,7 +45,7 @@ export default function PasajeroContent() {
 
       try {
         const response = await axios.get(
-          `https://66.240.210.125:8586/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
+          `https://velsat.pe:8586/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
         );
         const data = response.data.map((item: any) => ({
           codigo: item.codigo,
@@ -51,26 +61,26 @@ export default function PasajeroContent() {
   );
 
   useEffect(() => {
+    if (!isBaseUrlReady) return;
+  
     const fetchPasajeros = async () => {
       try {
         setLoading(true);
-        const response = await axios.get<Pasajero[]>(
-          'https://66.240.210.125:8586/api/Pasajero',
-        );
+        const response = await axios.get<Pasajero[]>(`${baseUrl}/api/Pasajero`);
         const data = response.data.map((pasajero) => ({
           value: pasajero.codcliente,
           label: pasajero.apellidos,
         }));
         setPasajeros(data);
-        setLoading(false);
       } catch (error) {
         console.error('Error al obtener los pasajeros:', error);
+      } finally {
         setLoading(false);
       }
     };
-
+  
     fetchPasajeros();
-  }, []);
+  }, [isBaseUrlReady, baseUrl]);
 
   const filteredPasajeros = useMemo(() => {
     if (query.length < 2) return [];

@@ -100,7 +100,7 @@ export default function App({
 
   useEffect(() => {
     axios
-      .get('https://66.240.210.125:8586/api/Turnos/area/movilbus')
+      .get('https://velsat.pe:8586/api/Turnos/area/movilbus')
       .then((response) => {
         setUniqueAreas(response.data);
       })
@@ -166,7 +166,7 @@ export default function App({
 
   const handleDelete = async (codigo: number) => {
     try {
-      await axios.delete(`https://66.240.210.125:8586/api/Turnos/${codigo}`);
+      await axios.delete(`https://velsat.pe:8586/api/Turnos/${codigo}`);
       onSaveSuccess();
       console.log('Elimnado ...');
     } catch (error) {

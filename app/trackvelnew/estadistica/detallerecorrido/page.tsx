@@ -11,7 +11,7 @@ const MapContent = loadable(() => import('./MapContent'), {
 
 export default function RequestPageDetail() {
   return (
-    <div className="tablaReport tablaReportMargen">
+    <div className='mt-[-90px]'>
       <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Cargando ...</div>}>
         <MapContent />
       </Suspense>
