@@ -1,13 +1,30 @@
-import React from 'react';
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic'; // Esta línea debe ir sola antes de todo
 
-const RequestPage = dynamic(() => import('../request/page'), { ssr: false });
+import React, { Suspense } from 'react';
+import loadable from 'next/dynamic'; // Renombramos para evitar conflicto
+
+const RequestPage = loadable(() => import('../request/page'), { ssr: false });
 import '@/app/styles/trackvelnew.css';
 
 export default function page() {
-    return (
-    <div className='trackvelnew'>
-        <RequestPage></RequestPage>
+  return (
+    <div className="trackvelnew">
+      <Suspense
+        fallback={
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            Cargando ...
+          </div>
+        }
+      >
+        <RequestPage />
+      </Suspense>
     </div>
-    )
+  );
 }

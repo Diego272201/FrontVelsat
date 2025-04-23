@@ -205,17 +205,19 @@ const Tollbar = () => {
 
         {baseUrl === 'https://sub.velsat.pe:8586' ? (
           <ul className="navigation">
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
+              style={{ marginTop: '-8px' }}
+            >
               <Link
                 href="#"
                 title="Estadísticas"
                 className={activeLink === 4 ? 'active' : ''}
                 onClick={() => handleLinkClick(4)}
               >
-                <div className="optMenu">Reportes</div>
-                <i className="dropdown-iconn">
-                  <IoMdArrowDropdown />
-                </i>
+                <div style={{ fontSize: '12px' }}>
+                  Reportes
+                </div>
               </Link>
 
               <ul
@@ -242,38 +244,28 @@ const Tollbar = () => {
               </ul>
             </li>
 
-            <li className="dropdown">
+            <li
+              className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
+              style={{ marginTop: '-8px' }}
+            >
               <Link href="#" title="Estadísticas">
-                <div className="optMenu">Recreación</div>
-                <i className="dropdown-iconn">
-                  <IoMdArrowDropdown />
-                </i>
+                <div style={{ fontSize: '12px' }}>
+                  Recreación
+                </div>
               </Link>
             </li>
 
-            <li className="dropdown">
-              <div className="exitToolbar">
-                <button>
-                  <RiFullscreenLine onClick={toggleFullScreen} size={'20px'} />
-                </button>
-                <div className="group relative flex items-center">
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
-                    className="p-2"
-                  >
-                    <IoMdExit size={22} />
-                  </button>
-                  <div className="absolute left-1/2 top-full z-10 mt-0.5 -translate-x-1/2 whitespace-nowrap rounded bg-red-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    Salir
-                  </div>
-                </div>
+        
+            <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
+              <div className="flex w-[50px] items-center justify-center p-0">
+                <Profile toggleFullScreen={toggleFullScreen} />
               </div>
-            </li>
+            </div>
           </ul>
         ) : (
           <ul className="navigation">
             <li
-              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
+              className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
               <Link
@@ -282,9 +274,7 @@ const Tollbar = () => {
                 className={activeLink === 0 ? 'active' : ''}
                 onClick={() => handleLinkClick(0)}
               >
-                <div style={{ color: '#212529', fontSize: '12px' }}>
-                  Gestión de Servicios
-                </div>
+                <div style={{ fontSize: '12px' }}>Gestión de Servicios</div>
               </Link>
 
               <ul
@@ -364,7 +354,7 @@ const Tollbar = () => {
             </li>
 
             <li
-              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff] "
+              className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
               <Link
@@ -373,9 +363,7 @@ const Tollbar = () => {
                 className={activeLink === 1 ? 'active' : ''}
                 onClick={() => handleLinkClick(1)}
               >
-                <div style={{ color: '#212529', fontSize: '12px' }}>
-                  Planificación
-                </div>
+                <div style={{ fontSize: '12px' }}>Planificación</div>
               </Link>
 
               <ul
@@ -403,7 +391,7 @@ const Tollbar = () => {
             </li>
 
             <li
-              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
+              className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
               <Link
@@ -412,14 +400,13 @@ const Tollbar = () => {
                 className={activeLink === 2 ? 'active' : ''}
                 onClick={() => handleLinkClick(2)}
               >
-                <div style={{ color: '#212529', fontSize: '12px' }}>
+                <div style={{ fontSize: '12px' }}>
                   Puntos de Interés
                 </div>
               </Link>
             </li>
             <li
-              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fff]"
-              style={{ marginTop: '-8px' }}
+ className="dropdown  p-1.5 hover:bg-[#fff] hover:text-black text-white bg-[#edf2f4] bg-opacity-10 "              style={{ marginTop: '-8px' }}
             >
               <Link
                 href="#"
@@ -427,14 +414,14 @@ const Tollbar = () => {
                 className={activeLink === 3 ? 'active' : ''}
                 onClick={() => handleLinkClick(3)}
               >
-                <div style={{ color: '#212529', fontSize: '12px' }}>
+                <div style={{ fontSize: '12px' }}>
                   Operaciones
                 </div>
               </Link>
             </li>
             <li
-              className="dropdown bg-[#edf2f4] p-1.5 hover:bg-[#fcbf49]"
-              style={{ marginTop: '-8px' }}
+              className="dropdown  p-1.5 hover:bg-[#fff] hover:text-black text-white bg-[#edf2f4] bg-opacity-10"
+               style={{ marginTop: '-8px' }}
             >
               <Link
                 href="#"
@@ -442,10 +429,9 @@ const Tollbar = () => {
                 className={activeLink === 4 ? 'active' : ''}
                 onClick={() => handleLinkClick(4)}
               >
-                <div style={{ color: '#212529', fontSize: '12px' }}>
+                <div style={{ fontSize: '12px' }}>
                   Reportes
                 </div>
-
               </Link>
 
               <ul
@@ -500,16 +486,11 @@ const Tollbar = () => {
               </ul>
             </li>
 
-           
-              <div className="exitToolbar">
-                
-             
-                  <div className="flex w-[50px] items-center justify-center p-0">
-                    <Profile toggleFullScreen={toggleFullScreen} />
-                  </div>
-               
+            <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
+              <div className="flex w-[50px] items-center justify-center p-0">
+                <Profile toggleFullScreen={toggleFullScreen} />
               </div>
-          
+            </div>
           </ul>
         )}
       </div>

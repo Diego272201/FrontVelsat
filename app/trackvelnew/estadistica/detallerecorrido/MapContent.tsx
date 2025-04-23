@@ -1,7 +1,5 @@
 'use client';
-export const dynamic = 'force-dynamic';
-
-import React, { useState, useCallback, useEffect, Suspense } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   GoogleMap,
   useJsApiLoader,
@@ -11,47 +9,41 @@ import {
 } from '@react-google-maps/api';
 import axios from 'axios';
 import '@/app/styles/markers.css';
-import { useSearchParams } from 'next/navigation'; // Cambiado desde react-router-dom
-import Loader from '../components/Loader';
-import { Toaster, toast } from 'sonner';
-import '@/app/styles/sonner.css';
-import { useApi } from '@/context/ApiContext';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { Toaster, toast } from 'sonner';
+import { useApi } from '@/context/ApiContext';
+import Loader from '@/app/components/Loader';
 
-function MapContent() {
+interface UnidadDetalleRecorrido {
+  longitude: number;
+  latitude: number;
+  date: string;
+  time: string;
+  speed: number;
+}
+
+const MapContent = () => {
   const { data: session } = useSession();
-  const searchParams = useSearchParams(); // Usa el hook de Next.js
-  const { baseUrl, setBaseUrl } = useApi();
-  
+  const searchParams = useSearchParams();
+  const { baseUrl } = useApi();
+
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
-
   const username = session?.user.username;
 
   const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
-
-  interface UnidadDetalleRecorrido {
-    longitude: number;
-    latitude: number;
-    date: string;
-    time: string;
-    speed: number;
-  }
-
-  const containerStyle = {
-    width: '100%',
-    height: '100vh',
-  };
 
   const [mapCenter, setMapCenter] = useState({
     lat: -12.046591525826495,
     lng: -77.04689047482863,
   });
-
   const [markersData, setMarkersData] = useState<UnidadDetalleRecorrido[]>([]);
-  const [selectedMarker, setSelectedMarker] = useState<UnidadDetalleRecorrido | null>(null);
+  const [selectedMarker, setSelectedMarker] =
+    useState<UnidadDetalleRecorrido | null>(null);
   const [map, setMap] = useState(null);
+
   const [isMarkersLoaded, setIsMarkersLoaded] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
@@ -80,7 +72,7 @@ function MapContent() {
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  }, [detailRecorrido, setBaseUrl]);
+  }, [detailRecorrido]);
 
   useEffect(() => {
     fetchData();
@@ -152,7 +144,7 @@ function MapContent() {
         </div>
       ) : (
         <GoogleMap
-          mapContainerStyle={containerStyle}
+          mapContainerStyle={{ width: '100%', height: '100vh' }}
           center={mapCenter}
           zoom={12}
           onLoad={onLoad}
@@ -219,13 +211,6 @@ function MapContent() {
       )}
     </>
   );
-}
+};
 
-export default function RequestPageDetail() {
-  return (
-    <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}><Loader /></div>}>
-      <MapContent />
-      <Toaster />
-    </Suspense>
-  );
-}
+export default MapContent;

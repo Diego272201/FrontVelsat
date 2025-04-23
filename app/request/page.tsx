@@ -109,7 +109,6 @@ export default function RequestPage() {
     
     if (isLoaded) {
       try {
-        localStorage.setItem('mapLoaded', 'true');
         setMapLoaded(true);
       } catch (error) {
         console.error('Error setting mapLoaded in localStorage:', error);
