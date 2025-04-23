@@ -15,7 +15,6 @@ import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
 
-// Use dynamic import with ssr: false for the Google Map component
 const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
   { ssr: false }
@@ -45,7 +44,6 @@ interface fechaActual {
 }
 
 export default function RequestPage() {
-  // Add flag to track if we're in client-side environment
   const isClient = typeof window !== 'undefined';
   
   const { data: session, status } = useSession();
@@ -112,7 +110,7 @@ export default function RequestPage() {
         setMapLoaded(true);
       } catch (error) {
         console.error('Error setting mapLoaded in localStorage:', error);
-        setMapLoaded(true); // Fallback to true if localStorage fails
+        setMapLoaded(true); 
       }
     } else {
       try {
@@ -209,7 +207,7 @@ export default function RequestPage() {
 
       const filteredDeviceList = filteredIdsFromSidebar
       ? deviceList.filter((device) => filteredIdsFromSidebar.includes(device.deviceId))
-      : deviceList; // Si filteredIdsFromSidebar es null o undefined, no se filtra y se muestra toda la lista
+      : deviceList; 
     
 if (filteredIdsFromSidebar) {
   Object.keys(existingMarkers).forEach((deviceId) => {
@@ -268,7 +266,7 @@ if (filteredIdsFromSidebar) {
           content1.id = `content-${device.deviceId}`;
           content1.innerHTML = `
           <div class="relative flex flex-col items-center mt-4">
-            <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 rounded-md">
+            <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5">
               ${device.deviceId.toUpperCase()}
             </div>
             <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
@@ -357,7 +355,6 @@ if (filteredIdsFromSidebar) {
   
           existingMarkers[device.deviceId] = marker;
   
-          // Evento de cierre + actualización de hora en tiempo real
           const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`);
           const fechaEl = content2.querySelector(`#fecha-${device.deviceId}`);
   
@@ -376,7 +373,7 @@ if (filteredIdsFromSidebar) {
             if (closeButton) {
               closeButton.addEventListener('click', () => {
                 popup2.setMap(null);
-                clearInterval(intervalId); // Detiene la actualización cuando se cierra el popup
+                clearInterval(intervalId);
               });
             }
           }
@@ -393,19 +390,21 @@ if (filteredIdsFromSidebar) {
         const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
   
         return `
-          <div class="content-custom-popup" id="content2-${device.deviceId}">
-            <button id="close-btn-${device.deviceId}" class="popup-close-btn">X</button>
-            <h3 class="popup-title">Unidad: ${device.deviceId.toUpperCase()}</h3>
-            <p><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
-            <p><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
+          <div class="bg-[#1f2937] text-[12px] text-white flex flex-col w-[250px]" id="content2-${device.deviceId}">
+
+            <button id="close-btn-${device.deviceId}" class="popup-close-btn text-sm">X</button>
+            <h3 class="popup-title p-2">Unidad: ${device.deviceId.toUpperCase()}</h3>
+            <p class="px-2"><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
+            <p class="px-2"><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
             <br>
-            <h4 class="popup-subtitle">Último Reporte</h4>
-            <p id="fecha-${device.deviceId}">
+            <h4 class="popup-subtitle px-2">Último Reporte</h4>
+            <p class="px-2" id="fecha-${device.deviceId}">
               <strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}
             </p>        
-            <span><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
-            <span><strong>Ubicación:</strong> ${device.direccion} </span>
-            <a href="" class="follow-link" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+            <span class="px-2"><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
+            <span class="px-2"><strong>Ubicación:</strong> ${device.direccion} </span>
+            <a href="" class="follow-link ml-2 mr-2 mb-3" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+
           </div>
         `;
       }
