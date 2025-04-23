@@ -131,7 +131,7 @@ const Tollbar = () => {
 
   const pathname = usePathname();
   const isSedapalDetalleRecorrido =
-    username.toLowerCase() === 'sedapal' &&
+  baseUrl === 'https://sub.velsat.pe:8586' &&
     pathname.includes('detallerecorrido');
 
   const formatDateTime = (input: string | null) => {
