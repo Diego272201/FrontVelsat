@@ -131,7 +131,7 @@ const Tollbar = () => {
 
   const pathname = usePathname();
   const isSedapalDetalleRecorrido =
-    username.toLowerCase() === 'sedapal' &&
+  baseUrl === 'https://sub.velsat.pe:8586' &&
     pathname.includes('detallerecorrido');
 
   const formatDateTime = (input: string | null) => {
@@ -191,7 +191,7 @@ const Tollbar = () => {
                 marginLeft: '-120px',
               }}
             >
-              &nbsp;&nbsp;|&nbsp;&nbsp; Fechas:{' '}
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp; Fechas:{' '}
               <span style={{ fontWeight: 'normal' }}>
                 {formatDateTime(startDate)} - {formatDateTime(endDate)}
               </span>{' '}

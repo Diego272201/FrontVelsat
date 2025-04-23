@@ -151,7 +151,7 @@ export default function Page() {
 
       try {
         const response = await axios.get(
-          `https://66.240.210.125:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `https://velsat.pe:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -176,7 +176,7 @@ export default function Page() {
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          'https://66.240.210.125:8586/api/Preplan/conductores?usuario=movilbus',
+          'https://velsat.pe:8586/api/Preplan/conductores?usuario=movilbus',
         );
         setConductores(response.data);
       } catch (error) {
@@ -191,7 +191,7 @@ export default function Page() {
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          'https://66.240.210.125:8586/api/Preplan/unidades',
+          'https://velsat.pe:8586/api/Preplan/unidades',
         );
         setUnidades(response.data);
         setUnidadesA(response.data);
@@ -320,7 +320,7 @@ export default function Page() {
 
     try {
       const response = await axios.post(
-        'https://66.240.210.125:8586/api/Preplan/AsignarServicio',
+        'https://velsat.pe:8586/api/Preplan/AsignarServicio',
         payload,
       );
       toast.success('Asignación realizada con éxito.');
@@ -351,7 +351,7 @@ export default function Page() {
 
     try {
       await axios.delete(
-        'https://66.240.210.125:8586/api/Preplan/eliminacionmultiple',
+        'https://velsat.pe:8586/api/Preplan/eliminacionmultiple',
         {
           data: payload,
         },

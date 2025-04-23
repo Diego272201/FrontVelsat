@@ -20,6 +20,7 @@ import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { BiEditAlt } from 'react-icons/bi';
+import { useApi } from '@/context/ApiContext';
 
 interface Props {
   title: string;
@@ -70,45 +71,68 @@ export default function App({ title,  codCliente }: Props) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
   const [isTarifaLoaded, setIsTarifaLoaded] = useState(false);
+  const { baseUrl } = useApi();
+  const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
   useEffect(() => {
-    axios
-      .get('https://66.240.210.125:8586/api/Pasajero/Tarifa/movilbus')
-      .then((response) => {
-        setTarifa(response.data);
-        setIsTarifaLoaded(true);
-      })
-      .catch((error) => {
-        console.log('Error fetching: ', error);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (codCliente !== null && isTarifaLoaded) {
-      axios
-        .get(`https://66.240.210.125:8586/api/Pasajero/Detail/${codCliente}`)
-        .then((response) => {
-          const pasajeroData = response.data[0];
-          console.log('Datos del pasajero:', pasajeroData);
-
-          reset({
-            codlan: pasajeroData.codlan || '',
-            apellidos: pasajeroData.apellidos || '',
-            telefono: pasajeroData.telefono || '',
-            sexo: pasajeroData.sexo === 'M' ? 'masculino' : 'femenino',
-            empresa: pasajeroData.empresa || '',
-            zona: pasajeroData.zona || '',
-            direccion: pasajeroData.direccion || '',
-            distrito: pasajeroData.distrito || '',
-            wy: pasajeroData.wy || '',
-            wx: pasajeroData.wx || '',
-          });
-        })
-        .catch((error) => {
-          console.log('Error fetching pasajero detail: ', error);
-        });
+    if (baseUrl) {
+      setIsBaseUrlReady(true);
     }
-  }, [codCliente, isTarifaLoaded, reset]);
+  }, [baseUrl]);
+
+useEffect(() => {
+  if (!isBaseUrlReady) return;
+
+  const fetchTarifa = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/api/Pasajero/Tarifa/movilbus`);
+      const data = response.data;
+
+      if (data) {
+        setTarifa(data);
+        setIsTarifaLoaded(true);
+      } else {
+        console.error('Error: Datos no válidos', data);
+        setIsTarifaLoaded(false);
+      }
+    } catch (error) {
+      console.error('Error al obtener la tarifa:', error);
+      setIsTarifaLoaded(false);
+    }
+  };
+
+  fetchTarifa();
+}, [isBaseUrlReady, baseUrl]);
+
+useEffect(() => {
+  if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
+
+  const fetchPasajeroDetail = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}/api/Pasajero/Detail/${codCliente}`);
+      const pasajeroData = response.data[0];
+
+      console.log('Datos del pasajero:', pasajeroData);
+
+      reset({
+        codlan: pasajeroData.codlan || '',
+        apellidos: pasajeroData.apellidos || '',
+        telefono: pasajeroData.telefono || '',
+        sexo: pasajeroData.sexo === 'M' ? 'masculino' : 'femenino',
+        empresa: pasajeroData.empresa || '',
+        zona: pasajeroData.zona || '',
+        direccion: pasajeroData.direccion || '',
+        distrito: pasajeroData.distrito || '',
+        wy: pasajeroData.wy || '',
+        wx: pasajeroData.wx || '',
+      });
+    } catch (error) {
+      console.error('Error fetching pasajero detail:', error);
+    }
+  };
+
+  fetchPasajeroDetail();
+}, [isBaseUrlReady, baseUrl, codCliente, isTarifaLoaded, reset]);
 
   const onSubmit = handleSubmit((data) => {
     console.log('Datos enviados:', data);

@@ -43,7 +43,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
 
   useEffect(() => {
     axios
-      .get('https://66.240.210.125:8586/api/Turnos/empresa/movilbus')
+      .get('https://velsat.pe:8586/api/Turnos/empresa/movilbus')
       .then((response) => {
         setEmpresas(response.data);
       })
@@ -94,7 +94,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.post(
-          'https://66.240.210.125:8586/api/Turnos/movilbus',
+          'https://velsat.pe:8586/api/Turnos/movilbus',
           postData,
         );
         console.log('Datos enviados correctamente', postData);
