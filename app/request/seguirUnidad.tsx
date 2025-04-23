@@ -4,7 +4,7 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
-import { useApi } from '@/context/ApiContext';
+import { useSearchParams } from 'next/navigation';
 
 
 const initialCenter = {
@@ -32,6 +32,9 @@ interface Props {
 
 export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) {
   const { data: session, status } = useSession();
+
+  const searchParams = useSearchParams();
+
   const [device, setDevice] = useState<Device | null>(null);
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -43,8 +46,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   useEffect(() => {
     const getDeviceIdFromUrl = () => {
       if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('deviceId');
+        return searchParams.get('deviceId');
       }
       return null;
     };

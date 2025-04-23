@@ -1,15 +1,20 @@
-'use client'
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic'; // Esta línea debe ir sola antes de todo
 
-const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), { ssr: false });
-import React from 'react';
+import React, { Suspense } from 'react';
 import '@/app/styles/trackvelnew.css';
+import loadable from 'next/dynamic'; // Renombramos para evitar conflicto
 
-export default function page() {
+// Carga dinámica sin SSR
+const SeguirUnidad = loadable(() => import('@/app/request/seguirUnidad'), {
+  ssr: false,
+});
 
+export default function Page() {
   return (
-      <div className="trackvelnew">
-        <SeguirUnidad></SeguirUnidad>
-      </div>
+    <div className="trackvelnew">
+      <Suspense fallback={<div>Cargando mapa...</div>}>
+        <SeguirUnidad />
+      </Suspense>
+    </div>
   );
 }

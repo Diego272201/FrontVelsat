@@ -66,7 +66,7 @@ export const obtenerDatosYAgrupar = async (
   dato: string
 ): Promise<Grupo[]> => {
   try {
-    const url = `https://66.240.210.125:8586/api/preplan/get?dato=${encodeURIComponent(
+    const url = `https://velsat.pe:8586/api/preplan/get?dato=${encodeURIComponent(
       dato
     )}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`;
     const response = await axios.get(url);

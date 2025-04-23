@@ -1,17 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Pagination,
-  getKeyValue,
-  Selection,
   Modal,
   ModalContent,
-  ModalHeader,
   ModalBody,
   ModalFooter,
   Button,
@@ -19,13 +9,18 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { BsArrowDownSquareFill } from 'react-icons/bs';
-import { FaCar, FaUser, FaUserTie } from 'react-icons/fa';
+import { FaCar, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
-import SeguirUnidad from '@/app/request/seguirUnidad';
 import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
+
+
+import dynamic from 'next/dynamic';
+
+const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
+  ssr: false,
+});
 
 const getFormattedDate = () => {
   const peruTime = new Date(
