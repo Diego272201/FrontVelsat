@@ -50,7 +50,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect }) 
     <div className="relative">
       <input
         type="text"
-        className="peer block w-96 rounded-lg border-transparent bg-gray-100 px-4 py-2 ps-11 text-sm placeholder-zinc-500"
+        className="w-full rounded-md border border-gray-300 bg-gray-100 p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0"
         placeholder="Unidad"
         value={value}
         onChange={handleInputChange}

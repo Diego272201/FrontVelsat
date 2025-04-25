@@ -9,8 +9,9 @@ import {
   TableCell,
   Pagination,
 } from '@nextui-org/react';
-import { TbReportSearch } from 'react-icons/tb';
+import { BiSolidError } from "react-icons/bi";
 import '@/app/styles/table.css';
+import useCalculateRowsPerPage from '@/app/components/table/useCalculateRowsPerPage';
 
 interface ErrorReporte {
   item: number;
@@ -25,7 +26,6 @@ interface ErrorReporte {
 export default function ReporteErrores() {
   const [errores, setErrores] = useState<ErrorReporte[]>([]);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   useEffect(() => {
     const storedErrors = localStorage.getItem('erroresReporte');
@@ -38,20 +38,7 @@ export default function ReporteErrores() {
     setPage(1);
   }, [errores]);
 
-  useEffect(() => {
-    const calcularFilas = () => {
-      const alturaDisponible = window.innerHeight - 200;
-      const alturaFila = 40;
-      setRowsPerPage(Math.floor(alturaDisponible / alturaFila));
-    };
-
-    calcularFilas();
-    window.addEventListener('resize', calcularFilas);
-
-    return () => {
-      window.removeEventListener('resize', calcularFilas);
-    };
-  }, []);
+  const rowsPerPage = useCalculateRowsPerPage(40, 5, 180);
 
   const pages = Math.ceil((errores?.length || 0) / rowsPerPage);
 
@@ -62,23 +49,10 @@ export default function ReporteErrores() {
   }, [page, errores]);
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h1
-          style={{
-            fontSize: '16px',
-            fontWeight: 'bold',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '10px',
-            paddingBottom: '5px',
-            borderBottom: '2px solid',
-            borderImage: 'linear-gradient(to right, #ff4d4d, #b71c1c)',
-            borderImageSlice: 1,
-            color:'#0d1b2a'
-          }}
-        >
-          <TbReportSearch size={28} style={{ color: '#b71c1c' }} />
+    <div className='px-5'>
+      <div className="mb-4 text-center">
+        <h1 className="flex items-center justify-center gap-3   text-[15px] font-bold text-[#212529]">
+          <BiSolidError  className="text-red-700" size={28} />
           REPORTE DE ERRORES EN CARGA DE ARCHIVOS
         </h1>
       </div>
@@ -86,7 +60,8 @@ export default function ReporteErrores() {
       {errores.length > 0 ? (
         <Table
           aria-label="Tabla de errores en la carga de archivos"
-          classNames={{ wrapper: 'min-h-[222px]' }}
+
+          classNames={{ wrapper: 'min-h-[222px] rounded-none' }}
           bottomContent={
             <div className="mt-4 flex w-full justify-center">
               <Pagination
@@ -101,22 +76,28 @@ export default function ReporteErrores() {
           }
         >
           <TableHeader>
-            <TableColumn className="headerColumT text-sm">Item</TableColumn>
-            <TableColumn className="headerColumT text-sm">Código Oracle</TableColumn>
-            <TableColumn className="headerColumT text-sm">Nombre</TableColumn>
-            <TableColumn className="headerColumT text-sm">Subárea</TableColumn>
-            <TableColumn className="headerColumT text-sm">Rol</TableColumn>
-            <TableColumn className="headerColumT text-sm">Motivo</TableColumn>
-            <TableColumn className="headerColumT text-sm">Archivo</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Item</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">
+              Código Oracle
+            </TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Nombre</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Subárea</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Rol</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Motivo</TableColumn>
+            <TableColumn className="headerColumT text-sm rounded-none">Archivo</TableColumn>
           </TableHeader>
           <TableBody items={items}>
             {(error) => (
               <TableRow key={error.item}>
                 <TableCell className="centerCell">{error.item}</TableCell>
-                <TableCell className="centerCell">{error.codigoOracle}</TableCell>
+                <TableCell className="centerCell">
+                  {error.codigoOracle}
+                </TableCell>
                 <TableCell className="centerCell">{error.nombre}</TableCell>
                 <TableCell className="centerCell">{error.subarea}</TableCell>
-                <TableCell className="centerCell">{error.rol || 'N/A'}</TableCell>
+                <TableCell className="centerCell">
+                  {error.rol || 'N/A'}
+                </TableCell>
                 <TableCell className="centerCell">{error.motivo}</TableCell>
                 <TableCell className="centerCell">{error.archivo}</TableCell>
               </TableRow>

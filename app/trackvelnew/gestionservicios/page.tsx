@@ -14,7 +14,7 @@ export default function Page() {
       <Suspense fallback={<div>Cargando...</div>}>
         <ServiciosContent />
       </Suspense>
-      <Toaster />
+      <Toaster richColors />
     </div>
   );
 }

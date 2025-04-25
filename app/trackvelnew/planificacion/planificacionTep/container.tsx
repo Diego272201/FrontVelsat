@@ -7,9 +7,6 @@ import {
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
 import {
-  GoogleMap,
-  InfoWindow,
-  Marker,
   useJsApiLoader,
 } from '@react-google-maps/api';
 import {
@@ -19,8 +16,9 @@ import {
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
 import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
-
-// Esta la estructura de cada tabla, lo usamos para formar los grupos
+import ModalAgregarPasajero from './ModalAgregarPasajero';
+import ModalMapa from './ModalRuta';
+import { toast } from 'sonner';
 
 interface ItemData {
   id: string;
@@ -49,7 +47,7 @@ interface ContainerProps {
   id: string;
   items: ItemData[];
   grupo: Grupo;
-  onUpdateGrupo: (id: number, nuevaFecha: string) => void;
+  onUpdateGrupoHoraProg: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
   coordenadas?: {
@@ -58,6 +56,7 @@ interface ContainerProps {
     nombre?: string;
     direccion?: string;
   }[];
+  onRefrescarDatos?: () => void;
 }
 
 type MarkerData = {
@@ -71,10 +70,11 @@ export default function Container({
   id,
   items,
   grupo,
-  onUpdateGrupo,
+  onUpdateGrupoHoraProg,
   onUpdateConductor,
   onUpdateUnidad,
   coordenadas,
+  onRefrescarDatos,
 }: ContainerProps) {
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
@@ -89,20 +89,39 @@ export default function Container({
   });
 
   const handleStartDateSelect = (date: string) => {
+    if (grupo.tipo !== 'I') {
+      toast.error('Has cambiado la fecha de inicio, pero no está permitido actualizarla para este grupo.');
+      return;
+    }
+  
     setStartDate(date);
-  };
-
-  const handleEndDateSelect = (date: string) => {
-    setEndDate(date);
+  
     const formattedDate = formatDate(date);
-
     if (!formattedDate) {
       console.error('Error: Fecha inválida después de conversión.');
       return;
     }
-
-    onUpdateGrupo(grupo.id, formattedDate);
+  
+    onUpdateGrupoHoraProg(grupo.id, formattedDate);
   };
+  
+  const handleEndDateSelect = (date: string) => {
+    if (grupo.tipo !== 'S') {
+      toast.error('Has cambiado la fecha de fin, pero no está permitido actualizarla para este grupo.');
+      return;
+    }
+  
+    setEndDate(date);
+  
+    const formattedDate = formatDate(date);
+    if (!formattedDate) {
+      console.error('Error: Fecha inválida después de conversión.');
+      return;
+    }
+  
+    onUpdateGrupoHoraProg(grupo.id, formattedDate);
+  };
+  
 
   useEffect(() => {
     if (grupo?.fecha) {
@@ -141,7 +160,7 @@ export default function Container({
             <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
               <th>Tipo: {grupo.tipo}</th>
-              <th>Empresa: {grupo.empresa}</th>
+              <th>Empresa: {grupo.empresa.charAt(0).toUpperCase() + grupo.empresa.slice(1).toLowerCase()}</th>
               <th>Destino: {grupo.destinoGrupo}</th>
 
               <th>
@@ -159,8 +178,11 @@ export default function Container({
                     onDateSelect={handleStartDateSelect}
                     height="30px"
                     borderRadius="0"
-                    initialDateTime={formatDateToISO(grupo.fecha)}
-                  />
+                    initialDateTime={
+                      grupo.tipo === 'I'
+                        ? formatDateToISO(grupo.horaprog)
+                        : formatDateToISO(grupo.fecha)
+                    }                  />
                 </div>
               </th>
               <th>
@@ -178,7 +200,11 @@ export default function Container({
                     onDateSelect={handleEndDateSelect}
                     height="30px"
                     borderRadius="0"
-                    initialDateTime={formatDateToISO(grupo.horaprog)}
+                    initialDateTime={
+                      grupo.tipo === 'S'
+                        ? formatDateToISO(grupo.horaprog)
+                        : formatDateToISO(grupo.fecha)
+                    }        
                   />
                 </div>
               </th>
@@ -207,7 +233,9 @@ export default function Container({
 
         <div className="footerTep">
           <div className="dataConductorUnidad">
-            <div className="relative">
+
+            <div className='flex gap-4  w-[600px]'>
+            <div className='w-[380px]'>
               <InputConductor
                 value={conductor}
                 onChange={setConductor}
@@ -218,7 +246,7 @@ export default function Container({
               />
             </div>
 
-            <div className="relative">
+            <div >
               <InputUnidad
                 value={unidad}
                 onChange={setUnidad}
@@ -228,16 +256,13 @@ export default function Container({
                 }}
               />
             </div>
-
-            <div>Duracion: (Ida desde el Aeropuerto) Calculando ...</div>
+            </div>
 
             <div className="btnTep">
-              <button
-                type="button"
-                className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-              >
-                Pasajero
-              </button>
+              <ModalAgregarPasajero
+                grupo={grupo}
+                onRefrescarDatos={onRefrescarDatos}
+              ></ModalAgregarPasajero>
 
               <div>
                 <button
@@ -245,137 +270,22 @@ export default function Container({
                   onClick={() => {
                     setIsOpen(true);
                   }}
-                  className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-8 items-center gap-x-2 rounded border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   Ruta
                 </button>
 
-                {isOpen && (
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                    onClick={() => setIsOpen(false)} // Cierra al hacer clic fuera
-                  >
-                    <div
-                      className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
-                      onClick={(e) => e.stopPropagation()} // Previene el cierre si se hace clic dentro
-                    >
-                      {/* Botón X de cierre en la esquina */}
-                      <button
-                        onClick={() => setIsOpen(false)}
-                        className="absolute right-4 top-4 text-3xl font-bold text-gray-500 hover:text-gray-700"
-                      >
-                        &times;
-                      </button>
-
-                      <h2 className="mb-4 text-lg font-semibold">
-                        Ruta programada - Grupo {grupo.id}
-                      </h2>
-
-                      {isLoaded ? (
-                        <div className="h-[500px] w-full">
-                          <GoogleMap
-                            mapContainerStyle={{
-                              width: '100%',
-                              height: '100%',
-                            }}
-                            center={{
-                              lat: -12.061171148647077,
-                              lng: -77.03599608048779,
-                            }}
-                            zoom={11}
-                          >
-                            {coordenadas?.map((coord, index) => {
-                              const markerSvg = getMarkerSVG(index + 1);
-                              return (
-                                <Marker
-                                  key={index}
-                                  position={{
-                                    lat: parseFloat(coord.wy),
-                                    lng: parseFloat(coord.wx),
-                                  }}
-                                  onClick={() => setSelectedMarker(coord)} // coord incluye nombre y direccion
-                                  icon={{
-                                    url:
-                                      'data:image/svg+xml;charset=UTF-8,' +
-                                      encodeURIComponent(markerSvg),
-                                    scaledSize: new window.google.maps.Size(
-                                      40,
-                                      50,
-                                    ),
-                                    anchor: new window.google.maps.Point(
-                                      20,
-                                      45,
-                                    ),
-                                  }}
-                                />
-                              );
-                            })}
-                            {selectedMarker && (
-                              <InfoWindow
-                                position={{
-                                  lat: parseFloat(selectedMarker.wy),
-                                  lng: parseFloat(selectedMarker.wx),
-                                }}
-                                onCloseClick={() => setSelectedMarker(null)}
-                              >
-                                <div style={{ maxWidth: '200px' }}>
-                                  <h3
-                                    className="text-base font-bold text-gray-800"
-                                    style={{
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                    title={selectedMarker.nombre} // Esto muestra el texto completo al hacer hover
-                                  >
-                                    {selectedMarker.nombre
-                                      ? selectedMarker.nombre.length > 36
-                                        ? `${selectedMarker.nombre.slice(0, 36)}...`
-                                        : selectedMarker.nombre
-                                      : 'Sin nombre'}
-                                  </h3>
-
-                                  <p
-                                    className="text-sm text-gray-600"
-                                    style={{
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                    title={selectedMarker.direccion}
-                                  >
-                                    {selectedMarker.direccion
-                                      ? selectedMarker.direccion.length > 36
-                                        ? `${selectedMarker.direccion.slice(0, 36)}...`
-                                        : selectedMarker.direccion
-                                      : 'Sin dirección'}
-                                  </p>
-                                </div>
-                              </InfoWindow>
-                            )}
-                          </GoogleMap>
-                        </div>
-                      ) : (
-                        <p>Cargando mapa...</p>
-                      )}
-
-                      <button
-                        onClick={() => setIsOpen(false)}
-                        className="mt-4 rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600"
-                      >
-                        Cerrar
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <ModalMapa
+                  isOpen={isOpen}
+                  setIsOpen={setIsOpen}
+                  grupo={grupo.id}
+                  coordenadas={coordenadas}
+                  selectedMarker={selectedMarker}
+                  setSelectedMarker={setSelectedMarker}
+                  isLoaded={isLoaded}
+                  getMarkerSVG={getMarkerSVG}
+                />
               </div>
-
-              <button
-                type="button"
-                className="inline-flex h-8 items-center gap-x-2 rounded-lg border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-              >
-                Calcular
-              </button>
             </div>
           </div>
         </div>

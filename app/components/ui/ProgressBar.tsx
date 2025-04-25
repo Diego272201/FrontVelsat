@@ -1,23 +1,19 @@
-import { Progress } from "@nextui-org/react";
+import { Progress } from '@nextui-org/react';
 
 interface ProgressBarProp {
   value: number;
 }
 
-export default function App({value}:ProgressBarProp) {
+export default function App({ value }: ProgressBarProp) {
   return (
-    <Progress
-      classNames={{
-        base: "w-[70%]",        
-        track: "drop-shadow-md border border-default",
-        indicator: "bg-white",        
-        label: "tracking-wider font-medium text-default-600",
-        value: "text-white",
-      }}
-      radius="sm"
-      showValueLabel={true}
-      size="sm"
-      value={value}
-    />
+    <div className="w-[50%]  bg-gray-200 dark:bg-gray-400">
+      <div
+        className=" bg-[#f3ae24] p-[2px] text-center text-xs font-medium leading-none text-neutral-900"
+        style={{ width: `${value}%` }}
+      >
+                {Math.round(value)}%
+
+      </div>
+    </div>
   );
 }

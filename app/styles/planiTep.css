@@ -3,23 +3,18 @@
   padding-top: 20px;
   overflow: auto;
   height: 97vh;
-  padding-left: 5px;
-  padding-right: 5px;
+
 }
 
 .cabecera {
   display: flex;
   justify-content: space-between;
-  padding: 5px;
+  padding: 2px;
   font-weight: 500;
-  font-size: 14px;
   background:  #264ebb;
   align-items: center;
-  clip-path: polygon(1.75% 0, 100% 0, 100% 100%, 0 100%, 0 24%, 0.8% 24%);
-  border-radius: 5px;
+  clip-path: polygon(2.1% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.08% 29%);
 }
-
-
 
 
 .progressAndTitle{
@@ -28,10 +23,20 @@
   gap: 20px;
   align-items: center;
   padding-left: 0px;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
+.contenedorcabecera{
+  margin-top: 8px;
+}
 
+.titulocabecera{
+  color: #ffffff;
+  padding: 17px;
+  margin-left: 4px;
+ 
+ font-weight: 700;
+}
 
 
 .titulo_boton {
@@ -62,9 +67,11 @@
   font-family: helvetica;
   font-size: 14px;
   text-align: justify;
-  margin-top: 10px;
+  margin-top: 6px;
   background: #fff;
-   border-radius: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
+
 }
 
 .subtitleTep{
@@ -74,7 +81,7 @@
 }
 
 .selectTipoA {
-  width: 230px;
+  width: 200px;
 }
 
 .inputFiltros{
@@ -92,6 +99,8 @@
   
 }
 
+
+
 .servicesP {
   display: flex;
   flex-direction: column;
@@ -102,7 +111,7 @@
 .buttonsTep {
   display: flex;
   gap: 10px;
-  /* background: red; */
+  align-items: center;
 
 }
 .InfoReportes{
@@ -177,7 +186,7 @@
   color: #fff;
   border-style: none;
   padding: 7px 10px;
-  border-radius: 0.5em;
+  border-radius: 0.3em;
   overflow: hidden;
   z-index: 1;
   transition: all 250ms;
@@ -291,6 +300,8 @@
 
 .grupoServicios{
   margin-top: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 .footerTep{
   background: #f3ae24;
@@ -317,7 +328,7 @@
 }
 
 .nombre{
-  width: 15%;
+  width: 20%;
 }
 .distrito{
   width: 10%;
@@ -331,7 +342,7 @@
   text-overflow: ellipsis;
 }
 .fecha{
-  width: 15%;
+  width: 10%;
 }
 .area{
   width: 10%;

@@ -12,7 +12,9 @@ import {
 } from '@nextui-org/react';
 import { TbGps } from 'react-icons/tb';
 import axios from 'axios';
-import { toast } from 'sonner'; // ⬅️ 🔥 Se quita `Toaster`, solo se usa `toast`
+import { toast } from 'sonner';
+import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import { GrSelect } from 'react-icons/gr';
 
 type ModalDireccionesProp = {
   codCliente: string;
@@ -28,7 +30,12 @@ type Lugar = {
   distrito: string;
 };
 
-export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,setShouldRefetch }: ModalDireccionesProp) {
+export default function ModalDirecciones({
+  codCliente,
+  nombrePasajero,
+  codigo,
+  setShouldRefetch,
+}: ModalDireccionesProp) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [selectedValue, setSelectedValue] = useState<string>('');
@@ -40,7 +47,7 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
       setIsLoading(true);
 
       axios
-        .get(`https://velsat.pe:8586/api/Preplan/lugares/${codCliente}`)
+        .get(`${API_BASE_URL125}/api/Preplan/lugares/${codCliente}`)
         .then((response) => {
           setLugares(response.data);
         })
@@ -61,7 +68,7 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
 
     setIsSaving(true);
     try {
-      const url = `https://velsat.pe:8586/api/Preplan/direccion/${selectedValue}/${codigo}`;
+      const url = `${API_BASE_URL125}/api/Preplan/direccion/${selectedValue}/${codigo}`;
       await axios.put(url);
       toast.success('Dirección guardada correctamente.');
       setShouldRefetch(true);
@@ -75,28 +82,49 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
 
   return (
     <div className="flex flex-col gap-2">
-      {/* ❌ SE ELIMINA <Toaster /> PARA EVITAR DUPLICADOS */}
       <Button onPress={onOpen} color="warning" size="sm">
         Dirección
         <TbGps />
       </Button>
 
-      <Modal isOpen={isOpen} scrollBehavior="inside" onOpenChange={onOpenChange}>
+      <Modal
+        isOpen={isOpen}
+        scrollBehavior="inside"
+        onOpenChange={onOpenChange}
+        size="2xl"
+      >
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                Seleccione la Dirección del Pasajero : <span style={{ fontSize: '12px' }}>{nombrePasajero}</span>
-                <p>{codigo}</p>
+              <ModalHeader className="flex items-center  text-[15px] text-gray-800">
+                <div className="flex items-center gap-2">
+                  <GrSelect size={20} />
+                  Seleccione la Dirección del Pasajero:{' '}
+                  {nombrePasajero
+                    .toLowerCase()
+                    .split(' ')
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')}
+                </div>
               </ModalHeader>
+
               <ModalBody>
                 {isLoading ? (
                   <p>Cargando direcciones...</p>
                 ) : lugares.length > 0 ? (
-                  <RadioGroup color="warning" label="Direcciones" value={selectedValue} onValueChange={setSelectedValue}>
+                  <RadioGroup
+                    color="warning"
+                    label="Direcciones"
+                    value={selectedValue}
+                    onValueChange={setSelectedValue}
+                  >
                     {lugares.map((lugar) => (
-                      <Radio key={lugar.codlugar} value={String(lugar.codlugar)} description={lugar.direccion}>
-                        {lugar.distrito}
+                      <Radio
+                        key={lugar.codlugar}
+                        value={String(lugar.codlugar)}
+                        description={lugar.direccion}
+                      >
+                        <span className="text-[11px]">{lugar.distrito}</span>
                       </Radio>
                     ))}
                   </RadioGroup>
@@ -109,7 +137,11 @@ export default function ModalDirecciones({ codCliente, nombrePasajero, codigo,se
                   Cerrar
                 </Button>
 
-                <Button color="primary" onPress={() => handleGuardar(onClose)} isLoading={isSaving}>
+                <Button
+                  color="primary"
+                  onPress={() => handleGuardar(onClose)}
+                  isLoading={isSaving}
+                >
                   Guardar
                 </Button>
               </ModalFooter>

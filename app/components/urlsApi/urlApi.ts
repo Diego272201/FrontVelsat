@@ -12,6 +12,9 @@ export { getSimplifiedDeviceListUrl, getDeviceListUrl, UrlLogin };
 
 export const API_BASE_URL = 'https://velsat.pe:8586/api/Preplan';
 
+export const API_BASE_URL125 = 'https://velsat.pe:8586';
+
+
 export const getApiConductoresUrl = (usuario: string) => `${API_BASE_URL}/conductores?usuario=${usuario}`;
 
 export const API_UNIDADES = `${API_BASE_URL}/unidades`;

@@ -4,6 +4,7 @@ import '@/app/styles/turnos.css';
 import TablaTurno from './TablaTurno';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
+import { Toaster } from 'sonner';
 
 export default function TurnosContent() {
   const [ingresoData, setIngresoData] = useState<any[]>([]);
@@ -64,6 +65,8 @@ export default function TurnosContent() {
 
   return (
     <div className="contenetTurnos">
+      <Toaster richColors />
+
       <div className="ingreso">
         <TablaTurno
           users={ingresoData}

@@ -21,7 +21,7 @@ import { SelectorIcon } from './SelectorIcon';
 import { IoSave } from 'react-icons/io5';
 import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
-import { toast, Toaster } from 'sonner';
+import { toast } from 'sonner';
 
 interface User {
   codigo: string;

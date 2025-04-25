@@ -1,4 +1,3 @@
-// useCalculateRowsPerPage.ts
 import { useState, useEffect } from 'react';
 
 const useCalculateRowsPerPage = (rowHeight: number = 40, minRows: number = 5,availableHeightOffset: number = 180 ) => {

@@ -43,3 +43,27 @@ export function formatDateToISO(fecha?: string): string {
   const [, day, month, year, hours, minutes] = match;
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
+
+export const parseFechaHora = (filtroFecha: string): string => {
+  if (!filtroFecha) return '';
+  const [dia, mes, año] = filtroFecha.split(' ')[0].split('/');
+  const hora = filtroFecha.split(' ')[1];
+  return `${año}-${mes}-${dia} ${hora}`;
+};
+
+
+// Convierte la fecha de un formato Date a formato dd/MM/yyyy
+export const formatFecha = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+// Convierte la fecha de un formato Date a formato yyyy-MM-dd
+export const formatFechaAMD = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${year}-${month}-${day}`;
+};

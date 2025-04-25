@@ -1,3 +1,4 @@
+import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import axios from 'axios';
 
 interface Lugar {
@@ -15,7 +16,6 @@ interface Conductor {
   apepate: string;
 
 }
-
 
 interface Unidad {
   codunidad: string;
@@ -66,7 +66,7 @@ export const obtenerDatosYAgrupar = async (
   dato: string
 ): Promise<Grupo[]> => {
   try {
-    const url = `https://velsat.pe:8586/api/preplan/get?dato=${encodeURIComponent(
+    const url = `${API_BASE_URL125}/api/preplan/get?dato=${encodeURIComponent(
       dato
     )}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`;
     const response = await axios.get(url);
@@ -96,7 +96,7 @@ export const obtenerDatosYAgrupar = async (
             },
             conductor: item.servicio.conductor.apepate ,
             unidad: item.servicio.unidad.codunidad,
-            coordenadas: [], // Inicializar coordenadas
+            coordenadas: [], 
           });
         }
         gruposMap.get(numGrupo)?.personas.push({
@@ -108,7 +108,7 @@ export const obtenerDatosYAgrupar = async (
           distrito: item.lugar.distrito,
           wx: item.lugar.wx,
           wy: item.lugar.wy,
-          fechaItem: item.horaprog,
+          fechaItem: item.fecha,
           area: item.empresa,
           eliminado:item.eliminado,
           orden: parseInt(item.orden, 10),
@@ -141,7 +141,7 @@ export const obtenerDatosYAgrupar = async (
           },
           conductor: item.servicio.conductor.apepate ,
           unidad: item.servicio.unidad.codunidad,
-          coordenadas: [], // Inicializar coordenadas
+          coordenadas: [], 
         };
         let it = 0;
         while (it < datos.length) {
@@ -158,9 +158,8 @@ export const obtenerDatosYAgrupar = async (
               nombre: currentItem.nombre,
               direccion: currentItem.lugar.direccion,
               distrito: currentItem.lugar.distrito,
-              fechaItem: currentItem.horaprog,
+              fechaItem: currentItem.fecha,
               eliminado:item.eliminado,
-
               area: currentItem.empresa,
             });
             grupo.coordenadas.push({

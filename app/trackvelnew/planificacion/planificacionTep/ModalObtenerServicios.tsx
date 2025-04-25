@@ -5,7 +5,6 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  useDisclosure,
 } from '@nextui-org/react';
 import { MdHomeRepairService } from 'react-icons/md';
 
@@ -23,7 +22,8 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
           {(onClose) => (
             <>
               <ModalHeader className="flex items-center gap-2">
-                Obtener Servicios <MdHomeRepairService />
+                <MdHomeRepairService />
+                Obtener Servicios
               </ModalHeader>
 
               <ModalBody>
@@ -32,7 +32,6 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
               <ModalFooter>
                 <Button
                   color="primary"
-                  variant="bordered"
                   onPress={() => {
                     onRespuesta('2');
                     onClose();
@@ -42,7 +41,6 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
                 </Button>
                 <Button
                   color="primary"
-                  variant="bordered"
                   onPress={() => {
                     onRespuesta('1');
                     onClose();
@@ -50,9 +48,12 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
                 >
                   No
                 </Button>
-                <Button color="danger" variant="bordered" onPress={onClose}>
+                <button
+                  onClick={onClose}
+                  className="rounded-xl bg-[#c1121f] px-4 py-2 text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
                   Cancelar
-                </Button>
+                </button>
               </ModalFooter>
             </>
           )}

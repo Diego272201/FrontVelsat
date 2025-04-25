@@ -15,10 +15,13 @@ interface InputConductorProps {
   onSelect?: (codigo: number, apepate: string) => void;
 }
 
-const InputConductor: React.FC<InputConductorProps> = ({ value, onChange, onSelect }) => {
-
-    const { data: session } = useSession();
-    const username = session?.user.username;
+const InputConductor: React.FC<InputConductorProps> = ({
+  value,
+  onChange,
+  onSelect,
+}) => {
+  const { data: session } = useSession();
+  const username = session?.user.username;
 
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [filtered, setFiltered] = useState<Conductor[]>([]);
@@ -26,13 +29,14 @@ const InputConductor: React.FC<InputConductorProps> = ({ value, onChange, onSele
 
   useEffect(() => {
     if (username) {
-      axios.get(getApiConductoresUrl(username))
-        .then(res => setConductores(res.data))
-        .catch(err => console.error('Error al obtener conductores:', err));
+      axios
+        .get(getApiConductoresUrl(username))
+        .then((res) => setConductores(res.data))
+        .catch((err) => console.error('Error al obtener conductores:', err));
     } else {
       console.warn('Username no disponible');
     }
-  }, [username]); 
+  }, [username]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -48,7 +52,7 @@ const InputConductor: React.FC<InputConductorProps> = ({ value, onChange, onSele
     }
 
     const result = conductores.filter((c) =>
-      c.apepate.toLowerCase().includes(val.toLowerCase())
+      c.apepate.toLowerCase().includes(val.toLowerCase()),
     );
     setFiltered(result);
     setShowDropdown(result.length > 0);
@@ -58,7 +62,7 @@ const InputConductor: React.FC<InputConductorProps> = ({ value, onChange, onSele
     <div className="relative">
       <input
         type="text"
-        className="peer block w-96 rounded-lg border-transparent bg-gray-100 px-16 py-2 ps-11 text-sm placeholder-zinc-500"
+        className="w-full rounded-md border border-gray-300 bg-gray-100 p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0"
         placeholder="Conductor"
         value={value}
         onChange={handleInputChange}
@@ -75,7 +79,7 @@ const InputConductor: React.FC<InputConductorProps> = ({ value, onChange, onSele
               key={c.codigo}
               className="cursor-pointer px-4 py-2 hover:bg-gray-200"
               onClick={() => onSelect?.(c.codigo, c.apepate)}
-              >
+            >
               {c.apepate}
             </li>
           ))}
