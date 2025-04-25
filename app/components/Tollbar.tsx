@@ -399,14 +399,14 @@ const Tollbar = () => {
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
-              <Link
+              <a
                 href="/trackvelnew/gestionpasajeros"
                 title="Gestión de Pasajeros"
                 className={activeLink === 2 ? 'active' : ''}
                 onClick={() => handleLinkClick(2)}
               >
                 <div style={{ fontSize: '12px' }}>Gestión de Pasajeros</div>
-              </Link>
+              </a>
             </li>
             <li
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
@@ -787,7 +787,7 @@ const Tollbar = () => {
             </div>
 
             {/* Gestión de Pasajeros */}
-            <Link
+            <a
               href="/trackvelnew/gestionpasajeros"
               onClick={() => setIsSidebarOpen(false)}
             >
@@ -797,7 +797,7 @@ const Tollbar = () => {
                   Gestión de Pasajeros
                 </span>
               </div>
-            </Link>
+            </a>
 
             {/* Operaciones */}
             <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">
