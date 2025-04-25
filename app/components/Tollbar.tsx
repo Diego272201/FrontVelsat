@@ -327,12 +327,12 @@ const Tollbar = () => {
                 </li>
 
                 <li>
-                  <Link
+                  <a
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
                   >
                     Control de Servicios
-                  </Link>
+                  </a>
                 </li>
                 <li>
                   <a href="#" title="Detalle de Servicios">
@@ -380,12 +380,12 @@ const Tollbar = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
+                  <a
                     href="/trackvelnew/planificacion/planificacionTep"
                     title="Planificación Servicios"
                   >
                     Planificación Servicios
-                  </Link>
+                  </a>
                 </li>
                 <li>
                   <a href="#" title="Re-Planificación Servicios">
@@ -709,7 +709,7 @@ const Tollbar = () => {
                     )}
                   </div>
 
-                  <Link
+                  <a
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
                     onClick={() => setIsSidebarOpen(false)}
@@ -717,7 +717,7 @@ const Tollbar = () => {
                     <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Control de Servicios
                     </button>
-                  </Link>
+                  </a>
                   <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Detalle de Servicios
                   </button>
@@ -769,14 +769,14 @@ const Tollbar = () => {
                     </button>
                   </Link>
 
-                  <Link href="/trackvelnew/planificacion/planificacionTep">
+                  <a href="/trackvelnew/planificacion/planificacionTep">
                     <button
                       className="mb-[-20px] block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                       onClick={() => setIsSidebarOpen(false)}
                     >
                       Planificación Servicios
                     </button>
-                  </Link>
+                  </a>
                   <Link href="#">
                     <button className="mb-3 block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Re-Planificación Servicios
