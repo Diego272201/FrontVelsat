@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
@@ -17,10 +17,14 @@ import {
   Tooltip,
 } from '@nextui-org/react';
 import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon';
-import { useForm } from 'react-hook-form';
+import { useForm, useFormContext } from 'react-hook-form';
 import axios from 'axios';
 import { BiEditAlt } from 'react-icons/bi';
 import { useApi } from '@/context/ApiContext';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 interface Props {
   title: string;
@@ -40,7 +44,7 @@ interface Pasajero {
   wx: string;
 }
 
-export default function App({ title,  codCliente }: Props) {
+export default function App({ title, codCliente }: Props) {
   useEffect(() => {
     if (codCliente !== null) {
       console.log('CodCliente en ModalPasajerosEdit:', codCliente);
@@ -53,6 +57,7 @@ export default function App({ title,  codCliente }: Props) {
     formState: { errors },
     reset,
     clearErrors,
+    watch,
   } = useForm({
     defaultValues: {
       codlan: '',
@@ -68,11 +73,58 @@ export default function App({ title,  codCliente }: Props) {
     },
   });
 
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
   const [isTarifaLoaded, setIsTarifaLoaded] = useState(false);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+  const { data: session } = useSession();
+  const username = session?.user.username;
+
+  //MAPA
+  const wy = watch('wy');
+  const wx = watch('wx');
+
+  const lat = parseFloat(wy);
+  const lng = parseFloat(wx);
+
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+
+  const [markerPosition, setMarkerPosition] = useState<{
+    lat: number;
+    lng: number;
+  }>({ lat: 0, lng: 0 });
+  const [originalPosition, setOriginalPosition] = useState<{
+    lat: number;
+    lng: number;
+  }>({ lat: 0, lng: 0 });
+
+  const containerStyle = {
+    width: '100%',
+    height: '250px',
+  };
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: API_KEY,
+  });
+
+  const handleClose = () => {
+    // Restablece las coordenadas y el marcador a los valores originales
+    reset((prev) => ({
+      ...prev,
+      wy: originalPosition.lat.toString(),
+      wx: originalPosition.lng.toString(),
+    }));
+    setMarkerPosition(originalPosition);
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+    }
+  }, [isOpen]); 
+  //FIN MAPA
 
   useEffect(() => {
     if (baseUrl) {
@@ -80,62 +132,110 @@ export default function App({ title,  codCliente }: Props) {
     }
   }, [baseUrl]);
 
-useEffect(() => {
-  if (!isBaseUrlReady) return;
+  useEffect(() => {
+    if (!isBaseUrlReady) return;
 
-  const fetchTarifa = async () => {
-    try {
-      const response = await axios.get(`${baseUrl}/api/Pasajero/Tarifa/movilbus`);
-      const data = response.data;
+    const fetchTarifa = async () => {
+      try {
+        const response = await axios.get(
+          `${baseUrl}/api/Pasajero/Tarifa/${username}`,
+        );
+        const data = response.data;
 
-      if (data) {
-        setTarifa(data);
-        setIsTarifaLoaded(true);
-      } else {
-        console.error('Error: Datos no válidos', data);
+        if (data) {
+          setTarifa(data);
+          setIsTarifaLoaded(true);
+        } else {
+          console.error('Error: Datos no válidos', data);
+          setIsTarifaLoaded(false);
+        }
+      } catch (error) {
+        console.error('Error al obtener la tarifa:', error);
         setIsTarifaLoaded(false);
       }
-    } catch (error) {
-      console.error('Error al obtener la tarifa:', error);
-      setIsTarifaLoaded(false);
-    }
-  };
+    };
 
-  fetchTarifa();
-}, [isBaseUrlReady, baseUrl]);
+    fetchTarifa();
+  }, [isBaseUrlReady, baseUrl]);
 
-useEffect(() => {
-  if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
+  useEffect(() => {
+    if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
 
-  const fetchPasajeroDetail = async () => {
+    const fetchPasajeroDetail = async () => {
+      try {
+        const response = await axios.get(
+          `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
+        );
+        const pasajeroData = response.data[0];
+
+        console.log('Datos del pasajero:', pasajeroData);
+
+        //mapa
+        const lat = parseFloat(pasajeroData.wy) || 0;
+        const lng = parseFloat(pasajeroData.wx) || 0;
+        //
+        
+        reset({
+          codlan: pasajeroData.codlan || '',
+          apellidos: pasajeroData.apellidos || '',
+          telefono: pasajeroData.telefono || '',
+          sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
+          empresa: pasajeroData.empresa || '',
+          zona: pasajeroData.zona || '',
+          direccion: pasajeroData.direccion || '',
+          distrito: pasajeroData.distrito || '',
+          wy: pasajeroData.wy || '',
+          wx: pasajeroData.wx || '',
+        });
+
+        setMarkerPosition({ lat, lng });
+        setOriginalPosition({ lat, lng });
+      } catch (error) {
+        console.error('Error fetching pasajero detail:', error);
+      }
+    };
+
+    fetchPasajeroDetail();
+  }, [isBaseUrlReady, baseUrl, codCliente, isTarifaLoaded, reset]);
+
+  const onSubmit = handleSubmit(async (data) => {
+    if (!baseUrl || codCliente === null || username === null) return;
+  
     try {
-      const response = await axios.get(`${baseUrl}/api/Pasajero/Detail/${codCliente}`);
-      const pasajeroData = response.data[0];
-
-      console.log('Datos del pasajero:', pasajeroData);
-
-      reset({
-        codlan: pasajeroData.codlan || '',
-        apellidos: pasajeroData.apellidos || '',
-        telefono: pasajeroData.telefono || '',
-        sexo: pasajeroData.sexo === 'M' ? 'masculino' : 'femenino',
-        empresa: pasajeroData.empresa || '',
-        zona: pasajeroData.zona || '',
-        direccion: pasajeroData.direccion || '',
-        distrito: pasajeroData.distrito || '',
-        wy: pasajeroData.wy || '',
-        wx: pasajeroData.wx || '',
+      const codlan = data.codlan;
+      console.log("Datos enviados:", {
+          codlan: data.codlan,
+          apellidos: data.apellidos,
+          telefono: data.telefono,
+          sexo: data.sexo,
+          empresa: data.empresa,
+          zona: data.zona,
+          direccion: data.direccion,
+          distrito: data.distrito,
+          wy: data.wy,
+          wx: data.wx
       });
+      const response = await axios.put(
+        `${baseUrl}/api/Pasajero/Update/${username}/${codCliente}/${codlan}`,{
+          codlan: data.codlan,
+          apellidos: data.apellidos,
+          telefono: data.telefono,
+          sexo: data.sexo,
+          empresa: data.empresa,
+          zona: data.zona,
+          direccion: data.direccion,
+          distrito: data.distrito,
+          wy: data.wy,
+          wx: data.wx
+    });
+  
+      console.log('Pasajero actualizado con éxito:', response.data);
+      onClose();
+      toast.success('Pasajero actualizado'); // 🎉 Aquí el toast
     } catch (error) {
-      console.error('Error fetching pasajero detail:', error);
+      console.error('Error al actualizar el pasajero:', error);
+      toast.error('Error al agregar el pasajero');
     }
-  };
-
-  fetchPasajeroDetail();
-}, [isBaseUrlReady, baseUrl, codCliente, isTarifaLoaded, reset]);
-
-  const onSubmit = handleSubmit((data) => {
-    console.log('Datos enviados:', data);
   });
 
   return (
@@ -212,20 +312,20 @@ useEffect(() => {
                           {...register('telefono')}
                         />
                       </div>
-                    </div>
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <Select
-                        label="Sexo"
-                        placeholder="Selecciona el sexo"
-                        labelPlacement="outside"
-                        className="max-w-xs"
-                        disableSelectorIconRotation
-                        selectorIcon={<SelectorIcon />}
-                        {...register('sexo')}
-                      >
-                        <SelectItem key="masculino">Masculino</SelectItem>
-                        <SelectItem key="femenino">Femenino</SelectItem>
-                      </Select>
+
+                      <div className="mensajeR w-[70px]">
+                        <Select
+                          label="Sexo"
+                          placeholder="Selecciona el sexo"
+                          labelPlacement="outside"
+                          disableSelectorIconRotation
+                          selectorIcon={<SelectorIcon />}
+                          {...register('sexo')}
+                        >
+                          <SelectItem key="M">M</SelectItem>
+                          <SelectItem key="F">F</SelectItem>
+                        </Select>
+                      </div>
                     </div>
 
                     <hr />
@@ -303,6 +403,7 @@ useEffect(() => {
                           label="Dirección"
                           placeholder="Dirección"
                           labelPlacement="outside"
+                          className="md:w-[400px]"
                           {...register('direccion', {
                             required: true,
                           })}
@@ -321,6 +422,7 @@ useEffect(() => {
                           label="Distrito"
                           placeholder="Distrito"
                           labelPlacement="outside"
+                          className="md:w-[205px]"
                           {...register('distrito', {
                             required: true,
                           })}
@@ -343,6 +445,9 @@ useEffect(() => {
                           label="Latitud"
                           placeholder="Latitud"
                           labelPlacement="outside"
+                          readOnly
+                          className="cursor-default pointer-events-none"
+
                           {...register('wy', {
                             required: true,
                           })}
@@ -360,6 +465,8 @@ useEffect(() => {
                           label="Longitud"
                           placeholder="Longitud"
                           labelPlacement="outside"
+                          readOnly
+                          className="cursor-default pointer-events-none"
                           {...register('wx', {
                             required: true,
                           })}
@@ -373,11 +480,38 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    <div>Diego coloca el Google maps:</div>
+                    <div>
+                      {isLoaded && !isNaN(lat) && !isNaN(lng) && (
+                        <div className="w-full">
+                          <GoogleMap
+                            mapContainerStyle={containerStyle}
+                            center={{ lat, lng }}
+                            zoom={18}
+                          >
+                            <Marker
+                              position={markerPosition}
+                              draggable={true}
+                              onDragEnd={(e) => {
+                                const newLat = e.latLng?.lat() || 0;
+                                const newLng = e.latLng?.lng() || 0;
+                                setMarkerPosition({ lat: newLat, lng: newLng });
+
+                                // Actualiza los campos del formulario
+                                reset((prev) => ({
+                                  ...prev,
+                                  wy: newLat.toString(),
+                                  wx: newLng.toString(),
+                                }));
+                              }}
+                            />
+                          </GoogleMap>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="danger" onPress={onClose}>
+                  <Button color="danger" onPress={() => { handleClose(); onClose(); }}>
                     Cerrar
                     <AiFillCloseCircle size={18} />
                   </Button>

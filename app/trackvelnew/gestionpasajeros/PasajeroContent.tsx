@@ -7,6 +7,9 @@ import axios from 'axios';
 import { debounce } from 'lodash';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
 import { useApi } from '@/context/ApiContext';
+import { useSession } from 'next-auth/react';
+import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 
 interface Pasajero {
   codcliente: number;
@@ -14,10 +17,14 @@ interface Pasajero {
 }
 
 export default function PasajeroContent() {
-  const [pasajeros, setPasajeros] = useState<{ value: number; label: string }[]>([]);
+  const [pasajeros, setPasajeros] = useState<
+    { value: number; label: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [selectedCodCliente, setSelectedCodCliente] = useState<number | null>(null);
+  const [selectedCodCliente, setSelectedCodCliente] = useState<number | null>(
+    null,
+  );
   const [inputValue, setInputValue] = useState('');
 
   const [codigoQuery, setCodigoQuery] = useState('');
@@ -27,8 +34,10 @@ export default function PasajeroContent() {
   >([]);
   const [selectedCodigo, setSelectedCodigo] = useState<string | null>(null);
 
- const { baseUrl } = useApi();
+  const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+  const { data: session } = useSession();
+  const username = session?.user.username;
 
   useEffect(() => {
     if (baseUrl) {
@@ -62,7 +71,7 @@ export default function PasajeroContent() {
 
   useEffect(() => {
     if (!isBaseUrlReady) return;
-  
+
     const fetchPasajeros = async () => {
       try {
         setLoading(true);
@@ -78,7 +87,7 @@ export default function PasajeroContent() {
         setLoading(false);
       }
     };
-  
+
     fetchPasajeros();
   }, [isBaseUrlReady, baseUrl]);
 
@@ -94,7 +103,9 @@ export default function PasajeroContent() {
   }, 300);
 
   const handleSelectionChange = (value: number) => {
-    const selectedPasajero = pasajeros.find((pasajero) => pasajero.value === value);
+    const selectedPasajero = pasajeros.find(
+      (pasajero) => pasajero.value === value,
+    );
     if (selectedPasajero) {
       setInputValue(selectedPasajero.label);
       setQuery('');
@@ -102,14 +113,54 @@ export default function PasajeroContent() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!selectedCodCliente) {
+      alert('Seleccione un pasajero primero');
+      return;
+    }
+
+    const confirmResult = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción eliminará al pasajero.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+      const response = await axios.delete(
+        `https://velsat.pe:8586/api/Pasajero/Delete/${selectedCodCliente}/${username}`,
+      );
+
+      if (response.status === 200) {
+        toast.success('Pasajero eliminado'); // 🎉 Aquí el toast
+        setSelectedCodCliente(null);
+        setInputValue('');
+        setQuery('');
+      }
+    } catch (error) {
+      console.error('Error al eliminar pasajero:', error);
+      toast.error('Error al agregar el pasajero');
+    }
+  };
+
   return (
     <div className="m-4 space-y-10 bg-gray-200 shadow-md">
       <div className="flex justify-center bg-gray-50 p-4">
-        <h2 className="text-lg font-bold text-gray-800">GESTIÓN DE PASAJEROS</h2>
+        <h2 className="text-lg font-bold text-gray-800">
+          GESTIÓN DE PASAJEROS
+        </h2>
       </div>
 
       <div className="space-y-4 px-4">
-        <h3 className="text-lg font-semibold text-gray-700">Búsqueda por Nombre</h3>
+        <h3 className="text-lg font-semibold text-gray-700">
+          Búsqueda por Nombre
+        </h3>
         <div className="flex w-full gap-4">
           <div className="w-1/2">
             <div className="relative w-full">
@@ -147,8 +198,14 @@ export default function PasajeroContent() {
 
           <div className="flex w-1/2 justify-end gap-2">
             <ModalPasajeros title="Nuevo Pasajero" />
-            <ModalPasajerosEdit title="Detalle Pasajero" codCliente={selectedCodCliente} />
-            <button className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600">
+            <ModalPasajerosEdit
+              title="Detalle Pasajero"
+              codCliente={selectedCodCliente}
+            />
+            <button
+              className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600"
+              onClick={handleDelete}
+            >
               <BiTrash className="text-white" size={18} />
               Eliminar
             </button>
@@ -157,7 +214,9 @@ export default function PasajeroContent() {
       </div>
 
       <div className="space-y-4 px-4">
-        <h3 className="text-lg font-semibold text-gray-700">Búsqueda por Código</h3>
+        <h3 className="text-lg font-semibold text-gray-700">
+          Búsqueda por Código
+        </h3>
         <div className="flex w-full gap-4">
           <input
             type="text"
@@ -195,7 +254,10 @@ export default function PasajeroContent() {
             </ul>
           )}
 
-          <ModalPasajerosEdit title="Detalle Pasajero" codCliente={Number(selectedCodigo)} />
+          <ModalPasajerosEdit
+            title="Detalle Pasajero"
+            codCliente={Number(selectedCodigo)}
+          />
         </div>
       </div>
 
@@ -209,7 +271,9 @@ export default function PasajeroContent() {
             <span className="block font-medium text-gray-600">
               Suelte los archivos aquí
             </span>
-            <span className="text-sm text-gray-400">o haga clic para seleccionar</span>
+            <span className="text-sm text-gray-400">
+              o haga clic para seleccionar
+            </span>
             <input type="file" id="file-input" className="hidden" />
           </label>
           <button

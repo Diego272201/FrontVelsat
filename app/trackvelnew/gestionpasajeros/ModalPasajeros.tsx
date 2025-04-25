@@ -20,6 +20,9 @@ import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
 interface Props {
   title: string;
@@ -32,17 +35,60 @@ export default function App({ title }: Props) {
     formState: { errors },
     reset,
     clearErrors,
+    watch,
   } = useForm();
 
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
 
-  const onSubmit = handleSubmit((data) => {
-    console.log(data);
-  });
-  
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
+  const { data: session } = useSession();
+  const username = session?.user.username;
+
+  //MAPA
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+
+  const [markerPosition, setMarkerPosition] = useState<{
+    lat: number;
+    lng: number;
+  }>({ lat: 0, lng: 0 });
+
+  const containerStyle = {
+    width: '100%',
+    height: '250px',
+  };
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: API_KEY,
+  });
+
+  const handleClose = () => {
+    // Restablece las coordenadas y el marcador a los valores originales
+    reset((prev) => ({
+      ...prev,
+
+      identificador: '',
+      nombre: '',
+      telefono: '',
+      sexo: '',
+      empresa: '',
+      tarifa: '',
+      direccion: '',
+      distrito: '',
+      latitud: '',
+      longitud: '',
+    }));
+    setMarkerPosition({ lat: 0, lng: 0 });
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+    }
+  }, [isOpen]);
+  //FIN MAPA
 
   useEffect(() => {
     if (baseUrl) {
@@ -52,12 +98,14 @@ export default function App({ title }: Props) {
 
   useEffect(() => {
     if (!isBaseUrlReady) return;
-  
+
     const fetchTarifa = async () => {
       try {
-        const response = await axios.get(`${baseUrl}/api/Pasajero/Tarifa/movilbus`);
+        const response = await axios.get(
+          `${baseUrl}/api/Pasajero/Tarifa/movilbus`,
+        );
         const data = response.data;
-  
+
         if (data) {
           setTarifa(data);
         } else {
@@ -67,21 +115,51 @@ export default function App({ title }: Props) {
         console.error('Error al obtener la tarifa:', error);
       }
     };
-  
+
     fetchTarifa();
   }, [isBaseUrlReady, baseUrl]);
 
+  const onSubmit = handleSubmit(async (data) => {
+    if (!username) return;
+
+    const body = {
+      codlan: data.identificador,
+      apellidos: data.nombre,
+      telefono: data.telefono,
+      sexo: data.sexo,
+      empresa: data.empresa,
+      zona: data.tarifa,
+      direccion: data.direccion,
+      distrito: data.distrito,
+      wy: data.latitud,
+      wx: data.longitud,
+    };
+
+    try {
+      const response = await axios.post(
+        `https://velsat.pe:8586/api/Pasajero/New/${username}`,
+        body,
+      );
+      console.log('Pasajero registrado correctamente:', response.data);
+      onClose(); // Cierra el modal al terminar
+      toast.success('Nuevo pasajero agregado');
+    } catch (error) {
+      console.error('Error al registrar el pasajero:', error);
+      toast.error('Error al agregar el pasajero');
+    }
+  });
+
   return (
     <>
-        <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-          <button
-            onClick={onOpen}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600"
-          >
-            <IoIosAddCircle className="text-white" size={18} />
-            Nuevo
-          </button>
-        </span>
+      <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
+        <button
+          onClick={onOpen}
+          className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600"
+        >
+          <IoIosAddCircle className="text-white" size={18} />
+          Nuevo
+        </button>
+      </span>
 
       <Modal
         size="2xl"
@@ -149,22 +227,22 @@ export default function App({ title }: Props) {
                           {...register('telefono')}
                         />
                       </div>
-                    </div>
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <Select
-                        label="Sexo"
-                        placeholder="Selecciona el sexo"
-                        labelPlacement="outside"
-                        className="max-w-xs"
-                        disableSelectorIconRotation
-                        selectorIcon={<SelectorIcon />}
-                        {...register('sexo')}
-                      >
-                        <SelectItem key="masculino">Masculino</SelectItem>
-                        <SelectItem key="femenino">Femenino</SelectItem>
-                      </Select>
-                    </div>
 
+                      <div className="mensajeR w-[70px]">
+                        <Select
+                          label="Sexo"
+                          placeholder="Selecciona el sexo"
+                          labelPlacement="outside"
+                          className="max-w-xs"
+                          disableSelectorIconRotation
+                          selectorIcon={<SelectorIcon />}
+                          {...register('sexo')}
+                        >
+                          <SelectItem key="M">M</SelectItem>
+                          <SelectItem key="F">F</SelectItem>
+                        </Select>
+                      </div>
+                    </div>
                     <hr />
 
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
@@ -239,6 +317,7 @@ export default function App({ title }: Props) {
                           label="Dirección"
                           placeholder="Dirección"
                           labelPlacement="outside"
+                          className="md:w-[400px]"
                           {...register('direccion', {
                             required: true,
                           })}
@@ -257,6 +336,7 @@ export default function App({ title }: Props) {
                           label="Distrito"
                           placeholder="Distrito"
                           labelPlacement="outside"
+                          className="md:w-[205px]"
                           {...register('distrito', {
                             required: true,
                           })}
@@ -279,6 +359,8 @@ export default function App({ title }: Props) {
                           label="Latitud"
                           placeholder="Latitud"
                           labelPlacement="outside"
+                          readOnly
+                          className="pointer-events-none cursor-default"
                           {...register('latitud', {
                             required: true,
                           })}
@@ -296,6 +378,8 @@ export default function App({ title }: Props) {
                           label="Longitud"
                           placeholder="Longitud"
                           labelPlacement="outside"
+                          readOnly
+                          className="pointer-events-none cursor-default"
                           {...register('longitud', {
                             required: true,
                           })}
@@ -309,7 +393,60 @@ export default function App({ title }: Props) {
                       </div>
                     </div>
 
-                    <div>Diego coloca el Google maps:</div>
+                    <div>
+                      {isLoaded && (
+                        <div className="w-full">
+                          <GoogleMap
+                            mapContainerStyle={containerStyle}
+                            center={
+                              markerPosition.lat !== 0 &&
+                              markerPosition.lng !== 0
+                                ? markerPosition
+                                : { lat: -12.0464, lng: -77.0428 } // Centro predeterminado solo al inicio
+                            }
+                            zoom={
+                              markerPosition.lat !== 0 &&
+                              markerPosition.lng !== 0
+                                ? 13
+                                : 5
+                            }
+                            onClick={(e) => {
+                              const lat = e.latLng?.lat() || 0;
+                              const lng = e.latLng?.lng() || 0;
+                              setMarkerPosition({ lat, lng });
+
+                              reset((prev) => ({
+                                ...prev,
+                                latitud: lat.toString(),
+                                longitud: lng.toString(),
+                              }));
+                            }}
+                          >
+                            {markerPosition.lat !== 0 &&
+                              markerPosition.lng !== 0 && (
+                                <Marker
+                                  position={markerPosition}
+                                  draggable={true}
+                                  onDragEnd={(e) => {
+                                    const newLat = e.latLng?.lat() || 0;
+                                    const newLng = e.latLng?.lng() || 0;
+                                    setMarkerPosition({
+                                      lat: newLat,
+                                      lng: newLng,
+                                    });
+
+                                    reset((prev) => ({
+                                      ...prev,
+                                      latitud: newLat.toString(),
+                                      longitud: newLng.toString(),
+                                    }));
+                                  }}
+                                />
+                              )}
+                          </GoogleMap>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </ModalBody>
                 <ModalFooter>

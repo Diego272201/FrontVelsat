@@ -1,11 +1,7 @@
 'use client';
-import {useDisclosure } from '@nextui-org/react';
+import { useDisclosure } from '@nextui-org/react';
 import React, { useEffect, useState } from 'react';
-import {
-  FaCar,
-  FaUser,
-  FaUserTie,
-} from 'react-icons/fa';
+import { FaCar, FaUser, FaUserTie } from 'react-icons/fa';
 import {
   MdCleaningServices,
   MdDelete,
@@ -87,6 +83,8 @@ export default function Page() {
 
   const [selectedArea, setSelectedArea] = useState('');
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
+  const [empresaSelecRes, setEmpresaSelecRes] = useState('');
+
   const [tipoServicio, setTipoServicio] = React.useState('');
 
   const [pasajero, setPasajero] = useState('');
@@ -367,6 +365,37 @@ export default function Page() {
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
+  const formatearFecha = (fecha: string | null, hora: string) => {
+    if (!fecha) return '';
+    const [year, month, day] = fecha.split('-'); // "2025-04-21"
+    return `${year}-${month}-${day} ${hora}`;
+  };
+
+  const handleDescarga = () => {
+    const feciniRaw = formatearFecha(selectedDate, '00:00');
+    const fecfinRaw = formatearFecha(selectedDate, '23:59');
+    const fecini = encodeURIComponent(feciniRaw);
+    const fecfin = encodeURIComponent(fecfinRaw);
+    const aerolinea = empresaSelecRes;
+  
+    const url = `https://velsat.pe:8586/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=movilbus`;
+  
+    const toastId = toast.loading('Generando resumen...');
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', '');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+   // Cerrar el toast después de un tiempo razonable
+   setTimeout(() => {
+    toast.dismiss(toastId);
+    toast.success('Resumen descargado');
+  }, 5000);
+};
+
   useEffect(() => {
     console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
   }, [conductorSeleccionado]);
@@ -404,11 +433,17 @@ export default function Page() {
                 Nuevo Servicio
               </button>
 
-              <ModalNuevoServicio isOpen={isOpen} onOpenChange={onOpenChange} onServicioAgregado={() => setRefreshFlagServicio ((prev) => !prev)}/>
+              <ModalNuevoServicio
+                isOpen={isOpen}
+                onOpenChange={onOpenChange}
+                onServicioAgregado={() =>
+                  setRefreshFlagServicio((prev) => !prev)
+                }
+              />
 
-              <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300">
+              {/* <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300">
                 Nuevo Servicio Turismo
-              </button>
+              </button> */}
               <button
                 className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
                 onClick={() => setIsVisibleAsignar((prev) => !prev)}
@@ -419,7 +454,7 @@ export default function Page() {
             </div>
           </div>
 
-          <label className="switch">
+          <label className="switch" >
             <input
               type="checkbox"
               className="checkbox"
@@ -475,18 +510,25 @@ export default function Page() {
 
                   <div className="w-[250px]">
                     <select
-                      id="countries"
+                      id="empresas"
                       className="mt-1 w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      value={empresaSelecRes}
+                      onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
                       <option value="">Seleccione Empresa</option>
-                      <option value="Empresa 1">Empresa 1</option>
-                      <option value="Empresa 2">Empresa 2</option>
-                      <option value="Empresa 3">Empresa 3</option>
+                      {empresas.map((empresa, index) => (
+                        <option key={index} value={empresa}>
+                          {empresa}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="container-btn-file">
+                    <button
+                      className="container-btn-file"
+                      onClick={handleDescarga}
+                    >
                       <FaClipboard size={20} />
                       Resumen
                     </button>
@@ -693,7 +735,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-              className="w-96 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                  className="w-96 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                   placeholder="Conductor"
                   value={conductor}
                   onChange={handleConductorChange}
