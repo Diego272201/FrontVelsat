@@ -327,12 +327,12 @@ const Tollbar = () => {
                 </li>
 
                 <li>
-                  <Link
+                  <a
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
                   >
                     Control de Servicios
-                  </Link>
+                  </a>
                 </li>
                 <li>
                   <a href="#" title="Detalle de Servicios">
@@ -380,12 +380,12 @@ const Tollbar = () => {
                   </Link>
                 </li>
                 <li>
-                  <Link
+                  <a
                     href="/trackvelnew/planificacion/planificacionTep"
                     title="Planificación Servicios"
                   >
                     Planificación Servicios
-                  </Link>
+                  </a>
                 </li>
                 <li>
                   <a href="#" title="Re-Planificación Servicios">
@@ -399,14 +399,14 @@ const Tollbar = () => {
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
-              <Link
+              <a
                 href="/trackvelnew/gestionpasajeros"
                 title="Gestión de Pasajeros"
                 className={activeLink === 2 ? 'active' : ''}
                 onClick={() => handleLinkClick(2)}
               >
                 <div style={{ fontSize: '12px' }}>Gestión de Pasajeros</div>
-              </Link>
+              </a>
             </li>
             <li
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
@@ -709,7 +709,7 @@ const Tollbar = () => {
                     )}
                   </div>
 
-                  <Link
+                  <a
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
                     onClick={() => setIsSidebarOpen(false)}
@@ -717,7 +717,7 @@ const Tollbar = () => {
                     <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Control de Servicios
                     </button>
-                  </Link>
+                  </a>
                   <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Detalle de Servicios
                   </button>
@@ -769,14 +769,14 @@ const Tollbar = () => {
                     </button>
                   </Link>
 
-                  <Link href="/trackvelnew/planificacion/planificacionTep">
+                  <a href="/trackvelnew/planificacion/planificacionTep">
                     <button
                       className="mb-[-20px] block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                       onClick={() => setIsSidebarOpen(false)}
                     >
                       Planificación Servicios
                     </button>
-                  </Link>
+                  </a>
                   <Link href="#">
                     <button className="mb-3 block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Re-Planificación Servicios
@@ -787,7 +787,7 @@ const Tollbar = () => {
             </div>
 
             {/* Gestión de Pasajeros */}
-            <Link
+            <a
               href="/trackvelnew/gestionpasajeros"
               onClick={() => setIsSidebarOpen(false)}
             >
@@ -797,7 +797,7 @@ const Tollbar = () => {
                   Gestión de Pasajeros
                 </span>
               </div>
-            </Link>
+            </a>
 
             {/* Operaciones */}
             <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">
