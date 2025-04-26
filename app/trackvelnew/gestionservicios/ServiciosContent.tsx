@@ -19,6 +19,7 @@ import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
 import { HiCalendarDateRange } from 'react-icons/hi2';
 import { RiCheckboxMultipleFill } from 'react-icons/ri';
+import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 
 const empresas = [
   'ABNER MATOS',
@@ -257,6 +258,9 @@ export default function Page() {
     setShowDropdownUnidadA(false);
   };
 
+
+
+
   const filteredUnidadesA =
     unidadA.length > 0
       ? unidadesA.filter((u) =>
@@ -291,6 +295,20 @@ export default function Page() {
     setUnidad('');
     setUnidadSeleccionada(null);
     setPasajeroCodlan(null);
+
+    
+      toast("Filtros reseteados", {
+        style: {
+          background: "#dbeafe",
+          color: "#1C5ED8",
+          border: "none",
+          boxShadow: "none",
+        },
+        icon: <MdCleaningServices size={20} color="#1C5ED8" />,
+      });
+ 
+    
+
   };
 
   const asignarServicios = async () => {
@@ -318,7 +336,7 @@ export default function Page() {
 
     try {
       const response = await axios.post(
-        'https://velsat.pe:8586/api/Preplan/AsignarServicio',
+        `${API_BASE_URL125}/api/Preplan/AsignarServicio`,
         payload,
       );
       toast.success('Asignación realizada con éxito.');
@@ -349,7 +367,7 @@ export default function Page() {
 
     try {
       await axios.delete(
-        'https://velsat.pe:8586/api/Preplan/eliminacionmultiple',
+        `${API_BASE_URL125}/api/Preplan/eliminacionmultiple`,
         {
           data: payload,
         },
@@ -367,19 +385,24 @@ export default function Page() {
 
   const formatearFecha = (fecha: string | null, hora: string) => {
     if (!fecha) return '';
-    const [year, month, day] = fecha.split('-'); // "2025-04-21"
+    const [year, month, day] = fecha.split('-'); 
     return `${year}-${month}-${day} ${hora}`;
   };
 
   const handleDescarga = () => {
+
+    if (!selectedDate || !empresaSelecRes) {
+      toast.error("Falta seleccionar fecha y/o empresa");
+      return;
+    }
     const feciniRaw = formatearFecha(selectedDate, '00:00');
     const fecfinRaw = formatearFecha(selectedDate, '23:59');
     const fecini = encodeURIComponent(feciniRaw);
     const fecfin = encodeURIComponent(fecfinRaw);
     const aerolinea = empresaSelecRes;
-  
+
     const url = `https://velsat.pe:8586/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=movilbus`;
-  
+
     const toastId = toast.loading('Generando resumen...');
 
     const link = document.createElement('a');
@@ -389,12 +412,11 @@ export default function Page() {
     link.click();
     document.body.removeChild(link);
 
-   // Cerrar el toast después de un tiempo razonable
-   setTimeout(() => {
-    toast.dismiss(toastId);
-    toast.success('Resumen descargado');
-  }, 5000);
-};
+    setTimeout(() => {
+      toast.dismiss(toastId);
+      toast.success('Resumen descargado');
+    }, 5000);
+  };
 
   useEffect(() => {
     console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
@@ -418,16 +440,15 @@ export default function Page() {
       <div>
         <div className="cabecera sticky top-0 z-50 bg-white shadow-md">
           <div className="progressAndTitle">
-            <div className="relative">
-              <span className="border-b-2 border-white px-4 py-2 pb-0.5 font-semibold uppercase leading-none text-white">
-                CONTROL DE SERVICIOS
-              </span>
+            <div className="contenedorcabecera">
+              <span className="titulocabecera">CONTROL DE SERVICIOS</span>
             </div>
+            <div className="h-[30px] w-px bg-white"></div>
 
             <div className="flex gap-2">
               <button
                 onClick={onOpen}
-                className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
+                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-400"
               >
                 <MdNewLabel size={20} color="#343a40" />
                 Nuevo Servicio
@@ -441,11 +462,8 @@ export default function Page() {
                 }
               />
 
-              {/* <button className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300">
-                Nuevo Servicio Turismo
-              </button> */}
               <button
-                className="flex cursor-pointer items-center gap-2 rounded-lg bg-[#F7931E] px-4 py-1.5 text-[12.5px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-300"
+                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-400"
                 onClick={() => setIsVisibleAsignar((prev) => !prev)}
               >
                 <MdDesignServices size={20} color="#343a40" />
@@ -453,15 +471,17 @@ export default function Page() {
               </button>
             </div>
           </div>
-
-          <label className="switch" >
+          <label className="inline-flex cursor-pointer items-center px-2">
             <input
               type="checkbox"
-              className="checkbox"
+              className="peer sr-only"
               onChange={toggleContent}
               checked={isVisible}
             />
-            <div className="slider"></div>
+            <div
+              className="peer relative h-6 bg-gray-200 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-md after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-[32px] peer-checked:after:border-white rtl:peer-checked:after:-translate-x-[32px] dark:border-gray-600 dark:bg-gray-400 dark:peer-checked:bg-orange-500"
+              style={{ width: '58px', borderRadius: '6px' }}
+            ></div>
           </label>
         </div>
 
@@ -480,7 +500,7 @@ export default function Page() {
                   <div>
                     <input
                       type="date"
-                      className="w-full rounded-md border bg-gray-200 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -488,7 +508,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      className="flex items-center gap-2 rounded bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
                       onClick={() => setSearchDate(selectedDate)}
                     >
                       Buscar
@@ -498,7 +518,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="rounded-md bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      className="rounded bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
                         setSelectedDate(null);
                         setSearchDate(null);
@@ -511,7 +531,7 @@ export default function Page() {
                   <div className="w-[250px]">
                     <select
                       id="empresas"
-                      className="mt-1 w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSelecRes}
                       onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
@@ -526,7 +546,7 @@ export default function Page() {
 
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
-                      className="container-btn-file"
+                      className="container-btn-file text-[12px]"
                       onClick={handleDescarga}
                     >
                       <FaClipboard size={20} />
@@ -550,7 +570,7 @@ export default function Page() {
                   <div className="inputFiltros">
                     <select
                       id="countries"
-                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedArea}
                       onChange={(e) => setSelectedArea(e.target.value)}
                     >
@@ -565,7 +585,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
@@ -583,7 +603,7 @@ export default function Page() {
                   <div className="w-[240px] max-w-lg">
                     <select
                       id="tipo-servicio"
-                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={tipoServicio}
                       onChange={(e) => setTipoServicio(e.target.value)}
                     >
@@ -604,7 +624,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="w-full rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -638,13 +658,13 @@ export default function Page() {
                               seleccionarPasajero(item.apepate, item.codlan);
 
                               setMostrarSugerencias(false);
-                              setSugerencias([]); // Limpia las sugerencias
+                              setSugerencias([]);
 
                               setTimeout(() => {
                                 const input =
                                   document.getElementById('inputPasajero');
-                                input?.blur(); // Forzar que el input pierda el foco
-                              }, 100); // Le damos 100ms para que termine la selección
+                                input?.blur();
+                              }, 100);
                             }}
                           >
                             {item.apepate}
@@ -664,14 +684,14 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-md border bg-gray-200 p-1.5 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                     />
                   </div>
 
                   <div className="relative">
                     <input
                       type="text"
-                      className="peer block w-full rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Unidad"
                       value={unidad}
                       onChange={handleUnidadChange}
@@ -699,19 +719,15 @@ export default function Page() {
                     )}
                   </div>
 
-                  <div className="mr-2">
-                    <div className="group relative">
-                      <button
-                        className="flex cursor-pointer items-center rounded-md bg-red-600 fill-red-400 p-1.5 duration-100 hover:bg-red-700 active:border active:border-red-400"
-                        onClick={handleClearFilters}
-                      >
-                        <MdCleaningServices color="#fff" />
-                      </button>
+                  <div className="bg-red-100 ">
+                    <button
+                      className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+                      onClick={handleClearFilters}
+                    >
+                      Limpiar
+                      <MdCleaningServices color="#fff" />
+                    </button>
 
-                      <div className="absolute left-1/2 top-[-35px] -translate-x-1/2 scale-0 transform rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-all duration-150 group-hover:scale-100 group-hover:opacity-100">
-                        Limpiar
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -721,21 +737,15 @@ export default function Page() {
 
         {isVisibleAsignar && (
           <div
-            className="flex justify-between gap-2"
-            style={{
-              background: '#fff',
-              paddingBottom: '5px',
-              paddingLeft: '5px',
-              paddingTop: '5px',
-              borderRadius: '10px',
-              marginTop: '10px',
-            }}
+            className="flex justify-between gap-2 bg-white p-2 mt-2"
+            style={{marginLeft:'5px', marginRight:'5px'}}
+          
           >
             <div className="flex gap-2">
               <div className="relative">
                 <input
                   type="text"
-                  className="w-96 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                  className="w-96 rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                   placeholder="Conductor"
                   value={conductor}
                   onChange={handleConductorChange}
@@ -767,7 +777,7 @@ export default function Page() {
               <div className="relative">
                 <input
                   type="text"
-                  className="w-46 rounded-md border bg-gray-200 p-1.5 ps-11 text-sm focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                  className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                   placeholder="Unidad"
                   value={unidadA}
                   onChange={handleUnidadAChange}

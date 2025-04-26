@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { Button, useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
@@ -278,7 +279,7 @@ export default function TepContent() {
     }
 
     const fecact = formatFechaAMD(selectedDate);
-    const url = `https://velsat.pe:8586/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
+    const url = `${API_BASE_URL125}/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
     try {
       const response = await axios({
         method: 'PUT',
@@ -402,7 +403,7 @@ export default function TepContent() {
                       }
                     >
                       <option value="" disabled>
-                        Selecciona el tipo de Archivo
+                        Seleccione Archivo
                       </option>
 
                       {tiposArchivos.map((tipo, index) => (
@@ -506,13 +507,13 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex h-9 items-center gap-2 rounded-md bg-green-500 p-2 text-[#212529] hover:bg-green-600 focus:outline-none text-[12px]"
+                      className="flex h-9 items-center gap-2 rounded bg-[#348357] p-2 text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
                       onClick={() => {
                         guardar();
                       }}
                     >
                       Guardar
-                      <IoSave color="#212529" />
+                      <IoSave color="#fff" />
                     </button>
 
                     <ModalObtenerServicios
@@ -520,12 +521,10 @@ export default function TepContent() {
                       onOpenChange={onOpenChange}
                       onRespuesta={manejarRespuestaModal}
                     />
-                  
 
                     <button
                       className="flex h-9 items-center gap-2 rounded bg-blue-500 px-2 text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={handlePublicar}
-
                     >
                       Publicar
                     </button>
@@ -567,9 +566,9 @@ export default function TepContent() {
                       <input
                         type="text"
                         id="input-label"
-                        className="dark:placeholder-neutral-800 w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                        className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
                         placeholder="Nombre del pasajero"
-                        style={{width:'280px'}}
+                        style={{ width: '280px' }}
                         value={nombrePasajero}
                         onChange={(e) => setNombrePasajero(e.target.value)}
                       />
@@ -629,10 +628,23 @@ export default function TepContent() {
       </div>
 
       <div
-        className="grupoServicios overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 290 : 110}px)` }}
+        className="grupoServicios relative overflow-y-auto"
+        style={{ height: `calc(100vh - ${isVisible ? 270 : 110}px)` }}
       >
-        {empresaConfirmada && dato && (
+        {!empresaConfirmada || !dato ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-300 flex-col gap-6">
+            <Image
+              src="/nodataVelsat.png"
+              alt=""
+              width={'380'}
+              height={'380'}
+            />
+
+            <span className="text-[14px] font-semibold text-[#0d1b2a] uppercase">
+              Aún no has Seleccionado la Empresa
+            </span>
+          </div>
+        ) : (
           <Servicios
             key={`${empresaConfirmada}-${dato}-${actualizacion}`}
             empresa={empresaConfirmada}

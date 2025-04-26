@@ -64,7 +64,7 @@ const columns = [
   { key: 'tipo', label: 'Tipo' },
   { key: 'empresa', label: 'Empresa' },
   { key: 'grupo', label: 'Grupo Turismo' },
-  { key: 'horaProg', label: 'Hora Prog.' },
+  { key: 'horaProg', label: 'Hora Prog' },
   { key: 'horaAto', label: 'Hora ATO' },
   { key: 'controlAto', label: 'Control ATO' },
   { key: 'unidad', label: 'Unidad' },
@@ -879,17 +879,17 @@ export default function App({
         </div>
       ) : (
         <div
-          className="overflow-auto rounded-lg border border-gray-300"
-          style={{ height: `calc(100vh - ${isVisible ? 265 : 110}px)` }}
+          className="overflow-auto border border-gray-300"
+          style={{ height: `calc(100vh - ${isVisible ? 255 : 110}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-700">
+            <thead className="sticky top-0 z-10 bg-[#f0b540]">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#ffffff]"
-                    style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+                    className="px-4 py-2 uppercase text-[#0d1b2a]"
+                    style={{ fontSize: '11px' }}
                   >
                     {column.label}
                   </th>

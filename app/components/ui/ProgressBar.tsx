@@ -1,4 +1,3 @@
-import { Progress } from '@nextui-org/react';
 
 interface ProgressBarProp {
   value: number;

@@ -243,27 +243,45 @@ export default function App({
                 wy: persona.wy,
                 acciones: (
                   <div className="accionesItems">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMoverAGrupoNuevo(Number(persona.idCliente));
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="flex items-center rounded bg-green-500 px-2 py-1 text-sm text-white hover:bg-green-600"
-                    >
-                      <MdAddBox size={16} className="text-gray-800" />
-                    </button>
+                    <div className="relative inline-block h-8 w-8">
+                      <div className="group relative h-full w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoverAGrupoNuevo(Number(persona.idCliente));
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          className="flex h-full w-full items-center justify-center rounded bg-green-500 hover:bg-green-600 focus:outline-none"
+                        >
+                          <MdAddBox size={16} className="text-gray-800" />
+                        </button>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEliminarDelArray(Number(persona.idCliente));
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="flex items-center rounded bg-[#d62828] px-2 py-1 text-sm text-white hover:bg-red-700"
-                    >
-                      <MdDelete size={16} className="text-white" />
-                    </button>
+                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-green-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          Mover a nuevo grupo
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative inline-block h-8 w-8">
+                      <div className="group relative h-full w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEliminarDelArray(Number(persona.idCliente));
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          className="flex h-full w-full items-center justify-center rounded bg-red-600 hover:bg-red-500 focus:outline-none"
+                        >
+                          <MdDelete size={16} className="text-white" />
+                        </button>
+
+                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          Eliminar Pasajero
+                        </div>
+                      </div>
+                    </div>
 
                     <ModalDirecciones
                       codCliente={persona.codCliente}

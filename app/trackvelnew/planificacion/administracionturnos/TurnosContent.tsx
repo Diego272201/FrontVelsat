@@ -75,6 +75,7 @@ export default function TurnosContent() {
           onEditSuccess={handleSaveSuccess}
         />
       </div>
+      <div className='w-[5px]'></div>
       <div className="salida">
         <TablaTurno
           users={salidaData}
