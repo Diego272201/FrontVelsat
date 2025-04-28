@@ -159,6 +159,7 @@ export default function PasajeroContent() {
       </div>
 
       <div className="m-2 bg-gray-200">
+        
         <div className="px-4 pt-2">
           <h3 className="text-[13px] font-semibold text-gray-700 pb-1" >
             Búsqueda por Nombre

@@ -9,14 +9,15 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { FaCar, FaUserTie } from 'react-icons/fa';
+import { FaCar, FaEdit, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
 import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
 
-
 import dynamic from 'next/dynamic';
+
+import { RiSaveFill } from 'react-icons/ri';
 
 const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
   ssr: false,
@@ -108,8 +109,6 @@ export default function App({
     lng: number;
   } | null>(null);
 
-  // const [isOpenA, setIsOpenA] = useState(false);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -150,22 +149,6 @@ export default function App({
   const handleCenterUpdate = (coords: { lat: number; lng: number }) => {
     setCentroMapa(coords);
   };
-
-  // // Detecta clics fuera del dropdown y lo cierra
-  // useEffect(() => {
-  //   function handleClickOutside(event: MouseEvent) {
-  //     if (
-  //       dropdownRef.current &&
-  //       !dropdownRef.current.contains(event.target as Node)
-  //     ) {
-  //       setIsOpenA(false);
-  //     }
-  //   }
-  //   document.addEventListener('mousedown', handleClickOutside);
-  //   return () => {
-  //     document.removeEventListener('mousedown', handleClickOutside);
-  //   };
-  // }, []);
 
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,16 +289,16 @@ export default function App({
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
 
-  const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>(''); // Inicializamos con ""
+  const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>('');
   const [horaAtoFinal, setHoraAtoFinal] = useState<string>('');
 
   useEffect(() => {
     setIsEditing(false);
     setHoraAtencion('');
     setHoraAto('');
-    setPasajero(''); // Limpiar el input del pasajero
-    setSugerencias([]); // Limpiar las sugerencias si es necesario
-    setSeleccionado(false); // Resetear el estado de selección
+    setPasajero('');
+    setSugerencias([]);
+    setSeleccionado(false);
   }, [selectedRow]);
 
   const [dataSeleccionada, setDataSeleccionada] = useState<
@@ -360,8 +343,8 @@ export default function App({
       horaAtencion,
     };
 
-    setDataSeleccionada([nuevaData]); // Reemplaza la data anterior
-    setAgregarTrigger((prev) => prev + 1); // Cambia el trigger
+    setDataSeleccionada([nuevaData]);
+    setAgregarTrigger((prev) => prev + 1);
     setHoraAtencionFinal(horaAtencion);
   };
 
@@ -482,19 +465,11 @@ export default function App({
     });
   };
 
-  // Sirve para actulizar los datos del modal al cambiar en opciones de servcio y llevarme al servcio que estana al incio
+  const [editandoFecha, setEditandoFecha] = useState(false);
+  const [nuevaFecha, setNuevaFecha] = useState('');
 
-  // useEffect(() => {
-  //   if (previousSelectedCod && data.length > 0) {
-  //     const updatedRow = data.find((item) => item.codServicio === previousSelectedCod);
-  //     if (updatedRow) {
-  //       setSelectedRow({ ...updatedRow });
-  //       setTimeout(() => {
-  //         document.getElementById(`row-${previousSelectedCod}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  //       }, 100);
-  //     }
-  //   }
-  // }, [data]);
+  const [editandoFechaProg, setEditandoFechaProg] = useState(false);
+  const [nuevaFechaProg, setNuevaFechaProg] = useState('');
 
   const handleRowClick = (row: any) => {
     setSelectedRow(row);
@@ -591,7 +566,7 @@ export default function App({
         (selecteServicio ? item.tipo === selecteServicio : true) &&
         (selecteNumServicio ? item.numero === selecteNumServicio : true) &&
         (unidadLimpia
-          ? item.unidad.toLowerCase().includes(unidadLimpia.toLowerCase()) 
+          ? item.unidad.toLowerCase().includes(unidadLimpia.toLowerCase())
           : true)
       );
     });
@@ -823,6 +798,8 @@ export default function App({
     setPasajero('');
     setHoraAtencion('');
     setHoraAto('');
+    setNuevaFecha('');
+    setNuevaFechaProg('');
   };
 
   const handleGuardarHoraAto = () => {
@@ -834,13 +811,18 @@ export default function App({
               horaAto: horaAto
                 ? horaAto.split('T')[1].slice(0, 5)
                 : item.horaAto,
-              // Actualizar la fechaCompleta al formato YYYY-MM-DD HH:mm
               fechaCompleta: horaAto ? parseFecha(horaAto) : item.fechaCompleta,
             }
           : item,
       ),
     );
   };
+
+  function formatearFechaParaMostrar(fechaISO: string) {
+    const [fecha, hora] = fechaISO.split('T'); // "2025-04-01", "00:10"
+    const [anio, mes, dia] = fecha.split('-'); // "2025", "04", "01"
+    return `${dia}/${mes}/${anio} ${hora}`; // "01/04/2025 00:10"
+  }
 
   return (
     <div>
@@ -964,9 +946,9 @@ export default function App({
       <Modal
         isOpen={isOpen}
         onOpenChange={(open) => {
-          onOpenChange(); // Mantiene el comportamiento original
+          onOpenChange();
           if (!open) {
-            handleLimpiarAll(); // Llama a handleLimpiarAll solo cuando se cierra
+            handleLimpiarAll();
           }
         }}
         className="full max-w-none"
@@ -978,33 +960,136 @@ export default function App({
               <ModalBody>
                 {selectedRow ? (
                   <div className="rounded-lg bg-gray-100 p-2">
-                    {/* Service Header */}
                     <div
                       className="flex rounded-lg bg-white p-2 shadow-md"
                       style={{ fontSize: '13px' }}
                     >
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-lg font-semibold">
-                          Ficha Servicio
+                          SERVICIO
                         </h2>
 
                         <div className="mt-2 border border-gray-300">
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Servicio:</p>
-                            <p className="col-span-3">
-                              {horaAto
-                                ? parseFecha(horaAto)
-                                : selectedRow?.fechaCompleta}{' '}
-                              - {selectedRow.tipo} ({selectedRow.numero}) -{' '}
-                              {selectedRow.empresaSinNumber}
-                            </p>
+
+                            <div className="col-span-3 flex items-center gap-2">
+                              {!editandoFecha ? (
+                                <>
+                                  <span>
+                                    {nuevaFecha
+                                      ? formatearFechaParaMostrar(nuevaFecha)
+                                      : horaAto
+                                        ? parseFecha(horaAto)
+                                        : selectedRow?.fechaCompleta}
+                                  </span>
+
+                                  <span>
+                                    - {selectedRow.tipo} ({selectedRow.numero})
+                                    - {selectedRow.empresaSinNumber}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      if (selectedRow?.fechaCompleta) {
+                                        const [dia, mes, anioHora] =
+                                          selectedRow.fechaCompleta.split('/');
+                                        const [anio, hora] =
+                                          anioHora.split(' ');
+                                        const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
+                                        setNuevaFecha(fechaFormateada);
+                                      }
+                                      setEditandoFecha(true);
+                                    }}
+                                    className="flex justify-center rounded bg-blue-700 px-2 py-1 text-gray-100 hover:bg-blue-500"
+                                  >
+                                    <FaEdit />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    type="datetime-local"
+                                    value={nuevaFecha}
+                                    onChange={(e) =>
+                                      setNuevaFecha(e.target.value)
+                                    }
+                                    className="rounded border bg-gray-100 p-1"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      console.log('Nueva fecha:', nuevaFecha);
+                                      setEditandoFecha(false);
+                                    }}
+                                    className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
+                                  >
+                                    <RiSaveFill />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
+
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Programación:</p>
-                            <p className="col-span-3">
-                              {selectedRow?.fecPlanCompleta} -{' '}
-                              {selectedRow.conductor} -{selectedRow.unidad}
-                            </p>
+
+                            <div className="col-span-3 flex items-center gap-2">
+                              {!editandoFechaProg ? (
+                                <>
+                                  <span>
+                                    {nuevaFechaProg
+                                      ? formatearFechaParaMostrar(
+                                          nuevaFechaProg,
+                                        )
+                                      : selectedRow?.fecPlanCompleta}
+                                  </span>
+                                  <span>
+                                    - {selectedRow.conductor} -{' '}
+                                    {selectedRow.unidad}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      if (selectedRow?.fecPlanCompleta) {
+                                        const [dia, mes, anioHora] =
+                                          selectedRow.fecPlanCompleta.split(
+                                            '/',
+                                          );
+                                        const [anio, hora] =
+                                          anioHora.split(' ');
+                                        const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
+                                        setNuevaFechaProg(fechaFormateada);
+                                      }
+                                      setEditandoFechaProg(true);
+                                    }}
+                                    className="flex justify-center rounded bg-blue-700 px-2 py-1 text-gray-100 hover:bg-blue-500"
+                                  >
+                                    <FaEdit />
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    type="datetime-local"
+                                    value={nuevaFechaProg}
+                                    onChange={(e) =>
+                                      setNuevaFechaProg(e.target.value)
+                                    }
+                                    className="rounded border bg-gray-100 p-1"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      console.log(
+                                        'Nueva fecha programación:',
+                                        nuevaFechaProg,
+                                      );
+                                      setEditandoFechaProg(false);
+                                    }}
+                                    className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
+                                  >
+                                    <RiSaveFill />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-5 items-center gap-2 border-b border-gray-300 p-2">
