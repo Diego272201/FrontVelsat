@@ -591,7 +591,7 @@ export default function App({
         (selecteServicio ? item.tipo === selecteServicio : true) &&
         (selecteNumServicio ? item.numero === selecteNumServicio : true) &&
         (unidadLimpia
-          ? item.unidad.toLowerCase() === unidadLimpia.toLowerCase()
+          ? item.unidad.toLowerCase().includes(unidadLimpia.toLowerCase()) 
           : true)
       );
     });
@@ -846,11 +846,11 @@ export default function App({
     <div>
       {loading ? (
         <div
-          className="overflow-auto rounded-lg border border-gray-300"
+          className="overflow-auto border border-gray-300"
           style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
         >
-          <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-700">
+          <table className="w-full text-left">
+            <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -883,12 +883,12 @@ export default function App({
           style={{ height: `calc(100vh - ${isVisible ? 255 : 110}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-[#f0b540]">
+            <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#0d1b2a]"
+                    className="px-4 py-2 uppercase text-[#fff]"
                     style={{ fontSize: '11px' }}
                   >
                     {column.label}

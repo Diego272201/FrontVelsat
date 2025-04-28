@@ -12,9 +12,10 @@ interface InputUnidadProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (codunidad: string) => void;
+  bgColor?: 'gray-100' | 'gray-200';
 }
 
-const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect }) => {
+const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgColor = 'gray-100'  }) => {
 
 
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -50,7 +51,8 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect }) 
     <div className="relative">
       <input
         type="text"
-        className="w-full rounded-md border border-gray-300 bg-gray-100 p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0"
+        className={`w-full rounded-md border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
+
         placeholder="Unidad"
         value={value}
         onChange={handleInputChange}
@@ -61,7 +63,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect }) 
         <FaCar color="#343a40" />
       </div>
       {showDropdown && filtered.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+        <ul className="fixed z-[9999] mt-1 max-h-60 w-[200px] overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">
           {filtered.map((u) => (
             <li
               key={u.id}

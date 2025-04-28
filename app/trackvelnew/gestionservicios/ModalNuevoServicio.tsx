@@ -4,19 +4,17 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-} from '@nextui-org/react';
+import { Modal, ModalContent, ModalFooter } from '@nextui-org/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { CSS } from '@dnd-kit/utilities';
-import { FaCar } from 'react-icons/fa';
 import { toast } from 'sonner';
+import { parseFecha } from '@/app/components/dates/convertToCustomFormat ';
+import InputUnidad from '@/app/components/inputs/InputUnidad';
+import InputConductor from '@/app/components/inputs/InputConductor';
+import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import { MdAddBox } from 'react-icons/md';
+import { FiLoader } from 'react-icons/fi';
 
 interface NuevoServicioModalProps {
   isOpen: boolean;
@@ -78,7 +76,7 @@ function SortableItem({
 
   return (
     <tr ref={setNodeRef} style={style} {...attributes}>
-      {children({ listeners })} {/* Pasamos los listeners como prop */}
+      {children({ listeners })}
     </tr>
   );
 }
@@ -86,27 +84,8 @@ function SortableItem({
 export default function NuevoServicioModal({
   isOpen,
   onOpenChange,
-  onServicioAgregado ,
+  onServicioAgregado,
 }: NuevoServicioModalProps) {
-  const parseFecha = (fechaISO: string | null): string | null => {
-    if (!fechaISO) return null;
-
-    const fecha = new Date(fechaISO);
-    if (isNaN(fecha.getTime())) {
-      return null;
-    }
-
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const año = fecha.getFullYear();
-    const horas = String(fecha.getHours()).padStart(2, '0');
-    const minutos = String(fecha.getMinutes()).padStart(2, '0');
-
-    const fechaFormateada = `${dia}/${mes}/${año} ${horas}:${minutos}`;
-
-    return fechaFormateada;
-  };
-
   const [loading, setLoading] = useState(false);
 
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
@@ -117,110 +96,12 @@ export default function NuevoServicioModal({
   const [pasajeros, setPasajeros] = useState<any[]>([]);
   const [horaAtencion, setHoraAtencion] = useState('');
 
-  const [unidadA, setUnidadA] = useState('');
-  const [unidadesA, setUnidadesA] = useState<
-    { id: number; codunidad: string }[]
-  >([]);
-  const [showDropdownUnidadA, setShowDropdownUnidadA] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [codUnidadSeleccionado, setCodUnidadSeleccionado] =
+    useState<string>('');
 
-  const [unidadSeleccionadaA, setUnidadSeleccionadaA] = useState<string | null>(
-    null,
-  );
-
-  const [conductor, setConductor] = useState<string>('');
-  const [conductores, setConductores] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [filteredOptions, setFilteredOptions] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [conductorSeleccionado, setConductorSeleccionado] = useState<
-    string | null
-  >(null);
-
-  useEffect(() => {
-    const fetchConductores = async () => {
-      try {
-        const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/conductores?usuario=movilbus',
-        );
-        setConductores(response.data);
-      } catch (error) {
-        console.error('Error al obtener conductores:', error);
-      }
-    };
-
-    fetchConductores();
-  }, []);
-
-  useEffect(() => {
-    const fetchUnidades = async () => {
-      try {
-        const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/unidades',
-        );
-        setUnidadesA(response.data);
-      } catch (error) {
-        console.error('Error al obtener unidades:', error);
-      }
-    };
-
-    fetchUnidades();
-  }, []);
-
-  const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUnidadA(e.target.value);
-    setShowDropdownUnidadA(true);
-  };
-
-  const handleSelectUnidadA = (codunidad: string) => {
-    setUnidadA(codunidad);
-    setUnidadSeleccionadaA(codunidad);
-    setShowDropdownUnidadA(false);
-  };
-
-  const handleConductorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setConductor(value);
-
-    if (value.length > 0) {
-      const filtered = conductores.filter((c) =>
-        c.apepate.toLowerCase().includes(value.toLowerCase()),
-      );
-      setFilteredOptions(filtered);
-      setShowDropdown(true);
-    } else {
-      setFilteredOptions([]);
-      setShowDropdown(false);
-    }
-  };
-
-  const handleSelectConductor = (codigo: number, apepate: string) => {
-    setConductor(apepate);
-    setConductorSeleccionado(codigo.toString());
-    setShowDropdown(false);
-  };
-
-  useEffect(() => {
-    if (conductorSeleccionado) {
-      console.log('Conductor codigo:', conductorSeleccionado);
-      console.log('Conductor nombre completo :', conductor);
-    }
-  }, [conductorSeleccionado, conductor]);
-
-  useEffect(() => {
-    if (unidadSeleccionadaA) {
-      console.log('Unidad seleccionada:', unidadSeleccionadaA);
-    }
-  }, [unidadSeleccionadaA]);
-
-  const filteredUnidadesA =
-    unidadA.length > 0
-      ? unidadesA.filter((u) =>
-          (u.codunidad ?? '').toLowerCase().includes(unidadA.toLowerCase()),
-        )
-      : [];
+  const [apepateConductor, setApepateConductor] = useState('');
+  const [codConductor, setCodConductor] = useState<number | null>(null);
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setClienteSeleccionado(event.target.value);
@@ -257,21 +138,6 @@ export default function NuevoServicioModal({
     wx: string,
     wy: string,
   ) => {
-    console.log('Pasajero seleccionado:', nombre, 'Código:', codigo);
-    console.log(
-      'Lugar:',
-      'CodLugar:',
-      codlugar,
-      'Dirección:',
-      direccion,
-      'Distrito:',
-      distrito,
-      'Latitud',
-      wx,
-      'Longitud',
-      wy,
-    );
-
     setPasajero(nombre);
     setCodigoPasajero(codigo);
     setDireccionPasajero(direccion);
@@ -293,7 +159,7 @@ export default function NuevoServicioModal({
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -320,7 +186,12 @@ export default function NuevoServicioModal({
   }, [pasajero, seleccionado]);
 
   const agregarPasajero = () => {
-    if (!pasajero || !horaAtencion) return;
+    if (!pasajero || !horaAtencion) {
+      toast.error(
+        'Debe ingresar el nombre del pasajero y la hora de atención.',
+      );
+      return;
+    }
 
     setPasajeros((prev) => [
       ...prev,
@@ -337,10 +208,6 @@ export default function NuevoServicioModal({
     setPasajero('');
     setHoraAtencion('');
   };
-
-  useEffect(() => {
-    console.log(pasajeros);
-  }, [pasajeros]);
 
   const eliminarPasajero = (id: number) => {
     setPasajeros((prev) =>
@@ -361,22 +228,21 @@ export default function NuevoServicioModal({
     const [moved] = newPasajeros.splice(oldIndex, 1);
     newPasajeros.splice(newIndex, 0, moved);
 
-    // 🔹 Reasignamos los IDs en orden
     const pasajerosOrdenados = newPasajeros.map((p, index) => ({
       ...p,
-      id: index + 1, // IDs secuenciales
+      id: index + 1,
     }));
 
     setPasajeros(pasajerosOrdenados);
   };
+
   async function agregarServicio(
     datos: any,
     onClose: () => void,
     setLoading: (loading: boolean) => void,
     resetForm: () => void,
-    onServicioAgregado: () => void
+    onServicioAgregado: () => void,
   ) {
-    // Verificación de datos obligatorios
     if (
       !datos.conductor?.codigo ||
       !datos.empresa ||
@@ -386,51 +252,49 @@ export default function NuevoServicioModal({
       !datos.unidad?.codunidad ||
       !datos.listapuntos.length
     ) {
-      toast.error("Todos los campos son obligatorios, incluyendo al menos un pasajero en la lista.");
+      toast.error(
+        'Todos los campos son obligatorios, incluyendo al menos un pasajero en la lista.',
+      );
       return;
     }
-  
-    const url = "https://velsat.pe:8586/api/Preplan/AgregarServicio?usuario=movilbus";
-  
+
+    const url = `${API_BASE_URL125}/api/Preplan/AgregarServicio?usuario=movilbus`;
+
     try {
       setLoading(true);
-      console.log("📤 Enviando datos a la API:", JSON.stringify(datos, null, 2));
-  
+
+      console.log('Enviando datos a la API:', JSON.stringify(datos, null, 2));
+
       const response = await fetch(url, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(datos),
       });
-  
+
       if (!response.ok) {
-        throw new Error(`Error en la solicitud: ${response.status} - ${response.statusText}`);
+        throw new Error(
+          `Error en la solicitud: ${response.status} - ${response.statusText}`,
+        );
       }
-  
       const data = await response.json();
-      console.log("✅ Respuesta de la API:", data);
-      toast.success("Datos guardados correctamente");
+      toast.success('Datos guardados correctamente');
       resetForm();
       onClose();
       onServicioAgregado();
       return data;
     } catch (error) {
-      toast.error("Error al enviar los datos");
-      console.error("⛔ Error:", error);
+      toast.error('Error al enviar los datos');
       return null;
     } finally {
       setLoading(false);
     }
   }
-  
 
-
-
-  // Ejemplo de uso
   const datosServicio = {
-    conductor: { codigo: conductorSeleccionado },
-    empresa: clienteSeleccionado ,
+    conductor: { codigo: codConductor },
+    empresa: clienteSeleccionado,
     fecha: parseFecha(horaDestino),
     fecpreplan: parseFecha(horaProgramada),
     grupo: clienteSeleccionado == 'LATAM' ? 'T' : 'N',
@@ -452,23 +316,21 @@ export default function NuevoServicioModal({
     ],
     numero: '',
     tipo: tipoServicio == 'RECOJO' ? 'I' : 'S',
-    unidad: { codunidad: unidadSeleccionadaA },
+    unidad: { codunidad: codUnidadSeleccionado },
   };
-
-  // Llamar a la función
 
   const resetForm = () => {
     setClienteSeleccionado('');
     setTipoServicio('');
     setHoraDestino('');
     setHoraProgramada('');
-    setUnidadSeleccionadaA('');
-    setUnidadA(''),
-    setConductorSeleccionado('');
-    setConductor(''),
-    setPasajeros([]); // Si tienes una lista de pasajeros, límpiala también
+    setPasajeros([]);
+    setCodUnidadSeleccionado('');
+    setInputValue('');
+    setPasajero('');
+    setApepateConductor('');
+    setCodConductor(null);
   };
-  
 
   return (
     <Modal
@@ -480,18 +342,18 @@ export default function NuevoServicioModal({
         {(onClose) => (
           <>
             <div className="rounded-md border border-gray-200 bg-white p-4">
-              <h2 className="mb-4 text-lg font-bold text-gray-800">
-                Crear Nuevo Servicio
+              <h2 className="mb-4 flex items-center gap-2 text-[14px] font-bold text-gray-800">
+                <MdAddBox size={20} />
+                CREAR NUEVO SERVICIO
               </h2>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Cliente y Tipo de Servicio */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700">
                     Cliente:
                   </label>
                   <select
-                    className="mt-1 w-full rounded-md border bg-gray-100 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                    className="mt-1 w-full rounded-md border bg-gray-100 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                     value={clienteSeleccionado}
                     onChange={handleChange}
                   >
@@ -510,7 +372,7 @@ export default function NuevoServicioModal({
                     Tipo de Servicio:
                   </label>
                   <select
-                    className="mt-1 w-full rounded-md border bg-gray-100 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                    className="mt-1 w-full rounded-md border bg-gray-100 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                     value={tipoServicio}
                     onChange={(e) => setTipoServicio(e.target.value)}
                   >
@@ -523,7 +385,6 @@ export default function NuevoServicioModal({
                   </select>
                 </div>
 
-                {/* Hora Destino y Hora Programada */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700">
                     Hora Destino:
@@ -547,16 +408,16 @@ export default function NuevoServicioModal({
                   />
                 </div>
 
-                {/* Buscar Pasajero */}
                 <div className="col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                  <label className="mb-1 block text-xs font-medium text-gray-700 ">
                     Buscar Pasajero:
                   </label>
+
                   <div className="flex gap-2">
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="mt-1 w-full rounded-md border bg-gray-100 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-100 p-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Ingrese Nombre del Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -577,7 +438,7 @@ export default function NuevoServicioModal({
                     />
 
                     {mostrarSugerencias && sugerencias.length > 0 && (
-                      <ul className="fixed z-[9999] mt-10 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg ">
+                      <ul className="fixed z-[9999] mt-10 max-h-60 w-96 overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">
                         {sugerencias.map((item, index) => (
                           <li
                             key={index}
@@ -613,7 +474,7 @@ export default function NuevoServicioModal({
                     <input
                       type="time"
                       placeholder="Hora Atención"
-                      className="w-1/4 rounded-md border border-gray-300 bg-gray-100 p-1 text-sm shadow-sm focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-1/2 rounded-md border border-gray-300 bg-gray-100 p-2 text-[12px] shadow-sm focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={horaAtencion}
                       onChange={(e) => setHoraAtencion(e.target.value)}
                     />
@@ -633,69 +494,30 @@ export default function NuevoServicioModal({
                 </label>
                 <div className="flex gap-2">
                   <div className="w-full">
-                    <input
-                      type="text"
-                      className="mt-1 w-full rounded-md border bg-gray-100 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
-                      placeholder="Escriba Unidad"
-                      value={unidadA}
-                      onChange={handleUnidadAChange}
-                      onFocus={() => setShowDropdownUnidadA(true)}
-                      onBlur={() =>
-                        setTimeout(() => setShowDropdownUnidadA(false), 200)
-                      }
-                    />
-
-                    {showDropdownUnidadA && filteredUnidadesA.length > 0 && (
-                      <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                        {filteredUnidadesA.map((unidad) => (
-                          <li
-                            key={unidad.id}
-                            className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                            onClick={() =>
-                              handleSelectUnidadA(unidad.codunidad)
-                            }
-                          >
-                            {unidad.codunidad}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <InputUnidad
+                      value={inputValue}
+                      onChange={setInputValue}
+                      onSelect={(codunidad) => {
+                        setInputValue(codunidad);
+                        setCodUnidadSeleccionado(codunidad);
+                      }}
+                    ></InputUnidad>
                   </div>
 
                   <div className="w-full">
-                    <input
-                      type="text"
-                      className="mt-1 w-full rounded-md border bg-gray-100 p-1 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
-                      placeholder="Escriba el Nombre del Conductor"
-                      value={conductor}
-                      onChange={handleConductorChange}
-                      onFocus={() => setShowDropdown(true)}
-                      onBlur={() =>
-                        setTimeout(() => setShowDropdown(false), 200)
-                      }
+                    <InputConductor
+                      value={apepateConductor}
+                      onChange={setApepateConductor}
+                      onSelect={(codigo, apepate) => {
+                        setCodConductor(codigo);
+                        setApepateConductor(apepate);
+                      }}
                     />
-
-                    {showDropdown && filteredOptions.length > 0 && (
-                      <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                        {filteredOptions.map((c) => (
-                          <li
-                            key={c.codigo}
-                            className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                            onClick={() =>
-                              handleSelectConductor(c.codigo, c.apepate)
-                            }
-                          >
-                            {c.apepate}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Mensaje de Pasajeros */}
-              <div className="mt-4 p-3 text-sm  text-gray-600">
+              <div className="mt-4 text-[12px] text-gray-600">
                 <DndContext
                   collisionDetection={closestCenter}
                   onDragEnd={onDragEnd}
@@ -704,76 +526,121 @@ export default function NuevoServicioModal({
                     items={pasajeros.map((p) => p.id)}
                     strategy={verticalListSortingStrategy}
                   >
-               {pasajeros.length > 0 ? (
-  <table className="w-full border-collapse overflow-hidden rounded-lg shadow-lg">
-    <thead>
-      <tr className="bg-gray-800 text-white">
-        <th className="px-4 py-2 text-left">Orden</th>
-        <th className="px-4 py-2 text-left">Código</th>
-        <th className="px-4 py-2 text-left">Nombre</th>
-        <th className="px-4 py-2 text-left">Dirección</th>
-        <th className="px-4 py-2 text-left">Distrito</th>
-        <th className="px-4 py-2 text-left">Hora</th>
-        <th className="px-4 py-2 text-center">Acciones</th>
-      </tr>
-    </thead>
-    <tbody className="bg-slate-100">
-      {pasajeros.map((pasajero, index) => (
-        <SortableItem key={pasajero.id} id={pasajero.id}>
-          {({ listeners }) => (
-            <>
-              <td className="px-4 py-3" {...listeners}>{index + 1}</td>
-              <td className="px-4 py-3" {...listeners}>{pasajero.codigo}</td>
-              <td className="px-4 py-3" {...listeners}>{pasajero.nombre}</td>
-              <td className="px-4 py-3" {...listeners}>{pasajero.direccion}</td>
-              <td className="px-4 py-3" {...listeners}>{pasajero.distrito}</td>
-              <td className="px-4 py-3" {...listeners}>{pasajero.hora}</td>
-              <td className="px-4 py-3 text-center">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    eliminarPasajero(pasajero.id);
-                  }}
-                  className="rounded-lg bg-red-500 px-3 py-1 text-white transition hover:bg-red-600"
-                >
-                  Eliminar
-                </button>
-              </td>
-            </>
-          )}
-        </SortableItem>
-      ))}
-    </tbody>
-  </table>
-) : (
-  <div className="text-center py-4 text-gray-500">
-    No se han agregado pasajeros.
-  </div>
-)}
-
+                    {pasajeros.length > 0 ? (
+                      <table className="w-full border-collapse overflow-hidden  rounded">
+                        <thead>
+                          <tr className="bg-[#f3ae24] text-gray-900">
+                            <th className="px-4 py-2 text-left">Orden</th>
+                            <th className="px-4 py-2 text-left">Código</th>
+                            <th className="px-4 py-2 text-left">Nombre</th>
+                            <th className="px-4 py-2 text-left">Dirección</th>
+                            <th className="px-4 py-2 text-left">Distrito</th>
+                            <th className="px-4 py-2 text-left">Hora</th>
+                            <th className="px-4 py-2 text-center">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-gray-200 text-[12px]">
+                          {pasajeros.map((pasajero, index) => (
+                            <SortableItem key={pasajero.id} id={pasajero.id}>
+                              {({ listeners }) => (
+                                <>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {index + 1}
+                                  </td>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {pasajero.codigo}
+                                  </td>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {pasajero.nombre}
+                                  </td>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {pasajero.direccion}
+                                  </td>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {pasajero.distrito}
+                                  </td>
+                                  <td
+                                    className="border-b border-gray-300 px-4 py-2"
+                                    {...listeners}
+                                  >
+                                    {pasajero.hora}
+                                  </td>
+                                  <td className="border-b border-gray-300 px-4 py-2 text-center">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        eliminarPasajero(pasajero.id);
+                                      }}
+                                      className="rounded-lg bg-red-500 px-3 py-1 text-white transition hover:bg-red-600"
+                                    >
+                                      Eliminar
+                                    </button>
+                                  </td>
+                                </>
+                              )}
+                            </SortableItem>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="py-4 text-center text-gray-500">
+                        No se han agregado pasajeros.
+                      </div>
+                    )}
                   </SortableContext>
                 </DndContext>
               </div>
             </div>
             <ModalFooter>
-              <Button color="danger" onPress={onClose}>
+              <button
+                className="rounded bg-red-600 px-4 py-2 text-sm text-white transition duration-200 hover:bg-red-600"
+                onClick={() => {
+                  resetForm();
+                  onClose();
+                }}
+              >
                 Cerrar
-              </Button>
-              <Button
-                color="primary"
-                onPress={() =>
+              </button>
+
+              <button
+                className={`rounded-md bg-blue-500 px-4 py-2 text-sm text-white transition duration-200 hover:bg-blue-600 ${
+                  loading ? 'cursor-not-allowed opacity-50' : ''
+                }`}
+                onClick={() =>
                   agregarServicio(
                     datosServicio,
                     () => onOpenChange(false),
                     setLoading,
                     resetForm,
-                    onServicioAgregado  
+                    onServicioAgregado,
                   )
                 }
-                isDisabled={loading}
+                disabled={loading}
               >
-                {loading ? 'Guardando...' : 'Guardar'}
-              </Button>
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <FiLoader className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </div>
+                ) : (
+                  'Guardar'
+                )}
+              </button>
             </ModalFooter>
           </>
         )}

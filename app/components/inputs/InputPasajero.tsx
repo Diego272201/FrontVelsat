@@ -39,7 +39,7 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
         ? response.data.map((item: any) => ({
             apepate: item.apepate,
             codlan: item.codlan,
-            codlugar: item.lugar?.codlugar ?? 0, // por si no viene
+            codlugar: item.lugar?.codlugar ?? 0, 
           }))
         : [];
       
@@ -75,9 +75,6 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
     onSelectPasajero(nuevoPasajero);
   };
   
-
- 
-
   return (
     <div>
       <div className="relative">

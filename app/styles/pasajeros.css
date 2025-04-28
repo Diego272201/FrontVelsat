@@ -1,0 +1,19 @@
+.cabeceraPasajero {
+    display: flex;
+    padding: 5px;
+    font-weight: 500;
+    background:  #264ebb;
+    align-items: center;
+    clip-path: polygon(2.1% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.08% 29%);
+    justify-content: center;
+    margin-top: -10px;
+
+  }
+  
+  .titulocabecera{
+    color: #ffffff;
+    margin-left: 4px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  

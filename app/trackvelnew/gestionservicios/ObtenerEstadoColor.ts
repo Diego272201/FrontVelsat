@@ -14,7 +14,6 @@ export const getEstadoYColorVerifica = (item: any) => {
     return { estado, color };
   };
 
-
   const parseFecha = (fechaStr: string | null) => {
     if (!fechaStr) return null;
     const [dia, mes, añoHora] = fechaStr.split('/');
@@ -40,13 +39,11 @@ export const getEstadoYColorVerifica = (item: any) => {
       estado = 'NA';
       color = '#FDBDAA';
     } else {
-      // 🚨 Verificamos si ya pasó la fecha programada pero no ha iniciado
       if (fechaActual > fechaProg && !fechaInicio) {
         estado = 'NI';
         color = '#868887';
       }
   
-      // Si el servicio ha finalizado
       if (fechaFin && fechaATO) {
         const diferenciaFin = fechaFin - fechaATO;
         if (item.tipo === 'I') {
@@ -58,7 +55,6 @@ export const getEstadoYColorVerifica = (item: any) => {
         }
       }
   
-      // Si el servicio está en proceso
       if (fechaInicio && !fechaFin) {
         if (fechaATO) {
           const diferencia = fechaActual - fechaATO;

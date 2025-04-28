@@ -13,12 +13,15 @@ interface InputConductorProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (codigo: number, apepate: string) => void;
+  bgColor?: 'gray-100' | 'gray-200';
+
 }
 
 const InputConductor: React.FC<InputConductorProps> = ({
   value,
   onChange,
   onSelect,
+  bgColor = 'gray-100' 
 }) => {
   const { data: session } = useSession();
   const username = session?.user.username;
@@ -62,7 +65,7 @@ const InputConductor: React.FC<InputConductorProps> = ({
     <div className="relative">
       <input
         type="text"
-        className="w-full rounded-md border border-gray-300 bg-gray-100 p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0"
+        className={`w-full rounded-md border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`}
         placeholder="Conductor"
         value={value}
         onChange={handleInputChange}
@@ -73,7 +76,7 @@ const InputConductor: React.FC<InputConductorProps> = ({
         <FaUserTie color="#343a40" />
       </div>
       {showDropdown && filtered.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full rounded-lg bg-white shadow-lg">
+        <ul className="fixed z-[9999] mt-1 max-h-60 w-96 overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">
           {filtered.map((c) => (
             <li
               key={c.codigo}

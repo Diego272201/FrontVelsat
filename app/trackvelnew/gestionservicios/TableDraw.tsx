@@ -109,7 +109,7 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
   
 };
 
-SortableRow.displayName = 'SortableRow';  // Aquí asignamos el nombre al componente
+SortableRow.displayName = 'SortableRow';  
 
 const DragAndDropTable = forwardRef(
   ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha ,dataAgregada,agregarTrigger,areaLan,horaAtencion, horaAto  }: Props, ref) => {
@@ -142,13 +142,7 @@ const DragAndDropTable = forwardRef(
       }
     };
     
- 
-    
-    
-
     useEffect(() => {
-      console.log("📥 Nueva data recibida en dataAgregada:", dataAgregada);
-
       setTempData([]);
       setTimeout(() => {
         setTempData(dataAgregada); 
@@ -295,13 +289,11 @@ const DragAndDropTable = forwardRef(
 
 
     useEffect(() => {
-      console.log("Cambios"+horaAto);
+      console.log("Cambios " + horaAto);
     }, [horaAto]);
 
     const actualizarOrdenEnServidor = async () => {
 
-      console.log("Holii"+fecha)
-      console.log("Atro"+horaAto)
       console.log(tempData.length)
 
       if (!codServicio || data.length === 0) return;
@@ -316,7 +308,6 @@ const DragAndDropTable = forwardRef(
         fecha: horaAto,
         listapuntos: data.map(({ codigo, orden, codlugar, estado }) => {
           if (codlugar) {
-            // Si tiene `codlugar`, es un nuevo registro y debe enviarse con estructura completa
             return {
               estado: estado || "NW",
               fecha: parseFecha(horaAtencion),
@@ -334,7 +325,6 @@ const DragAndDropTable = forwardRef(
               
             };
           } else {
-            // Si no tiene `codlugar`, es un registro existente y solo enviamos `codigo` y `orden`
             return {
               codigo: codigo,
               orden: orden.toString(),

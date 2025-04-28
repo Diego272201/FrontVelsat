@@ -67,3 +67,22 @@ export const formatFechaAMD = (date: Date): string => {
   const year = date.getFullYear();
   return `${year}-${month}-${day}`;
 };
+
+// Convierte una fecha ISO en formato dd/MM/yyyy HH:mm
+export const parseFecha = (fechaISO: string | null): string | null => {
+  if (!fechaISO) return null;
+  const fecha = new Date(fechaISO);
+  if (isNaN(fecha.getTime())) {
+    return null;
+  }
+
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const año = fecha.getFullYear();
+  const horas = String(fecha.getHours()).padStart(2, '0');
+  const minutos = String(fecha.getMinutes()).padStart(2, '0');
+
+  const fechaFormateada = `${dia}/${mes}/${año} ${horas}:${minutos}`;
+
+  return fechaFormateada;
+};

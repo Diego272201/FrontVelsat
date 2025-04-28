@@ -1,7 +1,7 @@
 'use client';
 import { useDisclosure } from '@nextui-org/react';
 import React, { useEffect, useState } from 'react';
-import { FaCar, FaUser, FaUserTie } from 'react-icons/fa';
+import { FaUser } from 'react-icons/fa';
 import {
   MdCleaningServices,
   MdDelete,
@@ -20,6 +20,8 @@ import { AiOutlineFilter } from 'react-icons/ai';
 import { HiCalendarDateRange } from 'react-icons/hi2';
 import { RiCheckboxMultipleFill } from 'react-icons/ri';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import InputUnidad from '@/app/components/inputs/InputUnidad';
+import InputConductor from '@/app/components/inputs/InputConductor';
 
 const empresas = [
   'ABNER MATOS',
@@ -99,37 +101,13 @@ export default function Page() {
 
   const [numeroServicio, setNumeroServicio] = useState('');
 
-  const [unidad, setUnidad] = useState('');
-  const [unidades, setUnidades] = useState<{ id: number; codunidad: string }[]>(
-    [],
-  );
-  const [showDropdownUnidad, setShowDropdownUnidad] = useState(false);
+  const [unidadSeleccionada, setUnidadSeleccionada] = useState('');
 
-  const [unidadSeleccionada, setUnidadSeleccionada] = useState<string | null>(
-    null,
-  );
+  const [unidadSeleccionadaAsignar, setUnidadSeleccionadaAsignar] =
+    useState('');
 
-  const [unidadA, setUnidadA] = useState('');
-  const [unidadesA, setUnidadesA] = useState<
-    { id: number; codunidad: string }[]
-  >([]);
-  const [showDropdownUnidadA, setShowDropdownUnidadA] = useState(false);
-
-  const [unidadSeleccionadaA, setUnidadSeleccionadaA] = useState<string | null>(
-    null,
-  );
-
-  const [conductor, setConductor] = useState<string>('');
-  const [conductores, setConductores] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [filteredOptions, setFilteredOptions] = useState<
-    { codigo: number; apepate: string }[]
-  >([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [conductorSeleccionado, setConductorSeleccionado] = useState<
-    string | null
-  >(null);
+  const [apepateConductor, setApepateConductor] = useState('');
+  const [codConductor, setCodConductor] = useState<number | null>(null);
 
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
@@ -150,7 +128,7 @@ export default function Page() {
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -170,103 +148,6 @@ export default function Page() {
 
     return () => clearTimeout(delayDebounce);
   }, [pasajero, seleccionado]);
-
-  useEffect(() => {
-    const fetchConductores = async () => {
-      try {
-        const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/conductores?usuario=movilbus',
-        );
-        setConductores(response.data);
-      } catch (error) {
-        console.error('Error al obtener conductores:', error);
-      }
-    };
-
-    fetchConductores();
-  }, []);
-
-  useEffect(() => {
-    const fetchUnidades = async () => {
-      try {
-        const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/unidades',
-        );
-        setUnidades(response.data);
-        setUnidadesA(response.data);
-      } catch (error) {
-        console.error('Error al obtener unidades:', error);
-      }
-    };
-
-    fetchUnidades();
-  }, []);
-
-  const handleConductorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setConductor(value);
-
-    if (value.length > 0) {
-      const filtered = conductores.filter((c) =>
-        c.apepate.toLowerCase().includes(value.toLowerCase()),
-      );
-      setFilteredOptions(filtered);
-      setShowDropdown(true);
-    } else {
-      setFilteredOptions([]);
-      setShowDropdown(false);
-    }
-  };
-
-  const handleSelectConductor = (codigo: number, apepate: string) => {
-    setConductor(apepate);
-    setConductorSeleccionado(codigo.toString());
-    setShowDropdown(false);
-  };
-
-  const filteredUnidades =
-    unidad.length > 0
-      ? unidades.filter((u) =>
-          (u.codunidad ?? '').toLowerCase().includes(unidad.toLowerCase()),
-        )
-      : [];
-
-  const handleUnidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setUnidad(value);
-    setShowDropdownUnidad(true);
-
-    if (!value.trim()) {
-      setUnidadSeleccionada(null);
-    }
-  };
-
-  const handleSelectUnidad = (codunidad: string) => {
-    setUnidad(codunidad);
-    setUnidadSeleccionada(codunidad);
-    setShowDropdownUnidad(false);
-  };
-
-  const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUnidadA(e.target.value);
-    setShowDropdownUnidadA(true);
-  };
-
-  const handleSelectUnidadA = (codunidad: string) => {
-    setUnidadA(codunidad);
-    setUnidadSeleccionadaA(codunidad);
-    setShowDropdownUnidadA(false);
-  };
-
-
-
-
-  const filteredUnidadesA =
-    unidadA.length > 0
-      ? unidadesA.filter((u) =>
-          (u.codunidad ?? '').toLowerCase().includes(unidadA.toLowerCase()),
-        )
-      : [];
 
   const seleccionarPasajero = (nombre: string, codlan: string) => {
     setPasajero(nombre);
@@ -292,29 +173,24 @@ export default function Page() {
     setTipoServicio('');
     setPasajero('');
     setNumeroServicio('');
-    setUnidad('');
-    setUnidadSeleccionada(null);
+    setUnidadSeleccionada('');
     setPasajeroCodlan(null);
 
-    
-      toast("Filtros reseteados", {
-        style: {
-          background: "#dbeafe",
-          color: "#1C5ED8",
-          border: "none",
-          boxShadow: "none",
-        },
-        icon: <MdCleaningServices size={20} color="#1C5ED8" />,
-      });
- 
-    
-
+    toast('Filtros reseteados', {
+      style: {
+        background: '#dbeafe',
+        color: '#1C5ED8',
+        border: 'none',
+        boxShadow: 'none',
+      },
+      icon: <MdCleaningServices size={20} color="#1C5ED8" />,
+    });
   };
 
   const asignarServicios = async () => {
     if (
-      !conductorSeleccionado ||
-      !unidadSeleccionadaA ||
+      !codConductor ||
+      !unidadSeleccionadaAsignar ||
       selectedServices.length === 0
     ) {
       toast.error(
@@ -327,10 +203,10 @@ export default function Page() {
     const payload = selectedServices.map((codservicio) => ({
       codservicio,
       conductor: {
-        codigo: conductorSeleccionado,
+        codigo: codConductor.toString(),
       },
       unidad: {
-        codunidad: unidadSeleccionadaA,
+        codunidad: unidadSeleccionadaAsignar,
       },
     }));
 
@@ -340,6 +216,10 @@ export default function Page() {
         payload,
       );
       toast.success('Asignación realizada con éxito.');
+
+      setUnidadSeleccionadaAsignar('');
+      setApepateConductor('');
+      setCodConductor(null);
     } catch (error) {
       toast.error('Error al enviar la asignación.');
     }
@@ -366,12 +246,9 @@ export default function Page() {
     const payload = selectedServices.map((codservicio) => ({ codservicio }));
 
     try {
-      await axios.delete(
-        `${API_BASE_URL125}/api/Preplan/eliminacionmultiple`,
-        {
-          data: payload,
-        },
-      );
+      await axios.delete(`${API_BASE_URL125}/api/Preplan/eliminacionmultiple`, {
+        data: payload,
+      });
 
       toast.success('Eliminado con éxito.');
       setRefreshFlag((prev) => !prev);
@@ -385,14 +262,13 @@ export default function Page() {
 
   const formatearFecha = (fecha: string | null, hora: string) => {
     if (!fecha) return '';
-    const [year, month, day] = fecha.split('-'); 
+    const [year, month, day] = fecha.split('-');
     return `${year}-${month}-${day} ${hora}`;
   };
 
   const handleDescarga = () => {
-
     if (!selectedDate || !empresaSelecRes) {
-      toast.error("Falta seleccionar fecha y/o empresa");
+      toast.error('Falta seleccionar fecha y/o empresa');
       return;
     }
     const feciniRaw = formatearFecha(selectedDate, '00:00');
@@ -401,7 +277,7 @@ export default function Page() {
     const fecfin = encodeURIComponent(fecfinRaw);
     const aerolinea = empresaSelecRes;
 
-    const url = `https://velsat.pe:8586/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=movilbus`;
+    const url = `${API_BASE_URL125}/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=movilbus`;
 
     const toastId = toast.loading('Generando resumen...');
 
@@ -417,14 +293,6 @@ export default function Page() {
       toast.success('Resumen descargado');
     }, 5000);
   };
-
-  useEffect(() => {
-    console.log('Nuevo valor de conductorSeleccionado:', conductorSeleccionado);
-  }, [conductorSeleccionado]);
-
-  useEffect(() => {
-    console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionadaA);
-  }, [unidadSeleccionadaA]);
 
   useEffect(() => {
     console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
@@ -688,37 +556,14 @@ export default function Page() {
                     />
                   </div>
 
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
-                      placeholder="Unidad"
-                      value={unidad}
-                      onChange={handleUnidadChange}
-                      onFocus={() => setShowDropdownUnidad(true)}
-                      onBlur={() =>
-                        setTimeout(() => setShowDropdownUnidad(false), 200)
-                      }
-                    />
-                    <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
-                      <FaCar color="#343a40" />
-                    </div>
-
-                    {showDropdownUnidad && filteredUnidades.length > 0 && (
-                      <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                        {filteredUnidades.map((unidad) => (
-                          <li
-                            key={unidad.id}
-                            className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                            onClick={() => handleSelectUnidad(unidad.codunidad)}
-                          >
-                            {unidad.codunidad}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-
+                  <InputUnidad
+                    value={unidadSeleccionada}
+                    onChange={(value) => setUnidadSeleccionada(value)}
+                    onSelect={(codunidad) => {
+                      setUnidadSeleccionada(codunidad);
+                    }}
+                    bgColor="gray-200"
+                  />
                   <div className="bg-red-100 ">
                     <button
                       className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
@@ -727,7 +572,6 @@ export default function Page() {
                       Limpiar
                       <MdCleaningServices color="#fff" />
                     </button>
-
                   </div>
                 </div>
               </div>
@@ -737,73 +581,30 @@ export default function Page() {
 
         {isVisibleAsignar && (
           <div
-            className="flex justify-between gap-2 bg-white p-2 mt-2"
-            style={{marginLeft:'5px', marginRight:'5px'}}
-          
+            className="mt-2 flex justify-between gap-2 bg-white p-2"
+            style={{ marginLeft: '5px', marginRight: '5px' }}
           >
             <div className="flex gap-2">
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-96 rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
-                  placeholder="Conductor"
-                  value={conductor}
-                  onChange={handleConductorChange}
-                  onFocus={() => setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              <div className="w-96">
+                <InputConductor
+                  value={apepateConductor}
+                  onChange={setApepateConductor}
+                  onSelect={(codigo, apepate) => {
+                    setCodConductor(codigo);
+                    setApepateConductor(apepate);
+                  }}
+                  bgColor="gray-200"
                 />
-
-                <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
-                  <FaUserTie color="#343a40" />
-                </div>
-
-                {showDropdown && filteredOptions.length > 0 && (
-                  <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                    {filteredOptions.map((c) => (
-                      <li
-                        key={c.codigo}
-                        className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                        onClick={() =>
-                          handleSelectConductor(c.codigo, c.apepate)
-                        }
-                      >
-                        {c.apepate}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
-                  placeholder="Unidad"
-                  value={unidadA}
-                  onChange={handleUnidadAChange}
-                  onFocus={() => setShowDropdownUnidadA(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowDropdownUnidadA(false), 200)
-                  }
-                />
-                <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4 peer-disabled:pointer-events-none peer-disabled:opacity-50">
-                  <FaCar color="#343a40" />
-                </div>
-
-                {showDropdownUnidadA && filteredUnidadesA.length > 0 && (
-                  <ul className="fixed z-[9999] mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
-                    {filteredUnidadesA.map((unidad) => (
-                      <li
-                        key={unidad.id}
-                        className="cursor-pointer px-4 py-2 hover:bg-gray-200"
-                        onClick={() => handleSelectUnidadA(unidad.codunidad)}
-                      >
-                        {unidad.codunidad}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <InputUnidad
+                value={unidadSeleccionadaAsignar}
+                onChange={(value) => setUnidadSeleccionadaAsignar(value)}
+                onSelect={(codunidad) => {
+                  setUnidadSeleccionadaAsignar(codunidad);
+                }}
+                bgColor="gray-200"
+              />
             </div>
 
             <div className="flex gap-2 pr-1">
@@ -820,12 +621,13 @@ export default function Page() {
               >
                 Eliminar <MdDelete className="h-4 w-4" />
               </button>
+              <div>{unidadSeleccionada}</div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="grupoServicios  relative z-10 overflow-visible">
+      <div className="grupoServicios relative z-10 overflow-visible">
         <TableServicios
           isVisible={isVisible}
           isVisibleAsignar={isVisibleAsignar}

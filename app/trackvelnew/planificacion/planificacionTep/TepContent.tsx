@@ -325,15 +325,17 @@ export default function TepContent() {
 
             <ProgressBar value={porcentajeLlenado}></ProgressBar>
           </div>
-
-          <label className="switch px-2">
+          <label className="inline-flex cursor-pointer items-center px-2">
             <input
               type="checkbox"
-              className="checkbox"
+              className="peer sr-only"
               onChange={toggleContent}
               checked={isVisible}
             />
-            <div className="slider"></div>
+            <div
+              className="peer relative h-6 bg-gray-200 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-md after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-[32px] peer-checked:after:border-white rtl:peer-checked:after:-translate-x-[32px] dark:border-gray-600 dark:bg-gray-400 dark:peer-checked:bg-orange-500"
+              style={{ width: '58px', borderRadius: '6px' }}
+            ></div>
           </label>
         </div>
 

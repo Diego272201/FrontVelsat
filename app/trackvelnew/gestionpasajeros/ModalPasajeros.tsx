@@ -162,8 +162,8 @@ export default function App({ title }: Props) {
       </span>
 
       <Modal
-        size="2xl"
-        isOpen={isOpen}
+      className="w-[70%] max-w-none"
+      isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={true}
         isKeyboardDismissDisabled={true}
@@ -172,7 +172,7 @@ export default function App({ title }: Props) {
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="cabecera gap-1">
+                <ModalHeader className="gap-1 flex items-center">
                   <Image
                     src="/gpsLogo.png"
                     width={40}
@@ -183,8 +183,8 @@ export default function App({ title }: Props) {
                 </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-4">
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <div className="mensajeR">
+                    <div className="flex justify-between flex-wrap">
+                      <div >
                         <Input
                           type="text"
                           label="Identificador"
@@ -201,7 +201,7 @@ export default function App({ title }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div className="min-w-[350px]">
                         <Input
                           type="text"
                           label="Nombre"
@@ -218,7 +218,7 @@ export default function App({ title }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div >
                         <Input
                           type="text"
                           label="Teléfono"
@@ -228,7 +228,7 @@ export default function App({ title }: Props) {
                         />
                       </div>
 
-                      <div className="mensajeR w-[70px]">
+                      <div className="w-[200px]">
                         <Select
                           label="Sexo"
                           placeholder="Selecciona el sexo"
@@ -245,12 +245,12 @@ export default function App({ title }: Props) {
                     </div>
                     <hr />
 
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
+                    <div className="flex justify-between flex-wrap">
                       <Select
                         label="Empresa"
                         placeholder="Selecciona una empresa"
                         labelPlacement="outside"
-                        className="max-w-xs"
+                        className="w-[200px]"
                         disableSelectorIconRotation
                         selectorIcon={<SelectorIcon />}
                         {...register('empresa')}
@@ -297,7 +297,7 @@ export default function App({ title }: Props) {
                         label="Tarifa"
                         placeholder="Selecciona una tarifa"
                         labelPlacement="outside"
-                        className="max-w-xs"
+                        className="w-[200px]"
                         disableSelectorIconRotation
                         selectorIcon={<SelectorIcon />}
                         {...register('tarifa')}
@@ -308,16 +308,15 @@ export default function App({ title }: Props) {
                           </SelectItem>
                         ))}
                       </Select>
-                    </div>
 
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <div className="mensajeR">
+
+                      <div >
                         <Input
                           type="text"
                           label="Dirección"
                           placeholder="Dirección"
                           labelPlacement="outside"
-                          className="md:w-[400px]"
+                          className="md:w-[350px]"
                           {...register('direccion', {
                             required: true,
                           })}
@@ -330,7 +329,7 @@ export default function App({ title }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div >
                         <Input
                           type="text"
                           label="Distrito"
@@ -349,6 +348,9 @@ export default function App({ title }: Props) {
                         )}
                       </div>
                     </div>
+
+                   
+                   
 
                     <hr />
 
