@@ -327,13 +327,16 @@ const Tollbar = () => {
                 </li>
 
                 <li>
-                  <a
+                  <Link
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
                     Control de Servicios
-                  </a>
+                  </Link>
                 </li>
+                
                 <li>
                   <a href="#" title="Detalle de Servicios">
                     Detalle de Servicios
@@ -380,12 +383,14 @@ const Tollbar = () => {
                   </Link>
                 </li>
                 <li>
-                  <a
+                  <Link
                     href="/trackvelnew/planificacion/planificacionTep"
                     title="Planificación Servicios"
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
                     Planificación Servicios
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a href="#" title="Re-Planificación Servicios">
@@ -399,14 +404,16 @@ const Tollbar = () => {
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
               style={{ marginTop: '-8px' }}
             >
-              <a
+              <Link
                 href="/trackvelnew/gestionpasajeros"
                 title="Gestión de Pasajeros"
+                target='_blank'
+                rel='noopener noreferrer'
                 className={activeLink === 2 ? 'active' : ''}
                 onClick={() => handleLinkClick(2)}
               >
                 <div style={{ fontSize: '12px' }}>Gestión de Pasajeros</div>
-              </a>
+              </Link>
             </li>
             <li
               className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
@@ -709,15 +716,17 @@ const Tollbar = () => {
                     )}
                   </div>
 
-                  <a
+                  <Link
                     href="/trackvelnew/gestionservicios"
                     title="Control de Servicios"
+                    target='_blank'
+                    rel='noopener noreferrer'
                     onClick={() => setIsSidebarOpen(false)}
                   >
                     <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Control de Servicios
                     </button>
-                  </a>
+                  </Link>
                   <button className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                     Detalle de Servicios
                   </button>
@@ -769,14 +778,16 @@ const Tollbar = () => {
                     </button>
                   </Link>
 
-                  <a href="/trackvelnew/planificacion/planificacionTep">
+                  <Link href="/trackvelnew/planificacion/planificacionTep"
+                  target='_blank'
+                  rel='noopener noreferrer'>
                     <button
                       className="mb-[-20px] block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800"
                       onClick={() => setIsSidebarOpen(false)}
                     >
                       Planificación Servicios
                     </button>
-                  </a>
+                  </Link>
                   <Link href="#">
                     <button className="mb-3 block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Re-Planificación Servicios
@@ -787,8 +798,10 @@ const Tollbar = () => {
             </div>
 
             {/* Gestión de Pasajeros */}
-            <a
+            <Link
               href="/trackvelnew/gestionpasajeros"
+              target='_blank'
+              rel='noopener noreferrer'
               onClick={() => setIsSidebarOpen(false)}
             >
               <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">
@@ -797,7 +810,7 @@ const Tollbar = () => {
                   Gestión de Pasajeros
                 </span>
               </div>
-            </a>
+            </Link>
 
             {/* Operaciones */}
             <div className="flex items-center gap-3 bg-gray-100 p-1 transition hover:bg-gray-200">

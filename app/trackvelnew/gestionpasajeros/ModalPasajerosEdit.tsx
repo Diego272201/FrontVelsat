@@ -349,7 +349,7 @@ export default function App({ title, codCliente }: Props) {
                         </SelectItem>
                         <SelectItem key="NEXA">NEXA</SelectItem>
                         <SelectItem key="LCP">LCP</SelectItem>
-                        <SelectItem key="AMERICAN_AIRLINES">
+                        <SelectItem key="AMERICAN">
                           AMERICAN AIRLINES
                         </SelectItem>
                         <SelectItem key="AJINOMOTO">AJINOMOTO</SelectItem>
