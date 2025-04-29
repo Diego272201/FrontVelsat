@@ -206,7 +206,7 @@ export default function Container({
           <thead style={{ color: '#fff' }}>
             <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
-              <th>Tipo: {grupo.tipo}</th>
+              <th>Tipo: {grupo.tipo === 'I' ? 'Ingreso' : grupo.tipo === 'S' ? 'Salida' : grupo.tipo}</th>
               <th>Empresa: {formatearNombre(grupo.empresa)}</th>
               <th>
                 <div className="flex items-center">

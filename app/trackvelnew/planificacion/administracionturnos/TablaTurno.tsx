@@ -78,7 +78,7 @@ export default function App({
     direction: 'ascending',
   });
   const [page, setPage] = useState(1);
-  const [uniqueAreas, setUniqueAreas] = useState<string[]>([]);
+  const [uniqueEmpresas, setUniqueEmpresas] = useState<string[]>([]);
 
   useEffect(() => {
     const calculateRowsPerPage = () => {
@@ -100,9 +100,9 @@ export default function App({
 
   useEffect(() => {
     axios
-      .get('https://velsat.pe:8586/api/Turnos/area/movilbus')
+      .get('https://velsat.pe:8586/api/Turnos/empresa/movilbus')
       .then((response) => {
-        setUniqueAreas(response.data);
+        setUniqueEmpresas(response.data);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
@@ -132,7 +132,7 @@ export default function App({
 
     if (!selectedAreas.includes('all') && selectedAreas.length > 0) {
       filteredUsers = filteredUsers.filter((user) =>
-        selectedAreas.includes(user.area),
+        selectedAreas.includes(user.empresa),
       );
     }
 
@@ -276,15 +276,15 @@ export default function App({
           <Select
             style={{ background: '#dddedf' }}
             label=""
-            placeholder="Filtrar por Área"
+            placeholder="Filtrar por Empresa"
             labelPlacement="outside"
             size="sm"
             className="max-w-xs"
             disableSelectorIconRotation
             onSelectionChange={onAreaFilterChange}
           >
-            {uniqueAreas.map((area) => (
-              <SelectItem key={area}>{area}</SelectItem>
+            {uniqueEmpresas.map((empresa) => (
+              <SelectItem key={empresa}>{empresa}</SelectItem>
             ))}
           </Select>
           <div className="flex gap-3">

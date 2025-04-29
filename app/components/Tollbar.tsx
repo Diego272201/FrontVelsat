@@ -378,6 +378,8 @@ const Tollbar = () => {
                   <Link
                     href="/trackvelnew/planificacion/administracionturnos"
                     title="Administración Turnos"
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
                     Administración Turnos
                   </Link>
@@ -772,6 +774,8 @@ const Tollbar = () => {
                   <Link
                     href="/trackvelnew/planificacion/administracionturnos"
                     onClick={() => setIsSidebarOpen(false)}
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
                     <button className="mb-[-20px] mt-[-24px] block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Administración Turnos

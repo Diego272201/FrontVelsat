@@ -26,9 +26,10 @@ import { toast } from 'sonner';
 
 interface Props {
   title: string;
+  onPasajeroAgregado: () => void;
 }
 
-export default function App({ title }: Props) {
+export default function App({ title, onPasajeroAgregado }: Props) {
   const {
     register,
     handleSubmit,
@@ -143,6 +144,7 @@ export default function App({ title }: Props) {
       console.log('Pasajero registrado correctamente:', response.data);
       onClose(); // Cierra el modal al terminar
       toast.success('Nuevo pasajero agregado');
+      onPasajeroAgregado();
     } catch (error) {
       console.error('Error al registrar el pasajero:', error);
       toast.error('Error al agregar el pasajero');
