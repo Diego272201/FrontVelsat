@@ -61,6 +61,8 @@ export default function TepContent() {
 
   const [actualizacion, setActualizacion] = useState(0);
 
+ 
+
   const actualizarCabeceras = (
     nuevasCabeceras: { empresa: string; fecha: string }[],
   ) => {
@@ -100,6 +102,7 @@ export default function TepContent() {
 
   const manejarRespuestaModal = (respuesta: string) => {
     setDato(respuesta);
+    setActualizacion(prev => prev + 1);
     onOpenChange();
   };
 

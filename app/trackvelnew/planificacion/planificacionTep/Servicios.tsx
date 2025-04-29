@@ -21,6 +21,7 @@ import ModalDirecciones from './ModalDirecciones';
 import { parseFechaHora } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 const wrapperStyle: React.CSSProperties = {
   display: 'flex',
@@ -146,7 +147,7 @@ export default function App({
     };
 
     fetchData();
-  }, [empresa, shouldRefetch, shouldRefetchAddPasajero]);
+  }, [empresa, shouldRefetch, shouldRefetchAddPasajero,dato]);
 
   const handleRefrescarDatos = () => {
     setShouldRefetchAddPasajero(true);
@@ -329,104 +330,80 @@ export default function App({
   }
 
   function handleDragOver(event: any) {
-    const { active, over } = event;
-    const { id } = active;
-    if (!over) {
-      return;
-    }
-    const { id: overId } = over;
+    // Ahora NO hacemos nada aquí.
+    // Solo si quieres algún efecto visual en el futuro, pero no movemos los datos.
+  }
+  
+ async function handleDragEnd(event: any) {
+  const { active, over } = event;
+  setActiveId(null);
 
-    const activeContainer = findContainer(id);
-    const overContainer = findContainer(overId);
-
-    if (
-      !activeContainer ||
-      !overContainer ||
-      activeContainer === overContainer
-    ) {
-      return;
-    }
-
-    setItems((prev) => {
-      const activeItems = prev[activeContainer];
-      const overItems = prev[overContainer];
-
-      const activeIndex = activeItems.findIndex((item) => item.id === id);
-      const overIndex = overItems.findIndex((item) => item.id === overId);
-
-      const newItem = activeItems[activeIndex];
-      const newIndex = overIndex >= 0 ? overIndex + 1 : overItems.length;
-
-      return {
-        ...prev,
-        [activeContainer]: activeItems.filter((item) => item.id !== id),
-        [overContainer]: [
-          ...overItems.slice(0, newIndex),
-          newItem,
-          ...overItems.slice(newIndex),
-        ],
-      };
-    });
+  if (!over) {
+    return;
   }
 
-  function handleDragEnd(event: any) {
-    const { active, over } = event;
-    if (!over) {
-      setActiveId(null);
-      return;
-    }
+  const activeId = active.id;
+  const overId = over.id;
 
-    const activeId = active.id;
-    const overId = over.id;
-
-    if (overId === 'grupo-eliminados') {
-      handleEliminarDelArray(Number(activeId));
-      setActiveId(null);
-      return;
-    }
-
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId);
-
-    if (!activeContainer || !overContainer) {
-      setActiveId(null);
-      return;
-    }
-
-    let activeIndex = items[activeContainer]?.findIndex(
-      (item) => item.id === activeId,
-    );
-    let overIndex = items[overContainer]?.findIndex(
-      (item) => item.id === overId,
-    );
-
-    const encontrarGrupoPorCliente = (idCliente: number) => {
-      return grupos.findIndex((grupo) =>
-        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
-      );
-    };
-
-    const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
-
-    const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
-    const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
-    console.log(
-      `Moviendo el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
-    );
-
-    if (indiceGrupo === overContainerIndex) {
-      intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
-    } else {
-      moverClienteOtroGrupo(
-        Number(activeId),
-        indiceGrupo,
-        overContainerIndex,
-        overIndex ?? 0,
-      );
-    }
-    setActiveId(null);
+  if (overId === 'grupo-eliminados') {
+    handleEliminarDelArray(Number(activeId));
+    return;
   }
 
+  const activeContainer = findContainer(activeId);
+  const overContainer = findContainer(overId);
+
+  if (!activeContainer || !overContainer) {
+    return;
+  }
+
+  const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
+  const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
+
+  const activeIndex = items[activeContainer]?.findIndex(
+    (item) => item.id === activeId,
+  );
+  const overIndex = items[overContainer]?.findIndex(
+    (item) => item.id === overId,
+  );
+
+  const encontrarGrupoPorCliente = (idCliente: number) => {
+    return grupos.findIndex((grupo) =>
+      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+    );
+  };
+
+  const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
+
+  console.log(
+    `Intentando mover el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
+  );
+
+  if (indiceGrupo === overContainerIndex) {
+    intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
+    return;
+  }
+
+  const resultado = await Swal.fire({
+    title: '¿Estás seguro?',
+    text: '¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, mover',
+    cancelButtonText: 'Cancelar',
+  });
+
+  if (resultado.isConfirmed) {
+    moverClienteOtroGrupo(
+      Number(activeId),
+      indiceGrupo,
+      overContainerIndex,
+      overIndex ?? 0,
+    );
+  }
+}
+
+  
   const intercambiarClientes = (
     grupoIndex: number,
     activeIndex: number,

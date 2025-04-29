@@ -27,7 +27,7 @@ export default function App({ isOpen, onOpenChange, onRespuesta }: ModalProps) {
               </ModalHeader>
 
               <ModalBody>
-                <p>¿ Desea aplicar el orden del ultimo cierre ?</p>
+                <p>¿Desea aplicar el orden del último cierre?</p>
               </ModalBody>
               <ModalFooter>
                 <Button

@@ -6,9 +6,7 @@ import {
 } from '@dnd-kit/sortable';
 import SortableItem from './sortable_item';
 import App from '@/app/components/TimePicker';
-import {
-  useJsApiLoader,
-} from '@react-google-maps/api';
+import { useJsApiLoader } from '@react-google-maps/api';
 import {
   formatDate,
   formatDateToISO,
@@ -19,6 +17,7 @@ import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 import ModalAgregarPasajero from './ModalAgregarPasajero';
 import ModalMapa from './ModalRuta';
 import { toast } from 'sonner';
+import { TbEdit } from 'react-icons/tb';
 
 interface ItemData {
   id: string;
@@ -83,6 +82,43 @@ export default function Container({
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
 
+  const [diferencia, setDiferencia] = useState<{
+    horas: number;
+    minutos: number;
+  } | null>(null);
+
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
+  const [fechaFin, setFechaFin] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const fechaInicio =
+      grupo.tipo === 'I'
+        ? formatDateToISO(grupo.horaprog)
+        : formatDateToISO(grupo.fecha);
+    const fechaFin =
+      grupo.tipo === 'S'
+        ? formatDateToISO(grupo.horaprog)
+        : formatDateToISO(grupo.fecha);
+
+    setFechaInicio(new Date(fechaInicio));
+    setFechaFin(new Date(fechaFin));
+  }, [grupo]);
+
+  useEffect(() => {
+    if (fechaInicio && fechaFin) {
+      const diferenciaEnMs = Math.abs(
+        fechaFin.getTime() - fechaInicio.getTime(),
+      );
+
+      const diferenciaEnMinutos = Math.floor(diferenciaEnMs / (1000 * 60));
+
+      const horas = Math.floor(diferenciaEnMinutos / 60);
+      const minutos = diferenciaEnMinutos % 60;
+
+      setDiferencia({ horas, minutos });
+    }
+  }, [fechaInicio, fechaFin]);
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
@@ -90,38 +126,49 @@ export default function Container({
 
   const handleStartDateSelect = (date: string) => {
     if (grupo.tipo !== 'I') {
-      toast.error('Has cambiado la fecha de inicio, pero no está permitido actualizarla para este grupo.');
+      toast.error(
+        'Has cambiado la fecha de inicio, pero no está permitido actualizarla para este grupo.',
+      );
       return;
     }
-  
+
     setStartDate(date);
-  
+
     const formattedDate = formatDate(date);
     if (!formattedDate) {
       console.error('Error: Fecha inválida después de conversión.');
       return;
     }
-  
+
     onUpdateGrupoHoraProg(grupo.id, formattedDate);
   };
-  
+
   const handleEndDateSelect = (date: string) => {
     if (grupo.tipo !== 'S') {
-      toast.error('Has cambiado la fecha de fin, pero no está permitido actualizarla para este grupo.');
+      toast.error(
+        'Has cambiado la fecha de fin, pero no está permitido actualizarla para este grupo.',
+      );
       return;
     }
-  
+
     setEndDate(date);
-  
+
     const formattedDate = formatDate(date);
     if (!formattedDate) {
       console.error('Error: Fecha inválida después de conversión.');
       return;
     }
-  
+
     onUpdateGrupoHoraProg(grupo.id, formattedDate);
   };
-  
+
+  const formatearNombre = (texto: string) => {
+    return texto
+      .toLowerCase()
+      .split(' ')
+      .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .join(' ');
+  };
 
   useEffect(() => {
     if (grupo?.fecha) {
@@ -160,8 +207,15 @@ export default function Container({
             <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
               <th>Tipo: {grupo.tipo}</th>
-              <th>Empresa: {grupo.empresa.charAt(0).toUpperCase() + grupo.empresa.slice(1).toLowerCase()}</th>
-              <th>Destino: {grupo.destinoGrupo}</th>
+              <th>Empresa: {formatearNombre(grupo.empresa)}</th>
+              <th>
+                <div className="flex items-center">
+                  Destino: {grupo.destinoGrupo}{' '}
+                  <button className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500 focus:outline-none focus:ring-blue-400">
+                    <TbEdit size={20} />
+                  </button>
+                </div>
+              </th>
 
               <th>
                 <div
@@ -176,13 +230,14 @@ export default function Container({
                   Inicio :
                   <App
                     onDateSelect={handleStartDateSelect}
-                    height="30px"
+                    height="35px"
                     borderRadius="0"
                     initialDateTime={
                       grupo.tipo === 'I'
                         ? formatDateToISO(grupo.horaprog)
                         : formatDateToISO(grupo.fecha)
-                    }                  />
+                    }
+                  />
                 </div>
               </th>
               <th>
@@ -198,22 +253,35 @@ export default function Container({
                   Fin :
                   <App
                     onDateSelect={handleEndDateSelect}
-                    height="30px"
+                    height="35px"
                     borderRadius="0"
                     initialDateTime={
                       grupo.tipo === 'S'
                         ? formatDateToISO(grupo.horaprog)
                         : formatDateToISO(grupo.fecha)
-                    }        
+                    }
                   />
                 </div>
               </th>
-              <th>Tarifa: Tarifa Delta Delta</th>
+
+              <th>
+                Tarifa:{' '}
+                {grupo.empresa === 'REP'
+                  ? 'Latam'
+                  : grupo.empresa
+                      .toLowerCase()
+                      .split(' ')
+                      .map(
+                        (palabra) =>
+                          palabra.charAt(0).toUpperCase() + palabra.slice(1),
+                      )
+                      .join(' ')}
+              </th>
             </tr>
 
             <tr>
               <th>
-                <div className="headTable">
+                <div className="headTable bg-gray-400">
                   <div className="num">N°</div>
                   <div className="nombre">Nombre</div>
                   <div className="distrito">Distrito</div>
@@ -233,29 +301,34 @@ export default function Container({
 
         <div className="footerTep">
           <div className="dataConductorUnidad">
+            <div className="flex w-[800px]  items-center gap-4">
+              <div className="w-[380px]">
+                <InputConductor
+                  value={conductor}
+                  onChange={setConductor}
+                  onSelect={(codigo, apepate) => {
+                    setConductor(apepate);
+                    onUpdateConductor?.(grupo.id, codigo);
+                  }}
+                />
+              </div>
 
-            <div className='flex gap-4  w-[600px]'>
-            <div className='w-[380px]'>
-              <InputConductor
-                value={conductor}
-                onChange={setConductor}
-                onSelect={(codigo, apepate) => {
-                  setConductor(apepate);
-                  onUpdateConductor?.(grupo.id, codigo);
-                }}
-              />
-            </div>
-
-            <div >
-              <InputUnidad
-                value={unidad}
-                onChange={setUnidad}
-                onSelect={(codunidad) => {
-                  setUnidad(codunidad);
-                  onUpdateUnidad?.(grupo.id, codunidad);
-                }}
-              />
-            </div>
+              <div>
+                <InputUnidad
+                  value={unidad}
+                  onChange={setUnidad}
+                  onSelect={(codunidad) => {
+                    setUnidad(codunidad);
+                    onUpdateUnidad?.(grupo.id, codunidad);
+                  }}
+                />
+              </div>
+              <div className="rounded bg-gray-200 bg-opacity-20 p-2 text-sm font-semibold text-gray-800 ">
+                Diferencia:{' '}
+                {diferencia
+                  ? `${diferencia.horas} h y ${diferencia.minutos} min`
+                  : 'Cargando...'}
+              </div>
             </div>
 
             <div className="btnTep">

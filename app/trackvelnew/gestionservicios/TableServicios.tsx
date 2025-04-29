@@ -18,6 +18,7 @@ import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
 import dynamic from 'next/dynamic';
 
 import { RiSaveFill } from 'react-icons/ri';
+import { BiSolidEdit } from 'react-icons/bi';
 
 const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
   ssr: false,
@@ -557,7 +558,6 @@ export default function App({
     const unidadLimpia = selectedUnidad ? selectedUnidad.split('-')[0] : null;
 
     return data.filter((item) => {
-      // Extraer solo el nombre de la empresa sin el (numpax)
       const empresaLimpia = item.empresa.split(' (')[0];
 
       return (
@@ -818,11 +818,68 @@ export default function App({
     );
   };
 
+  const handleGuardarHoras = async () => {
+    if (!selectedRow) return;
+  
+    const codservicio = selectedRow.codServicio;
+    const fecha = nuevaFecha ? parseFecha(nuevaFecha) : selectedRow.fechaCompleta || '';
+    const fecplan = nuevaFechaProg ? parseFecha(nuevaFechaProg) : selectedRow.fecPlanCompleta || '';
+  
+    try {
+      const url = `https://velsat.pe:8586/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
+
+    
+
+  
+      const response = await axios.put(url);
+  
+      console.log('Respuesta de la API Wua:', response.data);
+      console.log('Respuesta de la API CODservicio:', codservicio);
+      console.log('Respuesta de la API Hora Ato :', fecha);
+      console.log('Respuesta de la API Hora Prog:', fecplan);
+      console.log("La URL ES : " + url)
+
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.codServicio === selectedRow.codServicio
+            ? {
+                ...item,
+                horaAto: nuevaFecha ? nuevaFecha.split('T')[1].slice(0, 5) : item.horaAto,
+                horaProg: nuevaFechaProg ? nuevaFechaProg.split('T')[1].slice(0, 5) : item.horaProg,
+                fechaCompleta: nuevaFecha ? parseFecha(nuevaFecha) : item.fechaCompleta,
+                fecPlanCompleta: nuevaFechaProg ? parseFecha(nuevaFechaProg) : item.fecPlanCompleta,
+                
+              }
+            : item,
+        ),
+      );
+
+ 
+
+
+    } catch (error) {
+      console.error('Error al actualizar horas:', error);
+    }
+  };
+
+
+
+
   function formatearFechaParaMostrar(fechaISO: string) {
-    const [fecha, hora] = fechaISO.split('T'); // "2025-04-01", "00:10"
-    const [anio, mes, dia] = fecha.split('-'); // "2025", "04", "01"
-    return `${dia}/${mes}/${anio} ${hora}`; // "01/04/2025 00:10"
+    const [fecha, hora] = fechaISO.split('T'); 
+    const [anio, mes, dia] = fecha.split('-'); 
+    return `${dia}/${mes}/${anio} ${hora}`;
   }
+
+  const altura =
+  isVisible && isVisibleAsignar
+    ? 320
+    : isVisible
+    ? 255 
+    : isVisibleAsignar
+    ? 170 
+    : 110; 
+
 
   return (
     <div>
@@ -846,7 +903,6 @@ export default function App({
               </tr>
             </thead>
             <tbody>
-              {/* Skeleton de carga en filas */}
               {[...Array(5)].map((_, index) => (
                 <tr key={index} className="border-t">
                   {columns.map((column) => (
@@ -862,7 +918,8 @@ export default function App({
       ) : (
         <div
           className="overflow-auto border border-gray-300"
-          style={{ height: `calc(100vh - ${isVisible ? 255 : 110}px)` }}
+          style={{ height: `calc(100vh - ${altura}px)` }}
+
         >
           <table className="w-full border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
@@ -1002,7 +1059,7 @@ export default function App({
                                     }}
                                     className="flex justify-center rounded bg-blue-700 px-2 py-1 text-gray-100 hover:bg-blue-500"
                                   >
-                                    <FaEdit />
+                                    <BiSolidEdit  />
                                   </button>
                                 </>
                               ) : (
@@ -1419,11 +1476,11 @@ export default function App({
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
                           horaAtencion={horaAtencionFinal}
-                          horaAto={
-                            horaAto
+                          horaAto=   {nuevaFecha
+                            ? formatearFechaParaMostrar(nuevaFecha)
+                            : horaAto
                               ? parseFecha(horaAto)
-                              : selectedRow?.fechaCompleta
-                          }
+                              : selectedRow?.fechaCompleta}
                           dataAgregada={dataSeleccionada}
                           agregarTrigger={agregarTrigger}
                           onCoordenadasUpdate={setCoordenadas}
@@ -1452,6 +1509,7 @@ export default function App({
                         )}
                       </div>
                     </div>
+
                     <p>
                       <strong>CodServicio:</strong> {selectedRow.codServicio}
                     </p>
@@ -1499,6 +1557,8 @@ export default function App({
                     </div> */}
 
                     <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
+                    <p>Fecha completa: {selectedRow?.fecPlanCompleta}</p>
+
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>
@@ -1511,6 +1571,8 @@ export default function App({
                     handleGuardarHoraAto();
                     tableRef.current?.actualizarOrdenEnServidor();
                     onClose();
+                    handleGuardarHoras();
+                    
                   }}
                 >
                   Guardar
