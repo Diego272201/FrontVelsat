@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
@@ -24,12 +24,7 @@ import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
-import {
-  GoogleMap,
-  Marker,
-  useJsApiLoader,
-  Autocomplete,
-} from '@react-google-maps/api';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
 interface Props {
   title: string;
@@ -86,71 +81,7 @@ export default function App({ title, codCliente }: Props) {
   const { data: session } = useSession();
   const username = session?.user.username;
 
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-
-  const onPlaceChanged = () => {
-    if (autocompleteRef.current !== null) {
-      const place = autocompleteRef.current.getPlace();
-      const location = place.geometry?.location;
-
-      if (location) {
-        const lat = location.lat();
-        const lng = location.lng();
-
-        // Actualizar el estado del marcador
-        setMarkerPosition({ lat, lng });
-
-        // Centrar el mapa en la nueva ubicación
-        if (mapRef.current) {
-          mapRef.current.panTo({ lat, lng });
-          mapRef.current.setZoom(15); // opcional, para acercar más
-        }
-
-        // Restablecer los valores en el formulario
-        reset((prev) => ({
-          ...prev,
-          direccion: place.formatted_address || '',
-          wy: lat.toString(),
-          wx: lng.toString(),
-        }));
-      }
-    }
-  };
-
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-
-  const onPlaceChanged = () => {
-    if (autocompleteRef.current !== null) {
-      const place = autocompleteRef.current.getPlace();
-      const location = place.geometry?.location;
-
-      if (location) {
-        const lat = location.lat();
-        const lng = location.lng();
-
-        // Actualizar el estado del marcador
-        setMarkerPosition({ lat, lng });
-
-        // Centrar el mapa en la nueva ubicación
-        if (mapRef.current) {
-          mapRef.current.panTo({ lat, lng });
-          mapRef.current.setZoom(15); // opcional, para acercar más
-        }
-
-        // Restablecer los valores en el formulario
-        reset((prev) => ({
-          ...prev,
-          direccion: place.formatted_address || '',
-          wy: lat.toString(),
-          wx: lng.toString(),
-        }));
-      }
-    }
-  };
-
-
+  //MAPA
   const wy = watch('wy');
   const wx = watch('wx');
 
@@ -170,17 +101,17 @@ export default function App({ title, codCliente }: Props) {
 
   const containerStyle = {
     width: '100%',
-    height: '100%',
+    height: '250px',
   };
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries: ['places'], 
+    libraries: ['places'], // ← importante
   });
 
   const handleClose = () => {
-
+    // Restablece las coordenadas y el marcador a los valores originales
     reset((prev) => ({
       ...prev,
       wy: originalPosition.lat.toString(),
@@ -191,9 +122,9 @@ export default function App({ title, codCliente }: Props) {
 
   useEffect(() => {
     if (!isOpen) {
-      handleClose(); 
+      handleClose(); // Cuando el modal se cierre, restablecemos la posición
     }
-  }, [isOpen]); 
+  }, [isOpen]);
   //FIN MAPA
 
   useEffect(() => {
@@ -303,7 +234,7 @@ export default function App({ title, codCliente }: Props) {
 
       console.log('Pasajero actualizado con éxito:', response.data);
       onClose();
-      toast.success('Pasajero actualizado'); 
+      toast.success('Pasajero actualizado'); // 🎉 Aquí el toast
     } catch (error) {
       console.error('Error al actualizar el pasajero:', error);
       toast.error('Error al agregar el pasajero');
@@ -323,26 +254,29 @@ export default function App({ title, codCliente }: Props) {
       </span>
 
       <Modal
-          className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-
+        className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        isDismissable={false}
+        isDismissable={true}
         isKeyboardDismissDisabled={true}
       >
         <form action="" onSubmit={onSubmit}>
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="flex items-center gap-1 text-[14px]">
-                <MdEditSquare size={20}/>
-
+                <ModalHeader className="cabecera gap-1">
+                  <Image
+                    src="/gpsLogo.png"
+                    width={40}
+                    height={40}
+                    alt="Picture of the author"
+                  />
                   {title}
                 </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-4">
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <div className="mensajeR  w-full">
+                      <div className="mensajeR w-full">
                         <Input
                           type="text"
                           label="Identificador"
@@ -357,7 +291,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR  w-full">
+                      <div className="mensajeR w-full">
                         <Input
                           type="text"
                           label="Nombre"
@@ -372,7 +306,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR  w-full">
+                      <div className="mensajeR w-full">
                         <Input
                           type="text"
                           label="Teléfono"
@@ -385,7 +319,7 @@ export default function App({ title, codCliente }: Props) {
                       <div className="mensajeR w-full">
                         <Select
                           label="Sexo"
-                          placeholder="Selecciona el Sexo"
+                          placeholder="Selecciona el sexo"
                           labelPlacement="outside"
                           disableSelectorIconRotation
                           selectorIcon={<SelectorIcon />}
@@ -399,78 +333,83 @@ export default function App({ title, codCliente }: Props) {
 
                     <hr />
 
-                    <div className="flex flex-wrap justify-between">
-                      <Select
-                        label="Empresa"
-                        placeholder="Selecciona una empresa"
-                        labelPlacement="outside"
-                        className="max-w-xs"
-                        disableSelectorIconRotation
-                        selectorIcon={<SelectorIcon />}
-                        {...register('empresa')}
-                      >
-                        <SelectItem key="AVIANCA">AVIANCA</SelectItem>
-                        <SelectItem key="LATAM">LATAM</SelectItem>
-                        <SelectItem key="KLM">KLM</SelectItem>
-                        <SelectItem key="DELTA">DELTA</SelectItem>
-                        <SelectItem key="QUALITY_PRODUCTS">
-                          QUALITY PRODUCTS
-                        </SelectItem>
-                        <SelectItem key="NEXA">NEXA</SelectItem>
-                        <SelectItem key="LCP">LCP</SelectItem>
-                        <SelectItem key="AMERICAN">
-                          AMERICAN AIRLINES
-                        </SelectItem>
-                        <SelectItem key="AJINOMOTO">AJINOMOTO</SelectItem>
-                        <SelectItem key="DHL">DHL</SelectItem>
-                        <SelectItem key="TERPEL">TERPEL</SelectItem>
-                        <SelectItem key="INDECOPI">INDECOPI</SelectItem>
-                        <SelectItem key="AMERICAN_TIERRA">
-                          AMERICAN TIERRA
-                        </SelectItem>
-                        <SelectItem key="REP">REP</SelectItem>
-                        <SelectItem key="COPA_AIR">COPA AIR</SelectItem>
-                        <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
-                        <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
-                        <SelectItem key="TALMA">TALMA</SelectItem>
-                        <SelectItem key="OI_PERU">OI PERU</SelectItem>
-                        <SelectItem key="METSO">METSO</SelectItem>
-                        <SelectItem key="MOVILBUS">MOVILBUS</SelectItem>
-                        <SelectItem key="OI_LURIN">OI LURIN</SelectItem>
-                        <SelectItem key="METSO_SSGG">METSO SSGG</SelectItem>
-                        <SelectItem key="TERPEL_AVIACION">
-                          TERPEL AVIACION
-                        </SelectItem>
-                        <SelectItem key="TERPEL_COMERCIAL">
-                          TERPEL COMERCIAL
-                        </SelectItem>
-                        <SelectItem key="ATSA">ATSA</SelectItem>
-                      </Select>
-
-                      <Select
-                        label="Tarifa"
-                        placeholder="Selecciona una tarifa"
-                        labelPlacement="outside"
-                        className="max-w-xs"
-                        disableSelectorIconRotation
-                        selectorIcon={<SelectorIcon />}
-                        {...register('zona')}
-                        isDisabled={!isTarifaLoaded}
-                      >
-                        {tarifa.map((item, index) => (
-                          <SelectItem key={index} value={item.zona}>
-                            {item.zona}
+                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
+                      <div className="w-full">
+                        {' '}
+                        <Select
+                          label="Empresa"
+                          placeholder="Selecciona una empresa"
+                          labelPlacement="outside"
+                          disableSelectorIconRotation
+                          selectorIcon={<SelectorIcon />}
+                          {...register('empresa')}
+                        >
+                          <SelectItem key="AVIANCA">AVIANCA</SelectItem>
+                          <SelectItem key="LATAM">LATAM</SelectItem>
+                          <SelectItem key="KLM">KLM</SelectItem>
+                          <SelectItem key="DELTA">DELTA</SelectItem>
+                          <SelectItem key="QUALITY_PRODUCTS">
+                            QUALITY PRODUCTS
                           </SelectItem>
-                        ))}
-                      </Select>
+                          <SelectItem key="NEXA">NEXA</SelectItem>
+                          <SelectItem key="LCP">LCP</SelectItem>
+                          <SelectItem key="AMERICAN">
+                            AMERICAN AIRLINES
+                          </SelectItem>
+                          <SelectItem key="AJINOMOTO">AJINOMOTO</SelectItem>
+                          <SelectItem key="DHL">DHL</SelectItem>
+                          <SelectItem key="TERPEL">TERPEL</SelectItem>
+                          <SelectItem key="INDECOPI">INDECOPI</SelectItem>
+                          <SelectItem key="AMERICAN_TIERRA">
+                            AMERICAN TIERRA
+                          </SelectItem>
+                          <SelectItem key="REP">REP</SelectItem>
+                          <SelectItem key="COPA_AIR">COPA AIR</SelectItem>
+                          <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
+                          <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
+                          <SelectItem key="TALMA">TALMA</SelectItem>
+                          <SelectItem key="OI_PERU">OI PERU</SelectItem>
+                          <SelectItem key="METSO">METSO</SelectItem>
+                          <SelectItem key="MOVILBUS">MOVILBUS</SelectItem>
+                          <SelectItem key="OI_LURIN">OI LURIN</SelectItem>
+                          <SelectItem key="METSO_SSGG">METSO SSGG</SelectItem>
+                          <SelectItem key="TERPEL_AVIACION">
+                            TERPEL AVIACION
+                          </SelectItem>
+                          <SelectItem key="TERPEL_COMERCIAL">
+                            TERPEL COMERCIAL
+                          </SelectItem>
+                          <SelectItem key="ATSA">ATSA</SelectItem>
+                        </Select>
+                      </div>
 
-                      <div className="mensajeR">
+                      <div className="w-full">
+                        {' '}
+                        <Select
+                          label="Tarifa"
+                          placeholder="Selecciona una tarifa"
+                          labelPlacement="outside"
+                          className="max-w-xs"
+                          disableSelectorIconRotation
+                          selectorIcon={<SelectorIcon />}
+                          {...register('zona')}
+                          isDisabled={!isTarifaLoaded}
+                        >
+                          {tarifa.map((item, index) => (
+                            <SelectItem key={index} value={item.zona}>
+                              {item.zona}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                      </div>
+
+                      <div className="mensajeR w-full">
                         <Input
                           type="text"
                           label="Dirección"
                           placeholder="Dirección"
+                          
                           labelPlacement="outside"
-                          className="md:w-[400px]"
                           {...register('direccion', {
                             required: true,
                           })}
@@ -483,7 +422,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div className="mensajeR w-full">
                         <Input
                           type="text"
                           label="Distrito"
@@ -502,7 +441,6 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
                     </div>
-
 
                     <hr />
 
@@ -545,31 +483,11 @@ export default function App({ title, codCliente }: Props) {
                           </span>
                         )}
                       </div>
-
-                      <div className="-mt-1 w-full">
-                        <Autocomplete
-                          onLoad={(autocomplete) =>
-                            (autocompleteRef.current = autocomplete)
-                          }
-                          onPlaceChanged={onPlaceChanged}
-                        >
-                          <>
-                            <label className="mb-2 block text-sm text-black">
-                              Buscar dirección
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Escribe una dirección..."
-                              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none"
-                            />
-                          </>
-                        </Autocomplete>
-                      </div>
                     </div>
 
                     <div>
                       {isLoaded && !isNaN(lat) && !isNaN(lng) && (
-                        <div className="w-full h-[400px] ">
+                        <div className="w-full">
                           <GoogleMap
                             mapContainerStyle={containerStyle}
                             center={{ lat, lng }}
