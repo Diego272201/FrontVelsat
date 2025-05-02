@@ -54,6 +54,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const username = session?.user.username;
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   const onPlaceChanged = () => {
     if (autocompleteRef.current !== null) {
@@ -65,6 +66,12 @@ export default function App({ title, onPasajeroAgregado }: Props) {
         const lng = location.lng();
 
         setMarkerPosition({ lat, lng });
+
+        // Centrar el mapa en la nueva ubicación
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat, lng });
+          mapRef.current.setZoom(15); // opcional, para acercar más
+        }
 
         reset((prev) => ({
           ...prev,
@@ -197,7 +204,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
  className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
   isOpen={isOpen}
         onOpenChange={onOpenChange}
-        isDismissable={true}
+        isDismissable={false}
         isKeyboardDismissDisabled={true}
       >
         <form action="" onSubmit={onSubmit}>
@@ -418,20 +425,23 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                         )}
                       </div>
 
-                      <div className="w-full">
+                      <div className="w-full -mt-1">
                         <Autocomplete
                           onLoad={(autocomplete) =>
                             (autocompleteRef.current = autocomplete)
                           }
                           onPlaceChanged={onPlaceChanged}
                         >
-                          <Input
-                            type="text"
-                            label="Buscar dirección"
-                            placeholder="Escribe una dirección..."
-                            labelPlacement="outside"
-                            className="w-full"
-                          />
+                          <>
+                            <label className="mb-2 block text-sm text-black">
+                              Buscar dirección
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Escribe una dirección..."
+                              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none"
+                            />
+                          </>
                         </Autocomplete>
                       </div>
                     </div>
@@ -453,6 +463,9 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                                 ? 13
                                 : 5
                             }
+                            onLoad={(map) => {
+                              mapRef.current = map;
+                            }}
                             onClick={(e) => {
                               const lat = e.latLng?.lat() || 0;
                               const lng = e.latLng?.lng() || 0;
