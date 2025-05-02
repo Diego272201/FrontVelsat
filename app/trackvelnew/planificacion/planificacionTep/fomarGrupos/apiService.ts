@@ -38,7 +38,7 @@ interface DataItem {
   tipo: string;
   lugar: Lugar;
   servicio: Servicio;
-  destino: string;
+  destinocodigo: string;
   nomdestino: string;
   orden: string;
   numero: string;
@@ -91,7 +91,7 @@ export const obtenerDatosYAgrupar = async (
             destinoGrupo: item.nomdestino,
             personas: [],
             destino: {
-              coddestino: item.destino,
+              coddestino: item.destinocodigo,
               nomdestino: item.nomdestino,
             },
             conductor: item.servicio.conductor.apepate ,
@@ -136,7 +136,7 @@ export const obtenerDatosYAgrupar = async (
           destinoGrupo: item.nomdestino,
           personas: [],
           destino: {
-            coddestino: item.destino,
+            coddestino: item.destinocodigo,
             nomdestino: item.nomdestino,
           },
           conductor: item.servicio.conductor.apepate ,
@@ -149,7 +149,7 @@ export const obtenerDatosYAgrupar = async (
           if (
             currentItem.fecha === item.fecha &&
             currentItem.tipo === item.tipo &&
-            currentItem.destino === item.destino
+            currentItem.destinocodigo === item.destinocodigo
           ) {
             grupo.personas.push({
               idCliente: currentItem.id,

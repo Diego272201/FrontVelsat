@@ -603,7 +603,7 @@ export default function App({
           codconductor: codConductorStr,
           codunidad: codUnidad,
           codtarifa: '',
-          destinocodigo: '',
+          destinocodigo: grupo.destino?.coddestino?.trim(),
         }));
       }),
 
@@ -695,6 +695,26 @@ export default function App({
     });
   };
 
+
+  const handleUpdateDestino = (id: number, nuevoDestino: string, codigoDestino: string) => {
+    setGrupos(prev =>
+      prev.map(g =>
+        g.id === id
+          ? {
+              ...g,
+              destinoGrupo: nuevoDestino,
+              destino: {
+                ...g.destino,
+                coddestino: codigoDestino,
+                nomdestino: nuevoDestino,
+              },
+            }
+          : g
+      )
+    );
+  };
+  
+
   return (
     <div style={wrapperStyle}>
       {loading ? (
@@ -725,6 +745,7 @@ export default function App({
                       key={key}
                       id={key}
                       items={items[key] || []}
+                      onUpdateDestino={handleUpdateDestino}
                       grupo={gruposFiltrados[index]}
                       coordenadas={gruposFiltrados[index]?.personas
                         ?.filter((p: any) => p.wx && p.wy)
