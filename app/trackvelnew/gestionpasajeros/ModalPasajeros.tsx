@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoIosAddCircle, IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
@@ -20,15 +20,21 @@ import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import {
+  GoogleMap,
+  Marker,
+  useJsApiLoader,
+  Autocomplete,
+} from '@react-google-maps/api';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 interface Props {
   title: string;
+  onPasajeroAgregado: () => void;
 }
 
-export default function App({ title }: Props) {
+export default function App({ title, onPasajeroAgregado }: Props) {
   const {
     register,
     handleSubmit,
@@ -46,6 +52,29 @@ export default function App({ title }: Props) {
   const { data: session } = useSession();
   const username = session?.user.username;
 
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current !== null) {
+      const place = autocompleteRef.current.getPlace();
+      const location = place.geometry?.location;
+
+      if (location) {
+        const lat = location.lat();
+        const lng = location.lng();
+
+        setMarkerPosition({ lat, lng });
+
+        reset((prev) => ({
+          ...prev,
+          direccion: place.formatted_address || '',
+          latitud: lat.toString(),
+          longitud: lng.toString(),
+        }));
+      }
+    }
+  };
+
   //MAPA
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
@@ -62,6 +91,7 @@ export default function App({ title }: Props) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
+    libraries: ['places'], // ← importante
   });
 
   const handleClose = () => {
@@ -143,6 +173,7 @@ export default function App({ title }: Props) {
       console.log('Pasajero registrado correctamente:', response.data);
       onClose(); // Cierra el modal al terminar
       toast.success('Nuevo pasajero agregado');
+      onPasajeroAgregado();
     } catch (error) {
       console.error('Error al registrar el pasajero:', error);
       toast.error('Error al agregar el pasajero');
@@ -162,8 +193,8 @@ export default function App({ title }: Props) {
       </span>
 
       <Modal
-      className="w-[70%] max-w-none"
-      isOpen={isOpen}
+        className="w-[70%] max-w-none"
+        isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={true}
         isKeyboardDismissDisabled={true}
@@ -172,7 +203,7 @@ export default function App({ title }: Props) {
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="gap-1 flex items-center">
+                <ModalHeader className="flex items-center gap-1">
                   <Image
                     src="/gpsLogo.png"
                     width={40}
@@ -183,8 +214,8 @@ export default function App({ title }: Props) {
                 </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-4">
-                    <div className="flex justify-between flex-wrap">
-                      <div >
+                    <div className="flex flex-wrap justify-between">
+                      <div>
                         <Input
                           type="text"
                           label="Identificador"
@@ -218,7 +249,7 @@ export default function App({ title }: Props) {
                         )}
                       </div>
 
-                      <div >
+                      <div>
                         <Input
                           type="text"
                           label="Teléfono"
@@ -245,7 +276,7 @@ export default function App({ title }: Props) {
                     </div>
                     <hr />
 
-                    <div className="flex justify-between flex-wrap">
+                    <div className="flex flex-wrap justify-between">
                       <Select
                         label="Empresa"
                         placeholder="Selecciona una empresa"
@@ -309,8 +340,7 @@ export default function App({ title }: Props) {
                         ))}
                       </Select>
 
-
-                      <div >
+                      <div>
                         <Input
                           type="text"
                           label="Dirección"
@@ -329,7 +359,7 @@ export default function App({ title }: Props) {
                         )}
                       </div>
 
-                      <div >
+                      <div>
                         <Input
                           type="text"
                           label="Distrito"
@@ -348,9 +378,6 @@ export default function App({ title }: Props) {
                         )}
                       </div>
                     </div>
-
-                   
-                   
 
                     <hr />
 
@@ -392,6 +419,23 @@ export default function App({ title }: Props) {
                             Nombre es requerido
                           </span>
                         )}
+                      </div>
+
+                      <div className="w-full">
+                        <Autocomplete
+                          onLoad={(autocomplete) =>
+                            (autocompleteRef.current = autocomplete)
+                          }
+                          onPlaceChanged={onPlaceChanged}
+                        >
+                          <Input
+                            type="text"
+                            label="Buscar dirección"
+                            placeholder="Escribe una dirección..."
+                            labelPlacement="outside"
+                            className="w-full"
+                          />
+                        </Autocomplete>
                       </div>
                     </div>
 

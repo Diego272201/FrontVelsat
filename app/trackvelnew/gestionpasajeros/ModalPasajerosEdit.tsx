@@ -107,6 +107,7 @@ export default function App({ title, codCliente }: Props) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
+    libraries: ['places'], // ← importante
   });
 
   const handleClose = () => {

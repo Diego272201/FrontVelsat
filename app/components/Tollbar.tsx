@@ -384,37 +384,39 @@ const Tollbar = () => {
                     <div style={{ fontSize: '12px' }}>Planificación</div>
                   </Link>
 
-                  <ul
-                    className={`dropdown-menue planificacion${
-                      isServicesMenuOpen ? 'dropdown-menu--show' : ''
-                    }`}
+              <ul
+                className={`dropdown-menue planificacion${
+                  isServicesMenuOpen ? 'dropdown-menu--show' : ''
+                }`}
+              >
+                <div className="containerplan"></div>
+                <li>
+                  <Link
+                    href="/trackvelnew/planificacion/administracionturnos"
+                    title="Administración Turnos"
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
-                    <div className="containerplan"></div>
-                    <li>
-                      <Link
-                        href="/trackvelnew/planificacion/administracionturnos"
-                        title="Administración Turnos"
-                      >
-                        Administración Turnos
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/trackvelnew/planificacion/planificacionTep"
-                        title="Planificación Servicios"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Planificación Servicios
-                      </Link>
-                    </li>
-                    <li>
-                      <a href="#" title="Re-Planificación Servicios">
-                        Re-Planificación Servicios
-                      </a>
-                    </li>
-                  </ul>
+                    Administración Turnos
+                  </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/trackvelnew/planificacion/planificacionTep"
+                    title="Planificación Servicios"
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  >
+                    Planificación Servicios
+                  </Link>
+                </li>
+                <li>
+                  <a href="#" title="Re-Planificación Servicios">
+                    Re-Planificación Servicios
+                  </a>
+                </li>
+              </ul>
+            </li>
 
                 <li
                   className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
@@ -788,6 +790,8 @@ const Tollbar = () => {
                   <Link
                     href="/trackvelnew/planificacion/administracionturnos"
                     onClick={() => setIsSidebarOpen(false)}
+                    target='_blank'
+                    rel='noopener noreferrer'
                   >
                     <button className="mb-[-20px] mt-[-24px] block w-full rounded-lg px-3 py-1.5 text-left text-sm text-white transition hover:bg-blue-100 hover:text-gray-800">
                       Administración Turnos

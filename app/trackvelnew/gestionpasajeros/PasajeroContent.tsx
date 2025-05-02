@@ -39,6 +39,7 @@ export default function PasajeroContent() {
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
   const { data: session } = useSession();
   const username = session?.user.username;
+  const [reloadPasajeros, setReloadPasajeros] = useState(false);
 
   useEffect(() => {
     if (baseUrl) {
@@ -72,7 +73,7 @@ export default function PasajeroContent() {
 
   useEffect(() => {
     if (!isBaseUrlReady) return;
-
+  
     const fetchPasajeros = async () => {
       try {
         setLoading(true);
@@ -88,9 +89,9 @@ export default function PasajeroContent() {
         setLoading(false);
       }
     };
-
+  
     fetchPasajeros();
-  }, [isBaseUrlReady, baseUrl]);
+  }, [isBaseUrlReady, baseUrl, reloadPasajeros]);
 
   const filteredPasajeros = useMemo(() => {
     if (query.length < 2) return [];
@@ -143,6 +144,10 @@ export default function PasajeroContent() {
         setSelectedCodCliente(null);
         setInputValue('');
         setQuery('');
+
+        setPasajeros((prevPasajeros) =>
+          prevPasajeros.filter((pasajero) => pasajero.value !== selectedCodCliente)
+        );
       }
     } catch (error) {
       console.error('Error al eliminar pasajero:', error);
@@ -200,8 +205,8 @@ export default function PasajeroContent() {
             </div>
 
             <div className="flex w-1/2 justify-end gap-2">
-              <ModalPasajeros title="Nuevo Pasajero" />
-              <ModalPasajerosEdit
+            <ModalPasajeros title="Agregar pasajero" onPasajeroAgregado={() => setReloadPasajeros(prev => !prev)} />
+            <ModalPasajerosEdit
                 title="Detalle Pasajero"
                 codCliente={selectedCodCliente}
               />
