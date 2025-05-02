@@ -173,7 +173,7 @@ export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: S
 
         <div className="menu">
           <div className="unidades">
-            Total de unidades: {filteredUnidades.length}
+            TOTAL DE UNIDADES : {filteredUnidades.length}
             <div className="imap">
               <a href="#" onClick={centerMap}>
                 <TbView360 size={23} />

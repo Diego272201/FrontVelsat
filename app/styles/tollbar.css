@@ -375,7 +375,7 @@ font-size: 0.88rem;
   align-items: center;
   gap: 5px;
   margin-top: -5px;
-  margin-right: -22px;
+  margin-right: -27px;
 
 }
 
@@ -441,6 +441,7 @@ font-size: 0.88rem;
   display: flex;
   align-items: center;
   height: 35px;
+  justify-content: center;
 }
 
 .icon_menu{

@@ -205,9 +205,9 @@ export default function PasajeroContent() {
             </div>
 
             <div className="flex w-1/2 justify-end gap-2">
-            <ModalPasajeros title="Agregar pasajero" onPasajeroAgregado={() => setReloadPasajeros(prev => !prev)} />
+            <ModalPasajeros title="AGREGAR PASAJERO" onPasajeroAgregado={() => setReloadPasajeros(prev => !prev)} />
             <ModalPasajerosEdit
-                title="Detalle Pasajero"
+                title="DETALLE PASAJERO"
                 codCliente={selectedCodCliente}
               />
               <button

@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { ImExit } from 'react-icons/im';
+import { MdOutlineFullscreen } from 'react-icons/md';
+import { BiFullscreen } from 'react-icons/bi';
 
 interface Props {
   toggleFullScreen?: () => void;
@@ -11,7 +14,6 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
-  // Cierra el dropdown si haces click fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -30,32 +32,35 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
   };
 
   return (
-    <div className="relative  text-left flex" ref={dropdownRef}>
+    <div className="relative text-left flex" ref={dropdownRef}>
       <button onClick={() => setOpen(!open)} className="focus:outline-none">
         <img
-          src="/logoInicio.png" // reemplaza con la ruta de tu foto
+          src="/logoInicio.png" 
           alt="Perfil"
           className="h-7 w-7 rounded-md  border border-transparent object-cover hover:border-[#e5e5e5] hover:bg-[#e5e5e5] bg-white "
         />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-9 w-44 rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5">
-          <div className="py-2 text-sm text-gray-700">
+        <div className="absolute right-0 z-50 mt-9 w-44 bg-[#1C5ED8] shadow-lg ">
+          <div className="text-[12px] text-gray-700">
             <button
               onClick={() => {
-                setOpen(false); // Cierra el menú
-                toggleFullScreen?.(); // Ejecuta la función si existe
+                setOpen(false);
+                toggleFullScreen?.();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-100"
+              className="w-full px-4 py-2 text-left hover:bg-[#FB7B0F] text-[#fff] flex items-center gap-1"
             >
+              <BiFullscreen  size={20}/>
               Pantalla Completa
             </button>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 text-left hover:bg-gray-100"
+              className="w-full px-4 py-2 text-left hover:bg-[#FB7B0F] text-[#fff] flex items-center gap-1"
             >
-              Cerrar sesión
+              <ImExit size={20}/>
+
+              Cerrar Sesión
             </button>
           </div>
         </div>

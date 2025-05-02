@@ -25,6 +25,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { MdEditSquare } from 'react-icons/md';
 
 interface Props {
   title: string;
@@ -81,7 +82,7 @@ export default function App({ title, codCliente }: Props) {
   const { data: session } = useSession();
   const username = session?.user.username;
 
-  //MAPA
+
   const wy = watch('wy');
   const wx = watch('wx');
 
@@ -101,17 +102,17 @@ export default function App({ title, codCliente }: Props) {
 
   const containerStyle = {
     width: '100%',
-    height: '250px',
+    height: '100%',
   };
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries: ['places'], // ← importante
+    libraries: ['places'], 
   });
 
   const handleClose = () => {
-    // Restablece las coordenadas y el marcador a los valores originales
+
     reset((prev) => ({
       ...prev,
       wy: originalPosition.lat.toString(),
@@ -122,10 +123,10 @@ export default function App({ title, codCliente }: Props) {
 
   useEffect(() => {
     if (!isOpen) {
-      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+      handleClose(); 
     }
   }, [isOpen]); 
-  //FIN MAPA
+
 
   useEffect(() => {
     if (baseUrl) {
@@ -232,7 +233,7 @@ export default function App({ title, codCliente }: Props) {
   
       console.log('Pasajero actualizado con éxito:', response.data);
       onClose();
-      toast.success('Pasajero actualizado'); // 🎉 Aquí el toast
+      toast.success('Pasajero actualizado'); 
     } catch (error) {
       console.error('Error al actualizar el pasajero:', error);
       toast.error('Error al agregar el pasajero');
@@ -252,7 +253,8 @@ export default function App({ title, codCliente }: Props) {
       </span>
 
       <Modal
-        size="2xl"
+          className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={true}
@@ -262,19 +264,15 @@ export default function App({ title, codCliente }: Props) {
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="cabecera gap-1">
-                  <Image
-                    src="/gpsLogo.png"
-                    width={40}
-                    height={40}
-                    alt="Picture of the author"
-                  />
+                <ModalHeader className="flex items-center gap-1 text-[14px]">
+                <MdEditSquare size={20}/>
+
                   {title}
                 </ModalHeader>
                 <ModalBody>
                   <div className="flex flex-col gap-4">
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <div className="mensajeR">
+                      <div className="mensajeR  w-full">
                         <Input
                           type="text"
                           label="Identificador"
@@ -289,7 +287,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div className="mensajeR  w-full">
                         <Input
                           type="text"
                           label="Nombre"
@@ -304,7 +302,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
 
-                      <div className="mensajeR">
+                      <div className="mensajeR  w-full">
                         <Input
                           type="text"
                           label="Teléfono"
@@ -314,10 +312,10 @@ export default function App({ title, codCliente }: Props) {
                         />
                       </div>
 
-                      <div className="mensajeR w-[70px]">
+                      <div className="mensajeR w-full">
                         <Select
                           label="Sexo"
-                          placeholder="Selecciona el sexo"
+                          placeholder="Selecciona el Sexo"
                           labelPlacement="outside"
                           disableSelectorIconRotation
                           selectorIcon={<SelectorIcon />}
@@ -331,7 +329,7 @@ export default function App({ title, codCliente }: Props) {
 
                     <hr />
 
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
+                    <div className="flex flex-wrap justify-between">
                       <Select
                         label="Empresa"
                         placeholder="Selecciona una empresa"
@@ -395,9 +393,7 @@ export default function App({ title, codCliente }: Props) {
                           </SelectItem>
                         ))}
                       </Select>
-                    </div>
 
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
                       <div className="mensajeR">
                         <Input
                           type="text"
@@ -436,6 +432,7 @@ export default function App({ title, codCliente }: Props) {
                         )}
                       </div>
                     </div>
+
 
                     <hr />
 
@@ -483,7 +480,7 @@ export default function App({ title, codCliente }: Props) {
 
                     <div>
                       {isLoaded && !isNaN(lat) && !isNaN(lng) && (
-                        <div className="w-full">
+                        <div className="w-full h-[400px] ">
                           <GoogleMap
                             mapContainerStyle={containerStyle}
                             center={{ lat, lng }}

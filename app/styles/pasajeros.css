@@ -4,10 +4,11 @@
     font-weight: 500;
     background:  #264ebb;
     align-items: center;
-    clip-path: polygon(2.1% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.08% 29%);
+    clip-path: polygon(2.4% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.7% 29%);
     justify-content: center;
     margin-top: -10px;
-
+    margin-left: 5px;
+    margin-right: 5px;
   }
   
   .titulocabecera{

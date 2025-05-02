@@ -28,6 +28,7 @@ import {
 } from '@react-google-maps/api';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { MdAddBox } from 'react-icons/md';
 
 interface Props {
   title: string;
@@ -75,7 +76,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   };
 
-  //MAPA
+ 
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
   const [markerPosition, setMarkerPosition] = useState<{
@@ -85,7 +86,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   const containerStyle = {
     width: '100%',
-    height: '250px',
+    height: '100%'
   };
 
   const { isLoaded } = useJsApiLoader({
@@ -95,7 +96,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   });
 
   const handleClose = () => {
-    // Restablece las coordenadas y el marcador a los valores originales
+
     reset((prev) => ({
       ...prev,
 
@@ -115,10 +116,10 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   useEffect(() => {
     if (!isOpen) {
-      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+      handleClose();
     }
   }, [isOpen]);
-  //FIN MAPA
+
 
   useEffect(() => {
     if (baseUrl) {
@@ -171,7 +172,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
         body,
       );
       console.log('Pasajero registrado correctamente:', response.data);
-      onClose(); // Cierra el modal al terminar
+      onClose();
       toast.success('Nuevo pasajero agregado');
       onPasajeroAgregado();
     } catch (error) {
@@ -193,8 +194,8 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       </span>
 
       <Modal
-        className="w-[70%] max-w-none"
-        isOpen={isOpen}
+ className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+  isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={true}
         isKeyboardDismissDisabled={true}
@@ -203,13 +204,9 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="flex items-center gap-1">
-                  <Image
-                    src="/gpsLogo.png"
-                    width={40}
-                    height={40}
-                    alt="Picture of the author"
-                  />
+                <ModalHeader className="flex items-center gap-1 text-[14px]">
+                <MdAddBox size={20} />
+
                   {title}
                 </ModalHeader>
                 <ModalBody>
@@ -441,14 +438,14 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
                     <div>
                       {isLoaded && (
-                        <div className="w-full">
+                        <div className="w-full h-[400px] ">
                           <GoogleMap
                             mapContainerStyle={containerStyle}
                             center={
                               markerPosition.lat !== 0 &&
                               markerPosition.lng !== 0
                                 ? markerPosition
-                                : { lat: -12.0464, lng: -77.0428 } // Centro predeterminado solo al inicio
+                                : { lat: -12.0464, lng: -77.0428 }
                             }
                             zoom={
                               markerPosition.lat !== 0 &&
@@ -495,7 +492,8 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                     </div>
                   </div>
                 </ModalBody>
-                <ModalFooter>
+                <ModalFooter >
+                  
                   <Button color="danger" onPress={onClose}>
                     Cerrar
                     <AiFillCloseCircle size={18} />
