@@ -22,6 +22,7 @@ import {
   formatFechaAMD,
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import { AiFillCaretRight } from 'react-icons/ai';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -60,8 +61,6 @@ export default function TepContent() {
   const [fechasLlenas, setFechasLlenas] = useState(0);
 
   const [actualizacion, setActualizacion] = useState(0);
-
- 
 
   const actualizarCabeceras = (
     nuevasCabeceras: { empresa: string; fecha: string }[],
@@ -102,7 +101,7 @@ export default function TepContent() {
 
   const manejarRespuestaModal = (respuesta: string) => {
     setDato(respuesta);
-    setActualizacion(prev => prev + 1);
+    setActualizacion((prev) => prev + 1);
     onOpenChange();
   };
 
@@ -320,9 +319,11 @@ export default function TepContent() {
         <div className="cabecera sticky top-0 z-50">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <span className="titulocabecera">
+              
+           
+              <div className="titulocabecera">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
-              </span>
+              </div>
             </div>
             <div className="h-[30px] w-px bg-white"></div>
 
@@ -637,7 +638,7 @@ export default function TepContent() {
         style={{ height: `calc(100vh - ${isVisible ? 270 : 110}px)` }}
       >
         {!empresaConfirmada || !dato ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-300 flex-col gap-6">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gray-300">
             <Image
               src="/nodataVelsat.png"
               alt=""
@@ -645,7 +646,7 @@ export default function TepContent() {
               height={'380'}
             />
 
-            <span className="text-[14px] font-semibold text-[#0d1b2a] uppercase">
+            <span className="text-[14px] font-semibold uppercase text-[#0d1b2a]">
               Aún no has Seleccionado la Empresa
             </span>
           </div>

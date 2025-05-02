@@ -3,7 +3,6 @@
   padding-top: 20px;
   overflow: auto;
   height: 97vh;
-
 }
 
 .cabecera {
@@ -11,33 +10,36 @@
   justify-content: space-between;
   padding: 2px;
   font-weight: 500;
-  background:  #264ebb;
+  background: #264ebb;
   align-items: center;
-  clip-path: polygon(2.1% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.08% 29%);
+  clip-path: polygon(2.4% 0, 100% 0, 100% 100%, 0 100%, 0 29%, 1.7% 29%);
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
-
-.progressAndTitle{
+.progressAndTitle {
   display: flex;
   width: 85%;
   gap: 20px;
   align-items: center;
   padding-left: 0px;
-  font-size: 11.5px;
+  font-size: 11.4px;
 }
 
-.contenedorcabecera{
+.titulocabecera {
+  color: #ffffff;
+  margin-left: 5px;
+  font-weight: 700;
+  display: flex;
+  justify-items: center;
+  align-items: center;
+  gap: 10px;
   margin-top: 8px;
 }
 
-.titulocabecera{
-  color: #ffffff;
-  padding: 17px;
-  margin-left: 4px;
- 
- font-weight: 700;
+.iconoH {
+  background: rgb(166, 160, 173);
 }
-
 
 .titulo_boton {
   float: left;
@@ -71,20 +73,19 @@
   background: #fff;
   margin-left: 5px;
   margin-right: 5px;
-
 }
 
-.subtitleTep{
+.subtitleTep {
   font-weight: 500;
   font-size: 13px;
   padding-left: 3px;
 }
 
 .selectTipoA {
-  width: 150PX;
+  width: 150px;
 }
 
-.inputFiltros{
+.inputFiltros {
   width: 280px;
 }
 
@@ -95,11 +96,8 @@
   justify-content: space-between;
   align-items: end;
   padding-bottom: 10px;
-  gap:5px;
-  
+  gap: 5px;
 }
-
-
 
 .servicesP {
   display: flex;
@@ -112,31 +110,26 @@
   display: flex;
   gap: 10px;
   align-items: center;
-
 }
-.InfoReportes{
+.InfoReportes {
   display: flex;
-  gap:10px;
+  gap: 10px;
 }
 
 .checkbox {
   display: none;
 }
 
-
-
-.filtrosPlanificacion{
+.filtrosPlanificacion {
   width: 100%;
 }
 
-.cabeceraArchivos{
+.cabeceraArchivos {
   display: flex;
   gap: 15px;
   justify-content: space-between;
   align-items: center;
-  
 }
-
 
 .slider {
   width: 55px;
@@ -169,13 +162,12 @@
 }
 
 .checkbox:checked ~ .slider {
-  background-color: #FB7B0F;
+  background-color: #fb7b0f;
 }
 
 .checkbox:active ~ .slider::before {
   transform: translate(0);
 }
-
 
 .container-btn-file {
   display: flex;
@@ -191,7 +183,7 @@
   z-index: 1;
   transition: all 250ms;
 }
-.container-btn-file input[type="file"] {
+.container-btn-file input[type='file'] {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -202,7 +194,7 @@
   margin-right: 1em;
 }
 .container-btn-file::before {
-  content: "";
+  content: '';
   position: absolute;
   height: 100%;
   width: 0;
@@ -215,19 +207,16 @@
   width: 100%;
 }
 
-.headTep{
+.headTep {
   background: #0466c8;
   display: flex;
   justify-content: space-between;
 }
 
-
-
 .rwd-table {
   margin: auto;
   width: 100%;
   border-collapse: collapse;
-
 }
 
 .rwd-table tr:first-child {
@@ -241,14 +230,9 @@
   align-items: center;
 }
 
-
-
-
 .rwd-table th {
   display: none;
 }
-
-
 
 .rwd-table th,
 .rwd-table td {
@@ -260,15 +244,12 @@
   overflow: hidden;
 }
 
-
-
 @media screen and (max-width: 601px) {
   .rwd-table tr:nth-child(2) {
     border-top: none;
   }
 }
 @media screen and (min-width: 600px) {
-
   .rwd-table td:before {
     display: none;
   }
@@ -284,76 +265,71 @@
   .rwd-table td:last-child {
     padding-right: 0;
   }
-
 }
 
-.headTable{
+.headTable {
   display: flex;
   justify-content: space-between;
   font-weight: 500;
   font-size: 14px;
   color: #000000;
   padding-left: 5px;
-  
 }
 
-.grupoServicios{
+.grupoServicios {
   margin-top: 10px;
   margin-left: 5px;
   margin-right: 5px;
 }
-.footerTep{
+.footerTep {
   background: #f3ae24;
   display: flex;
   padding: 5px;
-
 }
 
-.dataConductorUnidad{
+.dataConductorUnidad {
   display: flex;
   width: 100%;
   justify-content: space-between;
   align-items: center;
-
 }
 
-.btnTep{
+.btnTep {
   gap: 10px;
   display: flex;
 }
 
-.num{
+.num {
   width: 5%;
 }
 
-.nombre{
+.nombre {
   width: 20%;
 }
-.distrito{
+.distrito {
   width: 10%;
 }
-.direccion{
+.direccion {
   width: 30%;
   display: -webkit-box;
-  -webkit-line-clamp: 2; 
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.fecha{
+.fecha {
   width: 10%;
 }
-.area{
+.area {
   width: 10%;
 }
 
-.acciones{
+.acciones {
   width: 15%;
 }
 
-.accionesItems{
+.accionesItems {
   padding-right: 8px;
   display: flex;
   justify-content: space-between;
 }
-

@@ -18,6 +18,7 @@ import ModalAgregarPasajero from './ModalAgregarPasajero';
 import ModalMapa from './ModalRuta';
 import { toast } from 'sonner';
 import { TbEdit } from 'react-icons/tb';
+import ModalDestino from '../ModalDestino';
 
 interface ItemData {
   id: string;
@@ -56,6 +57,11 @@ interface ContainerProps {
     direccion?: string;
   }[];
   onRefrescarDatos?: () => void;
+  onUpdateDestino: (
+    id: number,
+    nuevoDestino: string,
+    codigoDestino: string,
+  ) => void;
 }
 
 type MarkerData = {
@@ -74,6 +80,7 @@ export default function Container({
   onUpdateUnidad,
   coordenadas,
   onRefrescarDatos,
+  onUpdateDestino,
 }: ContainerProps) {
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
@@ -210,10 +217,17 @@ export default function Container({
               <th>Empresa: {formatearNombre(grupo.empresa)}</th>
               <th>
                 <div className="flex items-center">
-                  Destino: {grupo.destinoGrupo}{' '}
-                  <button className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500 focus:outline-none focus:ring-blue-400">
-                    <TbEdit size={20} />
-                  </button>
+                  Destino:{' '}
+                  {grupo.destinoGrupo
+                    .toLowerCase()
+                    .split(' ')
+                    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+                    .join(' ')}
+                  <ModalDestino
+                    onDestinoSeleccionado={(nuevoDestino, codigoDestino) => {
+                      onUpdateDestino(grupo.id, nuevoDestino, codigoDestino);
+                    }}
+                  />
                 </div>
               </th>
 

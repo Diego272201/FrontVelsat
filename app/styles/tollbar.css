@@ -11,7 +11,7 @@
 
 .tollbar-bg{
   background: #113eb9;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 2% 70%, 1% 90%, 0 90%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 2.5% 70%, 1.8% 90%, 0 90%);
   position: absolute;
   top: 0;
   left: 0;
@@ -82,33 +82,7 @@ h2{
   font-size: 17px;
 }
 
-.userInicio{
-  color: #fff;
-  display: flex;
-  gap: 10%;
-  justify-content: start;
-  align-items: center;
-  display: block;
-  font-size: 14px;
-}
 
-.logo {
-  margin-left: 16px;
-  width: 400px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  justify-content: start;
-  align-items: center;
-  color: #fff;
-  gap: 10px;
-  margin-top: -5.5px;
-}
-
-.logo img{
-  width: 20px;
-
-}
 
 .optMenu{
   display: flex;
@@ -140,9 +114,7 @@ font-size: 0.88rem;
   transition: all 0.2s ease-in-out;
 }
 
-.navigation > li > a.active {
-  color: #ffffff;
-}
+
 
 
 
@@ -193,8 +165,8 @@ font-size: 0.88rem;
     }
     100% {
       opacity: 1;
-      width: 250px; /* Ancho del menú */
-      height: 100vh; /* Alto completo */
+      width: 250px; 
+      height: 100vh; 
     }
   }
 
@@ -247,13 +219,7 @@ font-size: 0.88rem;
   margin-top: -10px;
 }
 
-.containerEstad{
-  background-color: transparent;
-  width: 175px;
-  height: 10px;
-  position: absolute;
-  margin-top: -10px;
-}
+
 
 .dropdown-menue {
   position: absolute;
@@ -322,7 +288,6 @@ font-size: 0.88rem;
 }
 }
 
-/* Hover effect for dropdown items */
 .dropdown-menue li:hover {
   background-color: #e5e5e5;
 }
@@ -338,13 +303,11 @@ font-size: 0.88rem;
   background-color: none;
 }
 
-/* Show the dropdown menu on hover */
 .dropdown:hover .dropdown-menue {
   display: block;
 }
 
 
-/* Style the dropdown caret icon */
 .dropdown-iconn {
   display: none;
   position: absolute; 
@@ -448,7 +411,6 @@ font-size: 0.88rem;
   font-size: 25px;
   color: #fff;
   cursor: pointer;
-  background: #1C5ED8;
 }
 
 .sidebar div{
@@ -561,18 +523,15 @@ font-size: 0.88rem;
     display: flex;
     position: absolute;
     top: 1px;
-    right: 10px;
+    right: 0px;
     cursor: pointer;
-    gap: 10px;
-    padding: 5px;
+    gap: 30px;
+    padding-top: 3px;
+    align-items: center;
   }
 }
 
-@media screen and (max-width: 1100px) {
-  .mobile-only-button {
-    display: flex;
-  }
-}
+
 
 @media screen and (max-width: 850px) {
   .sidebar {
