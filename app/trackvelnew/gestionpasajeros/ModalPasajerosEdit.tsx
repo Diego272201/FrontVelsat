@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
@@ -24,7 +24,12 @@ import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import {
+  GoogleMap,
+  Marker,
+  useJsApiLoader,
+  Autocomplete,
+} from '@react-google-maps/api';
 
 interface Props {
   title: string;
@@ -81,6 +86,38 @@ export default function App({ title, codCliente }: Props) {
   const { data: session } = useSession();
   const username = session?.user.username;
 
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current !== null) {
+      const place = autocompleteRef.current.getPlace();
+      const location = place.geometry?.location;
+
+      if (location) {
+        const lat = location.lat();
+        const lng = location.lng();
+
+        // Actualizar el estado del marcador
+        setMarkerPosition({ lat, lng });
+
+        // Centrar el mapa en la nueva ubicación
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat, lng });
+          mapRef.current.setZoom(15); // opcional, para acercar más
+        }
+
+        // Restablecer los valores en el formulario
+        reset((prev) => ({
+          ...prev,
+          direccion: place.formatted_address || '',
+          wy: lat.toString(),
+          wx: lng.toString(),
+        }));
+      }
+    }
+  };
+
   //MAPA
   const wy = watch('wy');
   const wx = watch('wx');
@@ -124,7 +161,7 @@ export default function App({ title, codCliente }: Props) {
     if (!isOpen) {
       handleClose(); // Cuando el modal se cierre, restablecemos la posición
     }
-  }, [isOpen]); 
+  }, [isOpen]);
   //FIN MAPA
 
   useEffect(() => {
@@ -175,7 +212,7 @@ export default function App({ title, codCliente }: Props) {
         const lat = parseFloat(pasajeroData.wy) || 0;
         const lng = parseFloat(pasajeroData.wx) || 0;
         //
-        
+
         reset({
           codlan: pasajeroData.codlan || '',
           apellidos: pasajeroData.apellidos || '',
@@ -201,23 +238,24 @@ export default function App({ title, codCliente }: Props) {
 
   const onSubmit = handleSubmit(async (data) => {
     if (!baseUrl || codCliente === null || username === null) return;
-  
+
     try {
       const codlan = data.codlan;
-      console.log("Datos enviados:", {
-          codlan: data.codlan,
-          apellidos: data.apellidos,
-          telefono: data.telefono,
-          sexo: data.sexo,
-          empresa: data.empresa,
-          zona: data.zona,
-          direccion: data.direccion,
-          distrito: data.distrito,
-          wy: data.wy,
-          wx: data.wx
+      console.log('Datos enviados:', {
+        codlan: data.codlan,
+        apellidos: data.apellidos,
+        telefono: data.telefono,
+        sexo: data.sexo,
+        empresa: data.empresa,
+        zona: data.zona,
+        direccion: data.direccion,
+        distrito: data.distrito,
+        wy: data.wy,
+        wx: data.wx,
       });
       const response = await axios.put(
-        `${baseUrl}/api/Pasajero/Update/${username}/${codCliente}/${codlan}`,{
+        `${baseUrl}/api/Pasajero/Update/${username}/${codCliente}/${codlan}`,
+        {
           codlan: data.codlan,
           apellidos: data.apellidos,
           telefono: data.telefono,
@@ -227,9 +265,10 @@ export default function App({ title, codCliente }: Props) {
           direccion: data.direccion,
           distrito: data.distrito,
           wy: data.wy,
-          wx: data.wx
-    });
-  
+          wx: data.wx,
+        },
+      );
+
       console.log('Pasajero actualizado con éxito:', response.data);
       onClose();
       toast.success('Pasajero actualizado'); // 🎉 Aquí el toast
@@ -255,7 +294,7 @@ export default function App({ title, codCliente }: Props) {
         size="2xl"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        isDismissable={true}
+        isDismissable={false}
         isKeyboardDismissDisabled={true}
       >
         <form action="" onSubmit={onSubmit}>
@@ -447,8 +486,7 @@ export default function App({ title, codCliente }: Props) {
                           placeholder="Latitud"
                           labelPlacement="outside"
                           readOnly
-                          className="cursor-default pointer-events-none"
-
+                          className="pointer-events-none cursor-default"
                           {...register('wy', {
                             required: true,
                           })}
@@ -467,7 +505,7 @@ export default function App({ title, codCliente }: Props) {
                           placeholder="Longitud"
                           labelPlacement="outside"
                           readOnly
-                          className="cursor-default pointer-events-none"
+                          className="pointer-events-none cursor-default"
                           {...register('wx', {
                             required: true,
                           })}
@@ -478,6 +516,26 @@ export default function App({ title, codCliente }: Props) {
                             Nombre es requerido
                           </span>
                         )}
+                      </div>
+
+                      <div className="-mt-1 w-full">
+                        <Autocomplete
+                          onLoad={(autocomplete) =>
+                            (autocompleteRef.current = autocomplete)
+                          }
+                          onPlaceChanged={onPlaceChanged}
+                        >
+                          <>
+                            <label className="mb-2 block text-sm text-black">
+                              Buscar dirección
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Escribe una dirección..."
+                              className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none"
+                            />
+                          </>
+                        </Autocomplete>
                       </div>
                     </div>
 
@@ -512,7 +570,13 @@ export default function App({ title, codCliente }: Props) {
                   </div>
                 </ModalBody>
                 <ModalFooter>
-                  <Button color="danger" onPress={() => { handleClose(); onClose(); }}>
+                  <Button
+                    color="danger"
+                    onPress={() => {
+                      handleClose();
+                      onClose();
+                    }}
+                  >
                     Cerrar
                     <AiFillCloseCircle size={18} />
                   </Button>
