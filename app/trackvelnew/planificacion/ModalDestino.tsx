@@ -9,9 +9,16 @@ import {
   Button,
   useDisclosure,
 } from '@nextui-org/react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TbEdit, TbGpsFilled } from 'react-icons/tb';
 import { toast } from 'sonner';
+import {
+  GoogleMap,
+  Marker,
+  useJsApiLoader,
+  Autocomplete,
+} from '@react-google-maps/api';
+import { useForm } from 'react-hook-form';
 
 export default function App({
   onDestinoSeleccionado,
@@ -28,6 +35,85 @@ export default function App({
   const [latitud, setLatitud] = useState('');
   const [longitud, setLongitud] = useState('');
   const [nomDestino, setNomDestino] = useState('');
+
+  const { reset } = useForm();
+
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current !== null) {
+      const place = autocompleteRef.current.getPlace();
+      const location = place.geometry?.location;
+
+      if (location) {
+        const lat = location.lat();
+        const lng = location.lng();
+
+        setMarkerPosition({ lat, lng });
+
+        // Centrar el mapa en la nueva ubicación
+        if (mapRef.current) {
+          mapRef.current.panTo({ lat, lng });
+          mapRef.current.setZoom(15); // opcional, para acercar más
+        }
+
+        reset((prev) => ({
+          ...prev,
+          direccion: place.formatted_address || '',
+        }));
+
+        setDireccion(place.formatted_address || '');
+        setLatitud(lat.toString());
+        setLongitud(lng.toString());
+      }
+    }
+  };
+
+  //MAPA
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+
+  const [markerPosition, setMarkerPosition] = useState<{
+    lat: number;
+    lng: number;
+  }>({ lat: 0, lng: 0 });
+
+  const containerStyle = {
+    width: '100%',
+    height: '250px',
+  };
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: API_KEY,
+    libraries: ['places'], // ← importante
+  });
+
+  const handleClose = () => {
+    // Restablece las coordenadas y el marcador a los valores originales
+    reset((prev) => ({
+      ...prev,
+
+      identificador: '',
+      nombre: '',
+      telefono: '',
+      sexo: '',
+      empresa: '',
+      tarifa: '',
+      direccion: '',
+      distrito: '',
+      latitud: '',
+      longitud: '',
+    }));
+    setMarkerPosition({ lat: 0, lng: 0 });
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+    }
+  }, [isOpen]);
+  //FIN MAPA
 
   const [destinoSeleccionado, setDestinoSeleccionado] =
     useState<IDestino | null>(null);
@@ -63,9 +149,10 @@ export default function App({
   };
 
   const handleGuardarDestino = async () => {
-
     if (!editable) {
-      toast.error('Primero debes hacer clic en "Nuevo" para habilitar los campos.');
+      toast.error(
+        'Primero debes hacer clic en "Nuevo" para habilitar los campos.',
+      );
       return;
     }
     if (
@@ -121,6 +208,20 @@ export default function App({
     setDestinoSeleccionado(null);
   };
 
+  useEffect(() => {
+    const lat = parseFloat(latitud);
+    const lng = parseFloat(longitud);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const newPos = { lat, lng };
+      setMarkerPosition(newPos);
+
+      if (mapRef.current) {
+        mapRef.current.panTo(newPos);
+        mapRef.current.setZoom(18); // 👈 Aquí defines el zoom
+      }
+    }
+  }, [latitud, longitud]);
+
   return (
     <>
       <button
@@ -138,6 +239,7 @@ export default function App({
           if (!open) setEditable(false);
           resetCampos();
         }}
+        isDismissable={false}
       >
         <ModalContent>
           {(onClose) => (
@@ -238,6 +340,7 @@ export default function App({
                       onChange={(e) => setLatitud(e.target.value)}
                     />
                   </div>
+
                   <div className="w-full">
                     <label className="block text-[12px] font-medium">
                       Longitud:
@@ -251,7 +354,74 @@ export default function App({
                     />
                   </div>
                 </div>
-                <div className="mt-4 h-[400px] w-full rounded border" />
+
+                <div className="w-full">
+                  <Autocomplete
+                    onLoad={(autocomplete) =>
+                      (autocompleteRef.current = autocomplete)
+                    }
+                    onPlaceChanged={onPlaceChanged}
+                  >
+                    <>
+                      <label className="mb-1 block text-[12px] font-medium text-gray-900">
+                        Buscar dirección
+                      </label>
+                      <input
+                        disabled={!editable}
+                        type="text"
+                        placeholder="Escribe una dirección..."
+                        className="w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px]"
+                        />
+                    </>
+                  </Autocomplete>
+                </div>
+
+                <div className="mt-4 w-full rounded border">
+                  {isLoaded && (
+                    <div className="w-full">
+                      <GoogleMap
+                        mapContainerStyle={containerStyle}
+                        center={
+                          markerPosition.lat !== 0 && markerPosition.lng !== 0
+                            ? markerPosition
+                            : { lat: -12.0464, lng: -77.0428 } // Centro predeterminado solo al inicio
+                        }
+                        zoom={
+                          markerPosition.lat !== 0 && markerPosition.lng !== 0
+                            ? 18
+                            : 5
+                        }
+                        onLoad={(map) => {
+                          mapRef.current = map;
+                        }}
+                        onClick={(e) => {
+                          const lat = e.latLng?.lat() || 0;
+                          const lng = e.latLng?.lng() || 0;
+
+                          setMarkerPosition({ lat, lng });
+                          setLatitud(lat.toString());
+                          setLongitud(lng.toString());
+                        }}
+                      >
+                        {markerPosition.lat !== 0 &&
+                          markerPosition.lng !== 0 && (
+                            <Marker
+                              position={markerPosition}
+                              draggable={true}
+                              onDragEnd={(e) => {
+                                const lat = e.latLng?.lat() || 0;
+                                const lng = e.latLng?.lng() || 0;
+
+                                setMarkerPosition({ lat, lng });
+                                setLatitud(lat.toString());
+                                setLongitud(lng.toString());
+                              }}
+                            />
+                          )}
+                      </GoogleMap>
+                    </div>
+                  )}
+                </div>
               </ModalBody>
 
               <ModalFooter>
@@ -262,7 +432,6 @@ export default function App({
                   Cerrar
                 </button>
                 <button
-                 
                   className={`rounded px-4 py-2 text-[14px] text-white ${!editable ? 'bg-gray-500 hover:bg-gray-400' : 'bg-blue-500 hover:bg-blue-400'}`}
                   onClick={handleGuardarDestino}
                 >
