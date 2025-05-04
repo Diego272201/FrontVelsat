@@ -22,7 +22,6 @@ import {
   formatFechaAMD,
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
-import { AiFillCaretRight } from 'react-icons/ai';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -319,8 +318,6 @@ export default function TepContent() {
         <div className="cabecera sticky top-0 z-50">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              
-           
               <div className="titulocabecera">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
               </div>

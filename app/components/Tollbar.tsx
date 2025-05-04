@@ -19,6 +19,7 @@ import Profile from './Profile';
 
 import { useSearchParams } from 'next/navigation';
 import { usePathname } from 'next/navigation';
+import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
 
 const Tollbar = () => {
   const [username, setUsername] = useState('');
@@ -46,6 +47,8 @@ const Tollbar = () => {
   const [isModalOpenSpeed, setIsModalOpenSpeed] = useState(false);
   const [isModalOpenKilometer, setIsModalOpenKilometers] = useState(false);
 
+  const [isModalServicios, setIsModalServicios] = useState(false);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const openModal = () => {
@@ -55,6 +58,15 @@ const Tollbar = () => {
   const closeModal = () => {
     setIsModalOpen(false);
   };
+  
+  const openServicios = () => {
+    setIsModalServicios(true);
+  };
+
+  const closeModalServicios = () => {
+    setIsModalServicios(false);
+  };
+ 
 
   const openModalStops = () => {
     setIsModalOpenStops(true);
@@ -127,6 +139,8 @@ const Tollbar = () => {
   const deviceId = searchParams.get('deviceId');
 
   const pathname = usePathname();
+  const isTrackvel = pathname === '/trackvelnew';
+
   const isSedapalDetalleRecorrido =
     baseUrl === 'https://sub.velsat.pe:8586' &&
     pathname.includes('detallerecorrido');
@@ -144,10 +158,10 @@ const Tollbar = () => {
 
   return (
     <div className="tollbar menu__wrapper">
-      <div className="tollbar-bg"></div>
+      <div className={isTrackvel ? 'tollbar-bg' : 'tollbar-bg-alt'}></div>
       <div className="menu__bar">
         <div className="mobile-only-button">
-          <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
+          <div className="exitToolbarM bg-[#edf2f4] bg-opacity-10">
             <div className="flex w-[50px] items-center justify-center p-0">
               <Profile toggleFullScreen={toggleFullScreen} />
             </div>
@@ -161,25 +175,25 @@ const Tollbar = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="mt-[-5px] flex items-center gap-1">
           <a
             href="/trackvelnew"
             title="Logo"
             className="mt-[-5px] px-1 sm:mt-1"
           >
-            <div className="logitoTollbar ml-[2px] ">
+            <div className={isTrackvel ? 'ml-[2px] mt-[-2px]' : 'ml-[2px] mt-[-5px] imgMain'}>
               <Image
                 src="/LogoWeb.png"
                 alt="Logo"
                 width={22}
                 height={22}
-                className="h-[28px] w-[18px] sm:h-[35px] sm:w-[22px]"
+                className="h-[35px] w-[22px]"
               />
             </div>
           </a>
 
-          <div className="mt-[-6px] sm:mt-[-8px]">
-            <h3 className="text-[10px] text-white sm:text-[14px]">
+          <div>
+            <h3 className="text-[12px] text-white sm:text-[14px]">
               TRACKVEL SYSTEM : BIENVENIDO {username.toUpperCase()}
             </h3>
           </div>
@@ -221,12 +235,13 @@ const Tollbar = () => {
           {username === 'talmav' ? (
             <>
               <li
+              onClick={openServicios}
                 className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
                 style={{ marginTop: '-8px' }}
               >
-                <Link href="/ver-mapa" title="Ver Mapa">
-                  <div style={{ fontSize: '12px' }}>Recorrido Servicios</div>
-                </Link>
+             
+                  <div className='p-1 text-[12px]'>Recorrido Servicios</div>
+               
               </li>
 
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
@@ -601,6 +616,16 @@ const Tollbar = () => {
         useSelectAll={true}
       />
 
+<AppModalServicios
+        isOpen={isModalServicios}
+        onClose={closeModalServicios}
+        titulo="REPORTE DE RECORRIDO DE SERVICIOS"
+        nameurl="detallerecorridoservicios"
+        namedown="downloadExcelG"
+        namedesc="general"
+        showDownloadButton={true}
+      />
+
       <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <button className="close-sidebar" onClick={toggleSidebar}>
           <MdChevronRight />
@@ -615,19 +640,14 @@ const Tollbar = () => {
         </div>
 
         {username === 'talmav' ? (
-          <Link
-            href="/trackvelnew/gestionpasajeros"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setIsSidebarOpen(false)}
-          >
+         
             <div className="flex items-center gap-3 bg-gray-100  p-2 transition hover:bg-gray-300">
               <MdOutlineMiscellaneousServices className="text-xl text-blue-600" />
-              <span className="text-[13px] font-medium text-gray-800">
+              <span onClick={openServicios} className="text-[13px] font-medium text-gray-800">
                 Recorrido Servicios
               </span>
             </div>
-          </Link>
+         
         ) : (
           <>
             {baseUrl === 'https://sub.velsat.pe:8586' ? (
@@ -638,7 +658,9 @@ const Tollbar = () => {
                 >
                   <div className="flex items-center gap-3">
                     <TbReportSearch className="text-xl text-blue-600" />
-                    <span className="font-medium text-gray-800 text-[13px]">Reportes</span>
+                    <span className="text-[13px] font-medium text-gray-800">
+                      Reportes
+                    </span>
                   </div>
                   <svg
                     className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${
@@ -664,7 +686,7 @@ const Tollbar = () => {
                         openModalSpeed();
                         toggleSidebar();
                       }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                     >
                       Reporte de Velocidad
                     </button>
@@ -674,7 +696,7 @@ const Tollbar = () => {
                         openModalStops();
                         toggleSidebar();
                       }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                     >
                       Reporte de Paradas
                     </button>
@@ -683,7 +705,7 @@ const Tollbar = () => {
                         openModal();
                         toggleSidebar();
                       }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                     >
                       Reporte General
                     </button>
@@ -692,7 +714,7 @@ const Tollbar = () => {
                         openModalDetails();
                         toggleSidebar();
                       }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                     >
                       Detalle Recorrido
                     </button>
@@ -701,7 +723,7 @@ const Tollbar = () => {
                         openModalKilometers();
                         toggleSidebar();
                       }}
-                      className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                     >
                       Reporte de Kilometraje
                     </button>
@@ -712,7 +734,7 @@ const Tollbar = () => {
               <div className="mb-4 space-y-2">
                 <div>
                   <div
-                    className="mt-2 flex cursor-pointer items-center justify-between bg-gray-100 p-2 transition hover:bg-gray-200"
+                    className="flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
                     onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -737,20 +759,20 @@ const Tollbar = () => {
                   </div>
 
                   {isServicesMenuOpen && (
-                    <div className="ml-5 mt-2 space-y-1">
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                    <div className="ml-5 mt-2 space-y-1 mb-4" >
+                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Conductores
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Unidades
                       </button>
 
                       <div>
                         <div
-                          className="mb-[-20px] flex cursor-pointer items-center justify-between  px-3 py-1.5 text-sm text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800"
+                          className="mb-[-20px] flex cursor-pointer items-center justify-between bg-white px-3 py-1.5 text-sm text-gray-900 hover:bg-blue-100 hover:text-gray-800"
                           onClick={toggleProgramacionMenu}
                         >
-                          <span className='text-[12px]'>Programación</span>
+                          <span className="text-[12px]">Programación</span>
                           <svg
                             className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isProgramacionMenuOpen ? 'rotate-90' : ''}`}
                             fill="none"
@@ -767,13 +789,13 @@ const Tollbar = () => {
                         </div>
                         {isProgramacionMenuOpen && (
                           <div className="mb-[-20px] ml-4 mt-6 space-y-1">
-                            <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                               Asignar Conductor/Unidad
                             </button>
-                            <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                               Carga de Archivo
                             </button>
-                            <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                               Carga de Servicios
                             </button>
                           </div>
@@ -787,17 +809,17 @@ const Tollbar = () => {
                         rel="noopener noreferrer"
                         onClick={() => setIsSidebarOpen(false)}
                       >
-                        <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                        <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                           Control de Servicios
                         </button>
                       </Link>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Detalle de Servicios
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Control LATAM
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px]  transition text-gray-900 bg-white hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Duración de Servicios
                       </button>
                     </div>
@@ -806,12 +828,12 @@ const Tollbar = () => {
 
                 <div>
                   <div
-                    className="mb-2 flex cursor-pointer items-center justify-between bg-gray-100 p-2 transition hover:bg-gray-200"
+                    className="mt-[-8px] flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
                     onClick={togglePlanificacionMenu}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 ">
                       <GrPlan className="text-xl text-blue-600" />
-                      <span className="font-medium text-gray-800 text-[13px]">
+                      <span className="text-[13px] font-medium text-gray-800">
                         Planificación
                       </span>
                     </div>
@@ -838,7 +860,7 @@ const Tollbar = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        <button className="mb-[-20px] mt-[-24px] block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800">
+                        <button className="mb-[-20px] mt-[-24px] block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                           Administración Turnos
                         </button>
                       </Link>
@@ -849,14 +871,14 @@ const Tollbar = () => {
                         rel="noopener noreferrer"
                       >
                         <button
-                          className="mb-[-20px] block w-full  px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                          className="mb-[-20px] block w-full  bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                           onClick={() => setIsSidebarOpen(false)}
                         >
                           Planificación Servicios
                         </button>
                       </Link>
                       <Link href="#">
-                        <button className="mb-3 block w-full  px-3 py-1.5 text-left text-[12px] bg-white text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
+                        <button className="mb-3 block w-full  bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                           Re-Planificación Servicios
                         </button>
                       </Link>
@@ -870,27 +892,31 @@ const Tollbar = () => {
                   rel="noopener noreferrer"
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  <div className="flex items-center gap-3 bg-gray-100 p-2 transition hover:bg-gray-200">
+                  <div className="flex items-center gap-3 bg-gray-100 p-3 transition hover:bg-gray-200">
                     <RiGpsFill className="text-xl text-blue-600" />
-                    <span className="font-medium text-gray-800 text-[13px]">
+                    <span className="text-[13px] font-medium text-gray-800">
                       Gestión de Pasajeros
                     </span>
                   </div>
                 </Link>
 
-                <div className="flex items-center gap-3 bg-gray-100 p-2 transition hover:bg-gray-200">
-                  <MdDisplaySettings className="text-xl text-blue-600" />
-                  <span className="font-medium text-gray-800 text-[13px]">Operaciones</span>
+                <div>
+                  <div className="mt-[-8px] flex items-center gap-3 bg-gray-100 p-3 transition  hover:bg-gray-200">
+                    <MdDisplaySettings className="text-xl text-blue-600" />
+                    <span className="text-[13px] font-medium text-gray-800">
+                      Operaciones
+                    </span>
+                  </div>
                 </div>
 
                 <div>
                   <div
-                    className="flex cursor-pointer items-center justify-between bg-gray-100 p-2 transition hover:bg-gray-200"
+                    className="mt-[-10px] flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
                     onClick={toggleReportesMenu}
                   >
                     <div className="flex items-center gap-3">
                       <TbReportSearch className="text-xl text-blue-600" />
-                      <span className="font-medium text-gray-800 text-[13px]">
+                      <span className="text-[13px] font-medium text-gray-800">
                         Reportes
                       </span>
                     </div>
@@ -916,7 +942,7 @@ const Tollbar = () => {
                           openModalSpeed();
                           toggleSidebar();
                         }}
-                        className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                       >
                         Reporte de Velocidad
                       </button>
@@ -925,7 +951,7 @@ const Tollbar = () => {
                           openModalStops();
                           toggleSidebar();
                         }}
-                        className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                       >
                         Reporte de Paradas
                       </button>
@@ -934,7 +960,7 @@ const Tollbar = () => {
                           openModal();
                           toggleSidebar();
                         }}
-                        className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                       >
                         Reporte General
                       </button>
@@ -943,7 +969,7 @@ const Tollbar = () => {
                           openModalDetails();
                           toggleSidebar();
                         }}
-                        className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                       >
                         Detalle Recorrido
                       </button>
@@ -952,24 +978,23 @@ const Tollbar = () => {
                           openModalKilometers();
                           toggleSidebar();
                         }}
-                        className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
+                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
                       >
                         Reporte de Kilometraje
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800"
-                      >
+                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Paradas Bruscas
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Encendido Motor
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Desconexión Batería
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Gráficas
                       </button>
-                      <button className="block w-full px-3 py-1.5 text-left text-[12px] text-gray-900 bg-white transition hover:bg-blue-100 hover:text-gray-800">
+                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Reporte de GeoVelocidad
                       </button>
                     </div>

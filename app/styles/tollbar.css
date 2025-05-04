@@ -11,13 +11,62 @@
 
 .tollbar-bg{
   background: #113eb9;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 2.5% 70%, 1.8% 90%, 0 90%);
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 70%, 68% 28%, 19% 28%, 17% 75%, 0 75%);
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
 }
+
+.tollbar-bg-alt{
+  background: #113eb9;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 35px;
+
+}
+
+
+@media (max-width: 1878px) {
+  .tollbar-bg {
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 65% 70%, 62% 28%, 25% 28%, 22% 75%, 0 75%);
+  }
+}
+
+@media (max-width: 1612px) {
+  .tollbar-bg {
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 60% 70%, 58% 28%, 25% 28%, 23% 75%, 0 75%);
+  }
+}
+
+@media (max-width: 1412px) {
+  .tollbar-bg {
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 52% 70%, 50% 28%, 28% 28%, 27% 75%, 0 75%);
+  }
+}
+
+@media (max-width: 1180px) {
+  .tollbar-bg {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 4% 70%, 3% 90%, 0 90%);
+  }
+}
+
+@media (max-width: 568px) {
+  .tollbar-bg {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 100% 70%, 8% 70%, 7% 90%, 0 90%);
+  }
+}
+
+@media (max-width: 640px) {
+ .imgMain{
+  margin-top: 5px;
+ }
+}
+
+
 
 .tollbar {
   height: 50px;
@@ -379,6 +428,19 @@ font-size: 0.88rem;
 
 }
 
+.exitToolbarM{
+  color: rgb(8, 8, 8);
+  width: 50px;
+  height: 35.8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin-top: -5px;
+  margin-right: -2px;
+
+}
+
 .mobile-only-button {
   display: none;
 }
@@ -526,7 +588,7 @@ font-size: 0.88rem;
     top: 1px;
     right: 0px;
     cursor: pointer;
-    gap: 30px;
+    gap: 2px;
     padding-top: 3px;
     align-items: center;
   }

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { ImExit } from 'react-icons/im';
 import { MdOutlineFullscreen } from 'react-icons/md';
 import { BiFullscreen } from 'react-icons/bi';
+import { FaUserTie } from 'react-icons/fa';
 
 interface Props {
   toggleFullScreen?: () => void;
@@ -34,15 +35,15 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
   return (
     <div className="relative text-left flex" ref={dropdownRef}>
       <button onClick={() => setOpen(!open)} className="focus:outline-none">
-        <img
-          src="/logoInicio.png" 
-          alt="Perfil"
-          className="h-7 w-7 rounded-md  border border-transparent object-cover hover:border-[#e5e5e5] hover:bg-[#e5e5e5] bg-white "
-        />
+      <div className="relative w-6 h-6  flex justify-center items-center rounded">
+  <FaUserTie className="absolute text-[#f8f9fa] hover:text-[#ced4da]" size={20} />
+</div>
+
+
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-9 w-44 bg-[#1C5ED8] shadow-lg ">
+        <div className="absolute z-50 mt-[30px] w-44 bg-[#1C5ED8] shadow-lg ml-[-140px]">
           <div className="text-[12px] text-gray-700">
             <button
               onClick={() => {
