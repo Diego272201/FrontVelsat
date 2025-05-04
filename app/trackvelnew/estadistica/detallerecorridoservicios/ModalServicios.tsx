@@ -61,15 +61,24 @@ const AppModalServicios: React.FC<AppModalProps> = ({
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<string>('');
 
+  function formatearFecha(fechaEntrada: string): string {
+    const [anio, mes, dia] = fechaEntrada.split('-'); // YYYY-MM-DD
+
+    return `${dia}/${mes}/${anio}`;
+  }
+
+  function convertirFechaFormatoISO(fecha: string): string {
+    const [fechaParte, horaParte] = fecha.split(' ');
+    const [dia, mes, anio] = fechaParte.split('/');
+  
+    return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${horaParte}`;
+  }
+
   useEffect(() => {
     const fetchServicios = async () => {
       if (!fecha) return;
 
-      const fechaFormateada = new Date(fecha).toLocaleDateString('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      });
+      const fechaFormateada = formatearFecha(fecha);
 
       try {
         const response = await fetch(
@@ -117,12 +126,8 @@ const AppModalServicios: React.FC<AppModalProps> = ({
       return;
     }
   
-    const fechaFormateada = new Date(fecha).toLocaleDateString('es-PE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  
+    const fechaFormateada = formatearFecha(fecha);
+
     try {
       const response = await fetch(
         `https://velsat.pe:8586/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}`,
@@ -133,6 +138,9 @@ const AppModalServicios: React.FC<AppModalProps> = ({
       }
   
       const data = await response.json();
+
+      const fechainiFormateada = convertirFechaFormatoISO(data.fechaini);
+      const fechafinFormateada = convertirFechaFormatoISO(data.fechafin);
   
       const queryParams = new URLSearchParams({
         codservicio: data.codservicio,
@@ -140,8 +148,8 @@ const AppModalServicios: React.FC<AppModalProps> = ({
         tipo: data.tipo,
         unidad: data.unidad,
         empresa: data.empresa,
-        fecha: data.fecha || '',
-        fechafin: data.fechafin || '',
+        fechaini: fechainiFormateada || '',
+        fechafin: fechafinFormateada || '',
       });
   
       const url = `/trackvelnew/estadistica/${nameurl}?${queryParams.toString()}`;
