@@ -54,13 +54,22 @@ const ReportServicios = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const response = await axios.get(detailRecorrido);
-      if (response.data.result.length === 0) {
-        toast.error('No hay datos para estas fechas', {
+      if (!startDate || !endDate) {
+        toast.error('No hay fechas disponibles para el reporte', {
           className: 'toast-slide-in',
           richColors: true,
           duration: Infinity,
-          position: 'top-center',
+        });
+        return;
+      }
+
+      const response = await axios.get(detailRecorrido);
+
+      if (response.data.result.length === 0) {
+        toast.error('No hay registros para estas fechas', {
+          className: 'toast-slide-in',
+          richColors: true,
+          duration: Infinity,
         });
       } else {
         setMarkersData(response.data.result);
@@ -152,10 +161,7 @@ const ReportServicios = () => {
           onUnmount={onUnmount}
           options={{
             mapTypeControl: false,
-            fullscreenControl: true,
-            fullscreenControlOptions: {
-              position: window.google.maps.ControlPosition.BOTTOM_RIGHT,
-            },
+            fullscreenControl: false,
             styles: mapStyles,
           }}
         >

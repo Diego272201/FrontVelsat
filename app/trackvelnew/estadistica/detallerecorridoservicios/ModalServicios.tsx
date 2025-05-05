@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -6,17 +6,12 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  useDisclosure,
   Link,
 } from '@nextui-org/react';
-import Select from '@/app/components/selectUI/Select';
-import App from '@/app/components/TimePicker';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
-import ButtonDownload from '@/app/components/ui/ButtonDownloadModal';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import Selectall from '@/app/components/selectUI/Selectall';
 import { FaChevronDown } from 'react-icons/fa';
 
 interface AppModalProps {
@@ -48,13 +43,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
   showDownloadButton,
   useSelectAll = false,
 }) => {
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const { data: session } = useSession();
-  const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
-
-  const username = session?.user.username;
 
   const [open, setOpen] = useState(false);
   const [fecha, setFecha] = useState('');
@@ -78,7 +67,6 @@ const AppModalServicios: React.FC<AppModalProps> = ({
     return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${horaParte}`;
   }
   
-
   useEffect(() => {
     const fetchServicios = async () => {
       if (!fecha) return;
@@ -167,7 +155,6 @@ const AppModalServicios: React.FC<AppModalProps> = ({
       });
     }
   };
-  
 
   return (
     <Modal
