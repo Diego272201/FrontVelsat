@@ -58,7 +58,7 @@ const Tollbar = () => {
   const closeModal = () => {
     setIsModalOpen(false);
   };
-  
+
   const openServicios = () => {
     setIsModalServicios(true);
   };
@@ -66,7 +66,6 @@ const Tollbar = () => {
   const closeModalServicios = () => {
     setIsModalServicios(false);
   };
- 
 
   const openModalStops = () => {
     setIsModalOpenStops(true);
@@ -158,7 +157,16 @@ const Tollbar = () => {
 
   return (
     <div className="tollbar menu__wrapper">
-      <div className={isTrackvel ? 'tollbar-bg' : 'tollbar-bg-alt'}></div>
+     <div
+  className={
+    isTrackvel
+      ? baseUrl === 'https://sub.velsat.pe:8586'
+        ? 'tollbar-bgsub'
+        : 'tollbar-bg'
+      : 'tollbar-bg-alt'
+  }
+/>
+
       <div className="menu__bar">
         <div className="mobile-only-button">
           <div className="exitToolbarM bg-[#edf2f4] bg-opacity-10">
@@ -181,7 +189,13 @@ const Tollbar = () => {
             title="Logo"
             className="mt-[-5px] px-1 sm:mt-1"
           >
-            <div className={isTrackvel ? 'ml-[2px] mt-[-2px]' : 'ml-[2px] mt-[-5px] imgMain'}>
+            <div
+              className={
+                isTrackvel
+                  ? 'imgTrack ml-[2px] mt-[-1px]'
+                  : 'imgMain ml-[2px] mt-[-5px]'
+              }
+            >
               <Image
                 src="/LogoWeb.png"
                 alt="Logo"
@@ -197,51 +211,31 @@ const Tollbar = () => {
               TRACKVEL SYSTEM : BIENVENIDO {username.toUpperCase()}
             </h3>
           </div>
-        </div>
 
-        {isSedapalDetalleRecorrido && (
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'start',
-              alignItems: 'start',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 'bold',
-                textAlign: 'start',
-                color: '#fff',
-                marginTop: '-5px',
-                marginLeft: '-120px',
-              }}
-            >
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+          {isSedapalDetalleRecorrido && (
+            <div className="ml-2 flex items-center justify-center gap-2 text-white mt-[-1px] }">
+              <div className="h-8 w-px bg-gray-300 mr-2"></div>
               Fechas:{' '}
               <span style={{ fontWeight: 'normal' }}>
                 {formatDateTime(startDate)} - {formatDateTime(endDate)}
               </span>{' '}
-              &nbsp;&nbsp;|&nbsp;&nbsp; Unidad:{' '}
+              Unidad:{' '}
               <span style={{ fontWeight: 'normal' }}>
                 {deviceId?.toUpperCase()}
               </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <ul className="navigation">
           {username === 'talmav' ? (
             <>
               <li
-              onClick={openServicios}
+                onClick={openServicios}
                 className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
                 style={{ marginTop: '-8px' }}
               >
-             
-                  <div className='p-1 text-[12px]'>Recorrido Servicios</div>
-               
+                <div className="p-1 text-[12px]">Recorrido Servicios</div>
               </li>
 
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
@@ -616,7 +610,7 @@ const Tollbar = () => {
         useSelectAll={true}
       />
 
-<AppModalServicios
+      <AppModalServicios
         isOpen={isModalServicios}
         onClose={closeModalServicios}
         titulo="REPORTE DE RECORRIDO DE SERVICIOS"
@@ -640,14 +634,15 @@ const Tollbar = () => {
         </div>
 
         {username === 'talmav' ? (
-         
-            <div className="flex items-center gap-3 bg-gray-100  p-2 transition hover:bg-gray-300">
-              <MdOutlineMiscellaneousServices className="text-xl text-blue-600" />
-              <span onClick={openServicios} className="text-[13px] font-medium text-gray-800">
-                Recorrido Servicios
-              </span>
-            </div>
-         
+          <div className="flex items-center gap-3 bg-gray-100  p-2 transition hover:bg-gray-300">
+            <MdOutlineMiscellaneousServices className="text-xl text-blue-600" />
+            <span
+              onClick={openServicios}
+              className="text-[13px] font-medium text-gray-800"
+            >
+              Recorrido Servicios
+            </span>
+          </div>
         ) : (
           <>
             {baseUrl === 'https://sub.velsat.pe:8586' ? (
@@ -759,7 +754,7 @@ const Tollbar = () => {
                   </div>
 
                   {isServicesMenuOpen && (
-                    <div className="ml-5 mt-2 space-y-1 mb-4" >
+                    <div className="mb-4 ml-5 mt-2 space-y-1">
                       <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
                         Conductores
                       </button>
