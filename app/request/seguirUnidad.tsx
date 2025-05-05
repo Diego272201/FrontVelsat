@@ -12,6 +12,8 @@ const initialCenter = {
   lng: -77.04689047482863,
 };
 
+const libraries: ("places")[] = ['places'];
+
 interface Device {
   deviceId: string;
   lastValidLatitude: number;
@@ -74,12 +76,10 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
     }
   }, [status, session, deviceId,servidorUrl]);
   
-  
-
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const formatFecha = useCallback((fecha: any) => {

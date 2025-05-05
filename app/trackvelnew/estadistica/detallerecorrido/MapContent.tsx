@@ -23,6 +23,8 @@ interface UnidadDetalleRecorrido {
   speed: number;
 }
 
+const libraries: ("places")[] = ['places'];
+
 const MapContent = () => {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -49,7 +51,7 @@ const MapContent = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const fetchData = useCallback(async () => {

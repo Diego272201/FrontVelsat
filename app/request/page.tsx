@@ -20,6 +20,8 @@ const DynamicGoogleMap = dynamic(
   { ssr: false }
 );
 
+const libraries: ("places")[] = ['places'];
+
 const containerStyle = {
   width: '100%',
   height: '100vh',
@@ -96,11 +98,10 @@ export default function RequestPage() {
     connectSignalR();
   }, [session, baseUrl]);
 
-
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   useEffect(() => {

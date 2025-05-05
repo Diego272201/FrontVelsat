@@ -26,6 +26,8 @@ import { toast } from 'sonner';
 
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 
+const libraries: ("places")[] = ['places'];
+
 interface Props {
   title: string;
   codCliente: number | null;
@@ -107,7 +109,7 @@ export default function App({ title, codCliente }: Props) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const handleClose = () => {

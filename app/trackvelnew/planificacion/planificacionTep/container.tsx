@@ -20,6 +20,8 @@ import { toast } from 'sonner';
 import { TbEdit } from 'react-icons/tb';
 import ModalDestino from '../ModalDestino';
 
+const libraries: ("places")[] = ['places'];
+
 interface ItemData {
   id: string;
   numGrupo: number;
@@ -129,7 +131,7 @@ export default function Container({
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ['places'], // ← importante
+    libraries
   });
 
   const handleStartDateSelect = (date: string) => {

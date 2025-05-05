@@ -20,6 +20,8 @@ import {
 } from '@react-google-maps/api';
 import { useForm } from 'react-hook-form';
 
+const libraries: ("places")[] = ['places'];
+
 export default function App({
   onDestinoSeleccionado,
 }: {
@@ -86,7 +88,7 @@ export default function App({
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const handleClose = () => {

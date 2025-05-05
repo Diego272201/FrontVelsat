@@ -18,6 +18,7 @@ const containerStyle = {
   width: '100%',
   height: '100vh',
 };
+const libraries: ("places")[] = ['places'];
 
 export default function Momento({
   latitude,
@@ -25,10 +26,11 @@ export default function Momento({
   deviceId,
   direccion,
 }: MomentoProps) {
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const center = {

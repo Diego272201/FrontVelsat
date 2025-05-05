@@ -35,6 +35,8 @@ interface Props {
   onPasajeroAgregado: () => void;
 }
 
+const libraries: ("places")[] = ['places'];
+
 export default function App({ title, onPasajeroAgregado }: Props) {
   const {
     register,
@@ -99,7 +101,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries: ['places'], // ← importante
+    libraries // ← importante
   });
 
   const handleClose = () => {
