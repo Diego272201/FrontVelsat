@@ -220,7 +220,7 @@ const ReportServicios = () => {
         </GoogleMap>
       )}
 
-      <Leyenda></Leyenda>
+      {/* <Leyenda></Leyenda> */}
     </>
   );
 };
