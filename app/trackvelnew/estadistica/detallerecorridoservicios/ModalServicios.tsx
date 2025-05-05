@@ -62,17 +62,22 @@ const AppModalServicios: React.FC<AppModalProps> = ({
   const [selectedServicio, setSelectedServicio] = useState<string>('');
 
   function formatearFecha(fechaEntrada: string): string {
-    const [anio, mes, dia] = fechaEntrada.split('-'); // YYYY-MM-DD
+    const [anio, mes, dia] = fechaEntrada.split('-'); 
 
     return `${dia}/${mes}/${anio}`;
   }
 
-  function convertirFechaFormatoISO(fecha: string): string {
-    const [fechaParte, horaParte] = fecha.split(' ');
+  function convertirFechaFormatoISO(fecha: string | null | undefined): string {
+    if (!fecha || !fecha.includes('/')) return '';
+  
+    const [fechaParte, horaParte = '00:00:00'] = fecha.split(' ');
     const [dia, mes, anio] = fechaParte.split('/');
+  
+    if (!dia || !mes || !anio) return '';
   
     return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${horaParte}`;
   }
+  
 
   useEffect(() => {
     const fetchServicios = async () => {
