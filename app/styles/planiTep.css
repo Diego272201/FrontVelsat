@@ -11,8 +11,7 @@
   font-weight: 500;
   background: #264ebb;
   align-items: center;
-  margin-left: 5px;
-  margin-right: 5px;
+
 }
 
 .progressAndTitle {
@@ -68,8 +67,7 @@
   text-align: justify;
   margin-top: 6px;
   background: #fff;
-  margin-left: 5px;
-  margin-right: 5px;
+
 }
 
 .subtitleTep {
