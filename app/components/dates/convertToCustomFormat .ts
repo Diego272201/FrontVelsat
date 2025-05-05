@@ -86,3 +86,30 @@ export const parseFecha = (fechaISO: string | null): string | null => {
 
   return fechaFormateada;
 };
+
+
+export function convertirFechaADDMMAAAA(fechaISO: string): string {
+  if (!fechaISO) return '';
+  const [año, mes, dia] = fechaISO.split('-');
+  if (!año || !mes || !dia) return '';
+  return `${dia}/${mes}/${año}`;
+}
+
+export function obtenerHora12(fecha: string): string {
+  if (!fecha || typeof fecha !== 'string' || !fecha.includes('T')) return '';
+
+  const partes = fecha.split('T');
+  if (partes.length !== 2 || !partes[1].includes(':')) return '';
+
+  const [hora, minutos] = partes[1].split(':');
+  const hNum = parseInt(hora, 10);
+
+  if (isNaN(hNum) || isNaN(parseInt(minutos, 10))) return '';
+
+  let h = hNum % 12;
+  h = h === 0 ? 12 : h;
+
+  const ampm = hNum >= 12 ? 'PM' : 'AM';
+  return `${h}:${minutos} ${ampm}`;
+}
+

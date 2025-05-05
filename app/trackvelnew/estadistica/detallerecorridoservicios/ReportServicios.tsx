@@ -11,7 +11,7 @@ import axios from 'axios';
 import '@/app/styles/markers.css';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
 import Leyenda from '@/app/components/Leyenda';
@@ -34,6 +34,14 @@ const ReportServicios = () => {
   const startDate = searchParams.get('fechaini');
   const endDate = searchParams.get('fechafin');
   const deviceId = searchParams.get('unidad');
+  const numero = searchParams.get('numero') || '';
+  const tipo = searchParams.get('tipo') || '';
+  const unidad = searchParams.get('unidad') || '';  
+  const empresa = searchParams.get('empresa') || '';
+  const fecha = searchParams.get('fechaoriginal') || '';
+  const fechaIni = searchParams.get('fechaini') || '';
+  const fechaFin = searchParams.get('fechafin') || '';
+
   const username = session?.user.username;
 
   const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
@@ -220,7 +228,7 @@ const ReportServicios = () => {
         </GoogleMap>
       )}
 
-      {/* <Leyenda></Leyenda> */}
+      <Leyenda numero={numero} tipo={tipo} unidad={unidad} empresa={empresa}  fecha={fecha} fechaIni={fechaIni} fechaFin={fechaFin}></Leyenda>
     </>
   );
 };

@@ -143,6 +143,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
         empresa: data.empresa,
         fechaini: fechainiFormateada || '',
         fechafin: fechafinFormateada || '',
+        fechaoriginal: fecha,
       });
   
       const url = `/trackvelnew/estadistica/${nameurl}?${queryParams.toString()}`;
@@ -245,7 +246,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
               >
                 Mostrar
               </Button>
-              <Toaster />
+          
             </ModalFooter>
           </>
         )}

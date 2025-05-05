@@ -1,27 +1,38 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
 import '@/app/styles/sidebar.css';
 
-import { useSession } from 'next-auth/react';
-
-import { useApi } from '@/context/ApiContext';
+import {
+  convertirFechaADDMMAAAA,
+  obtenerHora12,
+} from './dates/convertToCustomFormat ';
+import { BsFillInfoSquareFill } from 'react-icons/bs';
 
 interface Leyenda {
-    titulo: string;
-
+  numero: string;
+  tipo: string;
+  unidad: string;
+  empresa: string;
+  fecha: string;
+  fechaIni: string;
+  fechaFin: string;
 }
 
-export default function Leyenda() {
-  const { data: session } = useSession();
-
+export default function Leyenda({
+  numero,
+  tipo,
+  unidad,
+  empresa,
+  fecha,
+  fechaIni,
+  fechaFin,
+}: Leyenda) {
   const [showDropdown, setShowDropdown] = useState(true);
 
-  const { baseUrl } = useApi();
-
-  const username = useMemo(() => {
-    return localStorage.getItem('currentUser') || '';
-  }, []);
+  const fechaConvertida = convertirFechaADDMMAAAA(fecha);
+  const fechaIniHora = obtenerHora12(fechaIni);
+  const fechaFinHora = obtenerHora12(fechaFin);
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -55,7 +66,7 @@ export default function Leyenda() {
           id="label-muestra"
           title="Despliega Menu"
         >
-          <div className="nombreP">
+          <div className="nombreP bg-[#495057]">
             <GrFormNext size={25} />
           </div>
         </label>
@@ -66,54 +77,78 @@ export default function Leyenda() {
           id="label-oculta"
           title="Oculta Menu"
         >
-          <div className="nombreP">
+          <div className="nombreP bg-[#113EB9]">
             {' '}
             <GrFormPrevious size={25} />
           </div>
         </label>
 
         <div className="">
+          <div className="unidades bg-[#113EB9] flex gap-2">
+            INFORMACIÓN DEL SERVICIO <BsFillInfoSquareFill size={18}/>
+          </div>
+          <div className="max-w-xs space-y-4 border-b-2  border-r-2  border-t-2 border-[#ced4da]  bg-[#f8f9fa] p-4 text-sm text-[#212529]">
+            {/* Detalles */}
+            <div className='text-[12.5px]'>
+              <h2 className="border-b border-[#dee2e6]/100 pb-1 text-[13px] font-bold">
+                DETALLES
+              </h2>
+              <p>
+                <span className="font-semibold">Número de Servicio : </span>
+                {numero}{' '}
+              </p>
+              <p>
+                <span className="font-semibold">Tipo : </span>{' '}
+                {tipo == 'S' ? 'Salida' : 'Ingreso'}
+              </p>
+              <p>
+                <span className="font-semibold">Unidad : </span>
+                {unidad.toUpperCase()}
+              </p>
+              <p>
+                <span className="font-semibold">Empresa : </span> {empresa}
+              </p>
+              <p>
+                <span className="font-semibold">Fecha : </span>{' '}
+                {fechaConvertida}
+              </p>
+            </div>
 
-          <div className="max-w-xs bg-[#113EB9] text-white  p-4 shadow-lg space-y-4 text-sm">
-      {/* Detalles */}
-      <div>
-        <h2 className="text-lg font-bold border-b border-white/30 pb-1">Detalles</h2>
-        <p><span className="font-semibold">Número:</span> 1</p>
-        <p><span className="font-semibold">Tipo:</span> Salida</p>
-        <p><span className="font-semibold">Unidad:</span> C174-ADT869</p>
-        <p><span className="font-semibold">Empresa:</span> Talma</p>
-        <p><span className="font-semibold">Fecha:</span> 04/05/2025</p>
-      </div>
+            {/* Rango de Horas */}
+            <div>
+              <h2 className="border-b border-[#dee2e6]/100 pb-1 text-[13px] font-bold">
+                RANGO HORAS
+              </h2>
+              <p className='text-[12.5px]'>
+                {fechaIniHora} - {fechaFinHora}
+              </p>
+            </div>
 
-      {/* Rango de Horas */}
-      <div>
-        <h2 className="text-lg font-bold border-b border-white/30 pb-1">Rango Horas</h2>
-        <p>11:58 AM - 13:25 PM</p>
-      </div>
-
-      {/* Leyenda */}
-      <div>
-        <h2 className="text-lg font-bold border-b border-white/30 pb-1">Leyenda</h2>
-        <ul className="space-y-2 mt-2">
-          <li className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-red-500 border-2 border-white" />
-            <span>0 km/h</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white" />
-            <span>1 - 10 km/h</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-green-400 border-2 border-white" />
-            <span>11 - 59 km/h</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="w-4 h-4 rounded-full bg-blue-400 border-2 border-white" />
-            <span>&gt; 60 km/h</span>
-          </li>
-        </ul>
-      </div>
-    </div>
+            {/* Leyenda */}
+            <div className='text-[12.5px]'>
+              <h2 className="border-b border-[#dee2e6]/100 pb-1 text-[13px] font-bold">
+                LEYENDA
+              </h2>
+              <ul className="mt-2 space-y-2">
+                <li className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white bg-red-500" />
+                  <span>0 km/h</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white bg-yellow-500" />
+                  <span>1 - 10 km/h</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white bg-green-400" />
+                  <span>11 - 59 km/h</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white bg-blue-400" />
+                  <span>&gt; 60 km/h</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>

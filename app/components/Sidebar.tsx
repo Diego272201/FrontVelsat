@@ -154,7 +154,7 @@ export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: S
           id="label-muestra"
           title="Despliega Menu"
         >
-          <div className="nombreP">
+          <div className="nombreP bg-[#113EB9]">
             <GrFormNext size={25} />
           </div>
         </label>
@@ -165,14 +165,14 @@ export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: S
           id="label-oculta"
           title="Oculta Menu"
         >
-          <div className="nombreP">
+          <div className="nombreP bg-[#113EB9]">
             {' '}
             <GrFormPrevious size={25} />
           </div>
         </label>
 
         <div className="menu">
-          <div className="unidades">
+          <div className="unidades bg-[#113EB9]">
             TOTAL DE UNIDADES : {filteredUnidades.length}
             <div className="imap">
               <a href="#" onClick={centerMap}>
