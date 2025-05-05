@@ -14,6 +14,7 @@ import { useSession } from 'next-auth/react';
 import { Toaster, toast } from 'sonner';
 import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
+import Leyenda from '@/app/components/Leyenda';
 
 interface UnidadDetalleRecorrido {
   longitude: number;
@@ -216,6 +217,8 @@ const ReportServicios = () => {
           />
         </GoogleMap>
       )}
+
+      <Leyenda></Leyenda>
     </>
   );
 };

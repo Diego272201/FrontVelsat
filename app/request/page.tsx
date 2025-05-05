@@ -525,7 +525,7 @@ if (filteredIdsFromSidebar) {
       <Loader />
     )}
 
-    <Sidebar centerMap={centerMap} centerUnit={centerUnit}    onFilteredIdsChange={setFilteredIdsFromSidebar}/>
+    <Sidebar centerMap={centerMap} centerUnit={centerUnit}  onFilteredIdsChange={setFilteredIdsFromSidebar}/>
   </>
   );
 }
