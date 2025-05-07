@@ -83,8 +83,10 @@ export default function ServiceLegend({codigo}: Leyenda) {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="pasajerosleyenda fixed right-0 top-[54.1%] z-50 flex h-24 w-6 -translate-y-1/2  items-center justify-center bg-blue-700 text-white shadow-md transition hover:bg-blue-800"
+          className="pasajerosleyenda fixed right-0 z-50 flex h-24 w-6 -translate-y-1/2  items-center justify-center bg-gray-600 text-white shadow-md transition hover:bg-blue-800"
           title="Mostrar"
+          style={{ top: 'calc(50% + 40px)' }}
+
         >
           <MdKeyboardArrowLeft size={30} />
         </button>
