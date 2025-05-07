@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
-import '@/app/styles/sidebar.css';
+import '@/app/styles/leyendaservicios.css';
 
 import {
   convertirFechaADDMMAAAA,
@@ -59,14 +59,14 @@ export default function Leyenda({
         defaultChecked={!showDropdown}
       />
 
-      <div className="desplegable">
+      <div className="desplegable" style={{width:'250px'}}>
         <label
           className="previos"
           htmlFor="muestra"
           id="label-muestra"
           title="Despliega Menu"
         >
-          <div className="nombreP bg-[#495057]">
+          <div className="nombreP bg-[#495057]" >
             <GrFormNext size={25} />
           </div>
         </label>
@@ -83,7 +83,7 @@ export default function Leyenda({
           </div>
         </label>
 
-        <div className="">
+        <div>
           <div className="unidades bg-[#113EB9] flex gap-2">
             INFORMACIÓN DEL SERVICIO <BsFillInfoSquareFill size={18}/>
           </div>

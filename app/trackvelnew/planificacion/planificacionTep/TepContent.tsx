@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
@@ -22,6 +22,7 @@ import {
   formatFechaAMD,
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import Swal from 'sweetalert2';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -30,11 +31,10 @@ export default function TepContent() {
   );
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [dato, setDato] = useState<string>('');
-
   const [modoVista, setModoVista] = useState('Eliminados');
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [erroresCarga, setErroresCarga] = useState<any[]>([]);
+  const ejecutarGrupoCeroRef = useRef<() => void>();
 
   const alternarEstado = () => {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
@@ -55,10 +55,8 @@ export default function TepContent() {
   } | null>(null);
 
   const [nombrePasajero, setNombrePasajero] = useState('');
-
   const [totalFechas, setTotalFechas] = useState(0);
   const [fechasLlenas, setFechasLlenas] = useState(0);
-
   const [actualizacion, setActualizacion] = useState(0);
 
   const actualizarCabeceras = (
@@ -179,9 +177,19 @@ export default function TepContent() {
       const data = e.target?.result;
 
       if (data) {
+        const toastId = toast.loading('Cargando datos desde Hoja1 ...');
+
         const workbook = xlsx.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[1];
+
+        const sheetName = workbook.SheetNames.find(
+          (name) => name.toLowerCase() === 'hoja1',
+        );
+        if (!sheetName) {
+          toast.error('No se encontró una hoja llamada "Hoja1" en el archivo.');
+          return;
+        }
         const sheet = workbook.Sheets[sheetName];
+
         const filteredData = [];
 
         const range = xlsx.utils.decode_range(sheet['!ref']!);
@@ -224,7 +232,9 @@ export default function TepContent() {
           console.log(fecact);
 
           if (response.status === 200) {
-            toast.success('Datos enviados correctamente a la API.');
+            toast.success('Datos enviados correctamente a la API.', {
+              id: toastId,
+            });
 
             if (response.data.errores?.length > 0) {
               setErroresCarga(response.data.errores);
@@ -243,26 +253,66 @@ export default function TepContent() {
     reader.readAsBinaryString(file);
   };
 
+
+
   const handlePublicar = async () => {
+    // Verificar si se ha seleccionado una fecha y una empresa
     if (!selectedDate || !empresaSeleccionada) {
       toast.error('Debe seleccionar una fecha y una empresa.');
       return;
     }
+  
+    const result = await Swal.fire({
+      title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}?`, 
+      text: 'Una vez publicado, no podrás deshacer esta acción.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, publicar',
+      cancelButtonText: 'Cancelar',
+      willOpen: () => {
+        const titleElement = document.querySelector('.swal2-title') as HTMLElement;
+        const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
+  
+        if (titleElement) {
+          titleElement.style.fontSize = '16px'; 
+        }
+  
+        if (textElement) {
+          textElement.style.fontSize = '14px';  
+        }
+      }
+    });
+  
+    if (result.isConfirmed) {
+      const fecact = formatFechaAMD(selectedDate);
+      const toastId = toast.loading('Cargando...'); 
+  
+      try {
+        const response = await axios.post(
+          `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
+        );
 
-    const fecact = formatFechaAMD(selectedDate);
+        if (response.data.data.length === 0) {
+          toast.error('Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.', { id: toastId });
+        } else {
+          toast.success('Datos enviados correctamente.', { id: toastId });
+          console.log('Respuesta de la API:', response.data);
+          setActualizacion((prev) => prev + 1);
+        }
 
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
-      );
-      toast.success('Datos enviados correctamente.');
-      console.log('Respuesta de la API:', response.data);
-      setActualizacion((prev) => prev + 1);
-    } catch (error) {
-      toast.error('Error al enviar los datos.');
-      console.error('Error en la solicitud:', error);
+        setActualizacion((prev) => prev + 1);
+      } catch (error) {
+        toast.error('Error al enviar los datos.', { id: toastId });
+        console.error('Error en la solicitud:', error);
+      }
+    } else {
+      toast.info('Publicación cancelada');
     }
   };
+  
+  
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -281,6 +331,9 @@ export default function TepContent() {
 
     const fecact = formatFechaAMD(selectedDate);
     const url = `${API_BASE_URL125}/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
+
+    const toastId = toast.loading('Eliminando carga...');
+
     try {
       const response = await axios({
         method: 'PUT',
@@ -292,14 +345,14 @@ export default function TepContent() {
       });
 
       if (response.status === 200) {
-        toast.success('Carga eliminada correctamente.');
+        toast.success('Carga eliminada correctamente.', { id: toastId });
         setActualizacion((prev) => prev + 1);
       } else {
-        toast.error('Error al eliminar la carga.');
+        toast.error('Error al eliminar la carga.', { id: toastId });
       }
     } catch (error) {
       console.error('Error al eliminar la carga:', error);
-      toast.error('Error al eliminar la carga.');
+      toast.error('Error al eliminar la carga.', { id: toastId });
     }
   };
 
@@ -318,7 +371,7 @@ export default function TepContent() {
         <div className="cabecera sticky top-0 z-50">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <div className="titulocabecera">
+              <div className="titulocabecera text-[12px]">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
               </div>
             </div>
@@ -345,7 +398,7 @@ export default function TepContent() {
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
                     <FaFileAlt className="h-5 w-5 text-gray-600" />
                     Carga de Archivos
                   </span>
@@ -399,7 +452,7 @@ export default function TepContent() {
 
                   <div className="selectTipoA">
                     <select
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedEmpresa}
                       onChange={(event) =>
                         setSelectedEmpresa(event.target.value)
@@ -540,8 +593,8 @@ export default function TepContent() {
               <div className="cargaArchivos">
                 <div className="filtrosPlanificacion">
                   <div className="relative flex items-center pb-1">
-                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                      <MdFilterAlt className="h-5 w-5 text-gray-600" />
+                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
+                      <MdFilterAlt className="h-5 w-5 text-gray-700" />
                       Filtrar Datos
                     </span>
                   </div>
@@ -579,7 +632,7 @@ export default function TepContent() {
 
                     <button
                       onClick={alternarEstado}
-                      className={`rounded px-4 py-2 transition-colors ${
+                      className={`rounded  text-[13px] px-4 py-2 transition-colors ${
                         modoVista === 'Eliminados'
                           ? 'bg-[#d62828] text-white hover:bg-red-500'
                           : 'bg-green-500 text-[#212529] hover:bg-green-400'
@@ -587,6 +640,17 @@ export default function TepContent() {
                     >
                       {modoVista}
                     </button>
+
+                    <button
+        className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500 text-[13px]"
+        onClick={() => {
+          if (ejecutarGrupoCeroRef.current) {
+            ejecutarGrupoCeroRef.current(); 
+          }
+        }}
+      >
+        Limpiar Eliminados
+      </button>
                   </div>
                 </div>
               </div>
@@ -635,17 +699,41 @@ export default function TepContent() {
         style={{ height: `calc(100vh - ${isVisible ? 270 : 110}px)` }}
       >
         {!empresaConfirmada || !dato ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-gray-300">
-            <Image
-              src="/nodataVelsat.png"
-              alt=""
-              width={'380'}
-              height={'380'}
-            />
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 ">
+            <div className="grid h-full w-full overflow-hidden bg-white md:grid-cols-2">
+              {/* Imagen */}
+              <div className="flex items-center justify-center bg-gray-200 p-8">
+                <Image
+                  src="https://res.cloudinary.com/dyc4ik1ko/image/upload/nodatavelsat_sd026b.png"
+                  alt="Sin datos"
+                  width={500}
+                  height={500}
+                  className="object-contain"
+                />
+              </div>
 
-            <span className="text-[14px] font-semibold uppercase text-[#0d1b2a]">
-              Aún no has Seleccionado la Empresa
-            </span>
+              {/* Texto e información */}
+              <div className="flex flex-col justify-center gap-6 bg-white px-24 text-center md:text-left">
+                <h2 className="text-2xl font-bold text-[#0d1b2a]">
+                  ¡Atención!
+                </h2>
+                <p className="text-[12px] text-gray-700">
+                  Aún no has seleccionado una <strong>empresa</strong> o una{' '}
+                  <strong>fecha válida</strong>. Por favor asegúrate de
+                  completar ambos campos para visualizar los datos
+                  correctamente.
+                </p>
+                <p className="text-sm text-gray-500">
+                  En Velsat, trabajamos para ofrecerte soluciones de monitoreo y
+                  planificación precisas. Si necesitas ayuda, no dudes en
+                  contactarnos.
+                </p>
+                <p className="mt-4 text-xs text-gray-400">
+                  © {new Date().getFullYear()} Velsat | Todos los derechos
+                  reservados
+                </p>
+              </div>
+            </div>
           </div>
         ) : (
           <Servicios
@@ -659,7 +747,8 @@ export default function TepContent() {
             filtro={filtro}
             nombrePasajero={nombrePasajero}
             modoVista={modoVista}
-          />
+            onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
+            />
         )}
       </div>
     </div>

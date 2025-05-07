@@ -253,16 +253,16 @@ export default function App({
 
   const topContent = React.useMemo(() => {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 ">
         <h2 className="tituloTunos">TURNOS DE {title}</h2>
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex items-end justify-between gap-3 px-1">
           <Input
             isClearable
             classNames={{
               base: 'w-full sm:max-w-[44%] bg-[#dddedf] rounded-[10px]',
               inputWrapper: 'border-1',
             }}
-            placeholder="Buscar por rol"
+            placeholder="Buscar por Rol"
             size="sm"
             startContent={
               <SearchIcon className="colorIcono text-default-300" />
@@ -341,7 +341,7 @@ export default function App({
     const endPage = Math.min(pages, startPage + maxVisiblePages - 1);
 
     return (
-      <div className="flex w-[400px] items-center px-2 py-2 ">
+      <div className="flex w-[400px] items-center px-2 py-1">
         <div className="flex items-center gap-2">
           {page > 1 && (
             <button
@@ -358,7 +358,7 @@ export default function App({
               <button
                 key={pageNumber}
                 onClick={() => handlePageChange(pageNumber)}
-                className={`rounded-lg px-4 py-2 text-sm 
+                className={`rounded-lg px-3 py-2 text-[12px] 
                   ${
                     page === pageNumber
                       ? 'bg-blue-500 text-white'
@@ -374,7 +374,7 @@ export default function App({
           {page < pages && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-sm text-blue-500 hover:bg-blue-100"
+              className="rounded-lg border border-blue-500 bg-white px-2 py-2 text-sm text-blue-500 hover:bg-blue-100"
             >
               Siguiente
             </button>

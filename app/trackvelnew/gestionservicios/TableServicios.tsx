@@ -676,7 +676,7 @@ export default function App({
         prevData.map((item) => {
           if (item.codServicio === codServicio) {
             const updatedItem = { ...item, estado: 'C' };
-            const { estado, color } = getEstadoYColorVerifica(updatedItem); // Solo obtenemos el color
+            const { estado, color } = getEstadoYColorVerifica(updatedItem);
 
             return { ...updatedItem, color, estado };
           }
@@ -820,66 +820,66 @@ export default function App({
 
   const handleGuardarHoras = async () => {
     if (!selectedRow) return;
-  
+
     const codservicio = selectedRow.codServicio;
-    const fecha = nuevaFecha ? parseFecha(nuevaFecha) : selectedRow.fechaCompleta || '';
-    const fecplan = nuevaFechaProg ? parseFecha(nuevaFechaProg) : selectedRow.fecPlanCompleta || '';
-  
+    const fecha = nuevaFecha
+      ? parseFecha(nuevaFecha)
+      : selectedRow.fechaCompleta || '';
+    const fecplan = nuevaFechaProg
+      ? parseFecha(nuevaFechaProg)
+      : selectedRow.fecPlanCompleta || '';
+
     try {
       const url = `https://velsat.pe:8586/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
 
-    
-
-  
       const response = await axios.put(url);
-  
+
       console.log('Respuesta de la API Wua:', response.data);
       console.log('Respuesta de la API CODservicio:', codservicio);
       console.log('Respuesta de la API Hora Ato :', fecha);
       console.log('Respuesta de la API Hora Prog:', fecplan);
-      console.log("La URL ES : " + url)
+      console.log('La URL ES : ' + url);
 
       setData((prevData) =>
         prevData.map((item) =>
           item.codServicio === selectedRow.codServicio
             ? {
                 ...item,
-                horaAto: nuevaFecha ? nuevaFecha.split('T')[1].slice(0, 5) : item.horaAto,
-                horaProg: nuevaFechaProg ? nuevaFechaProg.split('T')[1].slice(0, 5) : item.horaProg,
-                fechaCompleta: nuevaFecha ? parseFecha(nuevaFecha) : item.fechaCompleta,
-                fecPlanCompleta: nuevaFechaProg ? parseFecha(nuevaFechaProg) : item.fecPlanCompleta,
-                
+                horaAto: nuevaFecha
+                  ? nuevaFecha.split('T')[1].slice(0, 5)
+                  : item.horaAto,
+                horaProg: nuevaFechaProg
+                  ? nuevaFechaProg.split('T')[1].slice(0, 5)
+                  : item.horaProg,
+                fechaCompleta: nuevaFecha
+                  ? parseFecha(nuevaFecha)
+                  : item.fechaCompleta,
+                fecPlanCompleta: nuevaFechaProg
+                  ? parseFecha(nuevaFechaProg)
+                  : item.fecPlanCompleta,
               }
             : item,
         ),
       );
-
- 
-
-
     } catch (error) {
       console.error('Error al actualizar horas:', error);
     }
   };
 
-
-
-
   function formatearFechaParaMostrar(fechaISO: string) {
-    const [fecha, hora] = fechaISO.split('T'); 
-    const [anio, mes, dia] = fecha.split('-'); 
+    const [fecha, hora] = fechaISO.split('T');
+    const [anio, mes, dia] = fecha.split('-');
     return `${dia}/${mes}/${anio} ${hora}`;
   }
 
   const altura =
-  isVisible && isVisibleAsignar
-    ? 320
-    : isVisible
-    ? 255 
-    : isVisibleAsignar
-    ? 170 
-    : 110; 
-
+    isVisible && isVisibleAsignar
+      ? 320
+      : isVisible
+        ? 255
+        : isVisibleAsignar
+          ? 170
+          : 110;
 
   return (
     <div>
@@ -919,7 +919,6 @@ export default function App({
         <div
           className="overflow-auto border border-gray-300"
           style={{ height: `calc(100vh - ${altura}px)` }}
-
         >
           <table className="w-full border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
@@ -1008,7 +1007,7 @@ export default function App({
             handleLimpiarAll();
           }
         }}
-        className="full max-w-none"
+        className="full max-w-none bg-gray-100"
         scrollBehavior="inside"
       >
         <ModalContent style={{ marginTop: '80px' }}>
@@ -1016,13 +1015,13 @@ export default function App({
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div className="rounded-lg bg-gray-100 p-2">
+                  <div >
                     <div
-                      className="flex rounded-lg bg-white p-2 shadow-md"
+                      className="flex  p-2"
                       style={{ fontSize: '13px' }}
                     >
                       <div className="mr-4 flex-1">
-                        <h2 className="text-center text-lg font-semibold">
+                        <h2 className="text-center text-[14px] font-semibold">
                           SERVICIO
                         </h2>
 
@@ -1045,22 +1044,29 @@ export default function App({
                                     - {selectedRow.tipo} ({selectedRow.numero})
                                     - {selectedRow.empresaSinNumber}
                                   </span>
-                                  <button
-                                    onClick={() => {
-                                      if (selectedRow?.fechaCompleta) {
-                                        const [dia, mes, anioHora] =
-                                          selectedRow.fechaCompleta.split('/');
-                                        const [anio, hora] =
-                                          anioHora.split(' ');
-                                        const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
-                                        setNuevaFecha(fechaFormateada);
-                                      }
-                                      setEditandoFecha(true);
-                                    }}
-                                    className="flex justify-center rounded bg-blue-700 px-2 py-1 text-gray-100 hover:bg-blue-500"
-                                  >
-                                    <BiSolidEdit  />
-                                  </button>
+
+                                  {!['FA', 'FT', 'CN'].includes(
+                                    selectedRow?.estado,
+                                  ) && (
+                                    <button
+                                      onClick={() => {
+                                        if (selectedRow?.fechaCompleta) {
+                                          const [dia, mes, anioHora] =
+                                            selectedRow.fechaCompleta.split(
+                                              '/',
+                                            );
+                                          const [anio, hora] =
+                                            anioHora.split(' ');
+                                          const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
+                                          setNuevaFecha(fechaFormateada);
+                                        }
+                                        setEditandoFecha(true);
+                                      }}
+                                      className="flex justify-center rounded bg-blue-700 px-1 py-1 text-gray-100 hover:bg-blue-500"
+                                    >
+                                      <BiSolidEdit />
+                                    </button>
+                                  )}
                                 </>
                               ) : (
                                 <>
@@ -1103,24 +1109,29 @@ export default function App({
                                     - {selectedRow.conductor} -{' '}
                                     {selectedRow.unidad}
                                   </span>
-                                  <button
-                                    onClick={() => {
-                                      if (selectedRow?.fecPlanCompleta) {
-                                        const [dia, mes, anioHora] =
-                                          selectedRow.fecPlanCompleta.split(
-                                            '/',
-                                          );
-                                        const [anio, hora] =
-                                          anioHora.split(' ');
-                                        const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
-                                        setNuevaFechaProg(fechaFormateada);
-                                      }
-                                      setEditandoFechaProg(true);
-                                    }}
-                                    className="flex justify-center rounded bg-blue-700 px-2 py-1 text-gray-100 hover:bg-blue-500"
-                                  >
-                                    <FaEdit />
-                                  </button>
+
+                                  {!['FA', 'FT', 'CN'].includes(
+                                    selectedRow?.estado,
+                                  ) && (
+                                    <button
+                                      onClick={() => {
+                                        if (selectedRow?.fecPlanCompleta) {
+                                          const [dia, mes, anioHora] =
+                                            selectedRow.fecPlanCompleta.split(
+                                              '/',
+                                            );
+                                          const [anio, hora] =
+                                            anioHora.split(' ');
+                                          const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
+                                          setNuevaFechaProg(fechaFormateada);
+                                        }
+                                        setEditandoFechaProg(true);
+                                      }}
+                                      className="flex justify-center rounded bg-blue-700 px-1 py-1 text-gray-100 hover:bg-blue-500"
+                                    >
+                                      <BiSolidEdit />
+                                    </button>
+                                  )}
                                 </>
                               ) : (
                                 <>
@@ -1157,7 +1168,7 @@ export default function App({
                             <div className="relative col-span-2">
                               <input
                                 type="text"
-                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba el Nombre del Conductor"
                                 value={conductor}
                                 onChange={handleConductorChange}
@@ -1194,7 +1205,7 @@ export default function App({
                             <div className="relative">
                               <input
                                 type="text"
-                                className="peer block w-full rounded-lg border border-transparent bg-gray-100 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                                className="peer block w-full rounded-lg border border-transparent bg-gray-200 px-16 py-1.5 ps-11 text-sm placeholder-zinc-500 focus:border-gray-300 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                                 placeholder="Escriba Unidad"
                                 value={unidadA}
                                 onChange={handleUnidadAChange}
@@ -1476,11 +1487,13 @@ export default function App({
                           codServicio={selectedRow.codServicio}
                           fecha={selectedRow.fechaCompleta}
                           horaAtencion={horaAtencionFinal}
-                          horaAto=   {nuevaFecha
-                            ? formatearFechaParaMostrar(nuevaFecha)
-                            : horaAto
-                              ? parseFecha(horaAto)
-                              : selectedRow?.fechaCompleta}
+                          horaAto={
+                            nuevaFecha
+                              ? formatearFechaParaMostrar(nuevaFecha)
+                              : horaAto
+                                ? parseFecha(horaAto)
+                                : selectedRow?.fechaCompleta
+                          }
                           dataAgregada={dataSeleccionada}
                           agregarTrigger={agregarTrigger}
                           onCoordenadasUpdate={setCoordenadas}
@@ -1510,9 +1523,9 @@ export default function App({
                       </div>
                     </div>
 
-                    <p>
+                    {/* <p>
                       <strong>CodServicio:</strong> {selectedRow.codServicio}
-                    </p>
+                    </p> */}
 
                     {/* <div className="mt-6 flex">
                       <p>
@@ -1555,10 +1568,9 @@ export default function App({
                       <p>Fecha Fin: {selectedRow?.fechafin}</p>
                       <p>Fecha Ini: {selectedRow?.fechaini}</p>
                     </div> */}
-
+                    {/* 
                     <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
-                    <p>Fecha completa: {selectedRow?.fecPlanCompleta}</p>
-
+                    <p>Fecha completa: {selectedRow?.fecPlanCompleta}</p> */}
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>
@@ -1572,7 +1584,6 @@ export default function App({
                     tableRef.current?.actualizarOrdenEnServidor();
                     onClose();
                     handleGuardarHoras();
-                    
                   }}
                 >
                   Guardar

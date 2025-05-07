@@ -34,7 +34,7 @@ const Mapa = ({ recorrido, marcadores, centro }: MapaProps) => {
   }, [centro, marcadores]);
 
   return (
-    <div className="flex h-[350px] w-full items-center justify-center rounded-lg bg-white p-4 shadow-md">
+    <div className="flex h-[350px] w-full items-center justify-center p-2  border border-gray-300">
       {isLoaded ? (
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}

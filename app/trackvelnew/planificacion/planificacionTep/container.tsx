@@ -17,10 +17,11 @@ import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 import ModalAgregarPasajero from './ModalAgregarPasajero';
 import ModalMapa from './ModalRuta';
 import { toast } from 'sonner';
-import { TbEdit } from 'react-icons/tb';
+import { GoAlertFill } from 'react-icons/go';
 import ModalDestino from '../ModalDestino';
+import { IoTime } from 'react-icons/io5';
 
-const libraries: ("places")[] = ['places'];
+const libraries: 'places'[] = ['places'];
 
 interface ItemData {
   id: string;
@@ -114,24 +115,30 @@ export default function Container({
   }, [grupo]);
 
   useEffect(() => {
-    if (fechaInicio && fechaFin) {
+    const fechaInicioValida =
+      fechaInicio instanceof Date && !isNaN(fechaInicio.getTime());
+    const fechaFinValida =
+      fechaFin instanceof Date && !isNaN(fechaFin.getTime());
+
+    if (fechaInicioValida && fechaFinValida) {
       const diferenciaEnMs = Math.abs(
         fechaFin.getTime() - fechaInicio.getTime(),
       );
-
       const diferenciaEnMinutos = Math.floor(diferenciaEnMs / (1000 * 60));
 
       const horas = Math.floor(diferenciaEnMinutos / 60);
       const minutos = diferenciaEnMinutos % 60;
 
       setDiferencia({ horas, minutos });
+    } else {
+      setDiferencia(null);
     }
   }, [fechaInicio, fechaFin]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries
+    libraries,
   });
 
   const handleStartDateSelect = (date: string) => {
@@ -216,7 +223,14 @@ export default function Container({
           <thead style={{ color: '#fff' }}>
             <tr className="px-[5px]">
               <th>Grupo: {grupo.id}</th>
-              <th>Tipo: {grupo.tipo === 'I' ? 'Ingreso' : grupo.tipo === 'S' ? 'Salida' : grupo.tipo}</th>
+              <th>
+                Tipo:{' '}
+                {grupo.tipo === 'I'
+                  ? 'Ingreso'
+                  : grupo.tipo === 'S'
+                    ? 'Salida'
+                    : grupo.tipo}
+              </th>
               <th>Empresa: {formatearNombre(grupo.empresa)}</th>
               <th>
                 <div className="flex items-center">
@@ -318,7 +332,7 @@ export default function Container({
 
         <div className="footerTep">
           <div className="dataConductorUnidad">
-            <div className="flex w-[800px]  items-center gap-4">
+            <div className="flex w-[60%] items-center gap-4">
               <div className="w-[380px]">
                 <InputConductor
                   value={conductor}
@@ -340,11 +354,24 @@ export default function Container({
                   }}
                 />
               </div>
-              <div className="rounded bg-gray-200 bg-opacity-20 p-2 text-sm font-semibold text-gray-800 ">
-                Diferencia:{' '}
-                {diferencia
-                  ? `${diferencia.horas} h y ${diferencia.minutos} min`
-                  : 'Cargando...'}
+              <div className="rounded  p-2 text-sm font-semibold text-gray-800 ">
+                {diferencia ? (
+                  <p className="text-sm text-gray-800 flex items-center gap-2">
+                    <IoTime className='text-gray-700' size={17}/>
+
+                     Diferencia de tiempo : 
+                    <span className="  text-gray-900">
+                      {diferencia.horas} h
+                    </span>
+                    <span className="  text-gray-900">
+                      {diferencia.minutos} min
+                    </span>
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-gray-800">
+                    Selecciona ambas fechas <GoAlertFill />
+                  </p>
+                )}
               </div>
             </div>
 

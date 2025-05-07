@@ -1,13 +1,10 @@
 .contenetTurnos {
   display: flex;
-  padding-top: 10px;
   padding-bottom: 10px;
   overflow-y: auto;
-  padding-right: 10px;
-  padding-left: 10px;
 
-  margin-top: -10px;
   height: 95vh;
+  margin-top: -10px;
 }
 
 .tituloTunos {

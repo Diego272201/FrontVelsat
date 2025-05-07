@@ -371,7 +371,7 @@ const DragAndDropTable = forwardRef(
           items={data.map((item) => ({ id: item.orden }))}
           strategy={verticalListSortingStrategy}
         >
-          <div className="rounded-lg bg-white p-4 shadow-md">
+          <div className="bg-white ml-2">
             <table className="w-full border-collapse border border-gray-300">
               <thead>
                 <tr className="bg-blue-300">
@@ -414,7 +414,7 @@ const DragAndDropTable = forwardRef(
               </tbody>
             </table>
 
-            <div>{horaAto}</div>
+        
           </div>
         </SortableContext>
       </DndContext>

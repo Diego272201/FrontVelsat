@@ -14,7 +14,7 @@ import Container from './container';
 import { Item } from './sortable_item';
 import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
 import GrupoEliminados from './GrupoEliminados';
-import {  Spinner } from '@nextui-org/react';
+import { Spinner } from '@nextui-org/react';
 import { MdDelete } from 'react-icons/md';
 import axios from 'axios';
 import ModalDirecciones from './ModalDirecciones';
@@ -46,7 +46,16 @@ interface ServiciosProps {
     fechasLlenas: number;
   }) => void;
   modoVista: string;
+  onLimpiarRefReady?: (handler: () => void) => void;
+
+
 }
+
+
+export interface ServiciosRef {
+  ejecutarGrupoCero: () => void;
+}
+
 
 export default function App({
   empresa,
@@ -58,6 +67,8 @@ export default function App({
   nombrePasajero = '',
   onActualizarFechas,
   modoVista,
+  onLimpiarRefReady,
+ 
 }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +158,7 @@ export default function App({
     };
 
     fetchData();
-  }, [empresa, shouldRefetch, shouldRefetchAddPasajero,dato]);
+  }, [empresa, shouldRefetch, shouldRefetchAddPasajero, dato]);
 
   const handleRefrescarDatos = () => {
     setShouldRefetchAddPasajero(true);
@@ -333,77 +344,76 @@ export default function App({
     // Ahora NO hacemos nada aquí.
     // Solo si quieres algún efecto visual en el futuro, pero no movemos los datos.
   }
-  
- async function handleDragEnd(event: any) {
-  const { active, over } = event;
-  setActiveId(null);
 
-  if (!over) {
-    return;
-  }
+  async function handleDragEnd(event: any) {
+    const { active, over } = event;
+    setActiveId(null);
 
-  const activeId = active.id;
-  const overId = over.id;
+    if (!over) {
+      return;
+    }
 
-  if (overId === 'grupo-eliminados') {
-    handleEliminarDelArray(Number(activeId));
-    return;
-  }
+    const activeId = active.id;
+    const overId = over.id;
 
-  const activeContainer = findContainer(activeId);
-  const overContainer = findContainer(overId);
+    if (overId === 'grupo-eliminados') {
+      handleEliminarDelArray(Number(activeId));
+      return;
+    }
 
-  if (!activeContainer || !overContainer) {
-    return;
-  }
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
 
-  const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
-  const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
+    if (!activeContainer || !overContainer) {
+      return;
+    }
 
-  const activeIndex = items[activeContainer]?.findIndex(
-    (item) => item.id === activeId,
-  );
-  const overIndex = items[overContainer]?.findIndex(
-    (item) => item.id === overId,
-  );
+    const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
+    const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
 
-  const encontrarGrupoPorCliente = (idCliente: number) => {
-    return grupos.findIndex((grupo) =>
-      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+    const activeIndex = items[activeContainer]?.findIndex(
+      (item) => item.id === activeId,
     );
-  };
-
-  const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
-
-  console.log(
-    `Intentando mover el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
-  );
-
-  if (indiceGrupo === overContainerIndex) {
-    intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
-    return;
-  }
-
-  const resultado = await Swal.fire({
-    title: '¿Estás seguro?',
-    text: '¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, mover',
-    cancelButtonText: 'Cancelar',
-  });
-
-  if (resultado.isConfirmed) {
-    moverClienteOtroGrupo(
-      Number(activeId),
-      indiceGrupo,
-      overContainerIndex,
-      overIndex ?? 0,
+    const overIndex = items[overContainer]?.findIndex(
+      (item) => item.id === overId,
     );
-  }
-}
 
-  
+    const encontrarGrupoPorCliente = (idCliente: number) => {
+      return grupos.findIndex((grupo) =>
+        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+      );
+    };
+
+    const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
+
+    console.log(
+      `Intentando mover el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
+    );
+
+    if (indiceGrupo === overContainerIndex) {
+      intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
+      return;
+    }
+
+    const resultado = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: '¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, mover',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (resultado.isConfirmed) {
+      moverClienteOtroGrupo(
+        Number(activeId),
+        indiceGrupo,
+        overContainerIndex,
+        overIndex ?? 0,
+      );
+    }
+  }
+
   const intercambiarClientes = (
     grupoIndex: number,
     activeIndex: number,
@@ -579,6 +589,37 @@ export default function App({
     });
   };
 
+  useEffect(() => {
+    console.log('Estado actualizado de eliminados:', eliminados);
+  }, [eliminados]);
+
+  const ejecutarGrupoCero = async () => {
+    const toastId = toast.loading("Cargando ...")
+    try {
+      const response = await axios.put(
+        'https://velsat.pe:8586/api/Preplan/GrupoCero?usuario=movilbus',
+        {}
+      );
+  
+      if (response.status === 200) {
+        toast.success('Eliminado con éxito', { id: toastId });  
+        setEliminados([]);
+
+      } else {
+        toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', { id: toastId });      }
+    } catch (error) {
+      console.error('Error al ejecutar GrupoCero:', error);
+      toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', { id: toastId });
+    }
+  };
+  
+
+  useEffect(() => {
+    if (onLimpiarRefReady) {
+      onLimpiarRefReady(ejecutarGrupoCero);
+    }
+  }, []);
+
   const handleGuardar = async (
     data: any[],
     eliminados: any[],
@@ -695,10 +736,13 @@ export default function App({
     });
   };
 
-
-  const handleUpdateDestino = (id: number, nuevoDestino: string, codigoDestino: string) => {
-    setGrupos(prev =>
-      prev.map(g =>
+  const handleUpdateDestino = (
+    id: number,
+    nuevoDestino: string,
+    codigoDestino: string,
+  ) => {
+    setGrupos((prev) =>
+      prev.map((g) =>
         g.id === id
           ? {
               ...g,
@@ -709,11 +753,10 @@ export default function App({
                 nomdestino: nuevoDestino,
               },
             }
-          : g
-      )
+          : g,
+      ),
     );
   };
-  
 
   return (
     <div style={wrapperStyle}>

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
 import Leyenda from '@/app/components/Leyenda';
+import LeyendaPasajeros from '@/app/components/LeyendaPasajeros';
 
 interface UnidadDetalleRecorrido {
   longitude: number;
@@ -41,6 +42,7 @@ const ReportServicios = () => {
   const fecha = searchParams.get('fechaoriginal') || '';
   const fechaIni = searchParams.get('fechaini') || '';
   const fechaFin = searchParams.get('fechafin') || '';
+  const codigo = searchParams.get('codservicio') || '';
 
   const username = session?.user.username;
 
@@ -229,6 +231,8 @@ const ReportServicios = () => {
       )}
 
       <Leyenda numero={numero} tipo={tipo} unidad={unidad} empresa={empresa}  fecha={fecha} fechaIni={fechaIni} fechaFin={fechaFin}></Leyenda>
+
+      <LeyendaPasajeros codigo={codigo} ></LeyendaPasajeros>
     </>
   );
 };

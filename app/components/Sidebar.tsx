@@ -147,7 +147,7 @@ export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: S
         defaultChecked={!showDropdown}
       />
 
-      <div className="desplegable bg-white">
+      <div className="desplegable bg-white " style={{width:'300px'}}>
         <label
           className="previos"
           htmlFor="muestra"
