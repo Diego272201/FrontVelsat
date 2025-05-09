@@ -19,7 +19,6 @@ const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
   { ssr: false }
 );
-const letters = ['V', 'E', 'L', 'S', 'A', 'T'];
 
 const libraries: ("places")[] = ['places'];
 
@@ -498,6 +497,9 @@ if (filteredIdsFromSidebar) {
     [],
   );
 
+  if (!isClient) {
+    return <Loader />;
+  }
 
   return (
     <>
