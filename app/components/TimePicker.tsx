@@ -31,6 +31,7 @@ export default function App({
     setSelectedDate(newDate);
     if (!newDate) {
       onDateSelect('');
+      setSelectedTime(''); 
     } else {
       combineDateTime(newDate, selectedTime);
     }

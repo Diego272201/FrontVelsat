@@ -62,7 +62,7 @@ export default function ServiceLegend({codigo}: Leyenda) {
             ) : (
               pasajeros.map((p) => (
                 <div key={p.id} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 shadow-sm">
-                  <p className="text-[12px] font-semibold text-gray-800">{p.id}. {p.apellidos}</p>
+                  <p className="text-[12px] font-semibold text-gray-800 uppercase">{p.id}. {p.apellidos}</p>
                   <p className="text-xs text-gray-500">CodLan: {p.codlan}</p>
                 </div>
               ))

@@ -148,8 +148,11 @@ export default function Container({
       );
       return;
     }
-
     setStartDate(date);
+    if (date === '') {
+      onUpdateGrupoHoraProg(grupo.id, '');
+      return;
+    }
 
     const formattedDate = formatDate(date);
     if (!formattedDate) {
@@ -169,6 +172,11 @@ export default function Container({
     }
 
     setEndDate(date);
+
+    if (date === '') {
+      onUpdateGrupoHoraProg(grupo.id, '');
+      return;
+    }
 
     const formattedDate = formatDate(date);
     if (!formattedDate) {
@@ -356,10 +364,9 @@ export default function Container({
               </div>
               <div className="rounded  p-2 text-sm font-semibold text-gray-800 ">
                 {diferencia ? (
-                  <p className="text-sm text-gray-800 flex items-center gap-2">
-                    <IoTime className='text-gray-700' size={17}/>
-
-                     Diferencia de tiempo : 
+                  <p className="flex items-center gap-2 text-sm text-gray-800">
+                    <IoTime className="text-gray-700" size={17} />
+                    Diferencia de tiempo :
                     <span className="  text-gray-900">
                       {diferencia.horas} h
                     </span>

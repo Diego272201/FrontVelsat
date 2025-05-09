@@ -14,6 +14,7 @@ import { useSession } from 'next-auth/react';
 import { Toaster, toast } from 'sonner';
 import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
+import LeyendaDetalleR from '@/app/components/LeyendaDetalleR';
 
 interface UnidadDetalleRecorrido {
   longitude: number;
@@ -23,7 +24,7 @@ interface UnidadDetalleRecorrido {
   speed: number;
 }
 
-const libraries: ("places")[] = ['places'];
+const libraries: 'places'[] = ['places'];
 
 const MapContent = () => {
   const { data: session } = useSession();
@@ -51,7 +52,7 @@ const MapContent = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries // ← importante
+    libraries, // ← importante
   });
 
   const fetchData = useCallback(async () => {
@@ -208,6 +209,12 @@ const MapContent = () => {
           />
         </GoogleMap>
       )}
+
+      <LeyendaDetalleR
+        unidad={deviceId ?? ''}
+        fechaFin={endDate ?? ''}
+        fechaIni={startDate ?? ''}
+      ></LeyendaDetalleR>
     </>
   );
 };

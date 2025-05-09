@@ -19,6 +19,7 @@ const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
   { ssr: false }
 );
+const letters = ['V', 'E', 'L', 'S', 'A', 'T'];
 
 const libraries: ("places")[] = ['places'];
 
@@ -497,9 +498,6 @@ if (filteredIdsFromSidebar) {
     [],
   );
 
-  if (!isClient) {
-    return <Loader />;
-  }
 
   return (
     <>
@@ -507,7 +505,8 @@ if (filteredIdsFromSidebar) {
       <div className="relative">
         {!markersLoaded && (
          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white/25 z-[9999]">
-         <Loader></Loader>
+              <Loader></Loader>
+
        </div>
        
         )}
@@ -522,7 +521,7 @@ if (filteredIdsFromSidebar) {
         </DynamicGoogleMap>
       </div>
     ) : (
-      <Loader />
+      <Loader></Loader>
     )}
 
     <Sidebar centerMap={centerMap} centerUnit={centerUnit}  onFilteredIdsChange={setFilteredIdsFromSidebar}/>
