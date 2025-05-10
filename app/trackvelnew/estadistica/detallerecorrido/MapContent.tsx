@@ -107,6 +107,7 @@ const MapContent = () => {
     } else {
       return '/gpsblue.png';
     }
+    
   };
 
   const mapStyles = [
