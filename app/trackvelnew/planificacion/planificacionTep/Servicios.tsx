@@ -28,6 +28,12 @@ const wrapperStyle: React.CSSProperties = {
   flexDirection: 'column',
 };
 
+type Grupo = {
+  tipo: string;
+  fecha: string;
+  horaprog: string;
+};
+
 interface ServiciosProps {
   empresa: string;
   dato: string;
@@ -47,15 +53,14 @@ interface ServiciosProps {
   }) => void;
   modoVista: string;
   onLimpiarRefReady?: (handler: () => void) => void;
-
+  setContadorGrupos: (value: number) => void;
+fechaSeleccionada: Date | null;
 
 }
-
 
 export interface ServiciosRef {
   ejecutarGrupoCero: () => void;
 }
-
 
 export default function App({
   empresa,
@@ -68,7 +73,8 @@ export default function App({
   onActualizarFechas,
   modoVista,
   onLimpiarRefReady,
- 
+  setContadorGrupos,
+  fechaSeleccionada,
 }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,6 +219,49 @@ export default function App({
   useEffect(() => {
     console.log('Grupos filtrados:', gruposFiltrados);
   }, [gruposFiltrados]);
+
+  function verificarGrupos(grupos: Grupo[], fechaParametro: string) {
+    let contador = 0;
+
+    const extraerSoloFecha = (fechaHora: string) => fechaHora.split(' ')[0];
+
+    grupos.forEach((grupo) => {
+      if (grupo.tipo === 'I') {
+        const fechaGrupo = extraerSoloFecha(grupo.fecha);
+        if (fechaGrupo === fechaParametro) {
+          if (!grupo.horaprog || grupo.horaprog === 'null') {
+            contador++;
+          }
+        }
+      } else if (grupo.tipo === 'S') {
+        const horaprogGrupo = extraerSoloFecha(grupo.fecha || '');
+        if (horaprogGrupo === fechaParametro) {
+          if (!grupo.horaprog || grupo.horaprog === 'null') {
+            contador++;
+          }
+        }
+      }
+    });
+
+    return contador;
+  }
+
+  function formatFechaDMY(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+useEffect(() => {
+  if (gruposFiltrados.length > 0 && fechaSeleccionada) {
+    const fechaParametro = formatFechaDMY(fechaSeleccionada);
+    const contador = verificarGrupos(gruposFiltrados, fechaParametro);
+    setContadorGrupos(contador);
+    console.log("wuaa contador" + contador)
+  }
+}, [gruposFiltrados, fechaSeleccionada]);
+
 
   const [items, setItems] = useState<
     Record<
@@ -594,25 +643,28 @@ export default function App({
   }, [eliminados]);
 
   const ejecutarGrupoCero = async () => {
-    const toastId = toast.loading("Cargando ...")
+    const toastId = toast.loading('Cargando ...');
     try {
       const response = await axios.put(
         'https://velsat.pe:8586/api/Preplan/GrupoCero?usuario=movilbus',
-        {}
+        {},
       );
-  
-      if (response.status === 200) {
-        toast.success('Eliminado con éxito', { id: toastId });  
-        setEliminados([]);
 
+      if (response.status === 200) {
+        toast.success('Eliminado con éxito', { id: toastId });
+        setEliminados([]);
       } else {
-        toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', { id: toastId });      }
+        toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', {
+          id: toastId,
+        });
+      }
     } catch (error) {
       console.error('Error al ejecutar GrupoCero:', error);
-      toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', { id: toastId });
+      toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', {
+        id: toastId,
+      });
     }
   };
-  
 
   useEffect(() => {
     if (onLimpiarRefReady) {

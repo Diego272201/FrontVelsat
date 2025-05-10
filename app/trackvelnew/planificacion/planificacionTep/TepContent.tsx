@@ -40,6 +40,8 @@ export default function TepContent() {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
   };
 
+  const [contadorGrupos, setContadorGrupos] = useState(0);
+
   const [guardar, setGuardar] = useState<() => void>(() => () => {});
   const [datosServicios, setDatosServicios] = useState({
     totalGrupos: 0,
@@ -253,17 +255,38 @@ export default function TepContent() {
     reader.readAsBinaryString(file);
   };
 
-
-
   const handlePublicar = async () => {
-    // Verificar si se ha seleccionado una fecha y una empresa
     if (!selectedDate || !empresaSeleccionada) {
       toast.error('Debe seleccionar una fecha y una empresa.');
       return;
     }
-  
+
+
+      if (contadorGrupos > 0) {
+    await Swal.fire({
+      icon: 'warning',
+      title: 'Faltan fechas por llenar',
+    text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Por favor, completa los datos antes de publicar.`,
+
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#3085d6',
+      willOpen: () => {
+        const titleElement = document.querySelector(
+          '.swal2-title',
+        ) as HTMLElement;
+        const textElement = document.querySelector(
+          '.swal2-html-container',
+        ) as HTMLElement;
+
+        if (titleElement) titleElement.style.fontSize = '16px';
+        if (textElement) textElement.style.fontSize = '14px';
+      },
+    });
+    return;
+  }
+
     const result = await Swal.fire({
-      title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}?`, 
+      title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}`,
       text: 'Una vez publicado, no podrás deshacer esta acción.',
       icon: 'warning',
       showCancelButton: true,
@@ -272,30 +295,37 @@ export default function TepContent() {
       confirmButtonText: 'Sí, publicar',
       cancelButtonText: 'Cancelar',
       willOpen: () => {
-        const titleElement = document.querySelector('.swal2-title') as HTMLElement;
-        const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
-  
+        const titleElement = document.querySelector(
+          '.swal2-title',
+        ) as HTMLElement;
+        const textElement = document.querySelector(
+          '.swal2-html-container',
+        ) as HTMLElement;
+
         if (titleElement) {
-          titleElement.style.fontSize = '16px'; 
+          titleElement.style.fontSize = '16px';
         }
-  
+
         if (textElement) {
-          textElement.style.fontSize = '14px';  
+          textElement.style.fontSize = '14px';
         }
-      }
+      },
     });
-  
+
     if (result.isConfirmed) {
       const fecact = formatFechaAMD(selectedDate);
-      const toastId = toast.loading('Cargando...'); 
-  
+      const toastId = toast.loading('Cargando...');
+
       try {
         const response = await axios.post(
           `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
         );
 
         if (response.data.data.length === 0) {
-          toast.error('Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.', { id: toastId });
+          toast.error(
+            'Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.',
+            { id: toastId },
+          );
         } else {
           toast.success('Datos enviados correctamente.', { id: toastId });
           console.log('Respuesta de la API:', response.data);
@@ -311,8 +341,6 @@ export default function TepContent() {
       toast.info('Publicación cancelada');
     }
   };
-  
-  
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -632,7 +660,7 @@ export default function TepContent() {
 
                     <button
                       onClick={alternarEstado}
-                      className={`rounded  text-[13px] px-4 py-2 transition-colors ${
+                      className={`rounded  px-4 py-2 text-[13px] transition-colors ${
                         modoVista === 'Eliminados'
                           ? 'bg-[#d62828] text-white hover:bg-red-500'
                           : 'bg-green-500 text-[#212529] hover:bg-green-400'
@@ -642,15 +670,15 @@ export default function TepContent() {
                     </button>
 
                     <button
-        className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500 text-[13px]"
-        onClick={() => {
-          if (ejecutarGrupoCeroRef.current) {
-            ejecutarGrupoCeroRef.current(); 
-          }
-        }}
-      >
-        Limpiar Eliminados
-      </button>
+                      className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-[13px] text-white hover:bg-red-500"
+                      onClick={() => {
+                        if (ejecutarGrupoCeroRef.current) {
+                          ejecutarGrupoCeroRef.current();
+                        }
+                      }}
+                    >
+                      Limpiar Eliminados
+                    </button>
                   </div>
                 </div>
               </div>
@@ -692,6 +720,8 @@ export default function TepContent() {
             </div>
           </div>
         )}
+
+    <p>Faltan fechas en {contadorGrupos} grupos</p>
       </div>
 
       <div
@@ -748,7 +778,9 @@ export default function TepContent() {
             nombrePasajero={nombrePasajero}
             modoVista={modoVista}
             onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
-            />
+            setContadorGrupos={setContadorGrupos}
+            fechaSeleccionada={selectedDate}
+          />
         )}
       </div>
     </div>
