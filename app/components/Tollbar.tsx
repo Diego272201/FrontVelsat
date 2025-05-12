@@ -16,10 +16,10 @@ import { TbReportSearch } from 'react-icons/tb';
 import { SlMenu } from 'react-icons/sl';
 import { useApi } from '@/context/ApiContext';
 import Profile from './Profile';
-
 import { useSearchParams } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
+import { Spinner } from '@nextui-org/react';
 
 const Tollbar = () => {
   const [username, setUsername] = useState('');
@@ -157,15 +157,15 @@ const Tollbar = () => {
 
   return (
     <div className="tollbar menu__wrapper">
-     <div
-  className={
-    isTrackvel
-      ? baseUrl === 'https://sub.velsat.pe:8586'
-        ? 'tollbar-bgsub'
-        : 'tollbar-bg'
-      : 'tollbar-bg-alt'
-  }
-/>
+      <div
+        className={
+          isTrackvel
+            ? baseUrl === 'https://sub.velsat.pe:8586'
+              ? 'tollbar-bgsub'
+              : 'tollbar-bg'
+            : 'tollbar-bg-alt'
+        }
+      />
 
       <div className="menu__bar">
         <div className="mobile-only-button">
@@ -213,8 +213,8 @@ const Tollbar = () => {
           </div>
 
           {isSedapalDetalleRecorrido && (
-            <div className="ml-2 flex items-center justify-center gap-2 text-white mt-[-1px] }">
-              <div className="h-8 w-px bg-gray-300 mr-2"></div>
+            <div className="} ml-2 mt-[-1px] flex items-center justify-center gap-2 text-white">
+              <div className="mr-2 h-8 w-px bg-gray-300"></div>
               Fechas:{' '}
               <span style={{ fontWeight: 'normal' }}>
                 {formatDateTime(startDate)} - {formatDateTime(endDate)}
@@ -247,7 +247,9 @@ const Tollbar = () => {
           ) : (
             <>
               {!baseUrl ? (
-                <li className="mt-[-8px] text-white">Cargando Menú ...</li>
+                <li className="mt-[-8px] text-white">
+                  <Spinner size="sm" color="warning" />
+                </li>
               ) : baseUrl === 'https://sub.velsat.pe:8586' ? (
                 <>
                   <li
