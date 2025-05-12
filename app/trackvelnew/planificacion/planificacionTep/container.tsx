@@ -362,10 +362,10 @@ export default function Container({
                   }}
                 />
               </div>
-              <div className="rounded  p-2 text-sm font-semibold text-gray-800 ">
+              <div className="rounded  p-2 text-sm font-semibold">
                 {diferencia ? (
-                  <p className="flex items-center gap-2 text-sm text-gray-800">
-                    <IoTime className="text-gray-700" size={17} />
+                  <p className="flex items-center gap-2 text-sm text-gray-900">
+                    <IoTime className="text-gray-800" size={17} />
                     Diferencia de tiempo :
                     <span className="  text-gray-900">
                       {diferencia.horas} h
@@ -375,8 +375,8 @@ export default function Container({
                     </span>
                   </p>
                 ) : (
-                  <p className="flex items-center gap-2 text-gray-800">
-                    Selecciona ambas fechas <GoAlertFill />
+                  <p className="flex items-center gap-2 text-gray-900">
+                    <GoAlertFill /> Selecciona ambas fechas 
                   </p>
                 )}
               </div>

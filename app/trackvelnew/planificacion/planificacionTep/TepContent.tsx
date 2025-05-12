@@ -23,6 +23,7 @@ import {
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
+import { BsCaretDownFill } from 'react-icons/bs';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -379,7 +380,6 @@ export default function TepContent() {
         toast.error('Error al eliminar la carga.', { id: toastId });
       }
     } catch (error) {
-      console.error('Error al eliminar la carga:', error);
       toast.error('Error al eliminar la carga.', { id: toastId });
     }
   };
@@ -399,7 +399,7 @@ export default function TepContent() {
         <div className="cabecera sticky top-0 z-50">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <div className="titulocabecera text-[12px]">
+              <div className="titulocabecera text-[12px] pl-1">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
               </div>
             </div>
@@ -443,7 +443,7 @@ export default function TepContent() {
                       </div>
                       <label
                         htmlFor="uploadExcel"
-                        className="ml-auto block w-max cursor-pointer rounded-md bg-[#d62828] px-3 py-2.5 text-[12px] text-white outline-none hover:bg-gray-700"
+                        className="ml-auto block w-max cursor-pointer rounded-r-md bg-[#d62828] px-3 py-2.5 text-[12px] text-white outline-none hover:bg-gray-700"
                       >
                         Subir
                       </label>
@@ -721,7 +721,7 @@ export default function TepContent() {
           </div>
         )}
 
-    <p>Faltan fechas en {contadorGrupos} grupos</p>
+   
       </div>
 
       <div
@@ -731,7 +731,7 @@ export default function TepContent() {
         {!empresaConfirmada || !dato ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 ">
             <div className="grid h-full w-full overflow-hidden bg-white md:grid-cols-2">
-              {/* Imagen */}
+        
               <div className="flex items-center justify-center bg-gray-200 p-8">
                 <Image
                   src="https://res.cloudinary.com/dyc4ik1ko/image/upload/nodatavelsat_sd026b.png"
@@ -742,7 +742,7 @@ export default function TepContent() {
                 />
               </div>
 
-              {/* Texto e información */}
+       
               <div className="flex flex-col justify-center gap-6 bg-white px-24 text-center md:text-left">
                 <h2 className="text-2xl font-bold text-[#0d1b2a]">
                   ¡Atención!

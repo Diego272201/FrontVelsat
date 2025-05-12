@@ -258,7 +258,6 @@ useEffect(() => {
     const fechaParametro = formatFechaDMY(fechaSeleccionada);
     const contador = verificarGrupos(gruposFiltrados, fechaParametro);
     setContadorGrupos(contador);
-    console.log("wuaa contador" + contador)
   }
 }, [gruposFiltrados, fechaSeleccionada]);
 
