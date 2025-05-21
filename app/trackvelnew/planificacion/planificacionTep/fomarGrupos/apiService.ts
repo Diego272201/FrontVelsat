@@ -161,6 +161,8 @@ export const obtenerDatosYAgrupar = async (
               fechaItem: currentItem.fecha,
               eliminado:item.eliminado,
               area: currentItem.empresa,
+              wx: currentItem.lugar.wx,
+              wy: currentItem.lugar.wy, 
             });
             grupo.coordenadas.push({
               wx: currentItem.lugar.wx,

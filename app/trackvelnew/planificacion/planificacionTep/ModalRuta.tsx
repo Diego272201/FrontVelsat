@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GoogleMap, InfoWindow, Marker } from '@react-google-maps/api';
 
 interface Coordenada {
@@ -30,6 +30,13 @@ export default function ModalMapa({
   isLoaded,
   getMarkerSVG,
 }: ModalMapaProps) {
+
+  useEffect(() => {
+    if (isOpen && coordenadas) {
+      console.log('Coordenadas al abrir el modal:', coordenadas);
+    }
+  }, [isOpen, coordenadas]);
+  
   if (!isOpen) return null;
 
   return (
