@@ -4,6 +4,7 @@ import { GrFormNext } from 'react-icons/gr';
 import '@/app/styles/leyendaservicios.css';
 
 import { convertirFechaADDMMAAAA, obtenerHora12 } from './dates/convertToCustomFormat ';
+
 import { BsFillInfoSquareFill } from 'react-icons/bs';
 
 interface Leyenda {
