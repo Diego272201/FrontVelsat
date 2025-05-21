@@ -57,8 +57,8 @@ export default function App({ onSelect }: SelectProps) {
     <div className="w-full">
       <input
         type="text"
-        placeholder="Buscar..."
-        className="mb-4 w-full rounded border border-gray-300 bg-gray-100 p-1.5"
+        placeholder="Buscar"
+        className="mb-4 w-full rounded border border-gray-300 bg-[#e9ecef] p-1.5 text-[14px] text-gray-900 placeholder-gray-700 focus:border-gray-300 focus:outline-none focus:ring-0"
         value={searchQuery}
         onChange={(e) => {
           setSearchQuery(e.target.value);
@@ -73,7 +73,7 @@ export default function App({ onSelect }: SelectProps) {
           onSelect(e.target.value);
           setIsManualSelection(true);
         }}
-        className="w-full rounded border border-gray-300 bg-gray-100 p-1.5 focus:border-gray-400 focus:outline-none focus:ring-0"
+        className="w-full rounded border border-gray-300 bg-[#e9ecef] p-1.5 focus:border-gray-400 focus:outline-none focus:ring-0 text-[14px]"
       >
         <option value="" disabled={!selectedDevice}>
           Seleccione Unidad

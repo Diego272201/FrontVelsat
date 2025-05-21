@@ -874,12 +874,12 @@ export default function App({
 
   const altura =
     isVisible && isVisibleAsignar
-      ? 320
+      ? 280
       : isVisible
-        ? 255
+        ? 218
         : isVisibleAsignar
-          ? 170
-          : 110;
+          ? 120
+          : 60;
 
   return (
     <div>

@@ -16,7 +16,6 @@ export default function TurnosContent() {
 
     try {
       const response = await axios.get(`${baseUrl}/api/Turnos/movilbus`);
-      console.log('La url es: ' + `${baseUrl}`);
 
       const data = response.data.map((item: any) => ({
         codigo: item.codigo,
@@ -26,7 +25,14 @@ export default function TurnosContent() {
         rol: item.codrl,
         hora: item.hora,
         tipo: item.tipo,
-        programacion: item.programa,
+        programacion:
+          item.programa === '1'
+            ? 'Fecha Actual'
+            : item.programa === '2'
+              ? 'Fecha Futura'
+              : item.programa === '3'
+                ? 'Fecha pasada'
+                : 'Desconocido',
       }));
 
       const ingresoDataFiltrada = data.filter((item: any) => item.tipo === 'I');
@@ -75,7 +81,7 @@ export default function TurnosContent() {
           onEditSuccess={handleSaveSuccess}
         />
       </div>
-      <div className='w-[5px]'></div>
+      <div className="w-[5px]"></div>
       <div className="salida">
         <TablaTurno
           users={salidaData}

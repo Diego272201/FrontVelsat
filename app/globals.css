@@ -3,7 +3,7 @@
 @import 'tailwindcss/utilities';
 
 body {
-  background: #cccccc;
+  background: #ffffff;
   overflow-y: hidden;
 }
 
@@ -24,7 +24,7 @@ body {
   width: 100%;
   position: absolute;
   height: 100vh;
-  padding-top: 50px;
+
 }
 
 .optionTables {
@@ -42,8 +42,6 @@ body {
   display: none;
 }
 
-
-
 /* ACA TERMINA LOS ESTILOS DEL REPORTE */
 
 /* LOADER */
@@ -57,8 +55,6 @@ body {
   height: 50px;
   position: relative;
   margin-top: -20px;
-
-
 }
 
 .spinner::after,
@@ -118,7 +114,6 @@ body {
     transform: translateY(-100%);
   }
 }
-
 
 .viewDevice {
   display: flex;
@@ -192,13 +187,10 @@ body {
   justify-content: center;
 }
 
-
-
-.errorMesageUserI{
+.errorMesageUserI {
   margin-top: 0px;
   font-size: x-small;
   color: #c1121f;
-
 }
 
 /* Oculta el botón de cerrar del InfoWindow */
@@ -206,7 +198,6 @@ body {
   display: none !important;
 }
 
-.pasajerosleyenda{
+.pasajerosleyenda {
   clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 80%);
-
 }

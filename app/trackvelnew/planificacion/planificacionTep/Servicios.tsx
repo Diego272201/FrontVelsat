@@ -818,6 +818,7 @@ useEffect(() => {
             justifyContent: 'center',
             alignItems: 'center',
             height: '100vh',
+          
           }}
         >
           <Spinner color="primary" size="lg" />

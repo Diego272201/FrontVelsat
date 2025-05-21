@@ -14,6 +14,7 @@ import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
+import Tollbar from '../components/Tollbar';
 
 const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
@@ -512,6 +513,8 @@ if (filteredIdsFromSidebar) {
        </div>
        
         )}
+
+
         <DynamicGoogleMap
           mapContainerStyle={containerStyle}
           center={center}
@@ -521,10 +524,13 @@ if (filteredIdsFromSidebar) {
           options={memoizedMapOptions}
         >
         </DynamicGoogleMap>
+
       </div>
     ) : (
-      <Loader></Loader>
+      <></>
     )}
+
+
 
     <Sidebar centerMap={centerMap} centerUnit={centerUnit}  onFilteredIdsChange={setFilteredIdsFromSidebar}/>
   </>

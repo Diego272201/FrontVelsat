@@ -21,46 +21,33 @@ export default function ReporteHeader({
   icon,
 }: ReporteHeaderProps) {
   return (
-    <div className="stick">
-      <div className="datosReporting">
-        <div className="fristData flex items-center gap-6">
+ <div className="bg-blue-800 px-2 py-1 text-white m-0">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Fecha de inicio */}
+      <div className="flex items-center gap-2">
+        <FaCalendarDay className="text-white" />
+        <span className="text-sm font-semibold">
+          Fecha de Inicio: <span className="text-gray-200">{formatDate(startDate)}</span>
+        </span>
+      </div>
 
-          <div className="dataFecha flex ">
-            <p className="flex items-center gap-2 rounded-lg border-white py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <FaCalendarDay className="text-sm text-[#212529]" />
-              <span className="font-semibold text-[#212529]">
-                Fecha De Inicio: {formatDate(startDate)}
-              </span>
-            </p>
-          </div>
+      {/* Título e información */}
+    <div className="text-center">
+  <h2 className="text-[14px] font-bold uppercase flex items-center justify-center gap-2">
+    {title}: <span className="text-[#ffbe0b]">{deviceId?.toUpperCase()}</span> {icon}
+  </h2>
+  <span className="text-[13px] text-gray-300 font-medium -mt-1 block">{extraInfo}</span>
+</div>
 
-          {/* Línea horizontal */}
-          <div className="h-px flex-1 bg-gray-300 dark:bg-gray-400"></div>
 
-          {/* Sección central destacada */}
-          <div className="flex flex-col items-center rounded-lg border border-blue-300 bg-blue-100 px-6 py-2 shadow-md dark:border-blue-700 dark:bg-blue-900">
-            <h2 className="resaltarT text-center">
-              {title} : {deviceId?.toUpperCase()}
-              {icon}
-            </h2>
-            <span className="text-small font-extrabold text-blue-900 dark:text-blue-100">
-              {extraInfo}
-            </span>
-          </div>
-
-          {/* Línea horizontal */}
-          <div className="h-px flex-1 bg-gray-300 dark:bg-gray-400"></div>
-
-          <div className="dataFecha flex justify-end">
-            <p className="flex items-center gap-2 rounded-lg border-white  py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-              <FaCalendarDay className="text-sm text-[#212529]" />
-              <span className="font-semibold text-[#212529]">
-                Fecha Final: {formatDate(endDate)}
-              </span>
-            </p>
-          </div>
-        </div>
+      {/* Fecha final */}
+      <div className="flex items-center gap-2">
+        <FaCalendarDay className="text-white" />
+        <span className="text-sm font-semibold">
+          Fecha Final: <span className="text-gray-200">{formatDate(endDate)}</span>
+        </span>
       </div>
     </div>
+  </div>
   );
 }

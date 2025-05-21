@@ -25,6 +25,7 @@ interface AppModalProps {
   namedown: string;
   namedesc: string;
   showDownloadButton: boolean;
+  icono?: React.ReactNode;
 }
 
 const AppModalVelocidad: React.FC<AppModalProps> = ({
@@ -35,6 +36,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
   namedown,
   namedesc,
   showDownloadButton,
+  icono,
 }) => {
   const { data: session } = useSession();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -95,10 +97,12 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="contenidoM flex flex-col gap-1">
-              <div className="headerModal">
-                <Image src="/gpsLogo.png" alt="" width={50} height={'1000'} />
-                <p>{titulo}</p>
+            <ModalHeader className="flex flex-col">
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-[14px]">{titulo}</p>
+                {icono && (
+                  <span className="text-[40px] text-gray-800">{icono}</span>
+                )}
               </div>
             </ModalHeader>
             <ModalBody>
@@ -112,6 +116,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                   <App
                     backgroundColor="#e9ecef"
                     onDateSelect={handleStartDateSelect}
+                    borderRadius="5px"
                   />
                 </div>
 
@@ -120,25 +125,22 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                   <App
                     backgroundColor="#e9ecef"
                     onDateSelect={handleEndDateSelect}
+                    borderRadius="5px"
                   />
                 </div>
               </div>
-
-              <div>
-                <span className="spanLabel">Velocidad mayor a : </span>
-                <Input
-                  type="number"
-                  placeholder="0.00"
-                  labelPlacement="outside"
-                  startContent={
-                    <div className="pointer-events-none flex items-center">
-                      <span className="text-small text-default-400">
-                        <IoSpeedometerSharp />
-                      </span>
-                    </div>
-                  }
-                  onChange={handleSpeedCar}
-                />
+              <div className="mb-4">
+                <p className="mb-1 text-sm font-semibold text-gray-800">
+                  Velocidad mayor a:
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    onChange={handleSpeedCar}
+                    className="w-full rounded border border-gray-300 bg-[#e9ecef] p-1.5 text-[14px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                  />
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>
@@ -153,10 +155,8 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                       namedown="downloadExcelV"
                       namedesc="velocidad"
                       nameurl="reportevelocidad"
-                      username={username || ""}
+                      username={username || ''}
                       speedCar={speedCar}
-                  
-
                     />
                   </div>
                 )}

@@ -1,10 +1,9 @@
-'use client';
+
 import '@/app/styles/tollbar.css';
 import { IoMdArrowDropleft } from 'react-icons/io';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
-import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
 import { MdChevronRight, MdOutlineMiscellaneousServices } from 'react-icons/md';
@@ -20,6 +19,11 @@ import { useSearchParams } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
 import { Spinner } from '@nextui-org/react';
+import { BsFillSignStopFill } from 'react-icons/bs';
+import { SiGoogledocs } from 'react-icons/si';
+import { PiSpeedometerFill } from "react-icons/pi";
+import { IoSpeedometer } from 'react-icons/io5';
+import { FaRoad } from 'react-icons/fa';
 
 const Tollbar = () => {
   const [username, setUsername] = useState('');
@@ -571,6 +575,8 @@ const Tollbar = () => {
         namedown="downloadExcelG"
         namedesc="general"
         showDownloadButton={true}
+        icono={<SiGoogledocs   size={25}/>}
+
       />
       <AppModalReportes
         isOpen={isModalOpenStops}
@@ -580,6 +586,8 @@ const Tollbar = () => {
         namedown="downloadExcelS"
         namedesc="paradas"
         showDownloadButton={true}
+        icono={<BsFillSignStopFill  size={25}/>}
+
       />
       <AppModalReportes
         isOpen={isModalOpenDetails}
@@ -589,6 +597,8 @@ const Tollbar = () => {
         namedown=""
         namedesc=""
         showDownloadButton={false}
+                icono={<FaRoad   size={25}/>}
+
       />
 
       <AppModalVelocidad
@@ -599,6 +609,8 @@ const Tollbar = () => {
         namedown="downloadExcelV"
         namedesc="velocidad"
         showDownloadButton={true}
+      icono={<IoSpeedometer    size={25}/>}
+
       />
 
       <AppModalReportes
