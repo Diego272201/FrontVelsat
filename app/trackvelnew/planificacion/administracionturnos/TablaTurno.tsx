@@ -83,7 +83,7 @@ export default function App({
   useEffect(() => {
     const calculateRowsPerPage = () => {
       const totalHeight = window.innerHeight;
-      const availableHeight = totalHeight - 155;
+      const availableHeight = totalHeight - 50;
       const rowHeight = 40;
       const calculatedRows = Math.max(
         Math.floor(availableHeight / rowHeight),
@@ -341,12 +341,12 @@ export default function App({
     const endPage = Math.min(pages, startPage + maxVisiblePages - 1);
 
     return (
-      <div className="flex w-[400px] items-center px-2 py-1">
+      <div className="flex items-center px-2 py-1 bg-gray-100 rounded">
         <div className="flex items-center gap-2">
           {page > 1 && (
             <button
               onClick={() => handlePageChange(page - 1)}
-              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-sm text-blue-500 hover:bg-blue-100"
+              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-[12px] text-blue-500 hover:bg-blue-100"
             >
               Anterior
             </button>
@@ -374,7 +374,7 @@ export default function App({
           {page < pages && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="rounded-lg border border-blue-500 bg-white px-2 py-2 text-sm text-blue-500 hover:bg-blue-100"
+              className="rounded-lg border border-blue-500 bg-white px-2 py-2 text-[12px] text-blue-500 hover:bg-blue-100"
             >
               Siguiente
             </button>
@@ -418,6 +418,7 @@ export default function App({
       topContentPlacement="outside"
       onSelectionChange={setSelectedKeys}
       onSortChange={setSortDescriptor}
+      
     >
       <TableHeader columns={headerColumns}>
         {(column) => (
@@ -432,7 +433,7 @@ export default function App({
       </TableHeader>
       <TableBody emptyContent={'No items found'} items={sortedItems}>
         {(item) => (
-          <TableRow key={item.id}>
+          <TableRow key={item.id} className="bg-gray-50">
             {(columnKey) => (
               <TableCell className="rowTable">
                 {renderCell(item, columnKey)}

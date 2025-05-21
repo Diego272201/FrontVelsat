@@ -262,29 +262,28 @@ export default function TepContent() {
       return;
     }
 
+    if (contadorGrupos > 0) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Faltan fechas por llenar',
+        text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Por favor, completa los datos antes de publicar.`,
 
-      if (contadorGrupos > 0) {
-    await Swal.fire({
-      icon: 'warning',
-      title: 'Faltan fechas por llenar',
-    text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Por favor, completa los datos antes de publicar.`,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#3085d6',
+        willOpen: () => {
+          const titleElement = document.querySelector(
+            '.swal2-title',
+          ) as HTMLElement;
+          const textElement = document.querySelector(
+            '.swal2-html-container',
+          ) as HTMLElement;
 
-      confirmButtonText: 'Entendido',
-      confirmButtonColor: '#3085d6',
-      willOpen: () => {
-        const titleElement = document.querySelector(
-          '.swal2-title',
-        ) as HTMLElement;
-        const textElement = document.querySelector(
-          '.swal2-html-container',
-        ) as HTMLElement;
-
-        if (titleElement) titleElement.style.fontSize = '16px';
-        if (textElement) textElement.style.fontSize = '14px';
-      },
-    });
-    return;
-  }
+          if (titleElement) titleElement.style.fontSize = '16px';
+          if (textElement) textElement.style.fontSize = '14px';
+        },
+      });
+      return;
+    }
 
     const result = await Swal.fire({
       title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}`,
@@ -396,10 +395,10 @@ export default function TepContent() {
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="cabecera sticky top-0 z-50">
+        <div className="cabecera sticky top-0 z-50 py-1">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <div className="titulocabecera text-[12px] pl-1">
+              <div className="titulocabecera pl-1 text-[13px]">
                 MÓDULO DE PLANIFICACIÓN DE SERVICIOS
               </div>
             </div>
@@ -422,7 +421,7 @@ export default function TepContent() {
         </div>
 
         {isVisible && (
-          <div id="contenido">
+          <div id="contenido" className="bg-white">
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
@@ -474,13 +473,13 @@ export default function TepContent() {
                         );
                         setSelectedDate(selectedDate);
                       }}
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
 
                   <div className="selectTipoA">
                     <select
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 p-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedEmpresa}
                       onChange={(event) =>
                         setSelectedEmpresa(event.target.value)
@@ -562,7 +561,7 @@ export default function TepContent() {
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={handleEmpresaChange}
                     >
@@ -632,7 +631,7 @@ export default function TepContent() {
                       <select
                         onChange={handleFiltrar}
                         id="countries"
-                        className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                        className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -686,7 +685,7 @@ export default function TepContent() {
               <div className="cargaArchivos">
                 <div className="InfoReportes">
                   <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-stone-200 px-[10px] sm:h-14">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-gray-200 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <MdHomeRepairService size={20} />
@@ -701,7 +700,7 @@ export default function TepContent() {
                     </div>
                   </div>
                   <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-stone-200 px-[10px] sm:h-14">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-gray-200 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <FaUsers size={20} />
@@ -720,30 +719,32 @@ export default function TepContent() {
             </div>
           </div>
         )}
-
-   
       </div>
 
       <div
         className="grupoServicios relative overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 270 : 110}px)` }}
+        style={{ height: `calc(100vh - ${isVisible ? 220 : 60}px)` }}
       >
         {!empresaConfirmada || !dato ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 ">
             <div className="grid h-full w-full overflow-hidden bg-white md:grid-cols-2">
-        
-              <div className="flex items-center justify-center bg-gray-200 p-8">
+              <div className="relative flex items-center justify-center bg-gray-200 p-8">
+                {/* Fondo desenfocado naranja */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center">
+                  <div className="h-[300px] w-[300px] rounded-full bg-orange-400 opacity-30 blur-3xl"></div>
+                </div>
+
+                {/* Imagen principal */}
                 <Image
                   src="https://res.cloudinary.com/dyc4ik1ko/image/upload/nodatavelsat_sd026b.png"
                   alt="Sin datos"
-                  width={500}
-                  height={500}
-                  className="object-contain"
+                  width={400}
+                  height={400}
+                  className="relative z-10 object-contain"
                 />
               </div>
 
-       
-              <div className="flex flex-col justify-center gap-6 bg-white px-24 text-center md:text-left">
+              <div className="flex flex-col justify-center gap-6 bg-gray-100 px-24 text-center md:text-left">
                 <h2 className="text-2xl font-bold text-[#0d1b2a]">
                   ¡Atención!
                 </h2>
@@ -766,7 +767,9 @@ export default function TepContent() {
             </div>
           </div>
         ) : (
-          <Servicios
+
+          <div >
+               <Servicios
             key={`${empresaConfirmada}-${dato}-${actualizacion}`}
             empresa={empresaConfirmada}
             dato={dato}
@@ -781,6 +784,8 @@ export default function TepContent() {
             setContadorGrupos={setContadorGrupos}
             fechaSeleccionada={selectedDate}
           />
+          </div>
+       
         )}
       </div>
     </div>

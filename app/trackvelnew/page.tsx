@@ -5,6 +5,7 @@ import loadable from 'next/dynamic'; // Renombramos para evitar conflicto
 
 const RequestPage = loadable(() => import('../request/page'), { ssr: false });
 import '@/app/styles/trackvelnew.css';
+import Tollbar from '../components/Tollbar';
 
 export default function page() {
   return (
@@ -19,10 +20,14 @@ export default function page() {
               height: '100vh',
             }}
           >
-            Cargando ...
+              ...
           </div>
         }
       >
+
+              
+
+
         <RequestPage />
       </Suspense>
     </div>

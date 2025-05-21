@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -6,7 +6,6 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  useDisclosure,
   Link,
 } from '@nextui-org/react';
 import Select from '@/app/components/selectUI/Select';
@@ -14,7 +13,6 @@ import App from '@/app/components/TimePicker';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import ButtonDownload from '@/app/components/ui/ButtonDownloadModal';
-import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import Selectall from '@/app/components/selectUI/Selectall';
 
@@ -27,6 +25,7 @@ interface AppModalProps {
   namedesc: string;
   showDownloadButton: boolean;
   useSelectAll?: boolean;
+  icono?: React.ReactNode;
 }
 
 const AppModalReportes: React.FC<AppModalProps> = ({
@@ -38,6 +37,7 @@ const AppModalReportes: React.FC<AppModalProps> = ({
   namedesc,
   showDownloadButton,
   useSelectAll = false,
+  icono,
 }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
@@ -49,10 +49,10 @@ const AppModalReportes: React.FC<AppModalProps> = ({
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
-    
-  const isAll = deviceId === "Todas las unidades";
-  setIsAllUnitsSelected(isAll);
-  console.log(isAllUnitsSelected)
+
+    const isAll = deviceId === 'Todas las unidades';
+    setIsAllUnitsSelected(isAll);
+    console.log(isAllUnitsSelected);
   };
 
   const handleStartDateSelect = (date: string) => {
@@ -65,7 +65,10 @@ const AppModalReportes: React.FC<AppModalProps> = ({
 
   const handleShowReport = () => {
     if (!selectedDeviceId || !startDate || !endDate) {
-      toast.error('Rellenar campos necesarios', {className: 'toast-slide-in', richColors:true});
+      toast.error('Rellenar campos necesarios', {
+        className: 'toast-slide-in',
+        richColors: true,
+      });
       return;
     }
 
@@ -75,7 +78,10 @@ const AppModalReportes: React.FC<AppModalProps> = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays > 3) {
-      toast.error('El límite de fechas es de 3 días', {className: 'toast-slide-in', richColors:true});
+      toast.error('El límite de fechas es de 3 días', {
+        className: 'toast-slide-in',
+        richColors: true,
+      });
     } else {
       const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
       window.open(url, '_blank');
@@ -93,15 +99,18 @@ const AppModalReportes: React.FC<AppModalProps> = ({
       <ModalContent>
         {(onClose) => (
           <>
-            <ModalHeader className="contenidoM flex flex-col gap-1">
-              <div className="headerModal">
-                <Image src="/gpsLogo.png" alt="" width={50} height={'1000'} />
-                <p>{titulo}</p>
+            <ModalHeader className="flex flex-col">
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-[14px]">{titulo}</p>
+                {icono && (
+                  <span className="text-[40px] text-gray-800">{icono}</span>
+                )}
+                
               </div>
             </ModalHeader>
             <ModalBody>
               <div className="selectunitRange">
-              {useSelectAll ? (
+                {useSelectAll ? (
                   <Selectall onSelect={handleSelect} />
                 ) : (
                   <Select onSelect={handleSelect} />
@@ -110,13 +119,24 @@ const AppModalReportes: React.FC<AppModalProps> = ({
 
               <div className="selectdates">
                 <div className="dataLabel">
-                  <span className="spanLabel">Fecha Inicial</span>
-                  <App backgroundColor='#e9ecef' onDateSelect={handleStartDateSelect} />
+                  <span className="text-[12px] font-semibold">
+                    Fecha Inicial
+                  </span>
+
+                  <App
+                    backgroundColor="#e9ecef"
+                    onDateSelect={handleStartDateSelect}
+                    borderRadius="5px"
+                  />
                 </div>
 
                 <div className="dataLabel">
-                  <span className="spanLabel">Fecha Final</span>
-                  <App backgroundColor='#e9ecef' onDateSelect={handleEndDateSelect} />
+                  <span className="text-[12px] font-semibold">Fecha Final</span>
+                  <App
+                    backgroundColor="#e9ecef"
+                    onDateSelect={handleEndDateSelect}
+                    borderRadius="5px"
+                  />
                 </div>
               </div>
             </ModalBody>

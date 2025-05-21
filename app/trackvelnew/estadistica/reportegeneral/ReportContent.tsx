@@ -40,7 +40,7 @@ export default function ReportContent() {
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   return (
-    <>
+    <div>
       <ReporteHeader
         title="REPORTE GENERAL DE LA UNIDAD"
         deviceId={deviceId ?? ''}
@@ -60,6 +60,8 @@ export default function ReportContent() {
         nameurl="reportegeneral"
       />
       <Table url={tableUrl} deviceId={deviceId ?? ''} />
-    </>
+
+
+    </div>
   );
 }

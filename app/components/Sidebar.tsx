@@ -181,12 +181,12 @@ export default function Sidebar({ centerMap, centerUnit,onFilteredIdsChange }: S
             </div>
           </div>
 
-          <div className="search">
+          <div className="search ">
             <div className="iconS">
               <FcSearch className="iconSearch" />
             </div>
             <input
-              className="input"
+              className="input bg-orange-100"
               type="search"
               placeholder="Buscar Unidad"
               value={searchTerm}

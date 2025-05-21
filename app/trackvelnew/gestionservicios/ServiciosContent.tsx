@@ -306,10 +306,12 @@ export default function Page() {
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="cabecera sticky top-0 z-50 bg-white shadow-md">
+        <div className="cabecera sticky top-0 z-50 py-1">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <span className="titulocabecera">CONTROL DE SERVICIOS</span>
+              <span className="titulocabecera text-[13px]">
+                CONTROL DE SERVICIOS
+              </span>
             </div>
             <div className="h-[30px] w-px bg-white"></div>
 
@@ -331,7 +333,7 @@ export default function Page() {
               />
 
               <button
-                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-400"
+                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-200"
                 onClick={() => setIsVisibleAsignar((prev) => !prev)}
               >
                 <MdDesignServices size={20} color="#343a40" />
@@ -368,7 +370,7 @@ export default function Page() {
                   <div>
                     <input
                       type="date"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -376,7 +378,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="flex items-center gap-2 rounded bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      className="flex items-center gap-2 rounded bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => setSearchDate(selectedDate)}
                     >
                       Buscar
@@ -386,7 +388,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="rounded bg-blue-500 px-4 py-1.5 font-medium text-white transition hover:bg-blue-600"
+                      className="rounded bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
                         setSelectedDate(null);
                         setSearchDate(null);
@@ -399,7 +401,7 @@ export default function Page() {
                   <div className="w-[250px]">
                     <select
                       id="empresas"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSelecRes}
                       onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
@@ -438,7 +440,7 @@ export default function Page() {
                   <div className="inputFiltros">
                     <select
                       id="countries"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedArea}
                       onChange={(e) => setSelectedArea(e.target.value)}
                     >
@@ -453,7 +455,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
@@ -471,7 +473,7 @@ export default function Page() {
                   <div className="w-[240px] max-w-lg">
                     <select
                       id="tipo-servicio"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={tipoServicio}
                       onChange={(e) => setTipoServicio(e.target.value)}
                     >
@@ -492,7 +494,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="w-full rounded-md  border border-gray-300 bg-gray-200 p-2 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full rounded  border border-gray-300 bg-gray-200 px-1 py-2.5 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -552,7 +554,7 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full rounded-md border border-gray-300 bg-gray-200 px-1.5 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                     />
                   </div>
 
@@ -562,6 +564,8 @@ export default function Page() {
                     onSelect={(codunidad) => {
                       setUnidadSeleccionada(codunidad);
                     }}
+                      padding="p-2.5"
+
                     bgColor="gray-200"
                   />
                   <div className="bg-red-100 ">
@@ -580,6 +584,9 @@ export default function Page() {
         )}
 
         {isVisibleAsignar && (
+          <div>
+            <div className="w-full h-px bg-gray-300 mt-2" />
+
           <div
             className="mt-2 flex justify-between gap-2 bg-white p-2"
             style={{ marginLeft: '5px', marginRight: '5px' }}
@@ -623,6 +630,7 @@ export default function Page() {
               </button>
               <div>{unidadSeleccionada}</div>
             </div>
+          </div>
           </div>
         )}
       </div>

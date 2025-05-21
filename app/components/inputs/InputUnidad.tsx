@@ -13,9 +13,10 @@ interface InputUnidadProps {
   onChange: (value: string) => void;
   onSelect?: (codunidad: string) => void;
   bgColor?: 'gray-100' | 'gray-200';
+ padding?: string;
 }
 
-const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgColor = 'gray-100'  }) => {
+const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgColor = 'gray-100' , padding = 'p-2'  }) => {
 
 
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -51,7 +52,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgC
     <div className="relative">
       <input
         type="text"
-        className={`w-full rounded-md border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
+        className={`w-full rounded-md border border-gray-300 bg-${bgColor} ${padding} ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
 
         placeholder="Unidad"
         value={value}
