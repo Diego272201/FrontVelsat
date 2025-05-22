@@ -14,6 +14,7 @@ interface Row {
   longitude: number;
   latitude: number;
   address: string;
+  odometerKM: number;
 }
 
 interface AppProps {
@@ -66,7 +67,7 @@ export default function App({ url, deviceId }: AppProps) {
   }, [page, rows, rowsPerPage]);
 
   return (
-    <div className="px-0 py-1 mx-2 my-1">
+    <div className="mx-2 my-1 px-0 py-1">
       <div className="overflow-auto border border-gray-200">
         <table className="min-w-full text-xs text-gray-700">
           <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
@@ -77,6 +78,7 @@ export default function App({ url, deviceId }: AppProps) {
               <th className="p-2 text-center">VELOCIDAD</th>
               <th className="p-2 text-center">LATITUD</th>
               <th className="p-2 text-center">LONGITUD</th>
+              <th className="p-2 text-center">ODÓMETRO</th>
               <th className="p-2 text-center">UBICACIÓN</th>
               <th className="p-2 text-center">VER MAPA</th>
             </tr>
@@ -110,8 +112,16 @@ export default function App({ url, deviceId }: AppProps) {
                   <td className="p-2 text-center">{item.fecha}</td>
                   <td className="p-2 text-center">{item.hora}</td>
                   <td className="p-2 text-center">{item.speedKPH} Km/h</td>
-                  <td className="p-2 text-center">{item.latitude}</td>
-                  <td className="p-2 text-center">{item.longitude}</td>
+                  <td className="p-2 text-center">
+                    {item.latitude.toFixed(5)}
+                  </td>
+                  <td className="p-2 text-center">
+                    {item.longitude.toFixed(5)}
+                  </td>
+                  <td className="p-2 text-center">
+                    {item.odometerKM.toFixed(2)} km
+                  </td>
+
                   <td className="p-2 text-center">{item.address}</td>
                   <td className="p-2 text-center">
                     <a
