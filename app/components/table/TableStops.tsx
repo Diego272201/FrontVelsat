@@ -52,7 +52,7 @@ export default function App({ url, deviceId }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = useCalculateRowsPerPage(40, 5, 40);
+  const rowsPerPage = useCalculateRowsPerPage(40, 5, 70);
   const pages = Math.ceil(rows.length / rowsPerPage);
 
   const items = useMemo(() => {
