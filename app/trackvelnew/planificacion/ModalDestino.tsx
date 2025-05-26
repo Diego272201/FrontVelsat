@@ -6,7 +6,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Button,
   useDisclosure,
 } from '@nextui-org/react';
 import { useEffect, useRef, useState } from 'react';
@@ -54,10 +53,9 @@ export default function App({
 
         setMarkerPosition({ lat, lng });
 
-        // Centrar el mapa en la nueva ubicación
         if (mapRef.current) {
           mapRef.current.panTo({ lat, lng });
-          mapRef.current.setZoom(15); // opcional, para acercar más
+          mapRef.current.setZoom(15);
         }
 
         reset((prev) => ({
@@ -72,7 +70,6 @@ export default function App({
     }
   };
 
-  //MAPA
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
 
   const [markerPosition, setMarkerPosition] = useState<{
@@ -88,11 +85,10 @@ export default function App({
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries // ← importante
+    libraries 
   });
 
   const handleClose = () => {
-    // Restablece las coordenadas y el marcador a los valores originales
     reset((prev) => ({
       ...prev,
 
@@ -112,10 +108,10 @@ export default function App({
 
   useEffect(() => {
     if (!isOpen) {
-      handleClose(); // Cuando el modal se cierre, restablecemos la posición
+      handleClose(); 
     }
   }, [isOpen]);
-  //FIN MAPA
+
 
   const [destinoSeleccionado, setDestinoSeleccionado] =
     useState<IDestino | null>(null);
@@ -219,7 +215,7 @@ export default function App({
 
       if (mapRef.current) {
         mapRef.current.panTo(newPos);
-        mapRef.current.setZoom(18); // 👈 Aquí defines el zoom
+        mapRef.current.setZoom(18); 
       }
     }
   }, [latitud, longitud]);
@@ -228,13 +224,13 @@ export default function App({
     <>
       <button
         onClick={onOpen}
-        className="ml-2 mt-[1px] rounded bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
+        className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
       >
-        <TbEdit size={20} />
+        <TbEdit size={18} />
       </button>
 
       <Modal
-        className="w-[70%] max-w-none"
+        className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
         isOpen={isOpen}
         onOpenChange={(open) => {
           onOpenChange();
@@ -386,7 +382,7 @@ export default function App({
                         center={
                           markerPosition.lat !== 0 && markerPosition.lng !== 0
                             ? markerPosition
-                            : { lat: -12.0464, lng: -77.0428 } // Centro predeterminado solo al inicio
+                            : { lat: -12.0464, lng: -77.0428 } 
                         }
                         zoom={
                           markerPosition.lat !== 0 && markerPosition.lng !== 0

@@ -119,7 +119,9 @@ export default function App({ url, deviceId }: AppProps) {
                     {item.longitude.toFixed(5)}
                   </td>
                   <td className="p-2 text-center">
-                    {item.odometerKM.toFixed(2)} km
+                    {typeof item.odometerKM === 'number'
+                      ? `${item.odometerKM.toFixed(2)} km`
+                      : '—'}
                   </td>
 
                   <td className="p-2 text-center">{item.address}</td>
