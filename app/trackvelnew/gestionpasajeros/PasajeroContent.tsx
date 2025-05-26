@@ -163,9 +163,9 @@ export default function PasajeroContent() {
         </div>
       </div>
 
-      <div className="m-2 bg-gray-200">
+      <div className="p-4 bg-gray-200">
         
-        <div className="px-4 pt-2">
+        <div className="pt-2">
           <h3 className="text-[13px] font-semibold text-gray-700 pb-1" >
             Búsqueda por Nombre
           </h3>
@@ -221,7 +221,7 @@ export default function PasajeroContent() {
           </div>
         </div>
 
-        <div className="px-4 pt-2">
+        <div className="pt-2">
         <h3 className="text-[13px] font-semibold text-gray-700">
 
             Búsqueda por Código
@@ -270,7 +270,7 @@ export default function PasajeroContent() {
           </div>
         </div>
 
-        <div className="mt-2 px-4">
+        <div className="mt-2">
           <h3 className="text-[14px] font-semibold text-gray-700">CARGA MASIVA</h3>
           <form className="flex flex-col items-start gap-3 mt-1">
             <label

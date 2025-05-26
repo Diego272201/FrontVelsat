@@ -1,6 +1,7 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 body {
   background: #ffffff;
@@ -201,3 +202,7 @@ body {
 .pasajerosleyenda {
   clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 80%);
 }
+
+
+
+

@@ -30,13 +30,12 @@ export default function ModalMapa({
   isLoaded,
   getMarkerSVG,
 }: ModalMapaProps) {
-
   useEffect(() => {
     if (isOpen && coordenadas) {
       console.log('Coordenadas al abrir el modal:', coordenadas);
     }
   }, [isOpen, coordenadas]);
-  
+
   if (!isOpen) return null;
 
   return (

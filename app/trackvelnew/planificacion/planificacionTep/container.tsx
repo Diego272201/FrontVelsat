@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { GoAlertFill } from 'react-icons/go';
 import ModalDestino from '../ModalDestino';
 import { IoTime } from 'react-icons/io5';
+import { DateTimePicker } from '@/app/dashboard/DateTimePicker';
 
 const libraries: 'places'[] = ['places'];
 
@@ -85,8 +86,10 @@ export default function Container({
   onRefrescarDatos,
   onUpdateDestino,
 }: ContainerProps) {
+
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
+  
   const [conductor, setConductor] = useState(grupo.conductor || '');
   const [unidad, setUnidad] = useState(grupo.unidad || '');
   const [isOpen, setIsOpen] = useState(false);
@@ -267,15 +270,13 @@ export default function Container({
                   }}
                 >
                   Inicio :
-                  <App
-                    onDateSelect={handleStartDateSelect}
-                    height="35px"
-                    borderRadius="0"
+                  <DateTimePicker
                     initialDateTime={
                       grupo.tipo === 'I'
                         ? formatDateToISO(grupo.horaprog)
                         : formatDateToISO(grupo.fecha)
                     }
+                    onDateSelect={handleStartDateSelect}
                   />
                 </div>
               </th>
@@ -290,15 +291,13 @@ export default function Container({
                   }}
                 >
                   Fin :
-                  <App
-                    onDateSelect={handleEndDateSelect}
-                    height="35px"
-                    borderRadius="0"
+                  <DateTimePicker
                     initialDateTime={
                       grupo.tipo === 'S'
                         ? formatDateToISO(grupo.horaprog)
                         : formatDateToISO(grupo.fecha)
                     }
+                    onDateSelect={handleEndDateSelect}
                   />
                 </div>
               </th>
@@ -366,9 +365,9 @@ export default function Container({
                 {diferencia ? (
                   <p className="flex items-center gap-2 text-sm text-gray-900">
                     <IoTime className="text-gray-800" size={17} />
-                    Diferencia de tiempo :
+                    Intervalo tiempo :
                     <span className="  text-gray-900">
-                      {diferencia.horas} h
+                      {diferencia.horas}h
                     </span>
                     <span className="  text-gray-900">
                       {diferencia.minutos} min
@@ -376,7 +375,7 @@ export default function Container({
                   </p>
                 ) : (
                   <p className="flex items-center gap-2 text-gray-900">
-                    <GoAlertFill /> Selecciona ambas fechas 
+                    <GoAlertFill /> Define fechas
                   </p>
                 )}
               </div>

@@ -2,7 +2,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoIosAddCircle, IoMdSave } from 'react-icons/io';
-import Image from 'next/image';
 import {
   Modal,
   ModalContent,

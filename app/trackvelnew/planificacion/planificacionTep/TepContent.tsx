@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, useDisclosure } from '@nextui-org/react';
+import { useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
@@ -23,7 +23,6 @@ import {
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
-import { BsCaretDownFill } from 'react-icons/bs';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -37,13 +36,17 @@ export default function TepContent() {
   const [erroresCarga, setErroresCarga] = useState<any[]>([]);
   const ejecutarGrupoCeroRef = useRef<() => void>();
 
+  const intervaloRef = useRef<NodeJS.Timeout | null>(null);
+  const [guardar, setGuardar] = useState<(auto?: boolean) => void>(
+    () => () => {},
+  );
+
   const alternarEstado = () => {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
   };
 
   const [contadorGrupos, setContadorGrupos] = useState(0);
 
-  const [guardar, setGuardar] = useState<() => void>(() => () => {});
   const [datosServicios, setDatosServicios] = useState({
     totalGrupos: 0,
     totalPasajeros: 0,
@@ -127,10 +130,14 @@ export default function TepContent() {
   >([]);
 
   const [file, setFile] = useState<File | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [fileName, setFileName] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
+
+  const [archivosRecientes, setArchivosRecientes] = useState<
+    { nombre: string; fecha: string }[]
+  >([]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -235,6 +242,23 @@ export default function TepContent() {
           console.log(fecact);
 
           if (response.status === 200) {
+            const nombreArchivo = file.name;
+            const ahora = new Date().toISOString();
+
+            // Obtener lista existente
+            const registrosPrevios = JSON.parse(
+              localStorage.getItem('archivosExcelCargados') || '[]',
+            );
+
+            // Agregar nuevo registro
+            registrosPrevios.push({ nombre: nombreArchivo, fecha: ahora });
+
+            // Guardar en localStorage
+            localStorage.setItem(
+              'archivosExcelCargados',
+              JSON.stringify(registrosPrevios),
+            );
+
             toast.success('Datos enviados correctamente a la API.', {
               id: toastId,
             });
@@ -255,6 +279,22 @@ export default function TepContent() {
 
     reader.readAsBinaryString(file);
   };
+
+  useEffect(() => {
+    const registros = JSON.parse(
+      localStorage.getItem('archivosExcelCargados') || '[]',
+    );
+    const ahora = new Date();
+
+    const filtrados = registros.filter((registro: any) => {
+      const fechaRegistro = new Date(registro.fecha);
+      const diferenciaHoras =
+        (ahora.getTime() - fechaRegistro.getTime()) / (1000 * 60 * 60);
+      return diferenciaHoras <= 24;
+    });
+
+    setArchivosRecientes(filtrados);
+  }, []);
 
   const handlePublicar = async () => {
     if (!selectedDate || !empresaSeleccionada) {
@@ -388,8 +428,28 @@ export default function TepContent() {
   };
 
   useEffect(() => {
-    setIsVisible(false);
+    setIsVisible(true);
   }, []);
+
+  useEffect(() => {
+    if (guardar) {
+      if (intervaloRef.current) clearInterval(intervaloRef.current);
+
+      intervaloRef.current = setInterval(
+        () => {
+          guardar(true);
+          toast.success(
+            `Guardado automático a las ${new Date().toLocaleTimeString()}`,
+          );
+        },
+        3 * 60 * 1000,
+      );
+
+      return () => {
+        if (intervaloRef.current) clearInterval(intervaloRef.current);
+      };
+    }
+  }, [guardar]);
 
   return (
     <div className="containerTep">
@@ -398,8 +458,10 @@ export default function TepContent() {
         <div className="cabecera sticky top-0 z-50 py-1">
           <div className="progressAndTitle">
             <div className="contenedorcabecera">
-              <div className="titulocabecera pl-1 text-[13px]">
-                MÓDULO DE PLANIFICACIÓN DE SERVICIOS
+              <div className="pl-1">
+                <span className="titulocabecera">
+                  MÓDULO DE PLANIFICACIÓN DE SERVICIOS
+                </span>
               </div>
             </div>
             <div className="h-[30px] w-px bg-white"></div>
@@ -421,7 +483,7 @@ export default function TepContent() {
         </div>
 
         {isVisible && (
-          <div id="contenido" className="bg-white">
+          <div id="contenido" className="border-b-1 border-gray-300 bg-gray-50">
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
@@ -433,7 +495,7 @@ export default function TepContent() {
 
                 <div className="cabeceraArchivos">
                   <div>
-                    <div className="flex w-full rounded-md border border-gray-300 bg-gray-200 p-0 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0">
+                    <div className="flex w-full border border-gray-300 bg-gray-200 p-0 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0">
                       <div className="flex items-center px-4">
                         <FaFileExcel size={20} color="#307750" />
                         <p className="ml-3 text-[12px]">
@@ -442,7 +504,7 @@ export default function TepContent() {
                       </div>
                       <label
                         htmlFor="uploadExcel"
-                        className="ml-auto block w-max cursor-pointer rounded-r-md bg-[#d62828] px-3 py-2.5 text-[12px] text-white outline-none hover:bg-gray-700"
+                        className="ml-auto block w-max cursor-pointer  bg-[#d62828] px-3 py-2 text-[12px] text-white outline-none hover:bg-gray-700"
                       >
                         Subir
                       </label>
@@ -473,13 +535,13 @@ export default function TepContent() {
                         );
                         setSelectedDate(selectedDate);
                       }}
-                      className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
 
                   <div className="selectTipoA">
                     <select
-                      className="w-full rounded border border-gray-300 bg-gray-200 p-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[8.2px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedEmpresa}
                       onChange={(event) =>
                         setSelectedEmpresa(event.target.value)
@@ -540,7 +602,7 @@ export default function TepContent() {
                     />
                     <button
                       onClick={handleDeleteCarga}
-                      className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+                      className="flex items-center gap-2  bg-[#d62828] px-4 py-[7px] text-white hover:bg-red-500"
                     >
                       <MdDelete size={20} />
                       Eliminar Carga
@@ -561,7 +623,7 @@ export default function TepContent() {
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={handleEmpresaChange}
                     >
@@ -579,7 +641,7 @@ export default function TepContent() {
 
                   <div className="buttonsTep">
                     <button
-                      className="flex h-9 items-center gap-2 rounded bg-blue-500 px-2 text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={() => {
                         setEmpresaConfirmada(empresaSeleccionada);
                         onOpen();
@@ -590,10 +652,8 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex h-9 items-center gap-2 rounded bg-[#348357] p-2 text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
-                      onClick={() => {
-                        guardar();
-                      }}
+                      className="flex items-center gap-2  bg-[#348357] p-[7px] text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
+                      onClick={() => guardar(false)}
                     >
                       Guardar
                       <IoSave color="#fff" />
@@ -606,7 +666,7 @@ export default function TepContent() {
                     />
 
                     <button
-                      className="flex h-9 items-center gap-2 rounded bg-blue-500 px-2 text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex  items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={handlePublicar}
                     >
                       Publicar
@@ -631,7 +691,7 @@ export default function TepContent() {
                       <select
                         onChange={handleFiltrar}
                         id="countries"
-                        className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                        className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -649,7 +709,7 @@ export default function TepContent() {
                       <input
                         type="text"
                         id="input-label"
-                        className="w-full rounded border border-gray-300 bg-gray-200 p-2 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
+                        className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
                         placeholder="Nombre del pasajero"
                         style={{ width: '280px' }}
                         value={nombrePasajero}
@@ -659,7 +719,7 @@ export default function TepContent() {
 
                     <button
                       onClick={alternarEstado}
-                      className={`rounded  px-4 py-2 text-[13px] transition-colors ${
+                      className={`  p-[7px] text-[13px] transition-colors ${
                         modoVista === 'Eliminados'
                           ? 'bg-[#d62828] text-white hover:bg-red-500'
                           : 'bg-green-500 text-[#212529] hover:bg-green-400'
@@ -669,7 +729,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-[13px] text-white hover:bg-red-500"
+                      className="flex items-center gap-2  bg-[#d62828] p-[7px] text-[13px] text-white hover:bg-red-500"
                       onClick={() => {
                         if (ejecutarGrupoCeroRef.current) {
                           ejecutarGrupoCeroRef.current();
@@ -684,8 +744,8 @@ export default function TepContent() {
 
               <div className="cargaArchivos">
                 <div className="InfoReportes">
-                  <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-gray-200 px-[10px] sm:h-14">
+                  <div className="w-60f z-50 flex flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between  bg-gray-300 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <MdHomeRepairService size={20} />
@@ -700,7 +760,7 @@ export default function TepContent() {
                     </div>
                   </div>
                   <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between rounded-lg bg-gray-200 px-[10px] sm:h-14">
+                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between  bg-gray-300 px-[10px] sm:h-14">
                       <div className="flex gap-2">
                         <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
                           <FaUsers size={20} />
@@ -719,6 +779,22 @@ export default function TepContent() {
             </div>
           </div>
         )}
+
+        <div className="rounded-md border bg-gray-100 p-4">
+          <h3 className="mb-2 text-lg font-bold">
+            Archivos cargados en las últimas 24 horas:
+          </h3>
+          <ul className="list-disc pl-5">
+            {archivosRecientes.length === 0 && (
+              <li>No hay archivos recientes</li>
+            )}
+            {archivosRecientes.map((archivo, i) => (
+              <li key={i}>
+                {archivo.nombre} - {new Date(archivo.fecha).toLocaleString()}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div
@@ -726,7 +802,7 @@ export default function TepContent() {
         style={{ height: `calc(100vh - ${isVisible ? 220 : 60}px)` }}
       >
         {!empresaConfirmada || !dato ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 ">
+          <div className="absolute inset-0 ml-2 mr-2 flex items-center justify-center bg-gray-100">
             <div className="grid h-full w-full overflow-hidden bg-white md:grid-cols-2">
               <div className="relative flex items-center justify-center bg-gray-200 p-8">
                 {/* Fondo desenfocado naranja */}
@@ -767,25 +843,23 @@ export default function TepContent() {
             </div>
           </div>
         ) : (
-
-          <div >
-               <Servicios
-            key={`${empresaConfirmada}-${dato}-${actualizacion}`}
-            empresa={empresaConfirmada}
-            dato={dato}
-            onGuardar={setGuardar}
-            onActualizarDatos={actualizarDatosServicios}
-            onActualizarCabeceras={actualizarCabeceras}
-            onActualizarFechas={actualizarFechas}
-            filtro={filtro}
-            nombrePasajero={nombrePasajero}
-            modoVista={modoVista}
-            onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
-            setContadorGrupos={setContadorGrupos}
-            fechaSeleccionada={selectedDate}
-          />
+          <div className="ml-2 mr-2">
+            <Servicios
+              key={`${empresaConfirmada}-${dato}-${actualizacion}`}
+              empresa={empresaConfirmada}
+              dato={dato}
+              onGuardar={setGuardar}
+              onActualizarDatos={actualizarDatosServicios}
+              onActualizarCabeceras={actualizarCabeceras}
+              onActualizarFechas={actualizarFechas}
+              filtro={filtro}
+              nombrePasajero={nombrePasajero}
+              modoVista={modoVista}
+              onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
+              setContadorGrupos={setContadorGrupos}
+              fechaSeleccionada={selectedDate}
+            />
           </div>
-       
         )}
       </div>
     </div>

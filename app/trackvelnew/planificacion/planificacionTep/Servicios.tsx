@@ -54,8 +54,7 @@ interface ServiciosProps {
   modoVista: string;
   onLimpiarRefReady?: (handler: () => void) => void;
   setContadorGrupos: (value: number) => void;
-fechaSeleccionada: Date | null;
-
+  fechaSeleccionada: Date | null;
 }
 
 export interface ServiciosRef {
@@ -253,14 +252,13 @@ export default function App({
     return `${day}/${month}/${year}`;
   }
 
-useEffect(() => {
-  if (gruposFiltrados.length > 0 && fechaSeleccionada) {
-    const fechaParametro = formatFechaDMY(fechaSeleccionada);
-    const contador = verificarGrupos(gruposFiltrados, fechaParametro);
-    setContadorGrupos(contador);
-  }
-}, [gruposFiltrados, fechaSeleccionada]);
-
+  useEffect(() => {
+    if (gruposFiltrados.length > 0 && fechaSeleccionada) {
+      const fechaParametro = formatFechaDMY(fechaSeleccionada);
+      const contador = verificarGrupos(gruposFiltrados, fechaParametro);
+      setContadorGrupos(contador);
+    }
+  }, [gruposFiltrados, fechaSeleccionada]);
 
   const [items, setItems] = useState<
     Record<
@@ -444,8 +442,9 @@ useEffect(() => {
     }
 
     const resultado = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: '¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.',
+      title:
+        '<p style="font-size: 1.4rem; line-height: 1.4;">¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.</p>',
+      text: 'Confirma esta acción antes de continuar.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Sí, mover',
@@ -676,6 +675,7 @@ useEffect(() => {
     eliminados: any[],
     conductoresActualizados: any,
     unidadesActualizadas: any,
+    esAutomatico: boolean = false,
   ) => {
     const dataToSend = [
       ...data.flatMap((grupo, grupoIndex) => {
@@ -718,8 +718,9 @@ useEffect(() => {
       return;
     }
 
-    const loadingToast = toast.loading('Guardando datos...', { duration: 0 });
-
+    const loadingToast = !esAutomatico
+      ? toast.loading('Guardando datos...', { duration: 0 })
+      : null;
     try {
       const response = await axios.put(
         `${API_BASE_URL125}/api/Preplan/save?usuario=movilbus`,
@@ -728,18 +729,23 @@ useEffect(() => {
       );
 
       console.log('Respuesta de la API:', response.data);
-      toast.dismiss(loadingToast);
-      toast.success('Datos guardados correctamente');
+      if (!esAutomatico) {
+        toast.dismiss(loadingToast!);
+        toast.success('Datos guardados correctamente');
+      }
     } catch (error) {
       console.error('Error al guardar los datos:', error);
-      toast.dismiss(loadingToast);
+      toast.dismiss(loadingToast!);
       toast.error('Error al guardar los datos.');
     }
   };
 
-  const guardarCallback = useCallback(() => {
-    handleGuardar(grupos, eliminados, conductores, unidades);
-  }, [grupos, eliminados, conductores, unidades]);
+  const guardarCallback = useCallback(
+    (esAutomatico: boolean = false) => {
+      handleGuardar(grupos, eliminados, conductores, unidades, esAutomatico);
+    },
+    [grupos, eliminados, conductores, unidades],
+  );
 
   useEffect(() => {
     if (onGuardar) {
@@ -818,7 +824,6 @@ useEffect(() => {
             justifyContent: 'center',
             alignItems: 'center',
             height: '100vh',
-          
           }}
         >
           <Spinner color="primary" size="lg" />
