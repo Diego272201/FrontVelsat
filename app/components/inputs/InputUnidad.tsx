@@ -52,7 +52,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgC
     <div className="relative">
       <input
         type="text"
-        className={`w-full rounded-md border border-gray-300 bg-${bgColor} ${padding} ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
+        className={`w-full border border-gray-300 bg-${bgColor} ${padding} ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
 
         placeholder="Unidad"
         value={value}

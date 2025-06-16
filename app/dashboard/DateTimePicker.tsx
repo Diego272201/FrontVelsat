@@ -119,8 +119,8 @@ export function DateTimePicker({
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        placeholder="dd/mm/yyyy hh:mm"
-        className="w-full"
+        placeholder="dd/mm/yy hh:mm"
+        className="w-full placeholder-red-700"
       />
 
       <Popover open={isOpen} onOpenChange={setIsOpen}>

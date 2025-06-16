@@ -81,7 +81,7 @@ const empresas = [
 ];
 
 export default function Page() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [isVisibleAsignar, setIsVisibleAsignar] = useState(false);
 
   const [selectedArea, setSelectedArea] = useState('');
@@ -356,7 +356,7 @@ export default function Page() {
         </div>
 
         {isVisible && (
-          <div id="contenido">
+          <div id="contenido" className="mx-2">
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-1">
@@ -370,7 +370,7 @@ export default function Page() {
                   <div>
                     <input
                       type="date"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 px-1 py-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedDate || ''}
                       onChange={(e) => setSelectedDate(e.target.value)}
                     />
@@ -378,7 +378,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="flex items-center gap-2 rounded bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
+                      className="flex items-center gap-2  bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => setSearchDate(selectedDate)}
                     >
                       Buscar
@@ -388,7 +388,7 @@ export default function Page() {
 
                   <div>
                     <button
-                      className="rounded bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
+                      className="bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
                         setSelectedDate(null);
                         setSearchDate(null);
@@ -401,7 +401,7 @@ export default function Page() {
                   <div className="w-[250px]">
                     <select
                       id="empresas"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full  border border-gray-300 bg-gray-200 p-[8px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSelecRes}
                       onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
@@ -430,7 +430,7 @@ export default function Page() {
             <div className="fristFileT">
               <div className="filtrosPlanificacion">
                 <div className="relative flex items-center pb-0.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-gray-700">
                     <AiOutlineFilter className="h-5 w-5 text-gray-600" />
                     Filtros de Búsqueda
                   </span>
@@ -440,7 +440,7 @@ export default function Page() {
                   <div className="inputFiltros">
                     <select
                       id="countries"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedArea}
                       onChange={(e) => setSelectedArea(e.target.value)}
                     >
@@ -455,7 +455,7 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
@@ -473,7 +473,7 @@ export default function Page() {
                   <div className="w-[240px] max-w-lg">
                     <select
                       id="tipo-servicio"
-                      className="w-full rounded border border-gray-300 bg-gray-200 px-1 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={tipoServicio}
                       onChange={(e) => setTipoServicio(e.target.value)}
                     >
@@ -494,7 +494,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="w-full rounded  border border-gray-300 bg-gray-200 px-1 py-2.5 ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] ps-11 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                       placeholder="Pasajero"
                       value={pasajero}
                       onChange={(e) => {
@@ -554,7 +554,7 @@ export default function Page() {
                       placeholder="Número de Servicio"
                       min="0"
                       max="100"
-                      className="w-full rounded-md border border-gray-300 bg-gray-200 px-1.5 py-2.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
                     />
                   </div>
 
@@ -564,13 +564,12 @@ export default function Page() {
                     onSelect={(codunidad) => {
                       setUnidadSeleccionada(codunidad);
                     }}
-                      padding="p-2.5"
-
+                    padding="p-[7px]"
                     bgColor="gray-200"
                   />
                   <div className="bg-red-100 ">
                     <button
-                      className="flex items-center gap-2 rounded bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+                      className="flex items-center gap-2 bg-[#d62828] p-[7px] text-white hover:bg-red-500"
                       onClick={handleClearFilters}
                     >
                       Limpiar
@@ -585,52 +584,51 @@ export default function Page() {
 
         {isVisibleAsignar && (
           <div>
-            <div className="w-full h-px bg-gray-300 mt-2" />
 
-          <div
-            className="mt-2 flex justify-between gap-2 bg-white p-2"
-            style={{ marginLeft: '5px', marginRight: '5px' }}
-          >
-            <div className="flex gap-2">
-              <div className="w-96">
-                <InputConductor
-                  value={apepateConductor}
-                  onChange={setApepateConductor}
-                  onSelect={(codigo, apepate) => {
-                    setCodConductor(codigo);
-                    setApepateConductor(apepate);
+            <div
+              className="mt-2 flex border-t justify-between gap-2 bg-gray-50 "
+              style={{ marginLeft: '5px', marginRight: '5px' }}
+            >
+              <div className="flex gap-2">
+                <div className="w-96">
+                  <InputConductor
+                    value={apepateConductor}
+                    onChange={setApepateConductor}
+                    onSelect={(codigo, apepate) => {
+                      setCodConductor(codigo);
+                      setApepateConductor(apepate);
+                    }}
+                    bgColor="gray-200"
+                  />
+                </div>
+
+                <InputUnidad
+                  value={unidadSeleccionadaAsignar}
+                  onChange={(value) => setUnidadSeleccionadaAsignar(value)}
+                  onSelect={(codunidad) => {
+                    setUnidadSeleccionadaAsignar(codunidad);
                   }}
                   bgColor="gray-200"
                 />
               </div>
 
-              <InputUnidad
-                value={unidadSeleccionadaAsignar}
-                onChange={(value) => setUnidadSeleccionadaAsignar(value)}
-                onSelect={(codunidad) => {
-                  setUnidadSeleccionadaAsignar(codunidad);
-                }}
-                bgColor="gray-200"
-              />
-            </div>
+              <div className="flex gap-2 pr-1">
+                <button
+                  className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-sm text-white transition hover:bg-blue-600"
+                  onClick={asignarServicios}
+                >
+                  Asignar <RiCheckboxMultipleFill className="h-4 w-4" />
+                </button>
 
-            <div className="flex gap-2 pr-1">
-              <button
-                className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-sm text-white transition hover:bg-blue-600"
-                onClick={asignarServicios}
-              >
-                Asignar <RiCheckboxMultipleFill className="h-4 w-4" />
-              </button>
-
-              <button
-                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-sm text-white transition hover:bg-red-500"
-                onClick={eliminarServicio}
-              >
-                Eliminar <MdDelete className="h-4 w-4" />
-              </button>
-              <div>{unidadSeleccionada}</div>
+                <button
+                  className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-sm text-white transition hover:bg-red-500"
+                  onClick={eliminarServicio}
+                >
+                  Eliminar <MdDelete className="h-4 w-4" />
+                </button>
+                <div>{unidadSeleccionada}</div>
+              </div>
             </div>
-          </div>
           </div>
         )}
       </div>

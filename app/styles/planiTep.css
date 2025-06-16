@@ -54,14 +54,11 @@
   clear: both;
   display: flex;
   flex-direction: column;
-  padding-left: 10px;
-  padding-right: 10px;
   padding-top: 7px;
   overflow: auto;
   font-family: helvetica;
   font-size: 14px;
   text-align: justify;
-
 }
 
 .subtitleTep {
@@ -166,7 +163,7 @@
   background-color: #307750;
   color: #fff;
   border-style: none;
-  padding: 2px 10px;
+  padding: 7px 10px;
   overflow: hidden;
   z-index: 1;
   transition: all 250ms;
@@ -265,7 +262,7 @@
 }
 
 .grupoServicios {
-  margin-top: 10px;
+  margin-top: 5px;
 
 }
 .footerTep {

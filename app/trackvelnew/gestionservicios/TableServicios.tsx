@@ -483,16 +483,14 @@ export default function App({
 
     const fetchData = async () => {
       setLoading(true);
-
       const currentDate = selectedDate || getFormattedDate();
-
       const API_URL = `https://velsat.pe:8586/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
-
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
       } catch (error) {
         console.error('Error al obtener los datos:', error);
+        setData([]);
       } finally {
         setLoading(false);
       }
@@ -938,7 +936,7 @@ export default function App({
               {items.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length} className="h-[50vh] py-4">
-                    <div className="flex h-full flex-col items-center justify-center rounded-lg border border-gray-600 bg-gradient-to-r from-gray-900 to-gray-700 p-6 text-center shadow-lg">
+                    <div className="flex h-full flex-col items-center justify-center bg-gradient-to-r from-gray-900 to-gray-700 p-6 text-center shadow-lg">
                       <svg
                         className="h-12 w-12 animate-pulse text-red-500"
                         fill="none"

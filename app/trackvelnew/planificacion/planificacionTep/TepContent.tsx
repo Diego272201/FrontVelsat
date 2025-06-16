@@ -161,6 +161,13 @@ export default function TepContent() {
     return firstLetter + secondLetter;
   };
 
+  useEffect(() => {
+    const data = localStorage.getItem('archivosExcelCargados');
+    if (data) {
+      setArchivosRecientes(JSON.parse(data));
+    }
+  }, []);
+
   const handleReadExcel = () => {
     if (!file) {
       toast.error('Por favor selecciona un archivo Excel.');
@@ -245,19 +252,16 @@ export default function TepContent() {
             const nombreArchivo = file.name;
             const ahora = new Date().toISOString();
 
-            // Obtener lista existente
-            const registrosPrevios = JSON.parse(
-              localStorage.getItem('archivosExcelCargados') || '[]',
-            );
-
-            // Agregar nuevo registro
-            registrosPrevios.push({ nombre: nombreArchivo, fecha: ahora });
-
-            // Guardar en localStorage
-            localStorage.setItem(
-              'archivosExcelCargados',
-              JSON.stringify(registrosPrevios),
-            );
+            const username = localStorage.getItem('currentUser');
+            if (username) {
+              const key = `archivosExcelCargados_${username}`;
+              const registrosPrevios = JSON.parse(
+                localStorage.getItem(key) || '[]',
+              );
+              registrosPrevios.push({ nombre: nombreArchivo, fecha: ahora });
+              localStorage.setItem(key, JSON.stringify(registrosPrevios));
+              setArchivosRecientes(registrosPrevios);
+            }
 
             toast.success('Datos enviados correctamente a la API.', {
               id: toastId,
@@ -281,9 +285,12 @@ export default function TepContent() {
   };
 
   useEffect(() => {
-    const registros = JSON.parse(
-      localStorage.getItem('archivosExcelCargados') || '[]',
-    );
+    const username = localStorage.getItem('currentUser');
+    if (!username) return;
+
+    const key = `archivosExcelCargados_${username}`;
+
+    const registros = JSON.parse(localStorage.getItem(key) || '[]');
     const ahora = new Date();
 
     const filtrados = registros.filter((registro: any) => {
@@ -483,7 +490,10 @@ export default function TepContent() {
         </div>
 
         {isVisible && (
-          <div id="contenido" className="border-b-1 border-gray-300 bg-gray-50">
+          <div
+            id="contenido"
+            className="mx-2 border-b-1 border-gray-300 bg-gray-50"
+          >
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
@@ -779,27 +789,39 @@ export default function TepContent() {
             </div>
           </div>
         )}
-
-        <div className="rounded-md border bg-gray-100 p-4">
-          <h3 className="mb-2 text-lg font-bold">
-            Archivos cargados en las últimas 24 horas:
-          </h3>
-          <ul className="list-disc pl-5">
-            {archivosRecientes.length === 0 && (
-              <li>No hay archivos recientes</li>
+        <div className="mx-2 bg-gray-100 py-1 text-xs shadow-sm">
+          <div className="flex max-w-full items-center space-x-2 overflow-x-auto">
+            <h3 className="whitespace-nowrap text-sm font-semibold text-gray-800">
+              Lista de archivos cargados:
+            </h3>
+            {archivosRecientes.length === 0 ? (
+              <span className="whitespace-nowrap italic text-gray-500">
+                No hay archivos recientes
+              </span>
+            ) : (
+              <span className="whitespace-nowrap text-gray-700">
+                {archivosRecientes.map((archivo, i) => (
+                  <span key={i} className="mr-2 last:mr-0">
+                    <span className="font-medium text-gray-900">{i + 1}.</span>{' '}
+                    {archivo.nombre} –{' '}
+                    <time dateTime={archivo.fecha} className="text-gray-600">
+                      {new Date(archivo.fecha).toLocaleString(undefined, {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
+                    </time>
+                    {i !== archivosRecientes.length - 1 && <span>,</span>}
+                  </span>
+                ))}
+              </span>
             )}
-            {archivosRecientes.map((archivo, i) => (
-              <li key={i}>
-                {archivo.nombre} - {new Date(archivo.fecha).toLocaleString()}
-              </li>
-            ))}
-          </ul>
+          </div>
         </div>
       </div>
 
       <div
         className="grupoServicios relative overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 220 : 60}px)` }}
+        style={{ height: `calc(100vh - ${isVisible ? 250 : 100}px)` }}
       >
         {!empresaConfirmada || !dato ? (
           <div className="absolute inset-0 ml-2 mr-2 flex items-center justify-center bg-gray-100">

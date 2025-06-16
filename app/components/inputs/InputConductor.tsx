@@ -65,7 +65,7 @@ const InputConductor: React.FC<InputConductorProps> = ({
     <div className="relative">
       <input
         type="text"
-        className={`w-full rounded-md border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`}
+        className={`w-full border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`}
         placeholder="Conductor"
         value={value}
         onChange={handleInputChange}
