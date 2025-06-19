@@ -19,7 +19,7 @@ import {
 } from '@react-google-maps/api';
 import { useForm } from 'react-hook-form';
 
-const libraries: ("places")[] = ['places'];
+const libraries: 'places'[] = ['places'];
 
 export default function App({
   onDestinoSeleccionado,
@@ -85,7 +85,7 @@ export default function App({
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: API_KEY,
-    libraries 
+    libraries,
   });
 
   const handleClose = () => {
@@ -108,10 +108,9 @@ export default function App({
 
   useEffect(() => {
     if (!isOpen) {
-      handleClose(); 
+      handleClose();
     }
   }, [isOpen]);
-
 
   const [destinoSeleccionado, setDestinoSeleccionado] =
     useState<IDestino | null>(null);
@@ -137,6 +136,17 @@ export default function App({
     } else {
       toast.error('Debes seleccionar un destino.');
     }
+  };
+
+  const habilitarEdicion = () => {
+    // Asegúrate de no perder los datos existentes
+    if (destinoSeleccionado && !nomDestino) {
+      setNomDestino(destinoSeleccionado.apepate ?? '');
+    }
+    setEditable(true);
+    setTimeout(() => {
+      identificadorRef.current?.focus();
+    }, 0);
   };
 
   const activarCampos = () => {
@@ -215,7 +225,7 @@ export default function App({
 
       if (mapRef.current) {
         mapRef.current.panTo(newPos);
-        mapRef.current.setZoom(18); 
+        mapRef.current.setZoom(18);
       }
     }
   }, [latitud, longitud]);
@@ -230,7 +240,7 @@ export default function App({
       </button>
 
       <Modal
-        className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+        className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"
         isOpen={isOpen}
         onOpenChange={(open) => {
           onOpenChange();
@@ -289,6 +299,14 @@ export default function App({
                     >
                       Seleccionar
                     </button>
+
+                    <button
+                      onClick={habilitarEdicion}
+                      className="rounded bg-amber-500 px-3 py-1 text-[12px] text-white hover:bg-amber-400"
+                    >
+                      Editar
+                    </button>
+
                     <button
                       onClick={activarCampos}
                       className="rounded bg-green-700 px-3 py-1 text-[12px] text-white hover:bg-green-600"
@@ -369,7 +387,7 @@ export default function App({
                         type="text"
                         placeholder="Escribe una dirección..."
                         className="w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px]"
-                        />
+                      />
                     </>
                   </Autocomplete>
                 </div>
@@ -382,7 +400,7 @@ export default function App({
                         center={
                           markerPosition.lat !== 0 && markerPosition.lng !== 0
                             ? markerPosition
-                            : { lat: -12.0464, lng: -77.0428 } 
+                            : { lat: -12.0464, lng: -77.0428 }
                         }
                         zoom={
                           markerPosition.lat !== 0 && markerPosition.lng !== 0
@@ -429,6 +447,7 @@ export default function App({
                 >
                   Cerrar
                 </button>
+
                 <button
                   className={`rounded px-4 py-2 text-[14px] text-white ${!editable ? 'bg-gray-500 hover:bg-gray-400' : 'bg-blue-500 hover:bg-blue-400'}`}
                   onClick={handleGuardarDestino}
