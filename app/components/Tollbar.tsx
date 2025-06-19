@@ -1,33 +1,442 @@
-
 import '@/app/styles/tollbar.css';
-import { IoMdArrowDropleft } from 'react-icons/io';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import Image from 'next/image';
+import { useSearchParams, usePathname } from 'next/navigation';
+import { Spinner } from '@nextui-org/react';
+import { useApi } from '@/context/ApiContext';
+
+// Modales
+import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
-import { MdChevronRight, MdOutlineMiscellaneousServices } from 'react-icons/md';
-import { GrServices } from 'react-icons/gr';
-import { GrPlan } from 'react-icons/gr';
+import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
+
+// Iconos
+import {
+  MdChevronRight,
+  MdOutlineMiscellaneousServices,
+  MdDisplaySettings,
+} from 'react-icons/md';
+import { GrServices, GrPlan } from 'react-icons/gr';
 import { RiGpsFill } from 'react-icons/ri';
-import { MdDisplaySettings } from 'react-icons/md';
 import { TbReportSearch } from 'react-icons/tb';
 import { SlMenu } from 'react-icons/sl';
-import { useApi } from '@/context/ApiContext';
-import Profile from './Profile';
-import { useSearchParams } from 'next/navigation';
-import { usePathname } from 'next/navigation';
-import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
-import { Spinner } from '@nextui-org/react';
 import { BsFillSignStopFill } from 'react-icons/bs';
 import { SiGoogledocs } from 'react-icons/si';
-import { PiSpeedometerFill } from "react-icons/pi";
 import { IoSpeedometer } from 'react-icons/io5';
 import { FaRoad } from 'react-icons/fa';
 
-const Tollbar = () => {
-  const [username, setUsername] = useState('');
+// Componentes
+import Profile from './Profile';
 
+// Tipos TypeScript
+type IconType =
+  | 'velocity'
+  | 'stop'
+  | 'document'
+  | 'location'
+  | 'chart'
+  | 'chevron'
+  | 'external'
+  | 'user'
+  | 'truck'
+  | 'calendar';
+type ModalType =
+  | 'general'
+  | 'stops'
+  | 'details'
+  | 'velocity'
+  | 'kilometers'
+  | 'servicios';
+type MenuType =
+  | 'services'
+  | 'programacion'
+  | 'planificacion'
+  | 'reportes'
+  | 'sidebar';
+
+interface SubMenuItem {
+  id: string;
+  title: string;
+}
+
+interface MenuItem {
+  id: string;
+  title: string;
+  icon: IconType;
+  modalType?: ModalType;
+  href?: string;
+  submenu?: SubMenuItem[];
+}
+
+interface MenuConfig {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: MenuItem[];
+}
+
+interface MenuState {
+  services: boolean;
+  programacion: boolean;
+  planificacion: boolean;
+  reportes: boolean;
+  sidebar: boolean;
+}
+
+interface ModalState {
+  general: boolean;
+  stops: boolean;
+  details: boolean;
+  velocity: boolean;
+  kilometers: boolean;
+  servicios: boolean;
+}
+
+interface IconSVGProps {
+  type: IconType;
+  className?: string;
+}
+
+interface MenuItemProps {
+  item: MenuItem;
+  onClick?: () => void;
+  className?: string;
+}
+
+// Configuración de menús y modales
+const MENU_CONFIG: Record<string, MenuConfig> = {
+  REPORTES: {
+    id: 'reportes',
+    title: 'Reportes',
+    icon: TbReportSearch,
+    items: [
+      {
+        id: 'velocidad',
+        title: 'Reporte de Velocidad',
+        icon: 'velocity',
+        modalType: 'velocity',
+      },
+      {
+        id: 'paradas',
+        title: 'Reporte de Paradas',
+        icon: 'stop',
+        modalType: 'stops',
+      },
+      {
+        id: 'general',
+        title: 'Reporte General',
+        icon: 'document',
+        modalType: 'general',
+      },
+      {
+        id: 'detalle',
+        title: 'Detalle Recorrido',
+        icon: 'location',
+        modalType: 'details',
+      },
+      {
+        id: 'kilometraje',
+        title: 'Reporte de Kilometraje',
+        icon: 'chart',
+        modalType: 'kilometers',
+      },
+    ],
+  },
+  SERVICIOS: {
+    id: 'servicios',
+    title: 'Gestión de Servicios',
+    icon: GrServices,
+    items: [
+      { id: 'conductores', title: 'Conductores', icon: 'user' },
+      { id: 'unidades', title: 'Unidades', icon: 'truck' },
+      {
+        id: 'programacion',
+        title: 'Programación',
+        icon: 'calendar',
+        submenu: [
+          { id: 'asignar', title: 'Asignar Conductor/Unidad' },
+          { id: 'archivo', title: 'Carga de Archivo' },
+          { id: 'servicios', title: 'Carga de Servicios' },
+        ],
+      },
+      {
+        id: 'control',
+        title: 'Control de Servicios',
+        href: '/trackvelnew/gestionservicios',
+        icon: 'document',
+      },
+      {
+        id: 'detalle-servicios',
+        title: 'Detalle de Servicios',
+        icon: 'document',
+      },
+      { id: 'latam', title: 'Control LATAM', icon: 'location' },
+      { id: 'duracion', title: 'Duración de Servicios', icon: 'chart' },
+    ],
+  },
+  PLANIFICACION: {
+    id: 'planificacion',
+    title: 'Planificación',
+    icon: GrPlan,
+    items: [
+      {
+        id: 'admin-turnos',
+        title: 'Administración Turnos',
+        href: '/trackvelnew/planificacion/administracionturnos',
+        icon: 'chart',
+      },
+      {
+        id: 'plan-servicios',
+        title: 'Planificación Servicios',
+        href: '/trackvelnew/planificacion/planificacionTep',
+        icon: 'document',
+      },
+      {
+        id: 'replan-servicios',
+        title: 'Re-Planificación Servicios',
+        icon: 'document',
+      },
+    ],
+  },
+};
+
+// Hook personalizado para manejo de estado de menús
+const useMenuState = () => {
+  const [openMenus, setOpenMenus] = useState<MenuState>({
+    services: false,
+    programacion: false,
+    planificacion: false,
+    reportes: false,
+    sidebar: false,
+  });
+
+  const toggleMenu = useCallback((menuName: MenuType) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [menuName]: !prev[menuName],
+    }));
+  }, []);
+
+  const closeAllMenus = useCallback(() => {
+    setOpenMenus({
+      services: false,
+      programacion: false,
+      planificacion: false,
+      reportes: false,
+      sidebar: false,
+    });
+  }, []);
+
+  return { openMenus, toggleMenu, closeAllMenus };
+};
+
+// Hook personalizado para manejo de modales
+const useModalState = () => {
+  const [modals, setModals] = useState<ModalState>({
+    general: false,
+    stops: false,
+    details: false,
+    velocity: false,
+    kilometers: false,
+    servicios: false,
+  });
+
+  const openModal = useCallback((modalType: ModalType) => {
+    setModals((prev) => ({ ...prev, [modalType]: true }));
+  }, []);
+
+  const closeModal = useCallback((modalType: ModalType) => {
+    setModals((prev) => ({ ...prev, [modalType]: false }));
+  }, []);
+
+  return { modals, openModal, closeModal };
+};
+
+// Componente para iconos SVG reutilizables
+const IconSVG: React.FC<IconSVGProps> = ({ type, className = 'h-5 w-5' }) => {
+  const icons: Record<IconType, React.ReactNode> = {
+    velocity: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 10V3L4 14h7v7l9-11h-7z"
+      />
+    ),
+    stop: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"
+      />
+    ),
+    document: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    ),
+    location: (
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+        />
+      </>
+    ),
+    chart: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+      />
+    ),
+    chevron: (
+      <path
+        fillRule="evenodd"
+        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+        clipRule="evenodd"
+      />
+    ),
+    external: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+      />
+    ),
+    user: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      />
+    ),
+    truck: (
+      <>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M2 18h3a3 3 0 0 0 6 0h2a3 3 0 0 0 6 0h3v-6l-3-4h-4V6a2 2 0 0 0-2-2H4v14z"
+        />
+        <circle cx="8" cy="18" r="2" />
+        <circle cx="16" cy="18" r="2" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M11 8h4v4h-4V8z"
+        />
+      </>
+    ),
+    calendar: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    ),
+  };
+
+  return (
+    <svg
+      className={className}
+      fill={type === 'chevron' ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      {icons[type]}
+    </svg>
+  );
+};
+
+// Componente para elementos de menú
+const MenuItemComponent: React.FC<MenuItemProps> = ({
+  item,
+  onClick,
+  className = '',
+}) => {
+  const content = (
+    <div
+      className={`flex items-center border-l-4 border-transparent px-5 py-3 text-[12px] font-medium text-slate-700 transition-all duration-200 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700 ${className}`}
+    >
+      <IconSVG
+        type={item.icon}
+        className="mr-3 h-5 w-5 text-slate-400 transition-colors group-hover/item:text-orange-500"
+      />
+      {item.title}
+      {item.href && (
+        <IconSVG
+          type="external"
+          className="ml-auto h-4 w-4 text-slate-400 transition-colors group-hover/item:text-orange-500"
+        />
+      )}
+    </div>
+  );
+
+  if (item.href) {
+    return (
+      <li className="group/item">
+        <Link
+          href={item.href}
+          title={item.title}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          {content}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li className="group/item" onClick={onClick}>
+      <a title={item.title} className="block cursor-pointer">
+        {content}
+      </a>
+    </li>
+  );
+};
+
+// Componente principal
+const Tollbar: React.FC = () => {
+  const [username, setUsername] = useState<string>('');
+  const [activeLink, setActiveLink] = useState<number | null>(null);
+
+  const { baseUrl } = useApi();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const { openMenus, toggleMenu, closeAllMenus } = useMenuState();
+  const { modals, openModal, closeModal } = useModalState();
+
+  // Memoized values
+  const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
+  const isSedapal = useMemo(
+    () => baseUrl === 'https://sub.velsat.pe:8586',
+    [baseUrl],
+  );
+  const isTalmav = useMemo(() => username === 'talmav', [username]);
+
+  // Effects
   useEffect(() => {
     const storedUsername = localStorage.getItem('currentUser');
     if (storedUsername) {
@@ -35,213 +444,292 @@ const Tollbar = () => {
     }
   }, []);
 
-  const { baseUrl } = useApi();
+  // Event handlers
+  const handleLinkClick = useCallback(
+    (index: number) => {
+      setActiveLink(index);
+      if (index !== 0) {
+        closeAllMenus();
+      }
+    },
+    [closeAllMenus],
+  );
 
-  const [activeLink, setActiveLink] = useState(null);
-
-  const [isServicesMenuOpen, setIsServicesMenuOpen] = useState(false);
-  const [isProgramacionMenuOpen, setIsProgramacionMenuOpen] = useState(false);
-  const [isPlanificacionMenuOpen, setIsPlanificacionMenuOpen] = useState(false);
-  const [isReportesMenuOpen, setIsReportesMenuOpen] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isModalOpenStops, setIsModalOpenStops] = useState(false);
-  const [isModalOpenDetails, setIsModalOpenDetails] = useState(false);
-
-  const [isModalOpenSpeed, setIsModalOpenSpeed] = useState(false);
-  const [isModalOpenKilometer, setIsModalOpenKilometers] = useState(false);
-
-  const [isModalServicios, setIsModalServicios] = useState(false);
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const openModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
-
-  const openServicios = () => {
-    setIsModalServicios(true);
-  };
-
-  const closeModalServicios = () => {
-    setIsModalServicios(false);
-  };
-
-  const openModalStops = () => {
-    setIsModalOpenStops(true);
-  };
-
-  const closeModalStops = () => {
-    setIsModalOpenStops(false);
-  };
-
-  const openModalDetails = () => {
-    setIsModalOpenDetails(true);
-  };
-
-  const closeModalDetails = () => {
-    setIsModalOpenDetails(false);
-  };
-
-  const closeModalSpeed = () => {
-    setIsModalOpenSpeed(false);
-  };
-
-  const openModalSpeed = () => {
-    setIsModalOpenSpeed(true);
-  };
-
-  const openModalKilometers = () => {
-    setIsModalOpenKilometers(true);
-  };
-
-  const closeModalKilometers = () => {
-    setIsModalOpenKilometers(false);
-  };
-
-  const handleLinkClick = (index: any) => {
-    setActiveLink(index);
-
-    if (index !== 0) {
-      setIsServicesMenuOpen(false);
-    }
-  };
-
-  const toggleProgramacionMenu = () => {
-    setIsProgramacionMenuOpen(!isProgramacionMenuOpen);
-  };
-
-  const togglePlanificacionMenu = () => {
-    setIsPlanificacionMenuOpen(!isPlanificacionMenuOpen);
-  };
-
-  const toggleReportesMenu = () => {
-    setIsReportesMenuOpen(!isReportesMenuOpen);
-  };
-
-  const toggleFullScreen = () => {
+  const toggleFullScreen = useCallback(() => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
     } else if (document.exitFullscreen) {
       document.exitFullscreen();
     }
-  };
+  }, []);
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const handleModalAction = useCallback(
+    (modalType: ModalType) => {
+      openModal(modalType);
+      if (openMenus.sidebar) {
+        toggleMenu('sidebar');
+      }
+    },
+    [openModal, openMenus.sidebar, toggleMenu],
+  );
 
-  const searchParams = useSearchParams();
+  // Render helpers
+  const renderDropdownMenu = (
+    config: MenuConfig,
+    isOpen: boolean,
+    onToggle: () => void,
+  ) => (
+    <li className="group relative">
+      <Link
+        href="#"
+        title={config.title}
+        className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+        onClick={(e) => {
+          e.preventDefault();
+          onToggle();
+        }}
+      >
+        <span>{config.title}</span>
+        <IconSVG
+          type="chevron"
+          className="ml-0 mt-0.5 h-4 w-4 transition-transform group-hover:rotate-180"
+        />
+      </Link>
 
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
-  const deviceId = searchParams.get('deviceId');
+      <ul className="invisible absolute right-0 top-full z-50 mt-1 w-64 translate-y-3 transform overflow-hidden border border-slate-200/50 bg-white/95 opacity-0 shadow-2xl backdrop-blur-sm transition-all duration-300 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="py-0">
+          {config.items.map((item, index) => (
+            <React.Fragment key={item.id}>
+              {item.submenu ? (
+                <li className="group/sub">
+                  <a
+                    href="#"
+                    title={item.title}
+                    className={`flex cursor-pointer items-center justify-between border-l-4 px-5 py-3 text-[12px] font-medium transition-all duration-200 ${
+                      openMenus.programacion
+                        ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700'
+                        : 'border-transparent text-slate-700 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700'
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleMenu('programacion');
+                    }}
+                  >
+                    <div className="flex items-center">
+                      <IconSVG
+                        type={item.icon}
+                        className={`mr-3 h-5 w-5 transition-colors ${
+                          openMenus.programacion
+                            ? 'text-orange-500'
+                            : 'text-slate-400'
+                        }`}
+                      />
+                      <span>{item.title}</span>
+                    </div>
+                    <IconSVG
+                      type="chevron"
+                      className={`h-4 w-4 transition-all duration-200 ${
+                        openMenus.programacion
+                          ? 'rotate-180 text-orange-500'
+                          : 'text-slate-400'
+                      }`}
+                    />
+                  </a>
 
-  const pathname = usePathname();
-  const isTrackvel = pathname === '/trackvelnew';
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-out ${
+                      openMenus.programacion
+                        ? 'max-h-96 opacity-100'
+                        : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
+                      {item.submenu.map((subItem) => (
+                        <li key={subItem.id} className="group/subitem">
+                          <a
+                            href="#"
+                            title={subItem.title}
+                            className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+                          >
+                            <IconSVG
+                              type="document"
+                              className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+                            />
+                            {subItem.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </li>
+              ) : (
+                <MenuItemComponent
+                  item={item}
+                  onClick={() =>
+                    item.modalType && handleModalAction(item.modalType)
+                  }
+                />
+              )}
 
-  const isSedapalDetalleRecorrido =
-    baseUrl === 'https://sub.velsat.pe:8586' &&
-    pathname.includes('detallerecorrido');
+              {(index === 1 || index === 3) && (
+                <li key={`separator-${index}`} className="mx-3 my-2">
+                  <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                </li>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </ul>
+    </li>
+  );
 
-  const formatDateTime = (input: string | null) => {
-    if (!input) return '';
-    const date = new Date(input);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = String(date.getFullYear());
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  };
+  const renderSidebarMenu = (
+    config: MenuConfig,
+    isOpen: boolean,
+    onToggle: () => void,
+  ) => (
+    <div className="">
+      <div
+        className="group flex cursor-pointer items-center justify-between border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-lg hover:shadow-blue-100/50"
+        onClick={onToggle}
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+            <config.icon className="text-lg text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
+              {config.title}
+            </span>
+            <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
+              {isOpen ? 'Contraer menú' : 'Expandir menú'}
+            </span>
+          </div>
+        </div>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 transition-all duration-300 group-hover:bg-blue-100">
+          <svg
+            className={`h-3 w-3 transform text-gray-500 transition-all duration-300 group-hover:text-blue-600 ${
+              isOpen ? 'rotate-90' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-2 duration-300">
+          {config.items.map((item, index) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.modalType) {
+                  handleModalAction(item.modalType);
+                }
+              }}
+              className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-4 py-3 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="h-2 w-2 rounded-full bg-gradient-to-br from-green-400 to-green-800 transition-all duration-300 group-hover/item:scale-125 group-hover/item:from-blue-400 group-hover/item:to-blue-500"></div>
+              <span className="text-sm font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
+                {item.title}
+              </span>
+              <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
+                <svg
+                  className="h-3 w-3 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="tollbar menu__wrapper">
+      {/* Background */}
       <div
         className={
           isTrackvel
-            ? baseUrl === 'https://sub.velsat.pe:8586'
+            ? isSedapal
               ? 'tollbar-bgsub'
               : 'tollbar-bg'
             : 'tollbar-bg-alt'
         }
       />
 
+      {/* Main Menu Bar */}
       <div className="menu__bar">
+        {/* Mobile Menu Button */}
         <div className="mobile-only-button">
           <div className="exitToolbarM bg-[#edf2f4] bg-opacity-10">
             <div className="flex w-[50px] items-center justify-center p-0">
               <Profile toggleFullScreen={toggleFullScreen} />
             </div>
           </div>
-
           <button
-            onClick={toggleSidebar}
+            onClick={() => toggleMenu('sidebar')}
             className="mt-[-5px] h-[36px] bg-[#FB7B0F] bg-opacity-90 px-2 py-1"
           >
             <SlMenu size={20} />
           </button>
         </div>
 
-        <div className="mt-[-5px] flex items-center gap-1">
-          <a
+        {/* Logo */}
+        <div className="flex items-center gap-4">
+          <Link
             href="/trackvelnew"
             title="Logo"
-            className="mt-[-5px] px-1 sm:mt-1"
+            className="flex items-center gap-3 rounded-lg p-2 transition-all duration-200 hover:bg-white/10"
           >
-            <div
-              className={
-                isTrackvel
-                  ? 'imgTrack ml-[2px] mt-[-1px]'
-                  : 'imgMain ml-[2px] mt-[-5px]'
-              }
-            >
-              <Image
-                src="/LogoWeb.png"
-                alt="Logo"
-                width={22}
-                height={22}
-                className="h-[35px] w-[22px]"
-              />
+            <div className="flex items-center justify-center">
+              <Image src="/LogoWeb.png" alt="Logo" width={18} height={18} />
             </div>
-          </a>
-
-          <div>
-            <h3 className="text-[12px] text-white sm:text-[14px]">
-              TRACKVEL SYSTEM : BIENVENIDO {username.toUpperCase()}
-            </h3>
-          </div>
-
-          {isSedapalDetalleRecorrido && (
-            <div className="} ml-2 mt-[-1px] flex items-center justify-center gap-2 text-white">
-              <div className="mr-2 h-8 w-px bg-gray-300"></div>
-              Fechas:{' '}
-              <span style={{ fontWeight: 'normal' }}>
-                {formatDateTime(startDate)} - {formatDateTime(endDate)}
-              </span>{' '}
-              Unidad:{' '}
-              <span style={{ fontWeight: 'normal' }}>
-                {deviceId?.toUpperCase()}
-              </span>
+            <div className="mt-[-3px]">
+              <h3 className="text-center text-[9px] font-semibold text-white md:text-[12.5px]">
+                TRACKVEL SYSTEM :
+                <span className="pl-1  text-[9px] text-white/80 md:text-[11.5px]">
+                  BIENVENIDO {username.toUpperCase()}
+                </span>
+              </h3>
             </div>
-          )}
+          </Link>
         </div>
 
+        {/* Navigation */}
         <ul className="navigation">
-          {username === 'talmav' ? (
+          {!baseUrl ? (
+            <li className="mt-[-8px] text-white">
+              <Spinner size="sm" color="warning" />
+            </li>
+          ) : isTalmav ? (
             <>
               <li
-                onClick={openServicios}
+                onClick={() => openModal('servicios')}
                 className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
                 style={{ marginTop: '-8px' }}
               >
                 <div className="p-1 text-[12px]">Recorrido Servicios</div>
               </li>
-
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
                 <div className="flex w-[50px] items-center justify-center p-0">
                   <Profile toggleFullScreen={toggleFullScreen} />
@@ -249,373 +737,127 @@ const Tollbar = () => {
               </div>
             </>
           ) : (
-            <>
-              {!baseUrl ? (
-                <li className="mt-[-8px] text-white">
-                  <Spinner size="sm" color="warning" />
-                </li>
-              ) : baseUrl === 'https://sub.velsat.pe:8586' ? (
+            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+              {isSedapal ? (
                 <>
-                  <li
-                    className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
-                    style={{ marginTop: '-8px' }}
-                  >
+                  {renderDropdownMenu(
+                    MENU_CONFIG.REPORTES,
+                    openMenus.reportes,
+                    () => toggleMenu('reportes'),
+                  )}
+                  <li className="group relative">
                     <Link
-                      href="#"
-                      title="Reportes"
-                      className={activeLink === 4 ? 'active' : ''}
-                      onClick={() => handleLinkClick(4)}
+                      href="/trackvelnew/gestionpasajeros"
+                      title="Gestión de Pasajeros"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center bg-black/10 px-1.5 py-[8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
                     >
-                      <div style={{ fontSize: '12px' }}>Reportes</div>
-                    </Link>
-                    <ul
-                      className={`dropdown-menue estad${
-                        isServicesMenuOpen ? 'dropdown-menu--show' : ''
-                      }`}
-                    >
-                      <li onClick={openModalSpeed}>
-                        <a title="Reporte de Velocidad">Reporte de Velocidad</a>
-                      </li>
-                      <li onClick={openModalStops}>
-                        <a title="Reporte de Paradas">Reporte de Paradas</a>
-                      </li>
-                      <li onClick={openModal}>
-                        <a title="Reporte General">Reporte General</a>
-                      </li>
-                      <li onClick={openModalDetails}>
-                        <a title="Detalle Recorrido">Detalle Recorrido</a>
-                      </li>
-                      <li onClick={openModalKilometers}>
-                        <a title="Reporte de Kilometraje">
-                          Reporte de Kilometraje
-                        </a>
-                      </li>
-                    </ul>
-                  </li>
-
-                  <li
-                    className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
-                    style={{ marginTop: '-8px' }}
-                  >
-                    <Link href="#" title="Recreación">
-                      <div style={{ fontSize: '12px' }}>Recreación</div>
+                      <span>Recreación</span>
                     </Link>
                   </li>
-
-                  <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
-                    <div className="flex w-[50px] items-center justify-center p-0">
-                      <Profile toggleFullScreen={toggleFullScreen} />
-                    </div>
-                  </div>
                 </>
               ) : (
                 <>
-                  <ul className="navigation">
-                    <li
-                      className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
-                      style={{ marginTop: '-8px' }}
+                  {renderDropdownMenu(
+                    MENU_CONFIG.SERVICIOS,
+                    openMenus.services,
+                    () => toggleMenu('services'),
+                  )}
+                  {renderDropdownMenu(
+                    MENU_CONFIG.PLANIFICACION,
+                    openMenus.planificacion,
+                    () => toggleMenu('planificacion'),
+                  )}
+
+                  <li className="group relative">
+                    <Link
+                      href="/trackvelnew/gestionpasajeros"
+                      title="Gestión de Pasajeros"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                      onClick={() => handleLinkClick(2)}
                     >
-                      <Link
-                        href="#"
-                        title=" Gestión de Servicios"
-                        className={activeLink === 0 ? 'active' : ''}
-                        onClick={() => handleLinkClick(0)}
-                      >
-                        <div style={{ fontSize: '12px' }}>
-                          Gestión de Servicios
-                        </div>
-                      </Link>
+                      <span>Gestión Pasajeros</span>
+                    </Link>
+                  </li>
 
-                      <ul
-                        className={`dropdown-menue ${
-                          isServicesMenuOpen ? 'dropdown-menu--show' : ''
-                        }`}
-                      >
-                        <div className="container"></div>
-                        <li>
-                          <a href="#" title="Conductores">
-                            Conductores
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Unidades">
-                            Unidades
-                          </a>
-                        </li>
-
-                        <li className="ProgramacionHover">
-                          <a
-                            href="#"
-                            title="Programación"
-                            onClick={toggleProgramacionMenu}
-                          >
-                            {' '}
-                            <i className="dropdown-icon">
-                              <IoMdArrowDropleft />
-                            </i>
-                            Programación{' '}
-                          </a>
-
-                          <ul
-                            className={`dropdown-menue-left ${
-                              isProgramacionMenuOpen
-                                ? 'dropdown-menu--show'
-                                : ''
-                            }`}
-                          >
-                            <li>
-                              <a href="#" title="Asignar Conductor/Unidad">
-                                Asignar Conductor/Unidad
-                              </a>
-                            </li>
-                            <li>
-                              <a href="#" title="Carga de Archivo">
-                                Carga de Archivo
-                              </a>
-                            </li>
-                            <li>
-                              <a href="#" title="Carga de Servicios">
-                                Carga de Servicios
-                              </a>
-                            </li>
-                          </ul>
-                        </li>
-
-                        <li>
-                          <Link
-                            href="/trackvelnew/gestionservicios"
-                            title="Control de Servicios"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Control de Servicios
-                          </Link>
-                        </li>
-
-                        <li>
-                          <a href="#" title="Detalle de Servicios">
-                            Detalle de Servicios
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Control LATAM">
-                            Control LATAM
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Duración de Servicios">
-                            Duración de Servicios
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-
-                    <li
-                      className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
-                      style={{ marginTop: '-8px' }}
+                  <li className="group relative">
+                    <Link
+                      href="#"
+                      title="Operaciones"
+                      className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                      onClick={() => handleLinkClick(3)}
                     >
-                      <Link
-                        href="#"
-                        title="Planificación"
-                        className={activeLink === 1 ? 'active' : ''}
-                        onClick={() => handleLinkClick(1)}
-                      >
-                        <div style={{ fontSize: '12px' }}>Planificación</div>
-                      </Link>
+                      <span>Operaciones</span>
+                    </Link>
+                  </li>
 
-                      <ul
-                        className={`dropdown-menue planificacion${
-                          isServicesMenuOpen ? 'dropdown-menu--show' : ''
-                        }`}
-                      >
-                        <div className="containerplan"></div>
-                        <li>
-                          <Link
-                            href="/trackvelnew/planificacion/administracionturnos"
-                            title="Administración Turnos"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Administración Turnos
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/trackvelnew/planificacion/planificacionTep"
-                            title="Planificación Servicios"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Planificación Servicios
-                          </Link>
-                        </li>
-                        <li>
-                          <a href="#" title="Re-Planificación Servicios">
-                            Re-Planificación Servicios
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-
-                    <li
-                      className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
-                      style={{ marginTop: '-8px' }}
-                    >
-                      <Link
-                        href="/trackvelnew/gestionpasajeros"
-                        title="Gestión de Pasajeros"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={activeLink === 2 ? 'active' : ''}
-                        onClick={() => handleLinkClick(2)}
-                      >
-                        <div style={{ fontSize: '12px' }}>
-                          Gestión de Pasajeros
-                        </div>
-                      </Link>
-                    </li>
-                    <li
-                      className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black "
-                      style={{ marginTop: '-8px' }}
-                    >
-                      <Link
-                        href="#"
-                        title="Operaciones"
-                        className={activeLink === 3 ? 'active' : ''}
-                        onClick={() => handleLinkClick(3)}
-                      >
-                        <div style={{ fontSize: '12px' }}>Operaciones</div>
-                      </Link>
-                    </li>
-                    <li
-                      className="dropdown  bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
-                      style={{ marginTop: '-8px' }}
-                    >
-                      <Link
-                        href="#"
-                        title="Reportes"
-                        className={activeLink === 4 ? 'active' : ''}
-                        onClick={() => handleLinkClick(4)}
-                      >
-                        <div style={{ fontSize: '12px' }}>Reportes</div>
-                      </Link>
-
-                      <ul
-                        className={`dropdown-menue estad${
-                          isServicesMenuOpen ? 'dropdown-menu--show' : ''
-                        }`}
-                      >
-                        <li onClick={openModalSpeed}>
-                          <a title="Reporte de Velocidad">
-                            Reporte de Velocidad
-                          </a>
-                        </li>
-
-                        <li onClick={openModalStops}>
-                          <a title="Reporte de Paradas">Reporte de Paradas</a>
-                        </li>
-
-                        <li onClick={openModal}>
-                          <a title="Reporte General">Reporte General</a>
-                        </li>
-
-                        <li onClick={openModalDetails}>
-                          <a title="Detalle Recorrido">Detalle Recorrido</a>
-                        </li>
-                        <li onClick={openModalKilometers}>
-                          <a title="Reporte de Kilometraje">
-                            Reporte de Kilometraje
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Paradas Bruscas">
-                            Paradas Bruscas
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Encendido Motor">
-                            Encendido Motor
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Desconexión Batería">
-                            Desconexión Batería
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Gráficas">
-                            Gráficas
-                          </a>
-                        </li>
-                        <li>
-                          <a href="#" title="Reporte de GeoVelocidad">
-                            Reporte de GeoVelocidad
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-
-                    <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
-                      <div className="flex w-[50px] items-center justify-center p-0">
-                        <Profile toggleFullScreen={toggleFullScreen} />
-                      </div>
-                    </div>
-                  </ul>
+                  {renderDropdownMenu(
+                    MENU_CONFIG.REPORTES,
+                    openMenus.reportes,
+                    () => toggleMenu('reportes'),
+                  )}
                 </>
               )}
-            </>
+
+              <div className="ml-auto">
+                <Profile toggleFullScreen={toggleFullScreen} />
+              </div>
+            </ul>
           )}
         </ul>
       </div>
+
+      {/* Modales */}
       <AppModalReportes
-        isOpen={isModalOpen}
-        onClose={closeModal}
+        isOpen={modals.general}
+        onClose={() => closeModal('general')}
         titulo="REPORTE GENERAL"
         nameurl="reportegeneral"
         namedown="downloadExcelG"
         namedesc="general"
         showDownloadButton={true}
-        icono={<SiGoogledocs   size={25}/>}
-
+        icono={<SiGoogledocs size={25} />}
       />
+
       <AppModalReportes
-        isOpen={isModalOpenStops}
-        onClose={closeModalStops}
+        isOpen={modals.stops}
+        onClose={() => closeModal('stops')}
         titulo="REPORTE DE PARADAS"
         nameurl="reporteparadas"
         namedown="downloadExcelS"
         namedesc="paradas"
         showDownloadButton={true}
-        icono={<BsFillSignStopFill  size={25}/>}
-
+        icono={<BsFillSignStopFill size={25} />}
       />
+
       <AppModalReportes
-        isOpen={isModalOpenDetails}
-        onClose={closeModalDetails}
+        isOpen={modals.details}
+        onClose={() => closeModal('details')}
         titulo="DETALLE RECORRIDO"
         nameurl="detallerecorrido"
         namedown=""
         namedesc=""
         showDownloadButton={false}
-                icono={<FaRoad   size={25}/>}
-
+        icono={<FaRoad size={25} />}
       />
 
       <AppModalVelocidad
-        isOpen={isModalOpenSpeed}
-        onClose={closeModalSpeed}
+        isOpen={modals.velocity}
+        onClose={() => closeModal('velocity')}
         titulo="REPORTE VELOCIDAD"
         nameurl="reportevelocidad"
         namedown="downloadExcelV"
         namedesc="velocidad"
         showDownloadButton={true}
-      icono={<IoSpeedometer    size={25}/>}
-
+        icono={<IoSpeedometer size={25} />}
       />
 
       <AppModalReportes
-        isOpen={isModalOpenKilometer}
-        onClose={closeModalKilometers}
+        isOpen={modals.kilometers}
+        onClose={() => closeModal('kilometers')}
         titulo="REPORTE DE KILOMETRAJE"
         nameurl="reportekilometraje"
         namedown="downloadExcelK"
@@ -625,8 +867,8 @@ const Tollbar = () => {
       />
 
       <AppModalServicios
-        isOpen={isModalServicios}
-        onClose={closeModalServicios}
+        isOpen={modals.servicios}
+        onClose={() => closeModal('servicios')}
         titulo="REPORTE DE RECORRIDO DE SERVICIOS"
         nameurl="detallerecorridoservicios"
         namedown="downloadExcelG"
@@ -634,303 +876,122 @@ const Tollbar = () => {
         showDownloadButton={true}
       />
 
-      <div className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <button className="close-sidebar" onClick={toggleSidebar}>
+      {/* Sidebar */}
+      <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
+        <button className="close-sidebar" onClick={() => toggleMenu('sidebar')}>
           <MdChevronRight />
         </button>
 
         <div className="menu_sidebar">
-          <div className="flex items-center gap-2 ">
-            <span className="text-[#212529]" style={{ fontSize: '13px' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-[#154666]" style={{ fontSize: '14px' }}>
               MENÚ
             </span>
           </div>
         </div>
 
-        {username === 'talmav' ? (
-          <div className="flex items-center gap-3 bg-gray-100  p-2 transition hover:bg-gray-300">
-            <MdOutlineMiscellaneousServices className="text-xl text-blue-600" />
-            <span
-              onClick={openServicios}
-              className="text-[13px] font-medium text-gray-800"
-            >
-              Recorrido Servicios
-            </span>
+        {isTalmav ? (
+          <div
+            className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80  p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50  hover:shadow-lg"
+            onClick={() => openModal('servicios')}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+              <MdOutlineMiscellaneousServices className="text-lg text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
+                Recorrido Servicios
+              </span>
+              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
+                Explora nuestros servicios
+              </span>
+            </div>
+            <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+              <svg
+                className="h-4 w-4 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </div>
           </div>
         ) : (
-          <>
-            {baseUrl === 'https://sub.velsat.pe:8586' ? (
-              <div className="mb-4">
-                <div
-                  className="flex cursor-pointer items-center justify-between bg-gray-100 p-2 transition hover:bg-gray-200"
-                  onClick={toggleReportesMenu}
-                >
-                  <div className="flex items-center gap-3">
-                    <TbReportSearch className="text-xl text-blue-600" />
-                    <span className="text-[13px] font-medium text-gray-800">
-                      Reportes
-                    </span>
-                  </div>
-                  <svg
-                    className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${
-                      isReportesMenuOpen ? 'rotate-90' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-
-                {isReportesMenuOpen && (
-                  <div className="ml-5 mt-2 space-y-1">
-                    <button
-                      onClick={() => {
-                        openModalSpeed();
-                        toggleSidebar();
-                      }}
-                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                    >
-                      Reporte de Velocidad
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        openModalStops();
-                        toggleSidebar();
-                      }}
-                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                    >
-                      Reporte de Paradas
-                    </button>
-                    <button
-                      onClick={() => {
-                        openModal();
-                        toggleSidebar();
-                      }}
-                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                    >
-                      Reporte General
-                    </button>
-                    <button
-                      onClick={() => {
-                        openModalDetails();
-                        toggleSidebar();
-                      }}
-                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                    >
-                      Detalle Recorrido
-                    </button>
-                    <button
-                      onClick={() => {
-                        openModalKilometers();
-                        toggleSidebar();
-                      }}
-                      className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                    >
-                      Reporte de Kilometraje
-                    </button>
-                  </div>
-                )}
-              </div>
+          <div className="mb-0 space-y-0">
+            {isSedapal ? (
+              renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
+                toggleMenu('reportes'),
+              )
             ) : (
-              <div className="mb-4 space-y-2">
-                <div>
-                  <div
-                    className="flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
-                    onClick={() => setIsServicesMenuOpen(!isServicesMenuOpen)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <GrServices className="text-xl text-blue-600" />
-                      <span className="text-[13px] font-medium text-gray-800">
-                        Gestión de Servicios
-                      </span>
-                    </div>
-                    <svg
-                      className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isServicesMenuOpen ? 'rotate-90' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-
-                  {isServicesMenuOpen && (
-                    <div className="mb-4 ml-5 mt-2 space-y-1">
-                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Conductores
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Unidades
-                      </button>
-
-                      <div>
-                        <div
-                          className="mb-[-20px] flex cursor-pointer items-center justify-between bg-white px-3 py-1.5 text-sm text-gray-900 hover:bg-blue-100 hover:text-gray-800"
-                          onClick={toggleProgramacionMenu}
-                        >
-                          <span className="text-[12px]">Programación</span>
-                          <svg
-                            className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isProgramacionMenuOpen ? 'rotate-90' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </div>
-                        {isProgramacionMenuOpen && (
-                          <div className="mb-[-20px] ml-4 mt-6 space-y-1">
-                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                              Asignar Conductor/Unidad
-                            </button>
-                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                              Carga de Archivo
-                            </button>
-                            <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                              Carga de Servicios
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <Link
-                        href="/trackvelnew/gestionservicios"
-                        title="Control de Servicios"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setIsSidebarOpen(false)}
-                      >
-                        <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                          Control de Servicios
-                        </button>
-                      </Link>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Detalle de Servicios
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Control LATAM
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left  text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Duración de Servicios
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <div
-                    className="mt-[-8px] flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
-                    onClick={togglePlanificacionMenu}
-                  >
-                    <div className="flex items-center gap-3 ">
-                      <GrPlan className="text-xl text-blue-600" />
-                      <span className="text-[13px] font-medium text-gray-800">
-                        Planificación
-                      </span>
-                    </div>
-                    <svg
-                      className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isPlanificacionMenuOpen ? 'rotate-90' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-
-                  {isPlanificacionMenuOpen && (
-                    <div className="ml-5 mt-2 space-y-1">
-                      <Link
-                        href="/trackvelnew/planificacion/administracionturnos"
-                        onClick={() => setIsSidebarOpen(false)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <button className="mb-[-20px] mt-[-24px] block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                          Administración Turnos
-                        </button>
-                      </Link>
-
-                      <Link
-                        href="/trackvelnew/planificacion/planificacionTep"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <button
-                          className="mb-[-20px] block w-full  bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                          onClick={() => setIsSidebarOpen(false)}
-                        >
-                          Planificación Servicios
-                        </button>
-                      </Link>
-                      <Link href="#">
-                        <button className="mb-3 block w-full  bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                          Re-Planificación Servicios
-                        </button>
-                      </Link>
-                    </div>
-                  )}
-                </div>
+              <>
+                {renderSidebarMenu(
+                  MENU_CONFIG.SERVICIOS,
+                  openMenus.services,
+                  () => toggleMenu('services'),
+                )}
+                {renderSidebarMenu(
+                  MENU_CONFIG.PLANIFICACION,
+                  openMenus.planificacion,
+                  () => toggleMenu('planificacion'),
+                )}
 
                 <Link
                   href="/trackvelnew/gestionpasajeros"
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => setIsSidebarOpen(false)}
+                  onClick={() => toggleMenu('sidebar')}
                 >
-                  <div className="flex items-center gap-3 bg-gray-100 p-3 transition hover:bg-gray-200">
-                    <RiGpsFill className="text-xl text-blue-600" />
-                    <span className="text-[13px] font-medium text-gray-800">
-                      Gestión de Pasajeros
-                    </span>
+                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                      <RiGpsFill className="text-lg text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-green-700">
+                        Gestión de Pasajeros
+                      </span>
+                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-green-500">
+                        Administra pasajeros
+                      </span>
+                    </div>
+                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                      <svg
+                        className="h-4 w-4 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </Link>
 
-                <div>
-                  <div className="mt-[-8px] flex items-center gap-3 bg-gray-100 p-3 transition  hover:bg-gray-200">
-                    <MdDisplaySettings className="text-xl text-blue-600" />
-                    <span className="text-[13px] font-medium text-gray-800">
+                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:shadow-purple-100/50">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                    <MdDisplaySettings className="text-lg text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-purple-700">
                       Operaciones
                     </span>
+                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-purple-500">
+                      Panel de control
+                    </span>
                   </div>
-                </div>
-
-                <div>
-                  <div
-                    className="mt-[-10px] flex cursor-pointer items-center justify-between bg-gray-100 p-3 transition hover:bg-gray-200"
-                    onClick={toggleReportesMenu}
-                  >
-                    <div className="flex items-center gap-3">
-                      <TbReportSearch className="text-xl text-blue-600" />
-                      <span className="text-[13px] font-medium text-gray-800">
-                        Reportes
-                      </span>
-                    </div>
+                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
                     <svg
-                      className={`h-4 w-4 transform text-gray-500 transition-transform duration-300 ${isReportesMenuOpen ? 'rotate-90' : ''}`}
+                      className="h-4 w-4 text-purple-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -943,75 +1004,16 @@ const Tollbar = () => {
                       />
                     </svg>
                   </div>
-
-                  {isReportesMenuOpen && (
-                    <div className="ml-5 mt-2 space-y-1">
-                      <button
-                        onClick={() => {
-                          openModalSpeed();
-                          toggleSidebar();
-                        }}
-                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                      >
-                        Reporte de Velocidad
-                      </button>
-                      <button
-                        onClick={() => {
-                          openModalStops();
-                          toggleSidebar();
-                        }}
-                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                      >
-                        Reporte de Paradas
-                      </button>
-                      <button
-                        onClick={() => {
-                          openModal();
-                          toggleSidebar();
-                        }}
-                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                      >
-                        Reporte General
-                      </button>
-                      <button
-                        onClick={() => {
-                          openModalDetails();
-                          toggleSidebar();
-                        }}
-                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                      >
-                        Detalle Recorrido
-                      </button>
-                      <button
-                        onClick={() => {
-                          openModalKilometers();
-                          toggleSidebar();
-                        }}
-                        className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800"
-                      >
-                        Reporte de Kilometraje
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Paradas Bruscas
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Encendido Motor
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Desconexión Batería
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Gráficas
-                      </button>
-                      <button className="block w-full bg-white px-3 py-1.5 text-left text-[12px] text-gray-900 transition hover:bg-blue-100 hover:text-gray-800">
-                        Reporte de GeoVelocidad
-                      </button>
-                    </div>
-                  )}
                 </div>
-              </div>
+
+                {renderSidebarMenu(
+                  MENU_CONFIG.REPORTES,
+                  openMenus.reportes,
+                  () => toggleMenu('reportes'),
+                )}
+              </>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

@@ -514,7 +514,6 @@ if (filteredIdsFromSidebar) {
        
         )}
 
-
         <DynamicGoogleMap
           mapContainerStyle={containerStyle}
           center={center}
@@ -529,8 +528,6 @@ if (filteredIdsFromSidebar) {
     ) : (
       <></>
     )}
-
-
 
     <Sidebar centerMap={centerMap} centerUnit={centerUnit}  onFilteredIdsChange={setFilteredIdsFromSidebar}/>
   </>

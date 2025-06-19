@@ -1,4 +1,4 @@
-'use client'; // Necesario para usar usePathname
+'use client';
 
 import { usePathname } from 'next/navigation';
 import Tollbar from '../components/Tollbar';

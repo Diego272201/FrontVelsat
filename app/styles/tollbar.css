@@ -535,13 +535,33 @@ font-size: 0.88rem;
 
 .close-sidebar {
   position: absolute;
-  right: 5px;
-  margin-top: 5px;
-  background: none;
-  border: none;
-  font-size: 25px;
-  color: #fff;
+  right: 0px;
+  top: 0px;
+  width: 30px;
+  height: 35px;
+
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  font-size: 20px;
+  color: #3b82f6;
   cursor: pointer;
+  border-radius: px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-sidebar:hover {
+  background: rgba(59, 130, 246, 0.4);
+  color: #1d4ed8;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+.close-sidebar:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 
 .sidebar div{

@@ -15,7 +15,7 @@ export default function Slider() {
         speed={1200}
         centeredSlides={true}
         autoplay={{
-          delay: 2000,
+          delay: 10000,
           disableOnInteraction: false,
         }}
         pagination={{
