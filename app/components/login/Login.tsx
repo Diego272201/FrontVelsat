@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
-import '@/app/styles/login.css';
-import { Button, Input } from '@nextui-org/react';
+import { Button, Input, Spinner } from '@nextui-org/react';
 import { EyeSlashFilledIcon } from './EyeFilledIcon';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -10,13 +9,15 @@ import { Toaster, toast } from 'sonner';
 import { EyeFilledIcon } from './EyeSlashFilledIcon';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import * as signalR from '@microsoft/signalr';
+import { Eye, EyeOff, LogIn, Check } from 'lucide-react';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
   const [login, setLogin] = useState('');
   const [clave, setClave] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
   const [servidorUrl, setServidorUrl] = useState('');
 
@@ -42,18 +43,23 @@ export default function Login() {
       return null;
     }
   };
-
   useEffect(() => {
-    if (login.length > 0) {
-      const fetchServidor = async () => {
-        const url = await obtenerServidor(login);
-        if (url) setServidorUrl(url);
-        localStorage.setItem('servidorUrl', servidorUrl);
-      };
-
-      fetchServidor();
+    if (!login) {
+      setErrors([]);
+      return;
     }
-  }, [login, servidorUrl]);
+
+    const delayDebounce = setTimeout(async () => {
+      const url = await obtenerServidor(login);
+      if (url) {
+        setServidorUrl(url);
+        setErrors([]);
+        localStorage.setItem('servidorUrl', url);
+      }
+    }, 800);
+
+    return () => clearTimeout(delayDebounce);
+  }, [login]);
 
   useEffect(() => {
     if (servidorUrl) {
@@ -64,12 +70,13 @@ export default function Login() {
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const toastId = toast.loading('Autenticando...');
+      setIsLoading(true);
+      setIsSuccess(false);
       setErrors([]);
 
       if (!login || !clave) {
         setErrors(['Complete usuario y contraseña']);
-        toast.error('Complete usuario y contraseña', { id: toastId });
+        setIsLoading(false);
         return;
       }
 
@@ -82,71 +89,216 @@ export default function Login() {
 
       if (responseNextAuth?.error) {
         setErrors(responseNextAuth.error.split(','));
-        toast.error('Error: Usuario o contraseña incorrectos.', {
-          id: toastId,
-        });
+        setIsLoading(false);
       } else {
-        toast.success('¡Autenticación exitosa!', { id: toastId });
+        // Mostrar estado de éxito
+        setIsSuccess(true);
+        setIsLoading(false);
+
         const username = login;
         localStorage.setItem('currentUser', username);
-        router.push('/trackvelnew');
+
+        setTimeout(() => {
+          router.push('/trackvelnew');
+        }, 1500);
       }
     },
     [login, clave, router, baseUrl],
   );
 
   return (
-    <div className="login">
-      <div className="imgLogin">
-        <Slider />
-      </div>
-      <div className="formLogin">
-        <div className="imgCenter">
-          <Image
-            src="/velsatLogo.png"
-            alt="LogoVelsat"
-            width={'100'}
-            height={'100'}
-          />
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+      {/* Panel izquierdo con slider */}
+      <div className="relative hidden overflow-hidden lg:flex lg:w-[70%]">
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-blue-700/80 to-orange-900/50"></div>
+        <div className="h-full w-full">
+          <Slider />
         </div>
-        <h2>¡ Bienvenido de vuelta !</h2>
-        <form action="" className="inputsf" onSubmit={handleSubmit}>
-          <Input
-            type="text"
-            label="Usuario"
-            placeholder="Ingresar usuario"
-            value={login}
-            onChange={(event: any) => setLogin(event.target.value)}
-            className="custom-input"
-          />
-          <Input
-            label="Password"
-            placeholder="Ingresar password"
-            value={clave}
-            onChange={(event: any) => setClave(event.target.value)}
-            endContent={
-              <button
-                className="focus:outline-none"
-                type="button"
-                onClick={toggleVisibility}
-                aria-label={'Mostrar Ocultar contraseña'}
-              >
-                {isVisible ? (
-                  <EyeSlashFilledIcon className="pointer-events-none text-2xl text-default-400" />
-                ) : (
-                  <EyeFilledIcon className="pointer-events-none text-2xl text-default-400" />
-                )}
-              </button>
-            }
-            type={isVisible ? 'text' : 'password'}
-          />
-          <Button className="buttonLogin" type="submit">
-            Iniciar sesión
-          </Button>
-        </form>
+
+        {/* Título del sistema en la parte superior izquierda */}
+        <div className="absolute left-12 top-12 z-30">
+          <h2 className="text-2xl font-bold uppercase tracking-wide text-blue-100">
+            <span className="text-orange-400">TrackVel</span> System
+          </h2>
+        </div>
+
+        {/* Overlay con información */}
+        <div className="absolute inset-0 z-20 flex flex-col justify-end p-12 text-white">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-bold uppercase leading-tight text-[#edf2f4]">
+              Rastreamiento de Vehículos
+              <span className="block text-orange-400">en Tiempo Real</span>
+            </h1>
+            <p className="max-w-md text-lg text-white">
+              Monitorea tu flota con tecnología avanzada y obtén información
+              precisa de la ubicación de tus vehículos.
+            </p>
+            <div className="flex items-center space-x-4 text-sm text-white">
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-green-400"></div>
+                <span>Sistema en línea</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-2 rounded-full bg-blue-400"></div>
+                <span>GPS Activo</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Toaster closeButton richColors></Toaster>
+      {/* Panel derecho con formulario */}
+
+      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-8 filter   lg:w-[30%]">
+        <div className="w-full max-w-md ">
+          {/* Logo y encabezado */}
+          <div className="mb-8 text-center">
+            <div className=" flex items-center justify-center rounded-sm p-2">
+              <Image
+                src="/logoVS.png"
+                alt="LogoVelsat"
+                width={200}
+                height={200}
+                className="rounded-xl"
+              />
+            </div>
+            <h2 className="mb-2 text-3xl font-bold text-white">
+              ¡Bienvenido de vuelta!
+            </h2>
+            <p className="text-gray-300">
+              Ingresa tus credenciales para acceder al sistema
+            </p>
+          </div>
+
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo Usuario */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white">Usuario</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ingresar usuario"
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
+                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={isLoading || isSuccess}
+                />
+              </div>
+            </div>
+
+            {/* Campo Contraseña */}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white">
+                Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  type={isVisible ? 'text' : 'password'}
+                  placeholder="Ingresar contraseña"
+                  value={clave}
+                  onChange={(e) => setClave(e.target.value)}
+                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 pr-12 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  disabled={isLoading || isSuccess}
+                />
+                <button
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transform focus:outline-none"
+                  type="button"
+                  onClick={toggleVisibility}
+                  aria-label="Mostrar/Ocultar contraseña"
+                  disabled={isLoading || isSuccess}
+                >
+                  {isVisible ? (
+                    <EyeOff className="h-5 w-5 text-gray-400 transition-colors hover:text-white" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400 transition-colors hover:text-white" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Mostrar errores */}
+            {errors.length > 0 && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 backdrop-blur-sm">
+                <div className="flex items-center space-x-2">
+                  <svg
+                    className="h-5 w-5 text-red-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                  <div>
+                    {errors.map((error, index) => (
+                      <p key={index} className="text-sm text-red-300">
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mostrar mensaje de éxito */}
+            {isSuccess && (
+              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3 backdrop-blur-sm">
+                <div className="flex items-center space-x-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <p className="text-sm text-green-300">
+                    ¡Autenticación exitosa! Redirigiendo...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Botón de login */}
+            <button
+              type="submit"
+              className={`flex w-full transform items-center justify-center space-x-2 rounded-lg px-8 py-3 font-semibold shadow-lg transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed ${
+                isSuccess
+                  ? 'bg-green-600 text-white hover:bg-green-700'
+                  : 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:scale-[1.02] hover:shadow-xl'
+              } ${isLoading || isSuccess ? 'opacity-75' : ''}`}
+              disabled={isLoading || isSuccess}
+            >
+              {isLoading ? (
+                <>
+                  <Spinner color="warning" size="sm" />
+                  <span>Autenticando...</span>
+                </>
+              ) : isSuccess ? (
+                <>
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
+                    <Check className="h-3 w-3 text-green-600" />
+                  </div>
+                  <span>¡Autenticado con éxito!</span>
+                </>
+              ) : (
+                <>
+                  <span>Iniciar Sesión</span>
+                  <LogIn className="h-5 w-5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-400">
+              © 2025 Velsat - Sistema de Rastreamiento GPS Perú{' '}
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

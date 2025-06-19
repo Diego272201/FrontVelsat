@@ -1,7 +1,7 @@
-export const dynamic = 'force-dynamic'; // Esta línea debe ir sola antes de todo
+export const dynamic = 'force-dynamic'; 
 
 import React, { Suspense } from 'react';
-import loadable from 'next/dynamic'; // Renombramos para evitar conflicto
+import loadable from 'next/dynamic'; 
 
 const RequestPage = loadable(() => import('../request/page'), { ssr: false });
 import '@/app/styles/trackvelnew.css';
@@ -20,14 +20,10 @@ export default function page() {
               height: '100vh',
             }}
           >
-              ...
+            ...
           </div>
         }
       >
-
-              
-
-
         <RequestPage />
       </Suspense>
     </div>
