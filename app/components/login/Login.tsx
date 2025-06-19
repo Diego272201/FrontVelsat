@@ -156,8 +156,8 @@ export default function Login() {
               <Image
                 src="/logoVS.png"
                 alt="LogoVelsat"
-                width={180}
-                height={180}
+                width={160}
+                height={160}
                 
               />
             </div>
