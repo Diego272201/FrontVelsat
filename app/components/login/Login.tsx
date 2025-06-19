@@ -107,7 +107,7 @@ export default function Login() {
   );
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Panel izquierdo con slider */}
       <div className="relative hidden overflow-hidden lg:flex lg:w-[70%]">
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-blue-700/80 to-orange-900/50"></div>
@@ -116,20 +116,20 @@ export default function Login() {
         </div>
 
         {/* Título del sistema en la parte superior izquierda */}
-        <div className="absolute left-12 top-12 z-30">
-          <h2 className="text-2xl font-bold uppercase tracking-wide text-blue-100">
+        <div className="absolute left-8 top-8 z-30">
+          <h2 className="text-xl font-bold uppercase tracking-wide text-blue-100 xl:text-2xl">
             <span className="text-orange-400">TrackVel</span> System
           </h2>
         </div>
 
         {/* Overlay con información */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end p-12 text-white">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold uppercase leading-tight text-[#edf2f4]">
+        <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 text-white xl:p-12">
+          <div className="space-y-3 xl:space-y-4">
+            <h1 className="text-3xl font-bold uppercase leading-tight text-[#edf2f4] xl:text-4xl">
               Rastreamiento de Vehículos
               <span className="block text-orange-400">en Tiempo Real</span>
             </h1>
-            <p className="max-w-md text-lg text-white">
+            <p className="max-w-md text-base text-white xl:text-lg">
               Monitorea tu flota con tecnología avanzada y obtén información
               precisa de la ubicación de tus vehículos.
             </p>
@@ -148,32 +148,31 @@ export default function Login() {
       </div>
 
       {/* Panel derecho con formulario */}
-
-      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-8 filter   lg:w-[30%]">
-        <div className="w-full max-w-md ">
+      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8">
+        <div className="w-full max-w-md">
           {/* Logo y encabezado */}
-          <div className="mb-8 text-center">
-            <div className=" flex items-center justify-center rounded-sm p-2">
+          <div className="mb-6 text-center xl:mb-8">
+            <div className="flex items-center justify-center rounded-sm p-2">
               <Image
                 src="/logoVS.png"
                 alt="LogoVelsat"
-                width={200}
-                height={200}
-                className="rounded-xl"
+                width={180}
+                height={180}
+                
               />
             </div>
-            <h2 className="mb-2 text-3xl font-bold text-white">
+            <h2 className="mb-2 text-2xl font-bold text-white xl:text-3xl">
               ¡Bienvenido de vuelta!
             </h2>
-            <p className="text-gray-300">
+            <p className="text-sm text-gray-300 xl:text-base">
               Ingresa tus credenciales para acceder al sistema
             </p>
           </div>
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 xl:space-y-6">
             {/* Campo Usuario */}
-            <div className="space-y-2">
+            <div className="space-y-1 xl:space-y-2">
               <label className="text-sm font-medium text-white">Usuario</label>
               <div className="relative">
                 <input
@@ -181,15 +180,14 @@ export default function Login() {
                   placeholder="Ingresar usuario"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
-                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
                   disabled={isLoading || isSuccess}
                 />
               </div>
             </div>
 
             {/* Campo Contraseña */}
-
-            <div className="space-y-2">
+            <div className="space-y-1 xl:space-y-2">
               <label className="text-sm font-medium text-white">
                 Contraseña
               </label>
@@ -199,7 +197,7 @@ export default function Login() {
                   placeholder="Ingresar contraseña"
                   value={clave}
                   onChange={(e) => setClave(e.target.value)}
-                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 pr-12 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 pr-12 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
                   disabled={isLoading || isSuccess}
                 />
                 <button
@@ -220,10 +218,10 @@ export default function Login() {
 
             {/* Mostrar errores */}
             {errors.length > 0 && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 backdrop-blur-sm">
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-2.5 backdrop-blur-sm xl:p-3">
                 <div className="flex items-center space-x-2">
                   <svg
-                    className="h-5 w-5 text-red-400"
+                    className="h-4 w-4 flex-shrink-0 text-red-400 xl:h-5 xl:w-5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -235,9 +233,9 @@ export default function Login() {
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
                     />
                   </svg>
-                  <div>
+                  <div className="min-w-0">
                     {errors.map((error, index) => (
-                      <p key={index} className="text-sm text-red-300">
+                      <p key={index} className="text-xs text-red-300 xl:text-sm">
                         {error}
                       </p>
                     ))}
@@ -248,12 +246,12 @@ export default function Login() {
 
             {/* Mostrar mensaje de éxito */}
             {isSuccess && (
-              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3 backdrop-blur-sm">
+              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-2.5 backdrop-blur-sm xl:p-3">
                 <div className="flex items-center space-x-2">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                    <Check className="h-3 w-3 text-white" />
+                  <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-green-500 xl:h-5 xl:w-5">
+                    <Check className="h-2.5 w-2.5 text-white xl:h-3 xl:w-3" />
                   </div>
-                  <p className="text-sm text-green-300">
+                  <p className="text-xs text-green-300 xl:text-sm">
                     ¡Autenticación exitosa! Redirigiendo...
                   </p>
                 </div>
@@ -263,7 +261,7 @@ export default function Login() {
             {/* Botón de login */}
             <button
               type="submit"
-              className={`flex w-full transform items-center justify-center space-x-2 rounded-lg px-8 py-3 font-semibold shadow-lg transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed ${
+              className={`flex w-full transform items-center justify-center space-x-2 rounded-lg px-8 py-2.5 font-semibold shadow-lg transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed xl:py-3 ${
                 isSuccess
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:scale-[1.02] hover:shadow-xl'
@@ -273,27 +271,27 @@ export default function Login() {
               {isLoading ? (
                 <>
                   <Spinner color="warning" size="sm" />
-                  <span>Autenticando...</span>
+                  <span className="text-sm xl:text-base">Autenticando...</span>
                 </>
               ) : isSuccess ? (
                 <>
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white">
-                    <Check className="h-3 w-3 text-green-600" />
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white xl:h-5 xl:w-5">
+                    <Check className="h-2.5 w-2.5 text-green-600 xl:h-3 xl:w-3" />
                   </div>
-                  <span>¡Autenticado con éxito!</span>
+                  <span className="text-sm xl:text-base">¡Autenticado con éxito!</span>
                 </>
               ) : (
                 <>
-                  <span>Iniciar Sesión</span>
-                  <LogIn className="h-5 w-5" />
+                  <span className="text-sm xl:text-base">Iniciar Sesión</span>
+                  <LogIn className="h-4 w-4 xl:h-5 xl:w-5" />
                 </>
               )}
             </button>
           </form>
 
           {/* Footer */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-400">
+          <div className="mt-6 text-center xl:mt-8">
+            <p className="text-xs text-gray-400 xl:text-sm">
               © 2025 Velsat - Sistema de Rastreamiento GPS Perú{' '}
             </p>
           </div>
