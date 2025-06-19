@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Tollbar from '../components/Tollbar';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  
   const pathname = usePathname();
 
   const showTollbar = pathname === '/trackvelnew';
