@@ -5,7 +5,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import SortableItem from './sortable_item';
-import App from '@/app/components/TimePicker';
 import { useJsApiLoader } from '@react-google-maps/api';
 import {
   formatDate,
@@ -86,10 +85,9 @@ export default function Container({
   onRefrescarDatos,
   onUpdateDestino,
 }: ContainerProps) {
-
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
-  
+
   const [conductor, setConductor] = useState(grupo.conductor || '');
   const [unidad, setUnidad] = useState(grupo.unidad || '');
   const [isOpen, setIsOpen] = useState(false);
@@ -361,14 +359,12 @@ export default function Container({
                   }}
                 />
               </div>
-              <div className="rounded  p-2 text-sm font-semibold">
+              <div className="w-[350px]  rounded p-2 text-sm font-semibold">
                 {diferencia ? (
                   <p className="flex items-center gap-2 text-sm text-gray-900">
                     <IoTime className="text-gray-800" size={17} />
                     Intervalo tiempo :
-                    <span className="  text-gray-900">
-                      {diferencia.horas}h
-                    </span>
+                    <span className="  text-gray-900">{diferencia.horas}h</span>
                     <span className="  text-gray-900">
                       {diferencia.minutos} min
                     </span>
@@ -393,7 +389,7 @@ export default function Container({
                   onClick={() => {
                     setIsOpen(true);
                   }}
-                  className="inline-flex h-8 items-center gap-x-2 rounded border border-transparent bg-blue-600 px-2 py-1 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+                  className="obtenerDatosYAgrupar-1 inline-flex h-8 items-center gap-x-2 rounded border border-transparent bg-blue-600 px-2 text-sm font-medium text-white hover:bg-blue-700 focus:bg-blue-700 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   Ruta
                 </button>

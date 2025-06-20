@@ -234,7 +234,7 @@ export default function App({
     <>
       <button
         onClick={onOpen}
-        className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
+        className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500 rounded"
       >
         <TbEdit size={18} />
       </button>

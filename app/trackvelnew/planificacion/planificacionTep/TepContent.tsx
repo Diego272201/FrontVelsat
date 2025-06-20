@@ -9,7 +9,7 @@ import '@/app/styles/planiTep.css';
 import { FaDatabase, FaFileAlt, FaFileExcel } from 'react-icons/fa';
 import Servicios from './Servicios';
 import axios from 'axios';
-import { MdDelete, MdFilterAlt } from 'react-icons/md';
+import { MdAdd, MdDelete, MdFilterAlt } from 'react-icons/md';
 import ModalObtenerServicios from './ModalObtenerServicios';
 import ProgressBar from '@/app/components/ui/ProgressBar';
 import { IoSave } from 'react-icons/io5';
@@ -23,6 +23,7 @@ import {
 } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
+import ModalNuevoGrupo from './ModalNuevoGrupo';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -35,6 +36,16 @@ export default function TepContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [erroresCarga, setErroresCarga] = useState<any[]>([]);
   const ejecutarGrupoCeroRef = useRef<() => void>();
+
+  const [modalNuevoGrupoOpen, setModalNuevoGrupoOpen] = useState(false);
+
+  const agregarGrupoRef = useRef<(nuevoGrupo: any) => void>();
+
+  const handleAgregarNuevoGrupo = (nuevoGrupo: any) => {
+    if (agregarGrupoRef.current) {
+      agregarGrupoRef.current(nuevoGrupo);
+    }
+  };
 
   const intervaloRef = useRef<NodeJS.Timeout | null>(null);
   const [guardar, setGuardar] = useState<(auto?: boolean) => void>(
@@ -303,91 +314,94 @@ export default function TepContent() {
     setArchivosRecientes(filtrados);
   }, []);
 
-  const handlePublicar = async () => {
-    if (!selectedDate || !empresaSeleccionada) {
-      toast.error('Debe seleccionar una fecha y una empresa.');
-      return;
-    }
+const handlePublicar = async () => {
+  if (!selectedDate || !empresaSeleccionada) {
+    toast.error('Debe seleccionar una fecha y una empresa.');
+    return;
+  }
 
-    if (contadorGrupos > 0) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'Faltan fechas por llenar',
-        text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Por favor, completa los datos antes de publicar.`,
-
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: '#3085d6',
-        willOpen: () => {
-          const titleElement = document.querySelector(
-            '.swal2-title',
-          ) as HTMLElement;
-          const textElement = document.querySelector(
-            '.swal2-html-container',
-          ) as HTMLElement;
-
-          if (titleElement) titleElement.style.fontSize = '16px';
-          if (textElement) textElement.style.fontSize = '14px';
-        },
-      });
-      return;
-    }
-
-    const result = await Swal.fire({
-      title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}`,
-      text: 'Una vez publicado, no podrás deshacer esta acción.',
+  if (contadorGrupos > 0) {
+    const advertenciaResult = await Swal.fire({
       icon: 'warning',
+      title: 'Fechas incompletas detectadas',
+      text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Solo se publicarán las fechas que estén completas. ¿Deseas continuar?`,
       showCancelButton: true,
+      confirmButtonText: 'Sí, continuar',
+      cancelButtonText: 'Cancelar',
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, publicar',
-      cancelButtonText: 'Cancelar',
       willOpen: () => {
-        const titleElement = document.querySelector(
-          '.swal2-title',
-        ) as HTMLElement;
-        const textElement = document.querySelector(
-          '.swal2-html-container',
-        ) as HTMLElement;
-
-        if (titleElement) {
-          titleElement.style.fontSize = '16px';
-        }
-
-        if (textElement) {
-          textElement.style.fontSize = '14px';
-        }
+        const titleElement = document.querySelector('.swal2-title') as HTMLElement;
+        const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
+        
+        if (titleElement) titleElement.style.fontSize = '16px';
+        if (textElement) textElement.style.fontSize = '14px';
       },
     });
 
-    if (result.isConfirmed) {
-      const fecact = formatFechaAMD(selectedDate);
-      const toastId = toast.loading('Cargando...');
-
-      try {
-        const response = await axios.post(
-          `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
-        );
-
-        if (response.data.data.length === 0) {
-          toast.error(
-            'Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.',
-            { id: toastId },
-          );
-        } else {
-          toast.success('Datos enviados correctamente.', { id: toastId });
-          console.log('Respuesta de la API:', response.data);
-          setActualizacion((prev) => prev + 1);
-        }
-
-        setActualizacion((prev) => prev + 1);
-      } catch (error) {
-        toast.error('Error al enviar los datos.', { id: toastId });
-        console.error('Error en la solicitud:', error);
-      }
-    } else {
+    if (!advertenciaResult.isConfirmed) {
       toast.info('Publicación cancelada');
+      return;
     }
-  };
+  }
+
+  const result = await Swal.fire({
+    title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}?`,
+    text: 'Una vez publicado, no podrás deshacer esta acción.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, publicar',
+    cancelButtonText: 'Cancelar',
+    willOpen: () => {
+      const titleElement = document.querySelector('.swal2-title') as HTMLElement;
+      const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
+
+      if (titleElement) {
+        titleElement.style.fontSize = '16px';
+      }
+
+      if (textElement) {
+        textElement.style.fontSize = '14px';
+      }
+    },
+  });
+
+  if (result.isConfirmed) {
+    const fecact = formatFechaAMD(selectedDate);
+    const toastId = toast.loading('Cargando...');
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
+      );
+
+      if (response.data.data.length === 0) {
+        toast.error(
+          'Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.',
+          { id: toastId },
+        );
+      } else {
+        toast.success('Datos enviados correctamente.', { id: toastId });
+        console.log('Respuesta de la API:', response.data);
+        setActualizacion((prev) => prev + 1);
+      }
+
+      setActualizacion((prev) => prev + 1);
+    } catch (error) {
+      toast.error('Error al enviar los datos.', { id: toastId });
+      console.error('Error en la solicitud:', error);
+    }
+  } else {
+    toast.info('Publicación cancelada');
+  }
+};
+
+
+
+
+
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -457,6 +471,13 @@ export default function TepContent() {
       };
     }
   }, [guardar]);
+
+  function formatFechaDMY(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
 
   return (
     <div className="containerTep">
@@ -676,10 +697,24 @@ export default function TepContent() {
                     />
 
                     <button
-                      className="flex  items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={handlePublicar}
                     >
                       Publicar
+                    </button>
+
+                    <button
+                      className="flex items-center gap-2 bg-green-600 p-[7px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
+                      onClick={() => setModalNuevoGrupoOpen(true)}
+                      disabled={!empresaConfirmada || !dato}
+                      title={
+                        !empresaConfirmada || !dato
+                          ? 'Primero debe obtener datos de una empresa'
+                          : 'Agregar nuevo grupo'
+                      }
+                    >
+                      <MdAdd size={16} />
+                      Nuevo Grupo
                     </button>
                   </div>
                 </div>
@@ -792,7 +827,7 @@ export default function TepContent() {
         <div className="mx-2 bg-gray-100 py-1 text-xs shadow-sm">
           <div className="flex max-w-full items-center space-x-2 overflow-x-auto">
             <h3 className="whitespace-nowrap text-sm font-semibold text-gray-800">
-              Lista de archivos cargados:
+              Lista de archivos cargados :
             </h3>
             {archivosRecientes.length === 0 ? (
               <span className="whitespace-nowrap italic text-gray-500">
@@ -821,7 +856,7 @@ export default function TepContent() {
 
       <div
         className="grupoServicios relative overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 250 : 100}px)` }}
+        style={{ height: `calc(100vh - ${isVisible ? 240 : 85}px)` }}
       >
         {!empresaConfirmada || !dato ? (
           <div className="absolute inset-0 ml-2 mr-2 flex items-center justify-center bg-gray-100">
@@ -880,6 +915,15 @@ export default function TepContent() {
               onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
               setContadorGrupos={setContadorGrupos}
               fechaSeleccionada={selectedDate}
+              onAgregarGrupoReady={(fn) => (agregarGrupoRef.current = fn)} // ← ESTA LÍNEA FALTA
+            />
+
+            <ModalNuevoGrupo
+              isOpen={modalNuevoGrupoOpen}
+              onClose={() => setModalNuevoGrupoOpen(false)}
+              onAgregarGrupo={handleAgregarNuevoGrupo}
+              empresaActual={empresaConfirmada || ''}
+              fechaActual={selectedDate ? formatFechaDMY(selectedDate) : ''}
             />
           </div>
         )}

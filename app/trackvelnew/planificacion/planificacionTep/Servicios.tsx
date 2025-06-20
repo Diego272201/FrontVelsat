@@ -55,6 +55,7 @@ interface ServiciosProps {
   onLimpiarRefReady?: (handler: () => void) => void;
   setContadorGrupos: (value: number) => void;
   fechaSeleccionada: Date | null;
+   onAgregarGrupoReady?: (handler: (nuevoGrupo: any) => void) => void;
 }
 
 export interface ServiciosRef {
@@ -74,6 +75,7 @@ export default function App({
   onLimpiarRefReady,
   setContadorGrupos,
   fechaSeleccionada,
+  onAgregarGrupoReady
 }: ServiciosProps) {
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +98,81 @@ export default function App({
       return { ...prev, [id]: codigoUnidad };
     });
   };
+
+
+  // Reemplaza la función agregarNuevoGrupo en Servicios.tsx con esta versión corregida:
+
+const agregarNuevoGrupo = (nuevoGrupo: any) => {
+  console.log('Función agregarNuevoGrupo ejecutada con:', nuevoGrupo);
+  
+  setGrupos((prevGrupos) => {
+    console.log('Estado actual de grupos:', prevGrupos);
+    
+    // Generar un ID único basado en el timestamp y los grupos existentes
+    const ultimoId = prevGrupos.length > 0 ? Math.max(...prevGrupos.map(g => g.id)) : 0;
+    const nuevoId = ultimoId + 1;
+    
+    // Generar un idCliente único para la persona
+    const todosLosIdClientes = prevGrupos.flatMap(grupo => 
+      grupo.personas ? grupo.personas.map((persona: any) => persona.idCliente) : []
+    );
+    const ultimoIdCliente = todosLosIdClientes.length > 0 ? Math.max(...todosLosIdClientes) : 0;
+    const nuevoIdCliente = ultimoIdCliente + 1;
+
+    // Crear el grupo con la estructura correcta
+    const grupoFormateado = {
+      ...nuevoGrupo,
+      id: nuevoId,
+      personas: nuevoGrupo.personas.map((persona: any) => ({
+        ...persona,
+        idCliente: nuevoIdCliente,
+        codigo: nuevoIdCliente.toString(),
+        codCliente: nuevoIdCliente.toString(),
+        eliminado: '0'
+      }))
+    };
+
+    console.log('Nuevo grupo formateado:', grupoFormateado);
+    
+    // Agregar el nuevo grupo al final de la lista
+    const nuevosGrupos = [...prevGrupos, grupoFormateado];
+    
+    console.log('Nuevos grupos después de agregar:', nuevosGrupos);
+    
+    // Actualizar los datos después de agregar el grupo (sin setTimeout)
+    if (onActualizarDatos) {
+      onActualizarDatos({
+        totalGrupos: nuevosGrupos.length,
+        totalPasajeros: nuevosGrupos.reduce(
+          (acc, grupo) => acc + (grupo.personas?.length || 0),
+          0,
+        ),
+      });
+    }
+
+    if (onActualizarCabeceras) {
+      const cabeceras = nuevosGrupos.map((grupo) => ({
+        empresa: grupo.empresa,
+        fecha: grupo.fecha,
+      }));
+      onActualizarCabeceras(cabeceras);
+    }
+
+    return nuevosGrupos;
+  });
+};
+
+// Y asegúrate de que el useEffect esté también corregido:
+
+useEffect(() => {
+  console.log('Registrando función agregarNuevoGrupo');
+  if (onAgregarGrupoReady) {
+    onAgregarGrupoReady(agregarNuevoGrupo);
+    console.log('Función agregarNuevoGrupo registrada exitosamente');
+  }
+}, [onAgregarGrupoReady, onActualizarDatos, onActualizarCabeceras]); // Agregar dependencias
+
+
 
   useEffect(() => {
     const fetchData = async () => {

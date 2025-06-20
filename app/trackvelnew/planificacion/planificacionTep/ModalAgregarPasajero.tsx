@@ -111,7 +111,7 @@ export default function App({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex items-center gap-2">
+              <ModalHeader className="flex items-center gap-2 uppercase text-[14px]">
                 Agregar Pasajero al Servicio
                 <MdLibraryAdd />
               </ModalHeader>
@@ -151,6 +151,8 @@ export default function App({
                     <strong>Grupo:</strong> {grupo.id - 1}
                   </p>
                 </div>
+
+                
               </ModalBody>
               <ModalFooter>
                 <Button color="danger" onPress={onClose}>
