@@ -681,7 +681,7 @@ const Tollbar: React.FC = () => {
       <div className="menu__bar">
         {/* Mobile Menu Button */}
         <div className="mobile-only-button">
-          <div className="exitToolbarM bg-[#edf2f4] bg-opacity-10">
+          <div className="exitToolbarM">
             <div className="flex w-[50px] items-center justify-center p-0">
               <Profile toggleFullScreen={toggleFullScreen} />
             </div>
@@ -705,9 +705,9 @@ const Tollbar: React.FC = () => {
               <Image src="/LogoWeb.png" alt="Logo" width={18} height={18} />
             </div>
             <div className="mt-[-3px]">
-              <h3 className="text-center text-[9px] font-semibold text-white md:text-[12.5px]">
+              <h3 className="text-center text-[12px] font-semibold text-white md:text-[12.5px]">
                 TRACKVEL SYSTEM :
-                <span className="pl-1  text-[9px] text-white/80 md:text-[11.5px]">
+                <span className="pl-1  text-[12px] text-white/80 md:text-[11.5px]">
                   BIENVENIDO {username.toUpperCase()}
                 </span>
               </h3>
@@ -884,7 +884,7 @@ const Tollbar: React.FC = () => {
 
         <div className="menu_sidebar">
           <div className="flex items-center gap-2">
-            <span className="text-[#154666]" style={{ fontSize: '14px' }}>
+            <span className="text-[#154666] font-bold" style={{ fontSize: '14px' }}>
               MENÚ
             </span>
           </div>
@@ -975,6 +975,7 @@ const Tollbar: React.FC = () => {
                       </svg>
                     </div>
                   </div>
+                  
                 </Link>
 
                 <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:shadow-purple-100/50">

@@ -1,12 +1,9 @@
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
-import { Button, Input, Spinner } from '@nextui-org/react';
-import { EyeSlashFilledIcon } from './EyeFilledIcon';
+import { Spinner } from '@nextui-org/react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Toaster, toast } from 'sonner';
-import { EyeFilledIcon } from './EyeSlashFilledIcon';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
 import { Eye, EyeOff, LogIn, Check } from 'lucide-react';
@@ -91,7 +88,6 @@ export default function Login() {
         setErrors(responseNextAuth.error.split(','));
         setIsLoading(false);
       } else {
-        // Mostrar estado de éxito
         setIsSuccess(true);
         setIsLoading(false);
 
@@ -129,7 +125,7 @@ export default function Login() {
               Rastreamiento de Vehículos
               <span className="block text-orange-400">en Tiempo Real</span>
             </h1>
-            <p className="max-w-md text-base text-white xl:text-lg">
+            <p className="max-w-md text-base leading-tight text-white xl:text-[15px]">
               Monitorea tu flota con tecnología avanzada y obtén información
               precisa de la ubicación de tus vehículos.
             </p>
@@ -140,7 +136,7 @@ export default function Login() {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                <span>GPS Activo</span>
+                <span>GPS  </span>
               </div>
             </div>
           </div>
@@ -158,7 +154,6 @@ export default function Login() {
                 alt="LogoVelsat"
                 width={180}
                 height={180}
-                
               />
             </div>
             <h2 className="mb-2 text-2xl font-bold text-white xl:text-3xl">
@@ -235,7 +230,10 @@ export default function Login() {
                   </svg>
                   <div className="min-w-0">
                     {errors.map((error, index) => (
-                      <p key={index} className="text-xs text-red-300 xl:text-sm">
+                      <p
+                        key={index}
+                        className="text-xs text-red-300 xl:text-sm"
+                      >
                         {error}
                       </p>
                     ))}
@@ -278,7 +276,9 @@ export default function Login() {
                   <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white xl:h-5 xl:w-5">
                     <Check className="h-2.5 w-2.5 text-green-600 xl:h-3 xl:w-3" />
                   </div>
-                  <span className="text-sm xl:text-base">¡Autenticado con éxito!</span>
+                  <span className="text-sm xl:text-base">
+                    ¡Autenticado con éxito!
+                  </span>
                 </>
               ) : (
                 <>
@@ -292,7 +292,7 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-6 text-center xl:mt-8">
             <p className="text-xs text-gray-400 xl:text-sm">
-              © 2025 Velsat - Sistema de Rastreamiento GPS Perú{' '}
+              © 2025 Velsat - Sistema de Rastreamiento Vehicular
             </p>
           </div>
         </div>

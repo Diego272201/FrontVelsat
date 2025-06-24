@@ -24,7 +24,7 @@ export function Item(props: ItemProps) {
     justifyContent: 'space-between',
     margin: '0px 0px 2.5px 0px',
     background: '#e9ecef',
-    fontSize: '13px',
+    fontSize: '12px',
     paddingLeft: '5px',
   };
 

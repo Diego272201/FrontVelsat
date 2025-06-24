@@ -24,6 +24,7 @@ import {
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
 import ModalNuevoGrupo from './ModalNuevoGrupo';
+import { ArchiveRestore, Database, DatabaseZap, Funnel } from 'lucide-react';
 
 export default function TepContent() {
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
@@ -39,12 +40,9 @@ export default function TepContent() {
 
   const [modalNuevoGrupoOpen, setModalNuevoGrupoOpen] = useState(false);
 
-  const agregarGrupoRef = useRef<(nuevoGrupo: any) => void>();
-
-  const handleAgregarNuevoGrupo = (nuevoGrupo: any) => {
-    if (agregarGrupoRef.current) {
-      agregarGrupoRef.current(nuevoGrupo);
-    }
+  const handleRefrescarDatos = () => {
+    console.log('Refrescando datos después de crear grupo...');
+    setActualizacion((prev) => prev + 1);
   };
 
   const intervaloRef = useRef<NodeJS.Timeout | null>(null);
@@ -314,94 +312,97 @@ export default function TepContent() {
     setArchivosRecientes(filtrados);
   }, []);
 
-const handlePublicar = async () => {
-  if (!selectedDate || !empresaSeleccionada) {
-    toast.error('Debe seleccionar una fecha y una empresa.');
-    return;
-  }
+  const handlePublicar = async () => {
+    if (!selectedDate || !empresaSeleccionada) {
+      toast.error('Debe seleccionar una fecha y una empresa.');
+      return;
+    }
 
-  if (contadorGrupos > 0) {
-    const advertenciaResult = await Swal.fire({
+    if (contadorGrupos > 0) {
+      const advertenciaResult = await Swal.fire({
+        icon: 'warning',
+        title: 'Fechas incompletas detectadas',
+        text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Solo se publicarán las fechas que estén completas. ¿Deseas continuar?`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        willOpen: () => {
+          const titleElement = document.querySelector(
+            '.swal2-title',
+          ) as HTMLElement;
+          const textElement = document.querySelector(
+            '.swal2-html-container',
+          ) as HTMLElement;
+
+          if (titleElement) titleElement.style.fontSize = '16px';
+          if (textElement) textElement.style.fontSize = '14px';
+        },
+      });
+
+      if (!advertenciaResult.isConfirmed) {
+        toast.info('Publicación cancelada');
+        return;
+      }
+    }
+
+    const result = await Swal.fire({
+      title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}?`,
+      text: 'Una vez publicado, no podrás deshacer esta acción.',
       icon: 'warning',
-      title: 'Fechas incompletas detectadas',
-      text: `Se detectó ${contadorGrupos} ${contadorGrupos === 1 ? 'grupo' : 'grupos'} sin fecha programada. Solo se publicarán las fechas que estén completas. ¿Deseas continuar?`,
       showCancelButton: true,
-      confirmButtonText: 'Sí, continuar',
-      cancelButtonText: 'Cancelar',
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, publicar',
+      cancelButtonText: 'Cancelar',
       willOpen: () => {
-        const titleElement = document.querySelector('.swal2-title') as HTMLElement;
-        const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
-        
-        if (titleElement) titleElement.style.fontSize = '16px';
-        if (textElement) textElement.style.fontSize = '14px';
+        const titleElement = document.querySelector(
+          '.swal2-title',
+        ) as HTMLElement;
+        const textElement = document.querySelector(
+          '.swal2-html-container',
+        ) as HTMLElement;
+
+        if (titleElement) {
+          titleElement.style.fontSize = '16px';
+        }
+
+        if (textElement) {
+          textElement.style.fontSize = '14px';
+        }
       },
     });
 
-    if (!advertenciaResult.isConfirmed) {
-      toast.info('Publicación cancelada');
-      return;
-    }
-  }
+    if (result.isConfirmed) {
+      const fecact = formatFechaAMD(selectedDate);
+      const toastId = toast.loading('Cargando...');
 
-  const result = await Swal.fire({
-    title: `¿Estás seguro de publicar los servicios de la empresa ${empresaSeleccionada}?`,
-    text: 'Una vez publicado, no podrás deshacer esta acción.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Sí, publicar',
-    cancelButtonText: 'Cancelar',
-    willOpen: () => {
-      const titleElement = document.querySelector('.swal2-title') as HTMLElement;
-      const textElement = document.querySelector('.swal2-html-container') as HTMLElement;
-
-      if (titleElement) {
-        titleElement.style.fontSize = '16px';
-      }
-
-      if (textElement) {
-        textElement.style.fontSize = '14px';
-      }
-    },
-  });
-
-  if (result.isConfirmed) {
-    const fecact = formatFechaAMD(selectedDate);
-    const toastId = toast.loading('Cargando...');
-
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
-      );
-
-      if (response.data.data.length === 0) {
-        toast.error(
-          'Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.',
-          { id: toastId },
+      try {
+        const response = await axios.post(
+          `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
         );
-      } else {
-        toast.success('Datos enviados correctamente.', { id: toastId });
-        console.log('Respuesta de la API:', response.data);
+
+        if (response.data.data.length === 0) {
+          toast.error(
+            'Error al enviar los datos, asegurate de seleccionar una fecha y empresa válida.',
+            { id: toastId },
+          );
+        } else {
+          toast.success('Datos enviados correctamente.', { id: toastId });
+          console.log('Respuesta de la API:', response.data);
+          setActualizacion((prev) => prev + 1);
+        }
+
         setActualizacion((prev) => prev + 1);
+      } catch (error) {
+        toast.error('Error al enviar los datos.', { id: toastId });
+        console.error('Error en la solicitud:', error);
       }
-
-      setActualizacion((prev) => prev + 1);
-    } catch (error) {
-      toast.error('Error al enviar los datos.', { id: toastId });
-      console.error('Error en la solicitud:', error);
+    } else {
+      toast.info('Publicación cancelada');
     }
-  } else {
-    toast.info('Publicación cancelada');
-  }
-};
-
-
-
-
-
+  };
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -518,9 +519,8 @@ const handlePublicar = async () => {
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
-                    <FaFileAlt className="h-5 w-5 text-gray-600" />
-                    Carga de Archivos
+                  <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-900 ">
+                    <ArchiveRestore size={15} /> Carga de Archivos
                   </span>
                 </div>
 
@@ -633,10 +633,10 @@ const handlePublicar = async () => {
                     />
                     <button
                       onClick={handleDeleteCarga}
-                      className="flex items-center gap-2  bg-[#d62828] px-4 py-[7px] text-white hover:bg-red-500"
+                      className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
                     >
-                      <MdDelete size={20} />
-                      Eliminar Carga
+                      <MdDelete size={14} />
+                      <span>Eliminar Carga</span>
                     </button>
                   </div>
                 </div>
@@ -644,9 +644,8 @@ const handlePublicar = async () => {
 
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <FaDatabase className="h-5 w-5 text-gray-600" />
-                    Obtener Datos
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-900">
+                    <Database size={15} /> Obtener Datos
                   </span>
                 </div>
 
@@ -697,24 +696,10 @@ const handlePublicar = async () => {
                     />
 
                     <button
-                      className="flex items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-2  text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-purple-600 hover:to-purple-700"
                       onClick={handlePublicar}
                     >
-                      Publicar
-                    </button>
-
-                    <button
-                      className="flex items-center gap-2 bg-green-600 p-[7px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
-                      onClick={() => setModalNuevoGrupoOpen(true)}
-                      disabled={!empresaConfirmada || !dato}
-                      title={
-                        !empresaConfirmada || !dato
-                          ? 'Primero debe obtener datos de una empresa'
-                          : 'Agregar nuevo grupo'
-                      }
-                    >
-                      <MdAdd size={16} />
-                      Nuevo Grupo
+                      <span>Publicar</span>
                     </button>
                   </div>
                 </div>
@@ -725,9 +710,8 @@ const handlePublicar = async () => {
               <div className="cargaArchivos">
                 <div className="filtrosPlanificacion">
                   <div className="relative flex items-center pb-1">
-                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
-                      <MdFilterAlt className="h-5 w-5 text-gray-700" />
-                      Filtrar Datos
+                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-900">
+                      <Funnel size={15} /> Filtrar Datos
                     </span>
                   </div>
 
@@ -764,17 +748,17 @@ const handlePublicar = async () => {
 
                     <button
                       onClick={alternarEstado}
-                      className={`  p-[7px] text-[13px] transition-colors ${
+                      className={`px-4 py-[8px]  text-[12px] font-medium shadow-sm transition-all duration-200 ${
                         modoVista === 'Eliminados'
-                          ? 'bg-[#d62828] text-white hover:bg-red-500'
-                          : 'bg-green-500 text-[#212529] hover:bg-green-400'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
+                          : 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-600 hover:to-green-700'
                       }`}
                     >
                       {modoVista}
                     </button>
 
                     <button
-                      className="flex items-center gap-2  bg-[#d62828] p-[7px] text-[13px] text-white hover:bg-red-500"
+                      className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-[8px]  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
                       onClick={() => {
                         if (ejecutarGrupoCeroRef.current) {
                           ejecutarGrupoCeroRef.current();
@@ -783,39 +767,56 @@ const handlePublicar = async () => {
                     >
                       Limpiar Eliminados
                     </button>
+
+                    <button
+                      className="flex items-center gap-2 bg-green-700 p-[8px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
+                      onClick={() => setModalNuevoGrupoOpen(true)}
+                      disabled={!empresaConfirmada || !dato}
+                      title={
+                        !empresaConfirmada || !dato
+                          ? 'Primero debe obtener datos de una empresa'
+                          : 'Agregar nuevo grupo'
+                      }
+                    >
+                      <MdAdd size={16} />
+                      Nuevo Grupo
+                    </button>
                   </div>
                 </div>
               </div>
 
               <div className="cargaArchivos">
-                <div className="InfoReportes">
-                  <div className="w-60f z-50 flex flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between  bg-gray-300 px-[10px] sm:h-14">
-                      <div className="flex gap-2">
-                        <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
-                          <MdHomeRepairService size={20} />
-                        </div>
-                        <div>
-                          <p className="text-black">Total Servicios</p>
-                          <p className="text-gray-800">
-                            {datosServicios.totalGrupos}
-                          </p>
-                        </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Card Total Servicios - Compacta con fondo azul claro */}
+                  <div className="border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm flex justify-center items-center">
+                    <div className="flex items-center space-x-2">
+                      <div className="rounded-lg bg-blue-600 p-2 shadow-sm">
+                        <MdHomeRepairService size={14} className="text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-blue-700">
+                          Total Servicios
+                        </p>
+                        <p className="text-sm font-bold text-blue-800">
+                          {datosServicios.totalGrupos}
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <div className="z-50 flex w-60 flex-col gap-2 text-[10px] sm:w-40 sm:text-xs">
-                    <div className="succsess-alert flex h-12 w-full cursor-default items-center justify-between  bg-gray-300 px-[10px] sm:h-14">
-                      <div className="flex gap-2">
-                        <div className="rounded-lg bg-white/5 p-1 text-[#2b9875] backdrop-blur-xl">
-                          <FaUsers size={20} />
-                        </div>
-                        <div>
-                          <p className="text-black">Total Pasajeros</p>
-                          <p className="text-gray-800">
-                            {datosServicios.totalPasajeros}
-                          </p>
-                        </div>
+
+                  {/* Card Total Pasajeros - Compacta con fondo verde claro */}
+                  <div className="border border-green-200 bg-gradient-to-r from-green-50 to-emerald-100 p-1 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="rounded-lg bg-green-600 p-2 shadow-sm">
+                        <FaUsers size={14} className="text-white" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-green-700">
+                          Total Pasajeros
+                        </p>
+                        <p className="text-sm font-bold text-green-800">
+                          {datosServicios.totalPasajeros}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -915,15 +916,16 @@ const handlePublicar = async () => {
               onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
               setContadorGrupos={setContadorGrupos}
               fechaSeleccionada={selectedDate}
-              onAgregarGrupoReady={(fn) => (agregarGrupoRef.current = fn)} // ← ESTA LÍNEA FALTA
+              // onAgregarGrupoReady={(fn) => (agregarGrupoRef.current = fn)} // ← ESTA LÍNEA FALTA
             />
 
             <ModalNuevoGrupo
               isOpen={modalNuevoGrupoOpen}
               onClose={() => setModalNuevoGrupoOpen(false)}
-              onAgregarGrupo={handleAgregarNuevoGrupo}
+              onRefrescarDatos={handleRefrescarDatos} // Nueva función
               empresaActual={empresaConfirmada || ''}
               fechaActual={selectedDate ? formatFechaDMY(selectedDate) : ''}
+              totalGruposActuales={datosServicios.totalGrupos} // Pasar el total de grupos actuales
             />
           </div>
         )}

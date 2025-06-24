@@ -11,9 +11,13 @@ interface IPasajero {
 
 interface InputPasajeroProps {
     onSelectPasajero: (pasajero: IPasajero) => void;
+    clearAfterSelect?: boolean; // Nueva prop opcional
   }
 
-export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) {
+export default function InputPasajero({ 
+  onSelectPasajero, 
+  clearAfterSelect = false 
+}: InputPasajeroProps) {
   const [pasajero, setPasajero] = useState('');
   const [sugerencias, setSugerencias] = useState<
     { apepate: string; codlan: string , codlugar:number}[]
@@ -67,11 +71,18 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
     console.log('Pasajero seleccionado:', nombre, codlan, codlugar);
     const nuevoPasajero = { apepate: nombre, codlan, codlugar };
   
-    setPasajero(nombre);
+    // Si clearAfterSelect es true, limpia el input, sino mantiene el nombre
+    if (clearAfterSelect) {
+      setPasajero('');
+      setSeleccionado(false);
+    } else {
+      setPasajero(nombre);
+      setSeleccionado(true);
+    }
+    
     setPasajeroCodlan(codlan);
     setSugerencias([]);
     setMostrarSugerencias(false);
-    setSeleccionado(true);
     onSelectPasajero(nuevoPasajero);
   };
   
@@ -85,7 +96,7 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
           placeholder="Pasajero"
           value={pasajero}
           onChange={(e) => {
-            if (seleccionado) {
+            if (seleccionado && !clearAfterSelect) {
               setSeleccionado(false);
               return;
             }
@@ -93,7 +104,7 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
             setMostrarSugerencias(true);
           }}
           onFocus={() => {
-            if (sugerencias.length > 0 && !seleccionado)
+            if (sugerencias.length > 0 && (!seleccionado || clearAfterSelect))
               setMostrarSugerencias(true);
           }}
           onBlur={() => setTimeout(() => setMostrarSugerencias(false), 100)}
@@ -115,10 +126,13 @@ export default function InputPasajero({ onSelectPasajero }: InputPasajeroProps) 
                     setMostrarSugerencias(false);
                     setSugerencias([]);
 
-                    setTimeout(() => {
-                      const input = document.getElementById('inputPasajero');
-                      input?.blur();
-                    }, 100);
+                    // Solo hacer blur si no se va a limpiar automáticamente
+                    if (!clearAfterSelect) {
+                      setTimeout(() => {
+                        const input = document.getElementById('inputPasajero');
+                        input?.blur();
+                      }, 100);
+                    }
                   }}
                 >
                   {item.apepate}

@@ -221,7 +221,7 @@ export default function Container({
       <div
         ref={setNodeRef}
         style={{
-          background: '#fff',
+          background: 'white',
           padding: '0px 0 0px 0px',
           flex: 1,
           marginBottom: 10,
@@ -267,7 +267,7 @@ export default function Container({
                     height: '100%',
                   }}
                 >
-                  Inicio :
+                  Inicio:
                   <DateTimePicker
                     initialDateTime={
                       grupo.tipo === 'I'
@@ -288,7 +288,7 @@ export default function Container({
                     height: '100%',
                   }}
                 >
-                  Fin :
+                  Fin:
                   <DateTimePicker
                     initialDateTime={
                       grupo.tipo === 'S'
@@ -359,20 +359,25 @@ export default function Container({
                   }}
                 />
               </div>
-              <div className="w-[350px]  rounded p-2 text-sm font-semibold">
+
+              <div className="border  border-gray-200 bg-white px-2 py-[7px] shadow-sm w-[230px]">
                 {diferencia ? (
-                  <p className="flex items-center gap-2 text-sm text-gray-900">
-                    <IoTime className="text-gray-800" size={17} />
-                    Intervalo tiempo :
-                    <span className="  text-gray-900">{diferencia.horas}h</span>
-                    <span className="  text-gray-900">
-                      {diferencia.minutos} min
+                  <div className="flex items-center space-x-1">
+                    <div className="rounded-full bg-blue-100 p-1">
+                      <IoTime className="text-blue-600" size={12} />
+                    </div>
+                    <span className="text-xs text-gray-600">Duración:</span>
+                    <span className="text-xs font-semibold text-blue-600">
+                      {diferencia.horas}h {diferencia.minutos}min
                     </span>
-                  </p>
+                  </div>
                 ) : (
-                  <p className="flex items-center gap-2 text-gray-900">
-                    <GoAlertFill /> Define fechas
-                  </p>
+                  <div className="flex items-center space-x-1 py-[2px]">
+                    <GoAlertFill className="text-amber-500" size={12} />
+                    <span className="text-xs font-medium text-amber-600">
+                      Define fechas
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

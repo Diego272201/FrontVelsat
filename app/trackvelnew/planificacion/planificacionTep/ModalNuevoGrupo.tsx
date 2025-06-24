@@ -1,67 +1,94 @@
 import React, { useState } from 'react';
-import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Input, Select, SelectItem } from '@nextui-org/react';
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Select,
+  SelectItem,
+} from '@nextui-org/react';
 import { toast } from 'sonner';
+import InputPasajero from '@/app/components/inputs/InputPasajero';
+import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
+import { MdLibraryAdd, MdDelete } from 'react-icons/md';
 
 interface ModalNuevoGrupoProps {
   isOpen: boolean;
   onClose: () => void;
-  onAgregarGrupo: (nuevoGrupo: any) => void;
+  onRefrescarDatos: () => void; // Cambio: función para refrescar datos
   empresaActual: string;
   fechaActual?: string;
+  totalGruposActuales: number; // Nuevo: recibir el total de grupos actuales
+}
+
+interface PasajeroSeleccionado {
+  apepate: string;
+  codlan: string;
+  codlugar: number;
 }
 
 const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   isOpen,
   onClose,
-  onAgregarGrupo,
+  onRefrescarDatos,
   empresaActual,
-  fechaActual
+  fechaActual,
+  totalGruposActuales = 0,
 }) => {
   const [formData, setFormData] = useState({
-    nombre: '',
-    distrito: '',
-    direccion: '',
-    area: '',
     tipo: 'I', // Por defecto tipo "I" (Ingreso)
-    destinoGrupo: '',
     fechaInicio: '', // Fecha y hora de inicio
-    fechaFin: '' // Fecha y hora de fin
+    fechaFin: '', // Fecha y hora de fin
   });
 
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<
+    PasajeroSeleccionado[]
+  >([]);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Limpiar error cuando el usuario empiece a escribir
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: '',
       }));
     }
   };
 
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+  const handleAgregarPasajero = (pasajero: PasajeroSeleccionado) => {
+    // Verificar si el pasajero ya está en la lista
+    const yaExiste = pasajerosSeleccionados.some(
+      (p) => p.codlan === pasajero.codlan,
+    );
+    if (yaExiste) {
+      toast.warning('Este pasajero ya está en la lista');
+      return;
+    }
 
-    if (!formData.nombre.trim()) {
-      newErrors.nombre = 'El nombre es obligatorio';
-    }
-    if (!formData.distrito.trim()) {
-      newErrors.distrito = 'El distrito es obligatorio';
-    }
-    if (!formData.direccion.trim()) {
-      newErrors.direccion = 'La dirección es obligatoria';
-    }
-    if (!formData.area.trim()) {
-      newErrors.area = 'El área es obligatoria';
-    }
-    if (!formData.destinoGrupo.trim()) {
-      newErrors.destinoGrupo = 'El destino es obligatorio';
+    setPasajerosSeleccionados((prev) => [...prev, pasajero]);
+    toast.success('Pasajero agregado a la lista');
+  };
+
+  const handleEliminarPasajero = (codlan: string) => {
+    setPasajerosSeleccionados((prev) =>
+      prev.filter((p) => p.codlan !== codlan),
+    );
+    toast.info('Pasajero eliminado de la lista');
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (pasajerosSeleccionados.length === 0) {
+      newErrors.pasajeros = 'Debe agregar al menos un pasajero';
     }
 
     // Validación condicional de fechas según el tipo
@@ -73,7 +100,8 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
     } else if (formData.tipo === 'S') {
       // Tipo Salida: solo fecha de inicio es obligatoria
       if (!formData.fechaInicio.trim()) {
-        newErrors.fechaInicio = 'La fecha de inicio es obligatoria';
+        newErrors.fechaInicio =
+          'La fecha de inicio es obligatoria para tipo Salida';
       }
     }
 
@@ -84,175 +112,161 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   // Función para convertir datetime-local a formato DD/MM/YYYY HH:mm
   const formatearFechaHora = (datetimeLocal: string) => {
     if (!datetimeLocal) return '';
-    
+
     // datetimeLocal viene en formato: YYYY-MM-DDTHH:mm
     const [fecha, hora] = datetimeLocal.split('T');
     const [year, month, day] = fecha.split('-');
-    
+
     return `${day}/${month}/${year} ${hora}`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       toast.error('Por favor, completa todos los campos obligatorios');
       return;
     }
 
-    // Formatear las fechas al formato esperado
-    const fechaInicioFormateada = formData.fechaInicio ? formatearFechaHora(formData.fechaInicio) : '';
-    const fechaFinFormateada = formData.fechaFin ? formatearFechaHora(formData.fechaFin) : '';
+    const toastId = toast.loading('Creando grupo...');
 
-    console.log('Fechas formateadas:', {
-      tipo: formData.tipo,
-      fechaInicio: fechaInicioFormateada,
-      fechaFin: fechaFinFormateada
-    });
+    try {
+      // Formatear las fechas al formato esperado
+      const fechaInicioFormateada = formData.fechaInicio
+        ? formatearFechaHora(formData.fechaInicio)
+        : '';
+      const fechaFinFormateada = formData.fechaFin
+        ? formatearFechaHora(formData.fechaFin)
+        : '';
 
-    // Crear el nuevo grupo con la estructura esperada
-    // Lógica corregida basada en Container.tsx:
-    // Tipo I (Ingreso): fechaInicio = horaprog, fechaFin = fecha
-    // Tipo S (Salida): fechaInicio = fecha, fechaFin = horaprog
-    let fechaPrincipal, horaprog;
-    
-    if (formData.tipo === 'I') {
-      // Tipo Ingreso: fecha = fechaFin (obligatoria), horaprog = fechaInicio (opcional)
-      fechaPrincipal = fechaFinFormateada;
-      horaprog = fechaInicioFormateada; // Puede estar vacío
-    } else {
-      // Tipo Salida: fecha = fechaInicio (obligatoria), horaprog = fechaFin (opcional)
-      fechaPrincipal = fechaInicioFormateada;
-      horaprog = fechaFinFormateada; // Puede estar vacío
-    }
+      // Determinar fecha principal y horaprog según el tipo
+      let fechaPrincipal, horaprog;
 
-    const nuevoGrupo = {
-      id: Date.now(), // ID temporal único
-      empresa: empresaActual,
-      fecha: fechaPrincipal,
-      tipo: formData.tipo,
-      horaprog: horaprog,
-      destinoGrupo: formData.destinoGrupo,
-      destino: {
-        coddestino: '', // Se puede completar después
-        nomdestino: formData.destinoGrupo
-      },
-      conductor: '', // Inicializar vacío
-      unidad: '', // Inicializar vacío
-      personas: [
-        {
-          idCliente: Date.now(), // ID temporal único para la persona
-          codigo: Date.now().toString(),
-          codCliente: Date.now().toString(),
-          nombre: formData.nombre,
-          distrito: formData.distrito,
-          direccion: formData.direccion,
-          area: formData.area,
-          eliminado: '0',
-          wx: null,
-          wy: null
+      if (formData.tipo === 'I') {
+        // Tipo Ingreso: fecha = fechaFin (obligatoria), horaprog = fechaInicio (opcional)
+        fechaPrincipal = fechaFinFormateada;
+        horaprog = fechaInicioFormateada;
+      } else {
+        // Tipo Salida: fecha = fechaInicio (obligatoria), horaprog = fechaFin (opcional)
+        fechaPrincipal = fechaInicioFormateada;
+        horaprog = fechaFinFormateada;
+      }
+
+      // Calcular el número del nuevo grupo
+      // Si hay 3 grupos (índices 0, 1, 2), el nuevo grupo será el número 3
+      const numeroNuevoGrupo = totalGruposActuales.toString();
+
+      console.log('Total grupos actuales:', totalGruposActuales);
+      console.log('Número del nuevo grupo:', numeroNuevoGrupo);
+
+      // Agregar cada pasajero usando la API
+      for (let i = 0; i < pasajerosSeleccionados.length; i++) {
+        const pasajero = pasajerosSeleccionados[i];
+
+        const payload = {
+          arealan: empresaActual,
+          destinocodlugar: pasajero.codlugar.toString(),
+          distancia: 0,
+          empresa: empresaActual,
+          fecha: fechaPrincipal,
+          horaprog: horaprog, // Si no hay horaprog, usar fecha principal
+          numero: numeroNuevoGrupo, // Usar el número calculado correctamente
+          orden: i.toString(), // Orden dentro del grupo (0, 1, 2, etc.)
+          pasajero: {
+            codlan: pasajero.codlan,
+            nombre: pasajero.apepate,
+          },
+          rol: 'Ninguno',
+          tipo: formData.tipo,
+        };
+
+        console.log(
+          `Agregando pasajero ${i + 1} al grupo ${numeroNuevoGrupo}:`,
+          payload,
+        );
+
+        const response = await fetch(
+          `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=movilbus`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(
+            `Error al agregar pasajero ${pasajero.apepate}: ${errorText}`,
+          );
         }
-      ]
-    };
 
-    console.log('Nuevo grupo a crear:', nuevoGrupo);
+        const responseData = await response.json();
+        console.log(`Respuesta para pasajero ${i + 1}:`, responseData);
+      }
 
-    onAgregarGrupo(nuevoGrupo);
-    toast.success('Nuevo grupo agregado correctamente');
-    
-    // Resetear formulario
-    setFormData({
-      nombre: '',
-      distrito: '',
-      direccion: '',
-      area: '',
-      tipo: 'I',
-      destinoGrupo: '',
-      fechaInicio: '',
-      fechaFin: ''
-    });
-    setErrors({});
-    onClose();
+      toast.success(
+        `Grupo ${parseInt(numeroNuevoGrupo) + 1} creado correctamente con ${pasajerosSeleccionados.length} pasajero(s)`,
+        { id: toastId },
+      );
+
+      // Resetear formulario
+      setFormData({
+        tipo: 'I',
+        fechaInicio: '',
+        fechaFin: '',
+      });
+      setPasajerosSeleccionados([]);
+      setErrors({});
+      onClose();
+
+      // Refrescar los datos después de un breve delay para que la API procese
+      setTimeout(() => {
+        onRefrescarDatos();
+      }, 1000);
+    } catch (error) {
+      console.error('Error al crear grupo:', error);
+      toast.error(`Error al crear el grupo`, { id: toastId });
+    }
   };
 
   const tiposGrupo = [
     { key: 'I', label: 'Ingreso (I)' },
-    { key: 'S', label: 'Salida (S)' }
+    { key: 'S', label: 'Salida (S)' },
   ];
 
   return (
-    <Modal 
-      isOpen={isOpen} 
+    <Modal
+      isOpen={isOpen}
       onClose={onClose}
-      size="2xl"
+      size="3xl"
       scrollBehavior="inside"
       classNames={{
-        base: "bg-white",
-        header: "border-b border-gray-200",
-        footer: "border-t border-gray-200"
+        base: 'bg-white',
+        header: 'border-b border-gray-200',
+        footer: 'border-t border-gray-200',
       }}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Agregar Nuevo Grupo
-          </h2>
-          <p className="text-sm text-gray-600">
-            Completa los datos del pasajero para crear un nuevo grupo
-          </p>
+        <ModalHeader className="flex items-center gap-2">
+          <MdLibraryAdd size={24} />
+          <div>
+            <h2 className="text-[15px] font-semibold uppercase text-gray-800">
+              Crear Nuevo Grupo
+            </h2>
+            <p className="text-sm text-gray-600">
+              Selecciona pasajeros para crear un nuevo grupo de servicio
+            </p>
+          </div>
         </ModalHeader>
-        
+
         <ModalBody className="gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Datos del Pasajero */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Configuración del Grupo */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
-                Datos del Pasajero
-              </h3>
-              
-              <Input
-                label="Nombre completo"
-                placeholder="Ingresa el nombre del pasajero"
-                value={formData.nombre}
-                onChange={(e) => handleInputChange('nombre', e.target.value)}
-                isInvalid={!!errors.nombre}
-                errorMessage={errors.nombre}
-                isRequired
-              />
-
-              <Input
-                label="Distrito"
-                placeholder="Ingresa el distrito"
-                value={formData.distrito}
-                onChange={(e) => handleInputChange('distrito', e.target.value)}
-                isInvalid={!!errors.distrito}
-                errorMessage={errors.distrito}
-                isRequired
-              />
-
-              <Input
-                label="Dirección"
-                placeholder="Ingresa la dirección completa"
-                value={formData.direccion}
-                onChange={(e) => handleInputChange('direccion', e.target.value)}
-                isInvalid={!!errors.direccion}
-                errorMessage={errors.direccion}
-                isRequired
-              />
-
-              <Input
-                label="Área"
-                placeholder="Ingresa el área"
-                value={formData.area}
-                onChange={(e) => handleInputChange('area', e.target.value)}
-                isInvalid={!!errors.area}
-                errorMessage={errors.area}
-                isRequired
-              />
-            </div>
-
-            {/* Datos del Grupo */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
-                Datos del Grupo
+              <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
+                Configuración del Grupo
               </h3>
 
               <Select
@@ -268,16 +282,6 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
                 ))}
               </Select>
 
-              <Input
-                label="Destino del grupo"
-                placeholder="Ingresa el destino"
-                value={formData.destinoGrupo}
-                onChange={(e) => handleInputChange('destinoGrupo', e.target.value)}
-                isInvalid={!!errors.destinoGrupo}
-                errorMessage={errors.destinoGrupo}
-                isRequired
-              />
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-600">
                   Fecha Inicio {formData.tipo === 'S' ? '*' : '(opcional)'}
@@ -285,14 +289,19 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
                 <input
                   type="datetime-local"
                   value={formData.fechaInicio}
-                  onChange={(e) => handleInputChange('fechaInicio', e.target.value)}
-                  className={`w-full px-3 py-3 text-sm border-2 rounded-xl bg-gray-50 hover:bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    errors.fechaInicio ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  onChange={(e) =>
+                    handleInputChange('fechaInicio', e.target.value)
+                  }
+                  className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.fechaInicio
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
                   }`}
-                  style={{ lineHeight: '1.5' }}
                 />
                 {errors.fechaInicio && (
-                  <p className="text-red-500 text-xs mt-1">{errors.fechaInicio}</p>
+                  <p className="mt-1 text-xs text-red-500">
+                    {errors.fechaInicio}
+                  </p>
                 )}
               </div>
 
@@ -303,49 +312,118 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
                 <input
                   type="datetime-local"
                   value={formData.fechaFin}
-                  onChange={(e) => handleInputChange('fechaFin', e.target.value)}
-                  className={`w-full px-3 py-3 text-sm border-2 rounded-xl bg-gray-50 hover:bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    errors.fechaFin ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                  onChange={(e) =>
+                    handleInputChange('fechaFin', e.target.value)
+                  }
+                  className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.fechaFin
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-300'
                   }`}
-                  style={{ lineHeight: '1.5' }}
                 />
                 {errors.fechaFin && (
-                  <p className="text-red-500 text-xs mt-1">{errors.fechaFin}</p>
+                  <p className="mt-1 text-xs text-red-500">{errors.fechaFin}</p>
                 )}
               </div>
+            </div>
+
+            {/* Selección de Pasajeros */}
+            <div className="space-y-4">
+              <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
+                Seleccionar Pasajeros
+              </h3>
+
+              <InputPasajero
+                onSelectPasajero={handleAgregarPasajero}
+                clearAfterSelect={true}
+              />
+
+              {errors.pasajeros && (
+                <p className="text-xs text-red-500">{errors.pasajeros}</p>
+              )}
+
+              {/* Lista de pasajeros seleccionados */}
+              {pasajerosSeleccionados.length > 0 ? (
+                <div className="mt-4">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">
+                    Pasajeros seleccionados ({pasajerosSeleccionados.length}):
+                  </h4>
+                  <div className="max-h-40 space-y-2 overflow-y-auto">
+                    {pasajerosSeleccionados.map((pasajero, index) => (
+                      <div
+                        key={pasajero.codlan}
+                        className="flex items-center justify-between rounded-lg border bg-gray-50 p-3"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800">
+                            {index + 1}. {pasajero.apepate}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            Código: {pasajero.codlan} | Lugar:{' '}
+                            {pasajero.codlugar}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            handleEliminarPasajero(pasajero.codlan)
+                          }
+                          className="ml-2 rounded p-1 text-red-600 hover:bg-red-100"
+                          title="Eliminar pasajero"
+                        >
+                          <MdDelete size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+                  <p className="text-center text-sm text-gray-600">
+                    Aún no has agregado pasajeros al grupo. Por favor selecciona
+                    algunos pasajeros.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Información adicional */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">Información:</h4>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Se creará un nuevo grupo con el pasajero especificado</li>
-              <li>• Puedes agregar más pasajeros al grupo después de crearlo</li>
-              <li>• La empresa será: <strong>{empresaActual}</strong></li>
+          <div className="rounded-lg bg-blue-50 p-4">
+            <h4 className="mb-2 font-medium text-blue-800">Información:</h4>
+            <ul className="space-y-1 text-sm text-blue-700">
+              <li>
+                • Se creará el un<strong> Nuevo Grupo</strong>
+              </li>
+
+              <li>
+                • La empresa será: <strong>{empresaActual}</strong>
+              </li>
               {formData.tipo === 'I' ? (
-                <li>• <strong>Tipo Ingreso:</strong> Solo fecha de fin es obligatoria</li>
+                <li>
+                  • <strong>Tipo Ingreso:</strong> Solo fecha de fin es
+                  obligatoria
+                </li>
               ) : (
-                <li>• <strong>Tipo Salida:</strong> Solo fecha de inicio es obligatoria</li>
+                <li>
+                  • <strong>Tipo Salida:</strong> Solo fecha de inicio es
+                  obligatoria
+                </li>
               )}
             </ul>
           </div>
         </ModalBody>
-        
+
         <ModalFooter>
-          <Button 
-            variant="ghost" 
-            onPress={onClose}
-            className="text-gray-600"
-          >
+          <Button color="danger" onPress={onClose}>
             Cancelar
           </Button>
-          <Button 
-            color="primary" 
+          <Button
+            color="primary"
             onPress={handleSubmit}
             className="bg-blue-600 text-white"
+            isDisabled={pasajerosSeleccionados.length === 0}
           >
-            Crear Grupo
+            Crear Grupo ({pasajerosSeleccionados.length} pasajeros)
           </Button>
         </ModalFooter>
       </ModalContent>
