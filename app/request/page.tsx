@@ -42,8 +42,11 @@ interface DeviceList {
   lastValidHeading: number;
 }
 
-interface fechaActual {
-  fechaActual: string;
+interface MarkerData {
+  marker: google.maps.Marker;
+  popup1: any;
+  popup2: any;
+  intervalId?: NodeJS.Timeout;
 }
 
 export default function RequestPage() {
@@ -52,21 +55,20 @@ export default function RequestPage() {
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<{ [key: string]: google.maps.Marker }>({});
-  const popupsRef = useRef<{ [key: string]: google.maps.OverlayView }>({});
+  const markersDataRef = useRef<{ [key: string]: MarkerData }>({});
   const [markersLoaded, setMarkersLoaded] = useState(false);
+  const clickListenerAttached = useRef<boolean>(false);
 
   const { baseUrl } = useApi();
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-
-
   const [filteredIdsFromSidebar, setFilteredIdsFromSidebar] = useState<string[] | null>(null);
 
+  // Cache para iconos para evitar recrearlos
+  const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
 
   useEffect(() => {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
   }, [filteredIdsFromSidebar]);
-  
 
   useEffect(() => {
     const connectSignalR = async () => {
@@ -87,7 +89,6 @@ export default function RequestPage() {
         console.log(`Conectado a SignalR con el grupo ${username}`);
 
         connection.on('ActualizarDatos', (datos) => {
-
           setMarkersLoaded(true);
           setDeviceList(datos.datosDevice);
         });
@@ -102,320 +103,286 @@ export default function RequestPage() {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries // ← importante
+    libraries
   });
 
   useEffect(() => {
     if (!isClient) return;
     
     if (isLoaded) {
-      try {
-        setMapLoaded(true);
-      } catch (error) {
-        console.error('Error setting mapLoaded in localStorage:', error);
-        setMapLoaded(true); 
-      }
-    } else {
-      try {
-        const storedMapLoaded = localStorage.getItem('mapLoaded') === 'true';
-        setMapLoaded(storedMapLoaded);
-      } catch (error) {
-        console.error('Error getting mapLoaded from localStorage:', error);
-      }
+      setMapLoaded(true);
     }
   }, [isLoaded, isClient]);
 
+  // Funciones optimizadas con memoización
+  const getDireccion = useCallback((heading: number): string => {
+    const directions = [
+      [0, 22.5, 'Norte'],
+      [22.51, 67.5, 'Noreste'],
+      [67.51, 112.5, 'Este'],
+      [112.51, 157.5, 'Sureste'],
+      [157.51, 202.5, 'Sur'],
+      [202.51, 247.5, 'Suroeste'],
+      [247.51, 292.5, 'Oeste'],
+      [292.51, 337.5, 'Noroeste'],
+      [337.51, 360.0, 'Norte']
+    ] as const;
 
-
-  const getDireccion = useCallback((heading: number) => {
-    if (heading >= 0 && heading <= 22.5) return 'Norte';
-    if (heading >= 22.51 && heading <= 67.5) return 'Noreste';
-    if (heading >= 67.51 && heading <= 112.5) return 'Este';
-    if (heading >= 112.51 && heading <= 157.5) return 'Sureste';
-    if (heading >= 157.51 && heading <= 202.5) return 'Sur';
-    if (heading >= 202.51 && heading <= 247.5) return 'Suroeste';
-    if (heading >= 247.51 && heading <= 292.5) return 'Oeste';
-    if (heading >= 292.51 && heading <= 337.5) return 'Noroeste';
-    if (heading >= 337.51 && heading <= 360.0) return 'Norte';
-    return 'Desconocido';
+    const direction = directions.find(([min, max]) => heading >= min && heading <= max);
+    return direction ? direction[2] : 'Desconocido';
   }, []);
 
   const getMarkerIcon = useCallback((heading: number) => {
     if (!isClient) return null;
     
+    const cacheKey = Math.floor(heading / 45) * 45; // Agrupa por rangos de 45 grados
+    
+    if (iconCache.current[cacheKey]) {
+      return iconCache.current[cacheKey];
+    }
+
     const directions = [
-      { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
-      {
-        range: [22.51, 67.5],
-        url: '/topright.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [67.51, 112.5],
-        url: '/right.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [112.51, 157.5],
-        url: '/downright.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [157.51, 202.5],
-        url: '/down.png',
-        size: new google.maps.Size(25, 35),
-      },
-      {
-        range: [202.51, 247.5],
-        url: '/downleft.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [247.51, 292.5],
-        url: '/left.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [292.51, 337.5],
-        url: '/topleft.png',
-        size: new google.maps.Size(42, 25),
-      },
-      {
-        range: [337.51, 360.0],
-        url: '/up.png',
-        size: new google.maps.Size(25, 35),
-      },
+      { range: [0, 22.5], url: '/up.png', size: [25, 35] },
+      { range: [22.51, 67.5], url: '/topright.png', size: [42, 25] },
+      { range: [67.51, 112.5], url: '/right.png', size: [42, 25] },
+      { range: [112.51, 157.5], url: '/downright.png', size: [42, 25] },
+      { range: [157.51, 202.5], url: '/down.png', size: [25, 35] },
+      { range: [202.51, 247.5], url: '/downleft.png', size: [42, 25] },
+      { range: [247.51, 292.5], url: '/left.png', size: [42, 25] },
+      { range: [292.51, 337.5], url: '/topleft.png', size: [42, 25] },
+      { range: [337.51, 360.0], url: '/up.png', size: [25, 35] },
     ];
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-    return direction
-      ? { url: direction.url, scaledSize: direction.size }
+
+    const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
+    const icon = direction
+      ? { url: direction.url, scaledSize: new google.maps.Size(direction.size[0], direction.size[1]) }
       : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
+
+    iconCache.current[cacheKey] = icon;
+    return icon;
   }, [isClient]);
 
-  const getEstado = useCallback(
-    (speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'),
-    [],
-  );
+  const getEstado = useCallback((speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'), []);
 
+  // Función optimizada para crear/actualizar marcadores
+  const updateMarkersAndPopups = useCallback((map: google.maps.Map) => {
+    if (!map || !isClient) return;
 
-
-  const createMarkersAndPopups = useCallback(
-    (map: google.maps.Map) => {
-      if (!map || !isClient) return;
-  
-      const existingMarkers = markersRef.current;
-      const existingPopups = popupsRef.current;
-
-      const filteredDeviceList = filteredIdsFromSidebar
+    const filteredDeviceList = filteredIdsFromSidebar
       ? deviceList.filter((device) => filteredIdsFromSidebar.includes(device.deviceId))
-      : deviceList; 
-    
-if (filteredIdsFromSidebar) {
-  Object.keys(existingMarkers).forEach((deviceId) => {
-    if (!filteredIdsFromSidebar.includes(deviceId)) {
-      // Eliminar marcador
-      existingMarkers[deviceId].setMap(null);
-      // Eliminar popup
-      existingPopups[deviceId].setMap(null);
-      // Eliminar contenido del popup
-      const content1 = document.querySelector(`#content-${deviceId}`);
-      if (content1) {
-        content1.remove();
-      }
-      delete existingMarkers[deviceId];
-      delete existingPopups[deviceId];
-    }
-  });
-}
+      : deviceList;
 
-  
-      filteredDeviceList.forEach((device) => {
-        const position = new google.maps.LatLng(
-          device.lastValidLatitude,
-          device.lastValidLongitude,
-        );
-  
-        if (existingMarkers[device.deviceId]) {
-          // Actualiza marcador existente
-          existingMarkers[device.deviceId].setPosition(position);
-          const icon = getMarkerIcon(device.lastValidHeading);
-          if (icon) {
-            existingMarkers[device.deviceId].setIcon(icon);
+    // Remover marcadores que ya no están en el filtro
+    if (filteredIdsFromSidebar) {
+      Object.keys(markersDataRef.current).forEach((deviceId) => {
+        if (!filteredIdsFromSidebar.includes(deviceId)) {
+          const markerData = markersDataRef.current[deviceId];
+          markerData.marker.setMap(null);
+          markerData.popup1.setMap(null);
+          markerData.popup2.setMap(null);
+          
+          if (markerData.intervalId) {
+            clearInterval(markerData.intervalId);
           }
-  
-          const popupContent2 = document.querySelector(
-            `#content2-${device.deviceId}`,
-          ) as HTMLElement;
-          if (popupContent2) {
-            popupContent2.innerHTML = getPopupContent(device);
-  
-            const closeButton = popupContent2.querySelector(
-              `#close-btn-${device.deviceId}`,
-            );
-            if (closeButton && !closeButton.hasAttribute('data-event-added')) {
-              closeButton.setAttribute('data-event-added', 'true');
-              closeButton.addEventListener('click', () => {
-                existingPopups[device.deviceId].setMap(null);
-              });
-            }
-          }
-  
-          existingPopups[device.deviceId].draw();
-        } else {
-          // Crear nuevo marcador y popups
-          const content1 = document.createElement('div');
-          content1.id = `content-${device.deviceId}`;
-          content1.innerHTML = `
-          <div class="relative flex flex-col items-center mt-4">
-            <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5">
-              ${device.deviceId.toUpperCase()}
-            </div>
-            <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
-          </div>
-        `;
-        
-          class Popup extends google.maps.OverlayView {
-            position: google.maps.LatLng;
-            containerDiv: HTMLDivElement;
-  
-            constructor(position: google.maps.LatLng, content: HTMLElement) {
-              super();
-              this.position = position;
-              content.classList.add('popup-bubble');
-              const bubbleAnchor = document.createElement('div');
-              bubbleAnchor.appendChild(content);
-              this.containerDiv = document.createElement('div');
-              this.containerDiv.classList.add('popup-container');
-              this.containerDiv.appendChild(bubbleAnchor);
-              Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
-            }
-  
-            onAdd() {
-              this.getPanes()!.floatPane.appendChild(this.containerDiv);
-            }
-  
-            onRemove() {
-              if (this.containerDiv.parentElement) {
-                this.containerDiv.parentElement.removeChild(this.containerDiv);
-              }
-            }
-  
-            draw() {
-              if (!this.getProjection() || !this.position || !this.containerDiv)
-                return;
-              const divPosition = this.getProjection().fromLatLngToDivPixel(
-                this.position,
-              )!;
-              this.containerDiv.style.left = `${divPosition.x}px`;
-              this.containerDiv.style.top = `${divPosition.y}px`;
-              this.containerDiv.style.display = 'block';
-            }
-          }
-  
-          const popup1 = new Popup(position, content1);
-          popup1.setMap(map);
-          existingPopups[device.deviceId] = popup1;
-  
-          const content2 = document.createElement('div');
-          content2.innerHTML = getPopupContent(device);
-          const popup2 = new Popup(position, content2);
-          popup2.setMap(null);
-          existingPopups[device.deviceId] = popup2;
-  
-          const icon = getMarkerIcon(device.lastValidHeading);
-          const marker = new google.maps.Marker({
-            position,
-            map,
-            icon: icon || undefined,
-          });
-  
-          marker.addListener('click', () => {
-            popup1.setMap(map);
-            popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
-          });
-  
-          marker.addListener('position_changed', () => {
-            const newPos = marker.getPosition();
-            if (newPos) {
-              popup1.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
-              popup1.draw();
-              popup2.position = new google.maps.LatLng(newPos.lat(), newPos.lng());
-              popup2.draw();
-            }
-          });
-  
-          map.addListener('zoom_changed', () => {
-            popup1.draw();
-            popup2.draw();
-          });
-  
-          map.addListener('center_changed', () => {
-            popup1.draw();
-            popup2.draw();
-          });
-  
-          existingMarkers[device.deviceId] = marker;
-  
-          const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`);
-          const fechaEl = content2.querySelector(`#fecha-${device.deviceId}`);
-  
-          if (fechaEl) {
-            const intervalId = setInterval(() => {
-              const now = new Date();
-              const day = String(now.getDate()).padStart(2, '0');
-              const month = String(now.getMonth() + 1).padStart(2, '0');
-              const year = now.getFullYear();
-              const hours = String(now.getHours()).padStart(2, '0');
-              const minutes = String(now.getMinutes()).padStart(2, '0');
-              const seconds = String(now.getSeconds()).padStart(2, '0');
-              fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
-            }, 1000);
-  
-            if (closeButton) {
-              closeButton.addEventListener('click', () => {
-                popup2.setMap(null);
-                clearInterval(intervalId);
-              });
-            }
-          }
+          
+          // Limpiar elementos DOM
+          const content1 = document.querySelector(`#content-${deviceId}`);
+          const content2 = document.querySelector(`#content2-${deviceId}`);
+          content1?.remove();
+          content2?.remove();
+          
+          delete markersDataRef.current[deviceId];
         }
       });
-  
-      function getPopupContent(device: any) {
-        const fechaActualHoy = new Date();
-        const day = String(fechaActualHoy.getDate()).padStart(2, '0');
-        const month = String(fechaActualHoy.getMonth() + 1).padStart(2, '0');
-        const year = fechaActualHoy.getFullYear();
-        const hours = String(fechaActualHoy.getHours()).padStart(2, '0');
-        const minutes = String(fechaActualHoy.getMinutes()).padStart(2, '0');
-        const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
-  
-        return `
-          <div class="bg-[#1f2937] text-[12px] text-white flex flex-col w-[250px]" id="content2-${device.deviceId}">
+    }
 
-            <button id="close-btn-${device.deviceId}" class="popup-close-btn text-sm">X</button>
-            <h3 class="popup-title p-2">Unidad: ${device.deviceId.toUpperCase()}</h3>
-            <p class="px-2"><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</p>
-            <p class="px-2"><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</p>
-            <br>
-            <h4 class="popup-subtitle px-2">Último Reporte</h4>
-            <p class="px-2" id="fecha-${device.deviceId}">
-              <strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}
-            </p>        
-            <span class="px-2"><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</span>
-            <span class="px-2"><strong>Ubicación:</strong> ${device.direccion} </span>
-            <a href="" class="follow-link ml-2 mr-2 mb-3" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+    // Actualizar o crear marcadores
+    filteredDeviceList.forEach((device) => {
+      const position = new google.maps.LatLng(
+        device.lastValidLatitude,
+        device.lastValidLongitude,
+      );
 
-          </div>
-        `;
+      const existingMarkerData = markersDataRef.current[device.deviceId];
+
+      if (existingMarkerData) {
+        // Solo actualizar posición e icono si es necesario
+        if (!existingMarkerData.marker.getPosition()?.equals(position)) {
+          existingMarkerData.marker.setPosition(position);
+          existingMarkerData.popup1.position = position;
+          existingMarkerData.popup2.position = position;
+        }
+
+        const newIcon = getMarkerIcon(device.lastValidHeading);
+        if (newIcon && existingMarkerData.marker.getIcon() !== newIcon) {
+          existingMarkerData.marker.setIcon(newIcon);
+        }
+
+        // Actualizar contenido del popup2 más eficientemente
+        updatePopupContent(device, existingMarkerData);
+      } else {
+        // Crear nuevo marcador
+        createNewMarker(device, position, map);
       }
-    },
-    [deviceList, filteredIdsFromSidebar,getMarkerIcon, getEstado, getDireccion, isClient],
-  );
-  
+    });
+  }, [deviceList, filteredIdsFromSidebar, getMarkerIcon, getEstado, getDireccion, isClient]);
 
+  // Función para actualizar contenido del popup sin recrear el elemento
+  const updatePopupContent = useCallback((device: DeviceList, markerData: MarkerData) => {
+    const popupElement = document.querySelector(`#content2-${device.deviceId}`) as HTMLElement;
+    if (!popupElement) return;
+
+    // Actualizar solo los elementos que cambian
+    const speedElement = popupElement.querySelector('.speed-value');
+    const stateElement = popupElement.querySelector('.state-value');
+    const directionElement = popupElement.querySelector('.direction-value');
+    const locationElement = popupElement.querySelector('.location-value');
+
+    if (speedElement) speedElement.textContent = `${device.lastValidSpeed} Km/h`;
+    if (stateElement) stateElement.textContent = getEstado(device.lastValidSpeed);
+    if (directionElement) directionElement.textContent = getDireccion(device.lastValidHeading);
+    if (locationElement) locationElement.textContent = device.direccion;
+  }, [getEstado, getDireccion]);
+
+  // Función para crear nuevos marcadores
+  const createNewMarker = useCallback((device: DeviceList, position: google.maps.LatLng, map: google.maps.Map) => {
+    // Crear popup1 (etiqueta)
+    const content1 = document.createElement('div');
+    content1.id = `content-${device.deviceId}`;
+    content1.innerHTML = `
+      <div class="relative flex flex-col items-center mt-4">
+        <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5">
+          ${device.deviceId.toUpperCase()}
+        </div>
+        <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
+      </div>
+    `;
+
+    // Crear popup2 (información detallada)
+    const content2 = document.createElement('div');
+    content2.innerHTML = getOptimizedPopupContent(device);
+
+    // Clase Popup optimizada
+    class Popup extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      containerDiv: HTMLDivElement;
+
+      constructor(position: google.maps.LatLng, content: HTMLElement) {
+        super();
+        this.position = position;
+        content.classList.add('popup-bubble');
+        const bubbleAnchor = document.createElement('div');
+        bubbleAnchor.appendChild(content);
+        this.containerDiv = document.createElement('div');
+        this.containerDiv.classList.add('popup-container');
+        this.containerDiv.appendChild(bubbleAnchor);
+        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+      }
+
+      onAdd() {
+        this.getPanes()!.floatPane.appendChild(this.containerDiv);
+      }
+
+      onRemove() {
+        if (this.containerDiv.parentElement) {
+          this.containerDiv.parentElement.removeChild(this.containerDiv);
+        }
+      }
+
+      draw() {
+        if (!this.getProjection() || !this.position || !this.containerDiv) return;
+        
+        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
+        this.containerDiv.style.left = `${divPosition.x}px`;
+        this.containerDiv.style.top = `${divPosition.y}px`;
+        this.containerDiv.style.display = 'block';
+      }
+    }
+
+    const popup1 = new Popup(position, content1);
+    const popup2 = new Popup(position, content2);
+    
+    popup1.setMap(map);
+    popup2.setMap(null);
+
+    // Crear marcador
+    const icon = getMarkerIcon(device.lastValidHeading);
+    const marker = new google.maps.Marker({
+      position,
+      map,
+      icon: icon || undefined,
+    });
+
+    // Event listeners optimizados
+    const clickListener = marker.addListener('click', () => {
+      popup1.setMap(map);
+      popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
+    });
+
+    // Configurar intervalo para actualización de fecha/hora
+    const fechaEl = content2.querySelector(`#fecha-${device.deviceId}`);
+    let intervalId: NodeJS.Timeout | undefined;
+    
+    if (fechaEl) {
+      intervalId = setInterval(() => {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+      }, 1000);
+    }
+
+    // Configurar botón de cerrar
+    const closeButton = content2.querySelector(`#close-btn-${device.deviceId}`);
+    if (closeButton) {
+      closeButton.addEventListener('click', () => {
+        popup2.setMap(null);
+        if (intervalId) clearInterval(intervalId);
+      });
+    }
+
+    // Guardar referencia
+    markersDataRef.current[device.deviceId] = {
+      marker,
+      popup1,
+      popup2,
+      intervalId
+    };
+  }, [getMarkerIcon, getEstado, getDireccion]);
+
+  // Función para generar contenido del popup optimizado
+  const getOptimizedPopupContent = useCallback((device: DeviceList) => {
+    const fechaActualHoy = new Date();
+    const day = String(fechaActualHoy.getDate()).padStart(2, '0');
+    const month = String(fechaActualHoy.getMonth() + 1).padStart(2, '0');
+    const year = fechaActualHoy.getFullYear();
+    const hours = String(fechaActualHoy.getHours()).padStart(2, '0');
+    const minutes = String(fechaActualHoy.getMinutes()).padStart(2, '0');
+    const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
+
+    return `
+      <div class="bg-[#1f2937] text-[12px] text-white flex flex-col w-[250px]" id="content2-${device.deviceId}">
+        <button id="close-btn-${device.deviceId}" class="popup-close-btn text-sm">X</button>
+        <h3 class="popup-title p-2">Unidad: ${device.deviceId.toUpperCase()}</h3>
+        <p class="px-2"><strong>Velocidad:</strong> <span class="speed-value">${device.lastValidSpeed} Km/h</span></p>
+        <p class="px-2"><strong>Estado:</strong> <span class="state-value">${getEstado(device.lastValidSpeed)}</span></p>
+        <br>
+        <h4 class="popup-subtitle px-2">Último Reporte</h4>
+        <p class="px-2" id="fecha-${device.deviceId}">
+          <strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}
+        </p>        
+        <span class="px-2"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
+        <span class="px-2"><strong>Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
+        <a href="" class="follow-link ml-2 mr-2 mb-3" data-device-id="${device.deviceId}">🔍 Seguir Unidad</a>
+      </div>
+    `;
+  }, [getEstado, getDireccion]);
+
+  // Event listener optimizado para links
   const handleFollowLinkClick = useCallback((e: MouseEvent) => {
     if (!isClient) return;
     
@@ -431,9 +398,17 @@ if (filteredIdsFromSidebar) {
   useEffect(() => {
     if (!isClient) return;
     
-    document.addEventListener('click', handleFollowLinkClick);
+    // Usar delegación de eventos para mejor rendimiento
+    if (!clickListenerAttached.current) {
+      document.addEventListener('click', handleFollowLinkClick);
+      clickListenerAttached.current = true;
+    }
+    
     return () => {
-      document.removeEventListener('click', handleFollowLinkClick);
+      if (clickListenerAttached.current) {
+        document.removeEventListener('click', handleFollowLinkClick);
+        clickListenerAttached.current = false;
+      }
     };
   }, [handleFollowLinkClick, isClient]);
 
@@ -444,47 +419,52 @@ if (filteredIdsFromSidebar) {
     }
   }, []);
 
-  const centerUnit = useCallback(
-    (coords: { latitud: number; longitud: number }) => {
-      if (mapRef.current) {
-        const centerCoords = { lat: coords.latitud, lng: coords.longitud };
-        mapRef.current.setCenter(centerCoords);
-        mapRef.current.setZoom(17);
-        const deviceID = deviceList.find(
-          (device) =>
-            device.lastValidLatitude === coords.latitud &&
-            device.lastValidLongitude === coords.longitud,
-        )?.deviceId;
-        if (deviceID && popupsRef.current[deviceID]) {
-          popupsRef.current[deviceID].setMap(mapRef.current);
-        }
+  const centerUnit = useCallback((coords: { latitud: number; longitud: number }) => {
+    if (mapRef.current) {
+      const centerCoords = { lat: coords.latitud, lng: coords.longitud };
+      mapRef.current.setCenter(centerCoords);
+      mapRef.current.setZoom(17);
+      
+      const deviceID = deviceList.find(
+        (device) =>
+          device.lastValidLatitude === coords.latitud &&
+          device.lastValidLongitude === coords.longitud,
+      )?.deviceId;
+      
+      if (deviceID && markersDataRef.current[deviceID]) {
+        markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
       }
-    },
-    [deviceList],
-  );
-
-  useEffect(() => {
-    if (mapRef.current && isClient) {
-      createMarkersAndPopups(mapRef.current);
     }
-  }, [createMarkersAndPopups, isClient]);
+  }, [deviceList]);
 
-  const onLoad = useCallback(
-    (map: google.maps.Map) => {
-      mapRef.current = map;
-      setMarkersLoaded(false);
-      createMarkersAndPopups(map);
-    },
-    [createMarkersAndPopups],
-  );
+  // Effect optimizado para actualizar marcadores
+  useEffect(() => {
+    if (mapRef.current && isClient && deviceList.length > 0) {
+      updateMarkersAndPopups(mapRef.current);
+    }
+  }, [updateMarkersAndPopups, isClient, deviceList]);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    setMarkersLoaded(false);
+  }, []);
 
   const onUnmount = useCallback(() => {
     if (!isClient) return;
     
-    Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
-    Object.values(popupsRef.current).forEach((popup) => popup.setMap(null));
-    markersRef.current = {};
-    popupsRef.current = {};
+    // Limpiar todos los marcadores y sus intervalos
+    Object.values(markersDataRef.current).forEach((markerData) => {
+      markerData.marker.setMap(null);
+      markerData.popup1.setMap(null);
+      markerData.popup2.setMap(null);
+      if (markerData.intervalId) {
+        clearInterval(markerData.intervalId);
+      }
+    });
+    markersDataRef.current = {};
+    
+    // Limpiar cache de iconos
+    iconCache.current = {};
   }, [isClient]);
 
   const memoizedMapOptions = useMemo(

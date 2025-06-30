@@ -64,46 +64,41 @@ export default function Login() {
     }
   }, [servidorUrl]);
 
-  const handleSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setIsLoading(true);
-      setIsSuccess(false);
-      setErrors([]);
+const handleSubmit = useCallback(
+  async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setErrors([]);
 
-      if (!login || !clave) {
-        setErrors(['Complete usuario y contraseña']);
-        setIsLoading(false);
-        return;
-      }
+    if (!login || !clave) {
+      setErrors(['Complete usuario y contraseña']);
+      setIsLoading(false);
+      return;
+    }
 
-      const responseNextAuth = await signIn('credentials', {
-        login,
-        clave,
-        redirect: false,
-        callbackUrl: '/trackvelnew',
-      });
+    const responseNextAuth = await signIn('credentials', {
+      login,
+      clave,
+      redirect: false,
+      callbackUrl: '/trackvelnew',
+    });
 
-      if (responseNextAuth?.error) {
-        setErrors(responseNextAuth.error.split(','));
-        setIsLoading(false);
-      } else {
-        setIsSuccess(true);
-        setIsLoading(false);
-
-        const username = login;
-        localStorage.setItem('currentUser', username);
-
-        setTimeout(() => {
-          router.push('/trackvelnew');
-        }, 1500);
-      }
-    },
-    [login, clave, router, baseUrl],
-  );
+    if (responseNextAuth?.error) {
+      setErrors(responseNextAuth.error.split(','));
+      setIsLoading(false);
+    } else {
+      const username = login;
+      localStorage.setItem('currentUser', username);
+      
+      // Redirección inmediata
+      router.push('/trackvelnew');
+    }
+  },
+  [login, clave, router, baseUrl],
+);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Panel izquierdo con slider */}
       <div className="relative hidden overflow-hidden lg:flex lg:w-[70%]">
         <div className="absolute inset-0 z-10 bg-gradient-to-br from-blue-700/80 to-orange-900/50"></div>
