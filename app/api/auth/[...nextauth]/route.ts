@@ -1,105 +1,21 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-// Cache para URLs de servidor (en memoria)
-const serverUrlCache = new Map<string, { url: string; timestamp: number }>();
-const CACHE_TTL =  7 * 24 * 60 * 60 * 1000; // 7 días
 
-const getServerUrl = async (username: string): Promise<string> => {
-  const cached = serverUrlCache.get(username);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log(`URL del servidor obtenida del cache para ${username}`);
-    return cached.url;
-  }
-
+const getServerUrl = async (username: string) => {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); 
-
-    const res = await fetch(`https://velsat.pe:8586/api/Server/${username}`, {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
-      }
-    });
-
-    clearTimeout(timeoutId);
-
+    const res = await fetch(`https://velsat.pe:8586/api/Server/${username}`);
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      throw new Error('No se pudo obtener la URL del servidor');
     }
-
     const data = await res.json();
-    
-    if (!data.servidor) {
-      throw new Error('Respuesta del servidor inválida');
-    }
-
-    serverUrlCache.set(username, {
-      url: data.servidor,
-      timestamp: Date.now()
-    });
-
-    console.log(`Servidor recibido para ${username}:`, data.servidor);
+    console.log("Servidor recibido:", data.servidor);
     return data.servidor;
   } catch (error) {
-    console.error(`Error al obtener URL del servidor para ${username}:`, error);
-    
-    const expiredCache = serverUrlCache.get(username);
-    if (expiredCache) {
-      console.warn(`Usando cache expirado para ${username}`);
-      return expiredCache.url;
-    }
-    
+    console.error('Error al obtener la URL del servidor:', error);
     throw new Error('Error al obtener la URL del servidor');
   }
 };
-
-const performLogin = async (serverUrl: string, credentials: { login: string; clave: string }) => {
-  const urlLogin = `${serverUrl}/api/Login/login`;
-  console.log('URL de login:', urlLogin);
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-  try {
-    const res = await fetch(urlLogin, {
-      method: 'POST',
-      signal: controller.signal,
-      body: JSON.stringify({
-        login: credentials.login,
-        clave: credentials.clave,
-      }),
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-    });
-
-    clearTimeout(timeoutId);
-
-    const user = await res.json();
-
-    if (!res.ok) {
-      if (user?.errors) {
-        const errorMessages = Object.values(user.errors).flat().join(', ');
-        throw new Error(errorMessages);
-      }
-      throw new Error(`Error de autenticación: ${res.status} ${res.statusText}`);
-    }
-
-    if (!user?.token) {
-      throw new Error('Token no recibido del servidor');
-    }
-
-    return user;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
-};
-
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
@@ -109,67 +25,59 @@ const handler = NextAuth({
         login: { label: 'Login', type: 'text' },
         clave: { label: 'Clave', type: 'password' },
       },
-      async authorize(credentials) {
-        if (!credentials?.login || !credentials?.clave) {
-          throw new Error('Login y contraseña son obligatorios');
+      async authorize(credentials, req) {
+        
+        if (!credentials?.login || !credentials.clave) {
+          throw new Error('Credenciales no proporcionadas');
         }
+        const serverUrl = await getServerUrl(credentials.login);
+      const urlLogin = `${serverUrl}/api/Login/login`;
+      
+      console.log('URL de login:', urlLogin);
+        const res = await fetch(urlLogin, {
+          method: 'POST',
+          body: JSON.stringify({
+            login: credentials?.login,
+            clave: credentials?.clave,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        });
 
-        try {
-          const serverUrl = await getServerUrl(credentials.login);
-          
-          const user = await performLogin(serverUrl, {
-            login: credentials.login,
-            clave: credentials.clave
-          });
+        const user = await res.json();
 
+        if (!res.ok) {
+          if (user && user.errors) {
+            throw new Error(Object.values(user.errors).flat().join(', '));
+          }
+          throw new Error('Error de autenticación');
+        }
+        if (res.ok && user && user.token) {
           user.serverUrl = serverUrl;
-          
           return user;
-        } catch (error) {
-          console.error('Error en autorización:', error);
-          throw error;
         }
+        return null;
+        
       },
     }),
   ],
 
   callbacks: {
     async jwt({ token, user }) {
-      // Solo agregar datos del usuario en el primer login
       if (user) {
-        return {
-          ...token,
-          ...user,
-          serverUrl: user.serverUrl
-        };
+        token.serverUrl = user.serverUrl;
       }
-      return token;
+      return { ...token, ...user };
     },
-    
     async session({ session, token }) {
-
-      // Optimizar asignación de session
-      session.user = {
-        ...session.user,
-        ...token,
-        serverUrl: token.serverUrl
-      };
+      session.user = token as any;
+      session.user.serverUrl = token.serverUrl;
       return session;
     },
   },
 
-  pages: {
+  pages: { 
     signIn: "/",
     signOut: "/",
-  },
-
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, 
-  },
-  
-  jwt: {
-    maxAge: 30 * 24 * 60 * 60, 
   }
 });
 
