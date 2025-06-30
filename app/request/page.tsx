@@ -6,7 +6,7 @@ import React, {
   useRef,
   useMemo,
 } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import {useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
@@ -14,7 +14,6 @@ import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
-import Tollbar from '../components/Tollbar';
 
 const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then(mod => mod.GoogleMap),
@@ -60,6 +59,8 @@ export default function RequestPage() {
   const clickListenerAttached = useRef<boolean>(false);
 
   const { baseUrl } = useApi();
+
+  
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const [filteredIdsFromSidebar, setFilteredIdsFromSidebar] = useState<string[] | null>(null);
 

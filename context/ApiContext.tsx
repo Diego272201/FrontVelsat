@@ -1,4 +1,4 @@
-'use client'; // Para permitir el uso de hooks del cliente
+'use client'; 
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useSession } from 'next-auth/react';

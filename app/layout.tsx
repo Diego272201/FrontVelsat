@@ -1,8 +1,7 @@
-
 import SessionAuthProvider from '@/context/SessionAuthProvider';
 import './globals.css';
 import { ApiProvider } from '@/context/ApiContext';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from '@vercel/analytics/next';
 
 export default function RootLayout({
   children,
@@ -20,16 +19,13 @@ export default function RootLayout({
       </head>
 
       <body>
-          <SessionAuthProvider>
+        <SessionAuthProvider>
           <ApiProvider>
-
             {children}
             <Analytics />
-            </ApiProvider>
-
-          </SessionAuthProvider>
+          </ApiProvider>
+        </SessionAuthProvider>
       </body>
-
     </html>
   );
 }

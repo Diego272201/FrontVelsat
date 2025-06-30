@@ -1,12 +1,16 @@
 'use client';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Spinner } from '@nextui-org/react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import { Eye, EyeOff, LogIn, Check } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
+
+// Cache global para servidores
+const serverCache = new Map<string, { url: string; timestamp: number }>();
+const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 horas
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -14,88 +18,217 @@ export default function Login() {
   const [clave, setClave] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const router = useRouter();
   const [servidorUrl, setServidorUrl] = useState('');
+  
+  const router = useRouter();
+  const { baseUrl } = useApi();
+  
+  // Referencias para optimizaciones
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
-  const { baseUrl } = useApi();
+  // Función ultra-optimizada para obtener servidor
+  const obtenerServidor = useCallback(async (usuario: string): Promise<string | null> => {
+    const trimmedUser = usuario.trim().toLowerCase();
+    
+    if (!trimmedUser) return null;
 
-  const obtenerServidor = async (usuario: string) => {
+    const cached = serverCache.get(trimmedUser);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      console.log(`⚡ Cache hit para ${trimmedUser}`);
+      return cached.url;
+    }
+
     try {
-      const response = await fetch(
-        `https://velsat.pe:8586/api/Server/${usuario}`,
-      );
+      const localCache = localStorage.getItem(`server_${trimmedUser}`);
+      if (localCache) {
+        const parsed = JSON.parse(localCache);
+        if (Date.now() - parsed.timestamp < CACHE_DURATION) {
+          serverCache.set(trimmedUser, parsed);
+          console.log(`💾 Cache localStorage para ${trimmedUser}`);
+          return parsed.url;
+        }
+      }
+    } catch (e) {
+      console.warn('Error leyendo cache local:', e);
+    }
+
+    try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
+      const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), 3000);
+
+      const response = await fetch(`https://velsat.pe:8586/api/Server/${trimmedUser}`, {
+        signal: abortControllerRef.current.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (data.servidor) {
-        return data.servidor;
-      } else {
-        throw new Error('No se encontró el campo "servidor" en la respuesta');
+      if (!data.servidor) {
+        throw new Error('Servidor no encontrado');
       }
+
+      const cacheData = { url: data.servidor, timestamp: Date.now() };
+      serverCache.set(trimmedUser, cacheData);
+      
+      try {
+        localStorage.setItem(`server_${trimmedUser}`, JSON.stringify(cacheData));
+      } catch (e) {
+        console.warn('Error guardando cache:', e);
+      }
+
+      console.log(`🎯 Servidor obtenido: ${data.servidor}`);
+      return data.servidor;
+
     } catch (error) {
-      console.error('Error al obtener servidor:', error);
+      if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+        return null;
+      }
+      
+      console.error('Error obteniendo servidor:', error);
+      
+      if (cached) {
+        console.warn(`⚠️ Usando cache expirado para ${trimmedUser}`);
+        return cached.url;
+      }
+      
       setErrors(['No se pudo obtener el servidor para el usuario.']);
       return null;
     }
-  };
+  }, []);
+
+  // Effect optimizado con debounce más rápido
   useEffect(() => {
-    if (!login) {
+    if (!login.trim()) {
       setErrors([]);
+      setServidorUrl('');
       return;
     }
 
-    const delayDebounce = setTimeout(async () => {
-      const url = await obtenerServidor(login);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Debounce reducido para mayor velocidad
+    timeoutRef.current = setTimeout(async () => {
+      const url = await obtenerServidor(login.trim());
       if (url) {
         setServidorUrl(url);
         setErrors([]);
-        localStorage.setItem('servidorUrl', url);
+        try {
+          localStorage.setItem('servidorUrl', url);
+        } catch (e) {
+          console.warn('Error guardando servidor:', e);
+        }
       }
-    }, 800);
+    }, 200); // Reducido de 800ms a 400ms
 
-    return () => clearTimeout(delayDebounce);
-  }, [login]);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [login, obtenerServidor]);
 
+  // Cleanup al desmontar
   useEffect(() => {
-    if (servidorUrl) {
-      console.log('servidorUrl actualizado:', servidorUrl);
-    }
-  }, [servidorUrl]);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
-const handleSubmit = useCallback(
-  async (event: React.FormEvent<HTMLFormElement>) => {
+  // Precargar recursos
+  useEffect(() => {
+    router.prefetch('/trackvelnew');
+  }, [router]);
+
+  // Submit ultra-rápido SIN mensaje de éxito
+  const handleSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setErrors([]);
 
-    if (!login || !clave) {
+    const trimmedLogin = login.trim();
+    const trimmedClave = clave.trim();
+
+    if (!trimmedLogin || !trimmedClave) {
       setErrors(['Complete usuario y contraseña']);
       setIsLoading(false);
       return;
     }
 
-    const responseNextAuth = await signIn('credentials', {
-      login,
-      clave,
-      redirect: false,
-      callbackUrl: '/trackvelnew',
-    });
+    try {
+      // Timeout agresivo para auth
+      const authPromise = signIn('credentials', {
+        login: trimmedLogin,
+        clave: trimmedClave,
+        redirect: false,
+        callbackUrl: '/trackvelnew',
+      });
 
-    if (responseNextAuth?.error) {
-      setErrors(responseNextAuth.error.split(','));
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 8000)
+      );
+
+      const responseNextAuth = await Promise.race([authPromise, timeoutPromise]) as any;
+
+      if (responseNextAuth?.error) {
+        setErrors(responseNextAuth.error.split(','));
+        setIsLoading(false);
+      } else if (responseNextAuth?.ok) {
+        // ✅ SIN MENSAJE DE ÉXITO - REDIRECCIÓN INMEDIATA
+        try {
+          localStorage.setItem('currentUser', trimmedLogin);
+        } catch (e) {
+          console.warn('Error guardando usuario:', e);
+        }
+        
+        // Redirección instantánea sin delays
+        router.push('/trackvelnew');
+        // No setear isLoading(false) ni isSuccess para mantener el spinner hasta redirigir
+        
+      } else {
+        throw new Error('Respuesta inválida');
+      }
+    } catch (error) {
+      console.error('Error en autenticación:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      setErrors([
+        errorMessage === 'Timeout' 
+          ? 'La autenticación está tardando más de lo esperado.'
+          : 'Error de autenticación. Verifique sus credenciales.'
+      ]);
       setIsLoading(false);
-    } else {
-      const username = login;
-      localStorage.setItem('currentUser', username);
-      
-      // Redirección inmediata
-      router.push('/trackvelnew');
     }
-  },
-  [login, clave, router, baseUrl],
-);
+  }, [login, clave, router]);
+
+  // Enter para submit rápido
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoading && servidorUrl && login.trim() && clave.trim()) {
+      handleSubmit(e as any);
+    }
+  }, [handleSubmit, isLoading, servidorUrl, login, clave]);
 
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
@@ -131,7 +264,7 @@ const handleSubmit = useCallback(
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                <span>GPS  </span>
+                <span>GPS</span>
               </div>
             </div>
           </div>
@@ -149,6 +282,7 @@ const handleSubmit = useCallback(
                 alt="LogoVelsat"
                 width={180}
                 height={180}
+                priority
               />
             </div>
             <h2 className="mb-2 text-2xl font-bold text-white xl:text-3xl">
@@ -170,9 +304,18 @@ const handleSubmit = useCallback(
                   placeholder="Ingresar usuario"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
-                  disabled={isLoading || isSuccess}
+                  disabled={isLoading}
+                  autoComplete="username"
+                  autoFocus
                 />
+                {/* Indicador sutil de servidor encontrado */}
+                {servidorUrl && !errors.length && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="h-2 w-2 rounded-full bg-green-400"></div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -187,15 +330,17 @@ const handleSubmit = useCallback(
                   placeholder="Ingresar contraseña"
                   value={clave}
                   onChange={(e) => setClave(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 pr-12 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
-                  disabled={isLoading || isSuccess}
+                  disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   className="absolute right-3 top-1/2 -translate-y-1/2 transform focus:outline-none"
                   type="button"
                   onClick={toggleVisibility}
                   aria-label="Mostrar/Ocultar contraseña"
-                  disabled={isLoading || isSuccess}
+                  disabled={isLoading}
                 >
                   {isVisible ? (
                     <EyeOff className="h-5 w-5 text-gray-400 transition-colors hover:text-white" />
@@ -237,43 +382,18 @@ const handleSubmit = useCallback(
               </div>
             )}
 
-            {/* Mostrar mensaje de éxito */}
-            {isSuccess && (
-              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-2.5 backdrop-blur-sm xl:p-3">
-                <div className="flex items-center space-x-2">
-                  <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-green-500 xl:h-5 xl:w-5">
-                    <Check className="h-2.5 w-2.5 text-white xl:h-3 xl:w-3" />
-                  </div>
-                  <p className="text-xs text-green-300 xl:text-sm">
-                    ¡Autenticación exitosa! Redirigiendo...
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Botón de login */}
+            {/* Botón de login - SIN estado de éxito */}
             <button
               type="submit"
-              className={`flex w-full transform items-center justify-center space-x-2 rounded-lg px-8 py-2.5 font-semibold shadow-lg transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed xl:py-3 ${
-                isSuccess
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gradient-to-r from-orange-500 to-red-600 text-white hover:scale-[1.02] hover:shadow-xl'
-              } ${isLoading || isSuccess ? 'opacity-75' : ''}`}
-              disabled={isLoading || isSuccess}
+              className={`flex w-full transform items-center justify-center space-x-2 rounded-lg px-8 py-2.5 font-semibold shadow-lg transition-all duration-200 disabled:transform-none disabled:cursor-not-allowed xl:py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white hover:scale-[1.02] hover:shadow-xl ${
+                isLoading ? 'opacity-75' : ''
+              }`}
+              disabled={isLoading}
             >
               {isLoading ? (
                 <>
                   <Spinner color="warning" size="sm" />
                   <span className="text-sm xl:text-base">Autenticando...</span>
-                </>
-              ) : isSuccess ? (
-                <>
-                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white xl:h-5 xl:w-5">
-                    <Check className="h-2.5 w-2.5 text-green-600 xl:h-3 xl:w-3" />
-                  </div>
-                  <span className="text-sm xl:text-base">
-                    ¡Autenticado con éxito!
-                  </span>
                 </>
               ) : (
                 <>
