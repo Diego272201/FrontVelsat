@@ -139,7 +139,18 @@ const handleSubmit = useCallback(
       </div>
 
       {/* Panel derecho con formulario */}
-      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8">
+<div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8 relative">
+        {/* Indicador de Conexión Segura */}
+        <div className="absolute top-4 right-4 flex items-center space-x-2 rounded bg-green-500/20 px-3 py-1.5 backdrop-blur-sm border border-green-500/30">
+          <div className="relative">
+            <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+            <div className="absolute inset-0 h-2 w-2 rounded-full bg-green-400 animate-ping"></div>
+          </div>
+          <span className="text-xs font-medium text-green-300 animate-pulse">
+            Conexión segura
+          </span>
+        </div>
+
         <div className="w-full max-w-md">
           {/* Logo y encabezado */}
           <div className="mb-6 text-center xl:mb-8">
