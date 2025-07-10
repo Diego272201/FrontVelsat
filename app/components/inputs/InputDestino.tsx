@@ -25,7 +25,7 @@ export default function InputDestino({ onSelectDestino }: InputDestinoProps) {
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:8586/api/Preplan/GetDestinos?palabra=${busqueda}`
+          `https://velsat.pe:2096/api/Preplan/GetDestinos?palabra=${busqueda}`
         );
 
         const resultados = Array.isArray(response.data)

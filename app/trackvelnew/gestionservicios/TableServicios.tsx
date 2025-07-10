@@ -261,7 +261,7 @@ export default function App({
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:8586/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -357,7 +357,7 @@ export default function App({
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/conductores?usuario=movilbus',
+          'https://velsat.pe:2096/api/Preplan/conductores?usuario=movilbus',
         );
         setConductores(response.data);
       } catch (error) {
@@ -372,7 +372,7 @@ export default function App({
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          'https://velsat.pe:8586/api/Preplan/unidades',
+          'https://velsat.pe:2096/api/Preplan/unidades',
         );
         setUnidadesA(response.data);
       } catch (error) {
@@ -484,7 +484,7 @@ export default function App({
     const fetchData = async () => {
       setLoading(true);
       const currentDate = selectedDate || getFormattedDate();
-      const API_URL = `https://velsat.pe:8586/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
+      const API_URL = `https://velsat.pe:2096/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
@@ -516,7 +516,7 @@ export default function App({
     const fetchPasajeroData = async () => {
       const currentDate = selectedDate || getFormattedDate();
 
-      const API_URL = `https://velsat.pe:8586/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
+      const API_URL = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
 
       setLoading(true);
       setErrorPasajero(null);
@@ -611,7 +611,7 @@ export default function App({
 
     try {
       const response = await axios.post(
-        'https://velsat.pe:8586/api/Preplan/AsignarServicio',
+        'https://velsat.pe:2096/api/Preplan/AsignarServicio',
         payload,
       );
       toast.success('Asignación realizada con éxito.');
@@ -628,7 +628,7 @@ export default function App({
   const handleCancelarAsignacion = async (codServicio: string) => {
     try {
       await axios.put(
-        `https://velsat.pe:8586/api/Preplan/canasig/${codServicio}`,
+        `https://velsat.pe:2096/api/Preplan/canasig/${codServicio}`,
       );
 
       setData((prevData) => {
@@ -667,7 +667,7 @@ export default function App({
   const handleCancelarServicio = async (codServicio: string) => {
     try {
       await axios.delete(
-        `https://velsat.pe:8586/api/Preplan/cancelar/${codServicio}`,
+        `https://velsat.pe:2096/api/Preplan/cancelar/${codServicio}`,
       );
 
       setData((prevData) =>
@@ -714,7 +714,7 @@ export default function App({
 
     try {
       await axios.delete(
-        'https://velsat.pe:8586/api/Preplan/eliminacionmultiple',
+        'https://velsat.pe:2096/api/Preplan/eliminacionmultiple',
         {
           data: payload,
         },
@@ -756,7 +756,7 @@ export default function App({
     const fechaInicial = formatFecha(selectedRow?.fechaini);
     const fechaFinal = formatFecha(selectedRow?.fechafin);
 
-    const API_URL = `https://velsat.pe:8586/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
+    const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
 
     console.log('🚀 Llamando a la API con URL:', API_URL);
 
@@ -828,7 +828,7 @@ export default function App({
       : selectedRow.fecPlanCompleta || '';
 
     try {
-      const url = `https://velsat.pe:8586/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
+      const url = `https://velsat.pe:2096/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
 
       const response = await axios.put(url);
 

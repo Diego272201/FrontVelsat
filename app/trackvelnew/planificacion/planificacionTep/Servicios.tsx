@@ -672,7 +672,7 @@ export default function App({
     const toastId = toast.loading('Cargando ...');
     try {
       const response = await axios.put(
-        'https://velsat.pe:8586/api/Preplan/GrupoCero?usuario=movilbus',
+        'https://velsat.pe:2096/api/Preplan/GrupoCero?usuario=movilbus',
         {},
       );
 

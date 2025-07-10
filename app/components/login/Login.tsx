@@ -25,7 +25,7 @@ export default function Login() {
   const obtenerServidor = async (usuario: string) => {
     try {
       const response = await fetch(
-        `https://velsat.pe:8586/api/Server/${usuario}`,
+        `https://velsat.pe:2096/api/Server/${usuario}`,
       );
       const data = await response.json();
 

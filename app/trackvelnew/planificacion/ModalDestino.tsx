@@ -177,7 +177,7 @@ export default function App({
 
     try {
       const response = await fetch(
-        'https://velsat.pe:8586/api/Pasajero/NewDestino/movilbus',
+        'https://velsat.pe:2096/api/Pasajero/NewDestino/movilbus',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

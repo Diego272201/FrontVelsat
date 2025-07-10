@@ -431,7 +431,7 @@ const Tollbar: React.FC = () => {
   // Memoized values
   const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
   const isSedapal = useMemo(
-    () => baseUrl === 'https://sub.velsat.pe:8586',
+    () => baseUrl === 'https://sub.velsat.pe:2096',
     [baseUrl],
   );
   const isTalmav = useMemo(() => username === 'talmav', [username]);

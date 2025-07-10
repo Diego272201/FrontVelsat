@@ -75,7 +75,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
 
       try {
         const response = await fetch(
-          `https://velsat.pe:8586/api/Recorrido/SelectServicio?fecha=${fechaFormateada}`,
+          `https://velsat.pe:2096/api/Recorrido/SelectServicio?fecha=${fechaFormateada}`,
         );
         const data = await response.json();
         setServicios(data);
@@ -123,7 +123,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
 
     try {
       const response = await fetch(
-        `https://velsat.pe:8586/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}`,
+        `https://velsat.pe:2096/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}`,
       );
   
       if (!response.ok) {
