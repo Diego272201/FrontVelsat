@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
 import { Eye, EyeOff, LogIn, Check, Shield } from 'lucide-react';
+import useFingerprint from '@/hooks/useFingerprint'; // Importar el hook
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -15,37 +16,27 @@ export default function Login() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isCheckingIP, setIsCheckingIP] = useState(false);
+  const [isCheckingFingerprint, setIsCheckingFingerprint] = useState(false);
   const router = useRouter();
   const [servidorUrl, setServidorUrl] = useState('');
 
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
   const { baseUrl } = useApi();
+  const fingerprint = useFingerprint(); // Usar el hook de fingerprint
 
-  // Lista de IPs permitidas para usuarios específicos
-  const IP_RESTRICTIONS: { [key: string]: string[] } = {
-    'transporvilla': ['190.43.105.34', '38.224.74.133'] // Agregar más IPs separadas por comas
-  };
-  // Función para obtener la IP pública del usuario
-  const obtenerIPPublica = async (): Promise<string> => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip;
-    } catch (error) {
-      console.error('Error al obtener IP pública:', error);
-      throw new Error('No se pudo verificar la IP del usuario');
-    }
+  // Restricciones de fingerprint por usuario
+  const FINGERPRINT_RESTRICTIONS: { [key: string]: string[] } = {
+    'transporvilla': ['4e996930d502a9e306d3d14826d4325b'] 
   };
 
-  // Función para validar si la IP está permitida para el usuario
-  const validarIPPermitida = (usuario: string, ip: string): boolean => {
-    const ipsPermitidas = IP_RESTRICTIONS[usuario.toLowerCase()];
-    if (!ipsPermitidas) {
-      return true; // Si no hay restricciones para este usuario, permitir acceso
+  // Función para validar si el fingerprint está permitido para el usuario
+  const validarFingerprintPermitido = (usuario: string, fingerprint: string): boolean => {
+    const fingerprintsPermitidos = FINGERPRINT_RESTRICTIONS[usuario.toLowerCase()];
+    if (!fingerprintsPermitidos) {
+      return true; // Si no hay restricciones, permitir acceso
     }
-    return ipsPermitidas.includes(ip);
+    return fingerprintsPermitidos.includes(fingerprint);
   };
 
   const obtenerServidor = async (usuario: string) => {
@@ -104,27 +95,36 @@ export default function Login() {
       }
 
       try {
-        // Verificar si el usuario tiene restricciones de IP
-        if (IP_RESTRICTIONS[login.toLowerCase()]) {
-          setIsCheckingIP(true);
+        // Verificar si el usuario tiene restricciones de fingerprint
+        if (FINGERPRINT_RESTRICTIONS[login.toLowerCase()]) {
+          setIsCheckingFingerprint(true);
           
-          // Obtener la IP pública del usuario
-          const ipPublica = await obtenerIPPublica();
-          console.log('IP pública del usuario:', ipPublica);
-          
-          // Validar si la IP está permitida
-          if (!validarIPPermitida(login, ipPublica)) {
+          // Verificar si el fingerprint está disponible
+          if (!fingerprint) {
             setErrors([
-              'Acceso denegado: No tienes permisos para acceder desde esta ubicación.',
-              `IP actual: ${ipPublica}`
+              'Error de seguridad: No se pudo verificar la identidad del dispositivo.',
+              'Por favor, recarga la página e intenta nuevamente.'
             ]);
             setIsLoading(false);
-            setIsCheckingIP(false);
+            setIsCheckingFingerprint(false);
+            return;
+          }
+
+          console.log('Fingerprint del usuario:', fingerprint);
+          
+          // Validar si el fingerprint está permitido
+          if (!validarFingerprintPermitido(login, fingerprint)) {
+            setErrors([
+              'Acceso denegado: Este dispositivo no tiene permisos para acceder.',
+              `ID del dispositivo: ${fingerprint.substring(0, 8)}...`
+            ]);
+            setIsLoading(false);
+            setIsCheckingFingerprint(false);
             return;
           }
         }
 
-        setIsCheckingIP(false);
+        setIsCheckingFingerprint(false);
 
         // Proceder con la autenticación normal
         const responseNextAuth = await signIn('credentials', {
@@ -147,14 +147,14 @@ export default function Login() {
             router.push('/trackvelnew');
           }, 1000);
         }
-      } catch (error:any) {
+      } catch (error: any) {
         console.error('Error durante la autenticación:', error);
         setErrors([error.message || 'Error durante la autenticación']);
         setIsLoading(false);
-        setIsCheckingIP(false);
+        setIsCheckingFingerprint(false);
       }
     },
-    [login, clave, router, baseUrl],
+    [login, clave, router, baseUrl, fingerprint],
   );
 
   return (
@@ -191,7 +191,7 @@ export default function Login() {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                <span>GPS  </span>
+                <span>GPS</span>
               </div>
             </div>
           </div>
@@ -244,8 +244,8 @@ export default function Login() {
                   className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
                   disabled={isLoading || isSuccess}
                 />
-                {/* Indicador de usuario con restricción de IP */}
-                {login && IP_RESTRICTIONS[login.toLowerCase()] && (
+                {/* Indicador de usuario con restricción de fingerprint */}
+                {login && FINGERPRINT_RESTRICTIONS[login.toLowerCase()] && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 transform">
                     <Shield className="h-4 w-4 text-yellow-500" />
                   </div>
@@ -283,14 +283,14 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Mostrar cuando se está verificando la IP */}
-            {isCheckingIP && (
+            {/* Mostrar cuando se está verificando el fingerprint */}
+            {isCheckingFingerprint && (
               <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2.5 backdrop-blur-sm xl:p-3">
                 <div className="flex items-center space-x-2">
                   <Spinner size="sm" color="warning" />
                   <div className="min-w-0">
                     <p className="text-xs text-yellow-300 xl:text-sm">
-                      Verificando ubicación de acceso...
+                      Verificando identidad del dispositivo...
                     </p>
                   </div>
                 </div>
@@ -356,7 +356,7 @@ export default function Login() {
                 <>
                   <Spinner color="warning" size="sm" />
                   <span className="text-sm xl:text-base">
-                    {isCheckingIP ? 'Verificando ubicación...' : 'Autenticando...'}
+                    {isCheckingFingerprint ? 'Verificando dispositivo...' : 'Autenticando...'}
                   </span>
                 </>
               ) : isSuccess ? (

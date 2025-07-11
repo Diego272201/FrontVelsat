@@ -11,6 +11,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@fingerprintjs/fingerprintjs": "^4.6.2",
     "@heroicons/react": "^2.0.18",
     "@internationalized/date": "^3.5.2",
     "@microsoft/signalr": "^8.0.0",
