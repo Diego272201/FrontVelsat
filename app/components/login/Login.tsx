@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
 import { Eye, EyeOff, LogIn, Check, Shield } from 'lucide-react';
-import useFingerprint from '@/hooks/useFingerprint'; // Importar el hook
+import useFingerprint from '@/hooks/useFingerprint';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -23,18 +23,16 @@ export default function Login() {
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
   const { baseUrl } = useApi();
-  const fingerprint = useFingerprint(); // Usar el hook de fingerprint
+  const fingerprint = useFingerprint();
 
-  // Restricciones de fingerprint por usuario
   const FINGERPRINT_RESTRICTIONS: { [key: string]: string[] } = {
     'transporvilla': ['4e996930d502a9e306d3d14826d4325b'] 
   };
 
-  // Función para validar si el fingerprint está permitido para el usuario
   const validarFingerprintPermitido = (usuario: string, fingerprint: string): boolean => {
     const fingerprintsPermitidos = FINGERPRINT_RESTRICTIONS[usuario.toLowerCase()];
     if (!fingerprintsPermitidos) {
-      return true; // Si no hay restricciones, permitir acceso
+      return true; 
     }
     return fingerprintsPermitidos.includes(fingerprint);
   };
