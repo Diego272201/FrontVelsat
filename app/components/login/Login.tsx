@@ -25,7 +25,7 @@ export default function Login() {
 
   // Lista de IPs permitidas para usuarios específicos
   const IP_RESTRICTIONS: { [key: string]: string[] } = {
-    'transporvilla': ['190.235.160.139', '38.224.74.133'] // Agregar más IPs separadas por comas
+    'transporvilla': ['190.43.105.34', '38.224.74.133'] // Agregar más IPs separadas por comas
   };
   // Función para obtener la IP pública del usuario
   const obtenerIPPublica = async (): Promise<string> => {
