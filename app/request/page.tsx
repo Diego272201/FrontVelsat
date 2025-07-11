@@ -342,7 +342,6 @@ export default function RequestPage() {
     if (closeButton) {
       closeButton.addEventListener('click', () => {
         popup2.setMap(null);
-        if (intervalId) clearInterval(intervalId);
       });
     }
 
