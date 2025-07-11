@@ -26,7 +26,7 @@ export default function Login() {
   const fingerprint = useFingerprint();
 
   const FINGERPRINT_RESTRICTIONS: { [key: string]: string[] } = {
-    'transporvilla': ['4e996930d502a9e306d3d14826d4325b'] 
+    'transporvilla': ['4e996930d502a9e306d3d14826d4325b','7ae9259ac21f44356551222e952d637f'] 
   };
 
   const validarFingerprintPermitido = (usuario: string, fingerprint: string): boolean => {
