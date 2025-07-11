@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import { Eye, EyeOff, LogIn, Check } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Check, Shield } from 'lucide-react';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -15,6 +15,7 @@ export default function Login() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isCheckingIP, setIsCheckingIP] = useState(false);
   const router = useRouter();
   const [servidorUrl, setServidorUrl] = useState('');
 
@@ -22,10 +23,36 @@ export default function Login() {
 
   const { baseUrl } = useApi();
 
+  // Lista de IPs permitidas para usuarios específicos
+  const IP_RESTRICTIONS: { [key: string]: string[] } = {
+    'transporvilla': ['190.235.160.139']
+  };
+
+  // Función para obtener la IP pública del usuario
+  const obtenerIPPublica = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error al obtener IP pública:', error);
+      throw new Error('No se pudo verificar la IP del usuario');
+    }
+  };
+
+  // Función para validar si la IP está permitida para el usuario
+  const validarIPPermitida = (usuario: string, ip: string): boolean => {
+    const ipsPermitidas = IP_RESTRICTIONS[usuario.toLowerCase()];
+    if (!ipsPermitidas) {
+      return true; // Si no hay restricciones para este usuario, permitir acceso
+    }
+    return ipsPermitidas.includes(ip);
+  };
+
   const obtenerServidor = async (usuario: string) => {
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Server/${usuario}`,
+        `https://velsat.pe:8586/api/Server/${usuario}`,
       );
       const data = await response.json();
 
@@ -40,6 +67,7 @@ export default function Login() {
       return null;
     }
   };
+
   useEffect(() => {
     if (!login) {
       setErrors([]);
@@ -64,38 +92,71 @@ export default function Login() {
     }
   }, [servidorUrl]);
 
-const handleSubmit = useCallback(
-  async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsLoading(true);
-    setErrors([]);
+  const handleSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setIsLoading(true);
+      setErrors([]);
 
-    if (!login || !clave) {
-      setErrors(['Complete usuario y contraseña']);
-      setIsLoading(false);
-      return;
-    }
+      if (!login || !clave) {
+        setErrors(['Complete usuario y contraseña']);
+        setIsLoading(false);
+        return;
+      }
 
-    const responseNextAuth = await signIn('credentials', {
-      login,
-      clave,
-      redirect: false,
-      callbackUrl: '/trackvelnew',
-    });
+      try {
+        // Verificar si el usuario tiene restricciones de IP
+        if (IP_RESTRICTIONS[login.toLowerCase()]) {
+          setIsCheckingIP(true);
+          
+          // Obtener la IP pública del usuario
+          const ipPublica = await obtenerIPPublica();
+          console.log('IP pública del usuario:', ipPublica);
+          
+          // Validar si la IP está permitida
+          if (!validarIPPermitida(login, ipPublica)) {
+            setErrors([
+              'Acceso denegado: No tienes permisos para acceder desde esta ubicación.',
+              `IP actual: ${ipPublica}`
+            ]);
+            setIsLoading(false);
+            setIsCheckingIP(false);
+            return;
+          }
+        }
 
-    if (responseNextAuth?.error) {
-      setErrors(responseNextAuth.error.split(','));
-      setIsLoading(false);
-    } else {
-      const username = login;
-      localStorage.setItem('currentUser', username);
-      
-      // Redirección inmediata
-      router.push('/trackvelnew');
-    }
-  },
-  [login, clave, router, baseUrl],
-);
+        setIsCheckingIP(false);
+
+        // Proceder con la autenticación normal
+        const responseNextAuth = await signIn('credentials', {
+          login,
+          clave,
+          redirect: false,
+          callbackUrl: '/trackvelnew',
+        });
+
+        if (responseNextAuth?.error) {
+          setErrors(responseNextAuth.error.split(','));
+          setIsLoading(false);
+        } else {
+          const username = login;
+          localStorage.setItem('currentUser', username);
+          setIsSuccess(true);
+          
+          // Pequeño delay para mostrar el mensaje de éxito
+          setTimeout(() => {
+            router.push('/trackvelnew');
+          }, 1000);
+        }
+      } catch (error:any) {
+        console.error('Error durante la autenticación:', error);
+        setErrors([error.message || 'Error durante la autenticación']);
+        setIsLoading(false);
+        setIsCheckingIP(false);
+      }
+    },
+    [login, clave, router, baseUrl],
+  );
 
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
@@ -139,7 +200,7 @@ const handleSubmit = useCallback(
       </div>
 
       {/* Panel derecho con formulario */}
-<div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8 relative">
+      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8 relative">
         {/* Indicador de Conexión Segura */}
         <div className="absolute top-4 right-4 flex items-center space-x-2 rounded bg-green-500/20 px-3 py-1.5 backdrop-blur-sm border border-green-500/30">
           <div className="relative">
@@ -184,6 +245,12 @@ const handleSubmit = useCallback(
                   className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
                   disabled={isLoading || isSuccess}
                 />
+                {/* Indicador de usuario con restricción de IP */}
+                {login && IP_RESTRICTIONS[login.toLowerCase()] && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 transform">
+                    <Shield className="h-4 w-4 text-yellow-500" />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -216,6 +283,20 @@ const handleSubmit = useCallback(
                 </button>
               </div>
             </div>
+
+            {/* Mostrar cuando se está verificando la IP */}
+            {isCheckingIP && (
+              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2.5 backdrop-blur-sm xl:p-3">
+                <div className="flex items-center space-x-2">
+                  <Spinner size="sm" color="warning" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-yellow-300 xl:text-sm">
+                      Verificando ubicación de acceso...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Mostrar errores */}
             {errors.length > 0 && (
@@ -275,7 +356,9 @@ const handleSubmit = useCallback(
               {isLoading ? (
                 <>
                   <Spinner color="warning" size="sm" />
-                  <span className="text-sm xl:text-base">Autenticando...</span>
+                  <span className="text-sm xl:text-base">
+                    {isCheckingIP ? 'Verificando ubicación...' : 'Autenticando...'}
+                  </span>
                 </>
               ) : isSuccess ? (
                 <>
