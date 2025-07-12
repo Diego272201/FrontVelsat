@@ -28,6 +28,7 @@ import { FaRoad } from 'react-icons/fa';
 
 // Componentes
 import Profile from './Profile';
+import { useSession } from 'next-auth/react';
 
 // Tipos TypeScript
 type IconType =
@@ -73,7 +74,9 @@ interface MenuConfig {
   id: string;
   title: string;
   icon: React.ComponentType<{ className?: string }>;
-  items: MenuItem[];
+  items?: MenuItem[];
+  href?: string;
+  target?: string;
 }
 
 interface MenuState {
@@ -199,6 +202,24 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
       },
     ],
   },
+};
+
+const getMenuConfig = (username: string | undefined) => {
+  // Clonar la configuración base
+  const config = { ...MENU_CONFIG };
+  
+  // Si es usuario transporvilla, reemplazar SERVICIOS
+  if (username?.toLowerCase() === 'transporvilla') {
+    config.SERVICIOS = {
+      id: 'servicios',
+      title: 'Gestión Villa',
+      icon: GrServices,
+      href: 'https://gestionvilla.velsat.pe/',
+      target: '_blank'
+    };
+  }
+  
+  return config;
 };
 
 // Hook personalizado para manejo de estado de menús
@@ -418,6 +439,14 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
 
 // Componente principal
 const Tollbar: React.FC = () => {
+  const { data: session } = useSession();
+  
+  // Obtener configuración dinámica
+  const menuConfig = useMemo(() => 
+    getMenuConfig(session?.user?.username), 
+    [session?.user?.username]
+  );
+
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
 
@@ -475,10 +504,33 @@ const Tollbar: React.FC = () => {
 
   // Render helpers
   const renderDropdownMenu = (
-    config: MenuConfig,
-    isOpen: boolean,
-    onToggle: () => void,
-  ) => (
+  config: MenuConfig,
+  isOpen: boolean,
+  onToggle: () => void,
+) => {
+  // Si es un enlace directo (como Gestión Villa para transporvilla)
+  if (config.href) {
+    return (
+      <li className="group relative">
+        <Link
+          href={config.href}
+          title={config.title}
+          target={config.target || "_blank"}
+          rel="noopener noreferrer"
+          className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+        >
+          <span>{config.title}</span>
+          <IconSVG
+            type="external"
+            className="ml-1 h-4 w-4 text-white/80 transition-colors group-hover:text-slate-900"
+          />
+        </Link>
+      </li>
+    );
+  }
+
+  // Si tiene items (menú desplegable normal)
+  return (
     <li className="group relative">
       <Link
         href="#"
@@ -498,7 +550,7 @@ const Tollbar: React.FC = () => {
 
       <ul className="invisible absolute right-0 top-full z-50 mt-1 w-64 translate-y-3 transform overflow-hidden border border-slate-200/50 bg-white/95 opacity-0 shadow-2xl backdrop-blur-sm transition-all duration-300 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
         <div className="py-0">
-          {config.items.map((item, index) => (
+          {config.items?.map((item, index) => (
             <React.Fragment key={item.id}>
               {item.submenu ? (
                 <li className="group/sub">
@@ -582,12 +634,56 @@ const Tollbar: React.FC = () => {
       </ul>
     </li>
   );
+};
 
-  const renderSidebarMenu = (
-    config: MenuConfig,
-    isOpen: boolean,
-    onToggle: () => void,
-  ) => (
+const renderSidebarMenu = (
+  config: MenuConfig,
+  isOpen: boolean,
+  onToggle: () => void,
+) => {
+  // Si es un enlace directo (como Gestión Villa para transporvilla)
+  if (config.href) {
+    return (
+      <Link
+        href={config.href}
+        target={config.target || "_blank"}
+        rel="noopener noreferrer"
+        onClick={() => toggleMenu('sidebar')}
+      >
+        <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+            <config.icon className="text-lg text-white" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+              {config.title}
+            </span>
+            <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+              Abrir en nueva pestaña
+            </span>
+          </div>
+          <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+            <svg
+              className="h-4 w-4 text-orange-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // Si tiene items (menú desplegable normal)
+  return (
     <div className="">
       <div
         className="group flex cursor-pointer items-center justify-between border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-lg hover:shadow-blue-100/50"
@@ -625,7 +721,7 @@ const Tollbar: React.FC = () => {
         </div>
       </div>
 
-      {isOpen && (
+      {isOpen && config.items && (
         <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-2 duration-300">
           {config.items.map((item, index) => (
             <button
@@ -663,7 +759,7 @@ const Tollbar: React.FC = () => {
       )}
     </div>
   );
-
+};
   return (
     <div className="tollbar menu__wrapper">
       {/* Background */}
@@ -760,7 +856,7 @@ const Tollbar: React.FC = () => {
               ) : (
                 <>
                   {renderDropdownMenu(
-                    MENU_CONFIG.SERVICIOS,
+                    menuConfig.SERVICIOS,
                     openMenus.services,
                     () => toggleMenu('services'),
                   )}
@@ -931,7 +1027,7 @@ const Tollbar: React.FC = () => {
             ) : (
               <>
                 {renderSidebarMenu(
-                  MENU_CONFIG.SERVICIOS,
+                  menuConfig.SERVICIOS,
                   openMenus.services,
                   () => toggleMenu('services'),
                 )}
