@@ -56,7 +56,6 @@
   top: 15px;
   right: 270px;
   border: none;
-  color: white;
   font-size: 12px;
   font-weight: bold;
   cursor: pointer;
@@ -136,11 +135,10 @@
   border-bottom: 0.5px solid #424447;
   padding-bottom: 0px;
   margin-bottom: 8px;
-  background: #fff;
   padding-left: 30px;
    padding-right: 8px;
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
 }
 
 .follow-link {
