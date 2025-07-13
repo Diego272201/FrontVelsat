@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import { Eye, EyeOff, LogIn, Check, Shield } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Check, Shield, Wifi } from 'lucide-react';
 import useFingerprint from '@/hooks/useFingerprint';
 
 export default function Login() {
@@ -26,13 +26,20 @@ export default function Login() {
   const fingerprint = useFingerprint();
 
   const FINGERPRINT_RESTRICTIONS: { [key: string]: string[] } = {
-    'transporvilla': ['4e996930d502a9e306d3d14826d4325b','7ae9259ac21f44356551222e952d637f'] 
+    transporvilla: [
+      '4e996930d502a9e306d3d14826d4325b',
+      '7ae9259ac21f44356551222e952d637f',
+    ],
   };
 
-  const validarFingerprintPermitido = (usuario: string, fingerprint: string): boolean => {
-    const fingerprintsPermitidos = FINGERPRINT_RESTRICTIONS[usuario.toLowerCase()];
+  const validarFingerprintPermitido = (
+    usuario: string,
+    fingerprint: string,
+  ): boolean => {
+    const fingerprintsPermitidos =
+      FINGERPRINT_RESTRICTIONS[usuario.toLowerCase()];
     if (!fingerprintsPermitidos) {
-      return true; 
+      return true;
     }
     return fingerprintsPermitidos.includes(fingerprint);
   };
@@ -96,12 +103,12 @@ export default function Login() {
         // Verificar si el usuario tiene restricciones de fingerprint
         if (FINGERPRINT_RESTRICTIONS[login.toLowerCase()]) {
           setIsCheckingFingerprint(true);
-          
+
           // Verificar si el fingerprint está disponible
           if (!fingerprint) {
             setErrors([
               'Error de seguridad: No se pudo verificar la identidad del dispositivo.',
-              'Por favor, recarga la página e intenta nuevamente.'
+              'Por favor, recarga la página e intenta nuevamente.',
             ]);
             setIsLoading(false);
             setIsCheckingFingerprint(false);
@@ -109,12 +116,11 @@ export default function Login() {
           }
 
           console.log('Fingerprint del usuario:', fingerprint);
-          
+
           // Validar si el fingerprint está permitido
           if (!validarFingerprintPermitido(login, fingerprint)) {
             setErrors([
               'Acceso denegado: Este dispositivo no tiene permisos para acceder.',
-              `ID del dispositivo: ${fingerprint.substring(0, 8)}...`
             ]);
             setIsLoading(false);
             setIsCheckingFingerprint(false);
@@ -139,7 +145,7 @@ export default function Login() {
           const username = login;
           localStorage.setItem('currentUser', username);
           setIsSuccess(true);
-          
+
           // Pequeño delay para mostrar el mensaje de éxito
           setTimeout(() => {
             router.push('/trackvelnew');
@@ -197,14 +203,13 @@ export default function Login() {
       </div>
 
       {/* Panel derecho con formulario */}
-      <div className="flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8 relative">
+      <div className="relative flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8">
         {/* Indicador de Conexión Segura */}
-        <div className="absolute top-4 right-4 flex items-center space-x-2 rounded bg-green-500/20 px-3 py-1.5 backdrop-blur-sm border border-green-500/30">
-          <div className="relative">
-            <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-            <div className="absolute inset-0 h-2 w-2 rounded-full bg-green-400 animate-ping"></div>
+        <div className="absolute right-4 top-4 flex items-center space-x-2 rounded px-3 py-1.5 backdrop-blur-sm  ">
+          <div className="relative text-green-400">
+           <Wifi size={18}/>
           </div>
-          <span className="text-xs font-medium text-green-300 animate-pulse">
+          <span className="animate-pulse text-xs font-medium text-green-300">
             Conexión segura
           </span>
         </div>
@@ -354,7 +359,9 @@ export default function Login() {
                 <>
                   <Spinner color="warning" size="sm" />
                   <span className="text-sm xl:text-base">
-                    {isCheckingFingerprint ? 'Verificando dispositivo...' : 'Autenticando...'}
+                    {isCheckingFingerprint
+                      ? 'Verificando dispositivo...'
+                      : 'Autenticando...'}
                   </span>
                 </>
               ) : isSuccess ? (
