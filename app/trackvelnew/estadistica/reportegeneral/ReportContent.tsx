@@ -21,6 +21,7 @@ export default function ReportContent() {
 
   const tableUrl = `/api/Reporting/general/${startDate}/${endDate}/${deviceId}/${username}`;
 
+  console.log(tableUrl);
 
 
   const calculateDifference = (start: string, end: string) => {

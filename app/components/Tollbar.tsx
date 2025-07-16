@@ -26,9 +26,9 @@ import { SiGoogledocs } from 'react-icons/si';
 import { IoSpeedometer } from 'react-icons/io5';
 import { FaRoad } from 'react-icons/fa';
 
-// Componentes
 import Profile from './Profile';
 import { useSession } from 'next-auth/react';
+import { Dot, SquareCheck } from 'lucide-react';
 
 // Tipos TypeScript
 type IconType =
@@ -107,7 +107,6 @@ interface MenuItemProps {
   className?: string;
 }
 
-// Configuración de menús y modales
 const MENU_CONFIG: Record<string, MenuConfig> = {
   REPORTES: {
     id: 'reportes',
@@ -204,25 +203,6 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
   },
 };
 
-const getMenuConfig = (username: string | undefined) => {
-  // Clonar la configuración base
-  const config = { ...MENU_CONFIG };
-  
-  // Si es usuario transporvilla, reemplazar SERVICIOS
-  if (username?.toLowerCase() === 'transporvilla') {
-    config.SERVICIOS = {
-      id: 'servicios',
-      title: 'Gestión Villa',
-      icon: GrServices,
-      href: 'https://gestionvilla.velsat.pe/',
-      target: '_blank'
-    };
-  }
-  
-  return config;
-};
-
-// Hook personalizado para manejo de estado de menús
 const useMenuState = () => {
   const [openMenus, setOpenMenus] = useState<MenuState>({
     services: false,
@@ -252,7 +232,6 @@ const useMenuState = () => {
   return { openMenus, toggleMenu, closeAllMenus };
 };
 
-// Hook personalizado para manejo de modales
 const useModalState = () => {
   const [modals, setModals] = useState<ModalState>({
     general: false,
@@ -274,7 +253,6 @@ const useModalState = () => {
   return { modals, openModal, closeModal };
 };
 
-// Componente para iconos SVG reutilizables
 const IconSVG: React.FC<IconSVGProps> = ({ type, className = 'h-5 w-5' }) => {
   const icons: Record<IconType, React.ReactNode> = {
     velocity: (
@@ -440,12 +418,6 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
 // Componente principal
 const Tollbar: React.FC = () => {
   const { data: session } = useSession();
-  
-  // Obtener configuración dinámica
-  const menuConfig = useMemo(() => 
-    getMenuConfig(session?.user?.username), 
-    [session?.user?.username]
-  );
 
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
@@ -463,6 +435,7 @@ const Tollbar: React.FC = () => {
     () => baseUrl === 'https://sub.velsat.pe:2096',
     [baseUrl],
   );
+
   const isTalmav = useMemo(() => username === 'talmav', [username]);
 
   // Effects
@@ -502,169 +475,221 @@ const Tollbar: React.FC = () => {
     [openModal, openMenus.sidebar, toggleMenu],
   );
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 1180);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
   // Render helpers
   const renderDropdownMenu = (
-  config: MenuConfig,
-  isOpen: boolean,
-  onToggle: () => void,
-) => {
-  // Si es un enlace directo (como Gestión Villa para transporvilla)
-  if (config.href) {
+    config: MenuConfig,
+    isOpen: boolean,
+    onToggle: () => void,
+  ) => {
+    // Si es un enlace directo (como Gestión Villa para transporvilla)
+    if (config.href) {
+      return (
+        <li className="group relative">
+          <Link
+            href={config.href}
+            title={config.title}
+            target={config.target || '_blank'}
+            rel="noopener noreferrer"
+            className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+          >
+            <span>{config.title}</span>
+            <IconSVG
+              type="external"
+              className="ml-1 h-4 w-4 text-white/80 transition-colors group-hover:text-slate-900"
+            />
+          </Link>
+        </li>
+      );
+    }
+
     return (
       <li className="group relative">
         <Link
-          href={config.href}
+          href="#"
           title={config.title}
-          target={config.target || "_blank"}
-          rel="noopener noreferrer"
           className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+          onClick={(e) => {
+            e.preventDefault();
+            onToggle();
+          }}
         >
           <span>{config.title}</span>
           <IconSVG
-            type="external"
-            className="ml-1 h-4 w-4 text-white/80 transition-colors group-hover:text-slate-900"
+            type="chevron"
+            className="ml-0 mt-0.5 h-4 w-4 transition-transform group-hover:rotate-180"
           />
         </Link>
-      </li>
-    );
-  }
 
-  // Si tiene items (menú desplegable normal)
-  return (
-    <li className="group relative">
-      <Link
-        href="#"
-        title={config.title}
-        className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
-        onClick={(e) => {
-          e.preventDefault();
-          onToggle();
-        }}
-      >
-        <span>{config.title}</span>
-        <IconSVG
-          type="chevron"
-          className="ml-0 mt-0.5 h-4 w-4 transition-transform group-hover:rotate-180"
-        />
-      </Link>
-
-      <ul className="invisible absolute right-0 top-full z-50 mt-1 w-64 translate-y-3 transform overflow-hidden border border-slate-200/50 bg-white/95 opacity-0 shadow-2xl backdrop-blur-sm transition-all duration-300 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-        <div className="py-0">
-          {config.items?.map((item, index) => (
-            <React.Fragment key={item.id}>
-              {item.submenu ? (
-                <li className="group/sub">
-                  <a
-                    href="#"
-                    title={item.title}
-                    className={`flex cursor-pointer items-center justify-between border-l-4 px-5 py-3 text-[12px] font-medium transition-all duration-200 ${
-                      openMenus.programacion
-                        ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700'
-                        : 'border-transparent text-slate-700 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700'
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleMenu('programacion');
-                    }}
-                  >
-                    <div className="flex items-center">
+        <ul className="invisible absolute right-0 top-full z-50 mt-1 w-64 translate-y-3 transform overflow-hidden border border-slate-200/50 bg-white/95 opacity-0 shadow-2xl backdrop-blur-sm transition-all duration-300 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+          <div className="py-0">
+            {config.items?.map((item, index) => (
+              <React.Fragment key={item.id}>
+                {item.submenu ? (
+                  <li className="group/sub">
+                    <a
+                      href="#"
+                      title={item.title}
+                      className={`flex cursor-pointer items-center justify-between border-l-4 px-5 py-3 text-[12px] font-medium transition-all duration-200 ${
+                        openMenus.programacion
+                          ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700'
+                          : 'border-transparent text-slate-700 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700'
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleMenu('programacion');
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <IconSVG
+                          type={item.icon}
+                          className={`mr-3 h-5 w-5 transition-colors ${
+                            openMenus.programacion
+                              ? 'text-orange-500'
+                              : 'text-slate-400'
+                          }`}
+                        />
+                        <span>{item.title}</span>
+                      </div>
                       <IconSVG
-                        type={item.icon}
-                        className={`mr-3 h-5 w-5 transition-colors ${
+                        type="chevron"
+                        className={`h-4 w-4 transition-all duration-200 ${
                           openMenus.programacion
-                            ? 'text-orange-500'
+                            ? 'rotate-180 text-orange-500'
                             : 'text-slate-400'
                         }`}
                       />
-                      <span>{item.title}</span>
-                    </div>
-                    <IconSVG
-                      type="chevron"
-                      className={`h-4 w-4 transition-all duration-200 ${
+                    </a>
+
+                    <div
+                      className={`overflow-hidden transition-all duration-300 ease-out ${
                         openMenus.programacion
-                          ? 'rotate-180 text-orange-500'
-                          : 'text-slate-400'
+                          ? 'max-h-96 opacity-100'
+                          : 'max-h-0 opacity-0'
                       }`}
-                    />
-                  </a>
+                    >
+                      <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
+                        {item.submenu.map((subItem) => (
+                          <li key={subItem.id} className="group/subitem">
+                            <a
+                              href="#"
+                              title={subItem.title}
+                              className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+                            >
+                              <IconSVG
+                                type="document"
+                                className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+                              />
+                              {subItem.title}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </li>
+                ) : (
+                  <MenuItemComponent
+                    item={item}
+                    onClick={() =>
+                      item.modalType && handleModalAction(item.modalType)
+                    }
+                  />
+                )}
 
-                  <div
-                    className={`overflow-hidden transition-all duration-300 ease-out ${
-                      openMenus.programacion
-                        ? 'max-h-96 opacity-100'
-                        : 'max-h-0 opacity-0'
-                    }`}
-                  >
-                    <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
-                      {item.submenu.map((subItem) => (
-                        <li key={subItem.id} className="group/subitem">
-                          <a
-                            href="#"
-                            title={subItem.title}
-                            className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
-                          >
-                            <IconSVG
-                              type="document"
-                              className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
-                            />
-                            {subItem.title}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </li>
-              ) : (
-                <MenuItemComponent
-                  item={item}
-                  onClick={() =>
-                    item.modalType && handleModalAction(item.modalType)
-                  }
+                {(index === 1 || index === 3) && (
+                  <li key={`separator-${index}`} className="mx-3 my-2">
+                    <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                  </li>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </ul>
+      </li>
+    );
+  };
+
+  const renderSidebarMenu = (
+    config: MenuConfig,
+    isOpen: boolean,
+    onToggle: () => void,
+  ) => {
+    if (config.href) {
+      return (
+        <Link
+          href={config.href}
+          target={config.target || '_blank'}
+          rel="noopener noreferrer"
+          onClick={() => toggleMenu('sidebar')}
+        >
+          <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+              <config.icon className="text-lg text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                {config.title}
+              </span>
+              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                Abrir en nueva pestaña
+              </span>
+            </div>
+            <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+              <svg
+                className="h-4 w-4 text-orange-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                 />
-              )}
+              </svg>
+            </div>
+          </div>
+        </Link>
+      );
+    }
 
-              {(index === 1 || index === 3) && (
-                <li key={`separator-${index}`} className="mx-3 my-2">
-                  <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-                </li>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      </ul>
-    </li>
-  );
-};
-
-const renderSidebarMenu = (
-  config: MenuConfig,
-  isOpen: boolean,
-  onToggle: () => void,
-) => {
-  // Si es un enlace directo (como Gestión Villa para transporvilla)
-  if (config.href) {
     return (
-      <Link
-        href={config.href}
-        target={config.target || "_blank"}
-        rel="noopener noreferrer"
-        onClick={() => toggleMenu('sidebar')}
-      >
-        <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-            <config.icon className="text-lg text-white" />
+      <div className="">
+        <div
+          className="group flex cursor-pointer items-center justify-between border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-lg hover:shadow-blue-100/50"
+          onClick={onToggle}
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+              <config.icon className="text-lg text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
+                {config.title}
+              </span>
+              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
+                {isOpen ? 'Contraer menú' : 'Expandir menú'}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-              {config.title}
-            </span>
-            <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-              Abrir en nueva pestaña
-            </span>
-          </div>
-          <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 transition-all duration-300 group-hover:bg-blue-100">
             <svg
-              className="h-4 w-4 text-orange-500"
+              className={`h-3 w-3 transform text-gray-500 transition-all duration-300 group-hover:text-blue-600 ${
+                isOpen ? 'rotate-90' : ''
+              }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -673,93 +698,52 @@ const renderSidebarMenu = (
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                d="M9 5l7 7-7 7"
               />
             </svg>
           </div>
         </div>
-      </Link>
-    );
-  }
 
-  // Si tiene items (menú desplegable normal)
-  return (
-    <div className="">
-      <div
-        className="group flex cursor-pointer items-center justify-between border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-lg hover:shadow-blue-100/50"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-            <config.icon className="text-lg text-white" />
+        {isOpen && config.items && (
+          <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-1 duration-300">
+            {config.items.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.modalType) {
+                    handleModalAction(item.modalType);
+                  }
+                }}
+                className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-2 py-0.5 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+
+                <SquareCheck color='#003049'/>{' '}
+                <span className="text-[12px] font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
+                  {item.title}
+                </span>
+                <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
+                  <svg
+                    className="h-3 w-3 text-blue-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </div>
+              </button>
+            ))}
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
-              {config.title}
-            </span>
-            <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
-              {isOpen ? 'Contraer menú' : 'Expandir menú'}
-            </span>
-          </div>
-        </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 transition-all duration-300 group-hover:bg-blue-100">
-          <svg
-            className={`h-3 w-3 transform text-gray-500 transition-all duration-300 group-hover:text-blue-600 ${
-              isOpen ? 'rotate-90' : ''
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </div>
+        )}
       </div>
-
-      {isOpen && config.items && (
-        <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-2 duration-300">
-          {config.items.map((item, index) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.modalType) {
-                  handleModalAction(item.modalType);
-                }
-              }}
-              className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-4 py-3 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="h-2 w-2 rounded-full bg-gradient-to-br from-green-400 to-green-800 transition-all duration-300 group-hover/item:scale-125 group-hover/item:from-blue-400 group-hover/item:to-blue-500"></div>
-              <span className="text-sm font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
-                {item.title}
-              </span>
-              <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
-                <svg
-                  className="h-3 w-3 text-blue-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+    );
+  };
   return (
     <div className="tollbar menu__wrapper">
       {/* Background */}
@@ -777,34 +761,42 @@ const renderSidebarMenu = (
       <div className="menu__bar">
         {/* Mobile Menu Button */}
         <div className="mobile-only-button">
-          <div className="exitToolbarM">
-            <div className="flex w-[50px] items-center justify-center p-0">
-              <Profile toggleFullScreen={toggleFullScreen} />
-            </div>
-          </div>
           <button
             onClick={() => toggleMenu('sidebar')}
             className="mt-[-5px] h-[36px] bg-[#FB7B0F] bg-opacity-90 px-2 py-1"
           >
             <SlMenu size={20} />
           </button>
+
+          <div className="exitToolbarM">
+            <Profile toggleFullScreen={toggleFullScreen} />
+          </div>
         </div>
 
         {/* Logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center">
           <Link
             href="/trackvelnew"
             title="Logo"
-            className="flex items-center gap-3 rounded-lg p-2 transition-all duration-200 hover:bg-white/10"
+            className="flex items-center gap-3 transition-all duration-200"
           >
-            <div className="flex items-center justify-center">
-              <Image src="/LogoWeb.png" alt="Logo" width={18} height={18} />
+            <div className="ml-[-1px] mt-[-5px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px] max-[1180px]:p-[0px]">
+              {' '}
+              <div className="logo-animation">
+                <Image
+                  src="/LogoWeb.png"
+                  alt="Logo"
+                  width={isMobile ? 20 : 20}
+                  height={isMobile ? 20 : 20}
+                />
+              </div>
             </div>
+
             <div className="mt-[-3px]">
               <h3 className="text-center text-[12px] font-semibold text-white md:text-[12.5px]">
                 TRACKVEL SYSTEM :
                 <span className="pl-1  text-[12px] text-white/80 md:text-[11.5px]">
-                  BIENVENIDO {username.toUpperCase()}
+                  {username.toUpperCase()}
                 </span>
               </h3>
             </div>
@@ -856,7 +848,7 @@ const renderSidebarMenu = (
               ) : (
                 <>
                   {renderDropdownMenu(
-                    menuConfig.SERVICIOS,
+                    MENU_CONFIG.SERVICIOS,
                     openMenus.services,
                     () => toggleMenu('services'),
                   )}
@@ -980,7 +972,10 @@ const renderSidebarMenu = (
 
         <div className="menu_sidebar">
           <div className="flex items-center gap-2">
-            <span className="text-[#154666] font-bold" style={{ fontSize: '14px' }}>
+            <span
+              className="font-bold text-[#154666]"
+              style={{ fontSize: '14px' }}
+            >
               MENÚ
             </span>
           </div>
@@ -1027,7 +1022,7 @@ const renderSidebarMenu = (
             ) : (
               <>
                 {renderSidebarMenu(
-                  menuConfig.SERVICIOS,
+                  MENU_CONFIG.SERVICIOS,
                   openMenus.services,
                   () => toggleMenu('services'),
                 )}
@@ -1043,8 +1038,8 @@ const renderSidebarMenu = (
                   rel="noopener noreferrer"
                   onClick={() => toggleMenu('sidebar')}
                 >
-                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 px-2 py-0.5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
                       <RiGpsFill className="text-lg text-white" />
                     </div>
                     <div className="flex flex-col">
@@ -1071,11 +1066,10 @@ const renderSidebarMenu = (
                       </svg>
                     </div>
                   </div>
-                  
                 </Link>
 
                 <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:shadow-purple-100/50">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
                     <MdDisplaySettings className="text-lg text-white" />
                   </div>
                   <div className="flex flex-col">
