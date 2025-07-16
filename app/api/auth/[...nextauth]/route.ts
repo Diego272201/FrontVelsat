@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-
 const getServerUrl = async (username: string) => {
   try {
     const res = await fetch(`https://velsat.pe:2096/api/Server/${username}`);
