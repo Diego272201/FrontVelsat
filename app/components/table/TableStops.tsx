@@ -41,6 +41,7 @@ export default function App({ url, deviceId }: AppProps) {
       try {
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data.result;
+        console.log(data)
         setRows(data);
       } catch (error) {
         console.error('Error fetching data:', error);

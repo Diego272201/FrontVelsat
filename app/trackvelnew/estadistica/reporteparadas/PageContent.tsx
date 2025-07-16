@@ -22,6 +22,7 @@ function PageContent() {
   const username = session?.user.username;
   const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}/${username}`;
 
+
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
