@@ -47,7 +47,7 @@ export default function Login() {
   const obtenerServidor = async (usuario: string) => {
     try {
       const response = await fetch(
-        `https://velsat.pe:8586/api/Server/${usuario}`,
+        `https://velsat.pe:2096/api/Server/${usuario}`,
       );
       const data = await response.json();
 
@@ -146,9 +146,14 @@ export default function Login() {
           localStorage.setItem('currentUser', username);
           setIsSuccess(true);
 
-          // Pequeño delay para mostrar el mensaje de éxito
+          const urlGuardada = localStorage.getItem('servidorUrl');
+
           setTimeout(() => {
-            router.push('/trackvelnew');
+            if (urlGuardada === 'https://sub.velsat.pe:2096') {
+              router.push('/subtrackvelnew');
+            } else {
+              router.push('/trackvelnew');
+            }
           }, 1000);
         }
       } catch (error: any) {
@@ -207,7 +212,7 @@ export default function Login() {
         {/* Indicador de Conexión Segura */}
         <div className="absolute right-4 top-4 flex items-center space-x-2 rounded px-3 py-1.5 backdrop-blur-sm  ">
           <div className="relative text-green-400">
-           <Wifi size={18}/>
+            <Wifi size={18} />
           </div>
           <span className="animate-pulse text-xs font-medium text-green-300">
             Conexión segura

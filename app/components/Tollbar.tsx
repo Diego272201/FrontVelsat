@@ -717,8 +717,7 @@ const Tollbar: React.FC = () => {
                 className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-2 py-0.5 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-
-                <SquareCheck color='#003049'/>{' '}
+                <SquareCheck color="#003049" />{' '}
                 <span className="text-[12px] font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
                   {item.title}
                 </span>
@@ -775,8 +774,7 @@ const Tollbar: React.FC = () => {
 
         {/* Logo */}
         <div className="flex items-center">
-          <Link
-            href="/trackvelnew"
+          <div
             title="Logo"
             className="flex items-center gap-3 transition-all duration-200"
           >
@@ -800,7 +798,7 @@ const Tollbar: React.FC = () => {
                 </span>
               </h3>
             </div>
-          </Link>
+          </div>
         </div>
 
         {/* Navigation */}
