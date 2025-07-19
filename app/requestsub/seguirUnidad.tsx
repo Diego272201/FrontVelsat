@@ -165,17 +165,39 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
 
   const getPopupContent = useCallback((device: Device) => {
     return `
-      <div class="content-custom-popup bg-gray-800 text-white rounded-lg p-2" id="content2-${device.deviceId}">
-        <button id="close-btn-${device.deviceId}" class="absolute top-2 right-4 text-white hover:text-red-500 text-lg font-bold">&times;</button>
-        <span>Unidad: ${device.deviceId.toUpperCase()} </span>
-        <span>Velocidad: ${device.lastValidSpeed} Km/h </span>
-        <span>Estado: ${getEstado(device.lastValidSpeed)} </span>
-        <br>
-        <hr class="my-2 border-gray-600">
-        <h4 class="font-medium text-gray-300 uppercase">Último Reporte</h4>
-        <span>${formatFecha(fechaActual)} </span>
-        <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
-        <span>Ubicación: ${device.direccion} </span>
+      <div class="bg-gray-800 text-white text-[14px] flex flex-col w-[280px] rounded-lg border border-gray-600 shadow-lg overflow-hidden text-left" id="content2-${device.deviceId}">
+        <!-- Header con botón X y título -->
+        <div class="bg-gray-800 text-white p-3 flex items-center justify-between border-b border-gray-600">
+          <button id="close-btn-${device.deviceId}" class="text-white hover:text-red-500 text-lg font-bold w-6 h-6 flex items-center justify-center">×</button>
+          <span class="font-bold text-sm">UNIDAD: ${device.deviceId.toUpperCase()}</span>
+          
+          <div class="flex items-center gap-2">
+            <svg height="16px" width="16px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 511.999 511.999">
+              <circle style="fill:#CFF09E;" cx="256.004" cy="110.958" r="49.727"></circle>
+              <g>
+                <path style="fill:#507C5C;" d="M350.878,174.891c-2.544,0-5.119-0.682-7.443-2.115c-6.677-4.118-8.751-12.87-4.633-19.546 c7.816-12.674,11.948-27.291,11.948-42.27c0-23.122-9.952-45.172-27.305-60.494c-5.88-5.193-6.437-14.169-1.244-20.048 c5.191-5.88,14.168-6.436,20.048-1.246c23.456,20.713,36.908,50.523,36.908,81.788c0,20.25-5.593,40.023-16.176,57.181 C360.296,172.495,355.642,174.891,350.878,174.891z"></path>
+              </g>
+            </svg>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span class="text-xs text-green-500 font-medium">Online</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="p-3 space-y-1 text-left">
+          <div class="text-sm text-left"><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</div>
+          <div class="text-sm text-left"><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</div>
+        </div>
+
+        <!-- Sección último reporte -->
+        <div class="bg-gray-700 p-3 space-y-1 text-left">
+          <h4 class="font-bold text-sm text-gray-300 uppercase mb-2 text-left">Último Reporte</h4>
+          <div class="text-sm text-left">${formatFecha(fechaActual)}</div>
+          <div class="text-sm text-left"><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</div>
+          <div class="text-sm text-left"><strong>Ubicación:</strong> ${device.direccion}</div>
+        </div>
       </div>
     `;
   }, [fechaActual, getDireccion, getEstado, formatFecha]);
@@ -214,8 +236,11 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
     } else {
       // Crear nuevo marcador
       const popup1Content = `
-        <div class="bg-[#fca311] text-gray-800 px-2 py-1.5 rounded-md mt-4">
-          ${device.deviceId.toUpperCase()}
+        <div class="relative flex flex-col items-center mt-4">
+          <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
+            ${device.deviceId.toUpperCase()}
+          </div>
+          <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
         </div>
       `;
 
@@ -228,7 +253,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
 
       const popup2 = L.popup({
         closeButton: false,
-        autoClose: true,
+        autoClose: false, // Cambiar a false para evitar que se cierre automáticamente
         className: 'custom-popup-2 transparent-popup'
       }).setContent(getPopupContent(device));
 
@@ -280,6 +305,13 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
 
   const onMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
+    
+    // Prevenir que los clics en el mapa cierren los popups
+    map.on('click', (e) => {
+      e.originalEvent.stopPropagation();
+      // No hacer nada - mantener todos los popups abiertos
+    });
+    
     if (device) {
       createMarkerAndPopup(map);
     }
@@ -301,6 +333,8 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
         zoomControl={true}
         maxZoom={19}
         minZoom={1}
+        closePopupOnClick={false} // ← Esta es la configuración clave
+
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -314,7 +348,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
         />
       </MapContainer>
 
-      {/* CSS para popups transparentes */}
+      {/* CSS para popups transparentes y estilos */}
       <style jsx global>{`
         .transparent-popup .leaflet-popup-content-wrapper {
           background: transparent !important;
@@ -337,27 +371,34 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
           display: none !important;
         }
 
-        .content-custom-popup {
-          min-width: 250px;
-          padding: 12px;
-          border-radius: 8px;
+        /* Forzar alineación a la izquierda en todo el contenido del popup */
+        .custom-popup-2 * {
+          text-align: left !important;
+        }
+
+        /* Estilos específicos para elementos del popup */
+        .custom-popup1-font {
           font-size: 12px;
-          line-height: 1.4;
+          font-weight: 700;
         }
 
-        .content-custom-popup span {
-          display: block;
-          margin: 4px 0;
+        .popup-title {
+          padding: 8px 12px;
+          font-size: 12px;
+          font-weight: 700;
         }
 
-        .content-custom-popup h4 {
-          margin: 8px 0 4px 0;
-          font-weight: 600;
+        .popup-close-btnn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 0.2s ease;
         }
 
-        .content-custom-popup hr {
-          margin: 8px 0;
-          border-color: #4b5563;
+        .popup-close-btnn:hover {
+          background-color: rgba(255, 255, 255, 0.1);
         }
       `}</style>
     </div>

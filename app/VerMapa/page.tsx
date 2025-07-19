@@ -1,7 +1,13 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import Momento from '../components/Momento';
+import dynamic from 'next/dynamic';
+
+// Importar el componente Momento de forma dinámica, solo en el cliente
+const Momento = dynamic(() => import('../components/Momento'), {
+  ssr: false, // Deshabilitar Server-Side Rendering para este componente
+  loading: () => <div>Cargando mapa...</div>
+});
 
 function MomentoContent() {
   const searchParams = useSearchParams();
