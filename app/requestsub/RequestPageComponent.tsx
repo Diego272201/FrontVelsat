@@ -29,7 +29,56 @@ interface MarkerData {
   intervalId?: NodeJS.Timeout;
 }
 
+const mapLayers = {
+  openstreetmap: {
+    name: 'Calles',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    icon: '🗺️',
+  },
+  hybrid: {
+    name: 'Híbrido',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
+    icon: '🌍',
+  },
+  satellite_google: {
+    name: 'Satelital',
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
+    icon: '🛰️',
+  },
+};
+
 const center: [number, number] = [-9.22812, -75.78894];
+
+const LayerController = ({
+  currentLayer,
+}: {
+  currentLayer: keyof typeof mapLayers;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    // Eliminar todas las capas de tiles existentes
+    map.eachLayer((layer) => {
+      if (layer instanceof L.TileLayer) {
+        map.removeLayer(layer);
+      }
+    });
+
+    // Agregar la nueva capa
+    const newLayer = L.tileLayer(mapLayers[currentLayer].url, {
+      attribution: mapLayers[currentLayer].attribution,
+      maxZoom: 19,
+    });
+
+    newLayer.addTo(map);
+  }, [map, currentLayer]);
+
+  return null;
+};
 
 // Componente para acceder al mapa desde dentro
 const MapController = ({
@@ -55,6 +104,13 @@ const MapController = ({
 export default function RequestPage() {
   const isClient = typeof window !== 'undefined';
 
+  const openStreetView = useCallback((lat: number, lng: number) => {
+    // URL que abre directamente en Street View (vista de calles)
+    const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+
+    window.open(streetViewUrl, '_blank');
+  }, []);
+
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const mapRef = useRef<L.Map | null>(null);
@@ -68,6 +124,10 @@ export default function RequestPage() {
   const [filteredIdsFromSidebar, setFilteredIdsFromSidebar] = useState<
     string[] | null
   >(null);
+
+  const [currentLayer, setCurrentLayer] =
+    useState<keyof typeof mapLayers>('openstreetmap');
+  const [showLayerSelector, setShowLayerSelector] = useState(false);
 
   const iconCache = useRef<{ [key: string]: L.Icon }>({});
 
@@ -488,17 +548,44 @@ export default function RequestPage() {
       </p>        
       <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
       <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
-      <a href="" class="follow-link ml-2 mr-2 mb-3 ${colorScheme.popup2.linkColor}" data-device-id="${device.deviceId}">
-      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="#ffffff" stroke-width="2.5" viewBox="0 0 24 24">
-  <circle cx="11" cy="11" r="8"/>
-  <path d="m21 21-4.35-4.35"/>
-</svg> 
-      <span style="color: #fff;">Seguir Unidad</span>
-      </a>
+<div style="display: flex; padding: 12px 8px 12px 8px; gap: 8px;">
+  <a href="javascript:void(0)" class="street-view-link" style="width: 50% !important; height: 32px !important; background-color: #ea580c !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#c2410c'" onmouseout="this.style.backgroundColor='#ea580c'" data-lat="${device.lastValidLatitude}" data-lng="${device.lastValidLongitude}">
+    <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+    </svg>
+    <span>Vista 3D</span>
+  </a>
+  
+  <a href="javascript:void(0)" class="follow-link" style="width: 50% !important; height: 32px !important; background-color: #2563eb !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'" data-device-id="${device.deviceId}">
+    <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+    </svg> 
+    <span>Seguir Unidad</span>
+  </a>
+</div>
     </div>
   `;
     },
     [getEstado, getDireccion, getColorScheme],
+  );
+
+  const handleStreetViewClick = useCallback(
+    (e: MouseEvent) => {
+      if (!isClient) return;
+
+      const target = e.target as HTMLElement;
+      const streetViewLink = target.closest('.street-view-link');
+
+      if (streetViewLink) {
+        e.preventDefault();
+        const lat = parseFloat(streetViewLink.getAttribute('data-lat') || '0');
+        const lng = parseFloat(streetViewLink.getAttribute('data-lng') || '0');
+        openStreetView(lat, lng);
+      }
+    },
+    [isClient, openStreetView],
   );
 
   const handleFollowLinkClick = useCallback(
@@ -524,16 +611,18 @@ export default function RequestPage() {
 
     if (!clickListenerAttached.current) {
       document.addEventListener('click', handleFollowLinkClick);
+      document.addEventListener('click', handleStreetViewClick);
       clickListenerAttached.current = true;
     }
 
     return () => {
       if (clickListenerAttached.current) {
         document.removeEventListener('click', handleFollowLinkClick);
+        document.removeEventListener('click', handleStreetViewClick);
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, isClient]);
+  }, [handleFollowLinkClick, handleStreetViewClick, isClient]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -602,6 +691,11 @@ export default function RequestPage() {
     iconCache.current = {};
   }, [isClient]);
 
+  const handleLayerChange = useCallback((layerKey: keyof typeof mapLayers) => {
+    setCurrentLayer(layerKey);
+    setShowLayerSelector(false);
+  }, []);
+
   if (!isClient) {
     return <Loader />;
   }
@@ -634,6 +728,8 @@ export default function RequestPage() {
                 maxZoom={19}
               />
 
+              <LayerController currentLayer={currentLayer} />
+
               <MapController
                 onMapReady={onMapReady}
                 centerMap={centerMap}
@@ -642,20 +738,60 @@ export default function RequestPage() {
             </MapContainer>
           </div>
 
-          {/* Controles de zoom personalizados en la esquina inferior derecha */}
-          <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-1">
-            <button
-              onClick={() => mapRef.current?.zoomIn()}
-              className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
-            >
-              +
-            </button>
-            <button
-              onClick={() => mapRef.current?.zoomOut()}
-              className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
-            >
-              -
-            </button>
+          {/* Controles de zoom y selector de capas en la esquina inferior derecha */}
+          <div className="fixed bottom-4 right-4 z-30 flex flex-col gap-2">
+            {/* Selector de capas */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLayerSelector(!showLayerSelector)}
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white shadow-lg transition-colors hover:bg-gray-50"
+                title="Cambiar vista del mapa"
+              >
+                <span className="text-lg">{mapLayers[currentLayer].icon}</span>
+              </button>
+
+              {showLayerSelector && (
+                <div className="absolute bottom-12 right-0 z-50 w-48 rounded-lg border border-gray-200 bg-white shadow-xl">
+                  <div className="p-2">
+                    <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Vista del Mapa
+                    </div>
+                    {Object.entries(mapLayers).map(([key, layer]) => (
+                      <button
+                        key={key}
+                        onClick={() =>
+                          handleLayerChange(key as keyof typeof mapLayers)
+                        }
+                        className={`flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors ${
+                          currentLayer === key
+                            ? 'bg-blue-50 font-medium text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="mr-3 text-base">{layer.icon}</span>
+                        {layer.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Controles de zoom */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => mapRef.current?.zoomIn()}
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
+              >
+                +
+              </button>
+              <button
+                onClick={() => mapRef.current?.zoomOut()}
+                className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
+              >
+                -
+              </button>
+            </div>
           </div>
 
           {/* CSS para popups transparentes */}
