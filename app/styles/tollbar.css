@@ -20,7 +20,7 @@
 }
 
 .tollbar-bg{
-  background: #113eb9;
+  background: #113EB9;
   clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 70%, 68% 28%, 19% 28%, 17% 75%, 0 75%);
   position: absolute;
   top: 0;

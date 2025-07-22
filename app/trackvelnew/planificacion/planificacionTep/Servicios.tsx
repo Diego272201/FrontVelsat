@@ -101,7 +101,7 @@ export default function App({
   const limpiarGruposVacios = (gruposActuales: any[]) => {
     // Filtrar grupos que tienen al menos un pasajero
     const gruposConPasajeros = gruposActuales.filter(
-      (grupo) => grupo.personas && grupo.personas.length > 0
+      (grupo) => grupo.personas && grupo.personas.length > 0,
     );
 
     // Reindexar los grupos para que tengan IDs consecutivos
@@ -551,6 +551,21 @@ export default function App({
 
       // Limpiar grupos vacíos y reindexar después del movimiento
       const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+
+       // AGREGAR ESTAS LÍNEAS:
+    if (onActualizarDatos) {
+      setTimeout(() => {
+        onActualizarDatos({
+          totalGrupos: gruposLimpios.length,
+          totalPasajeros: gruposLimpios.reduce(
+            (acc, grupo) => acc + (grupo.personas?.length || 0),
+            0,
+          ),
+        });
+      }, 0);
+    }
+
+
       return gruposLimpios;
     });
 
@@ -608,6 +623,19 @@ export default function App({
 
           // Limpiar grupos vacíos y reindexar
           const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+
+           if (onActualizarDatos) {
+      setTimeout(() => {
+        onActualizarDatos({
+          totalGrupos: gruposLimpios.length,
+          totalPasajeros: gruposLimpios.reduce(
+            (acc, grupo) => acc + (grupo.personas?.length || 0),
+            0,
+          ),
+        });
+      }, 0);
+    }
+
           return gruposLimpios;
         }
       }
@@ -617,49 +645,80 @@ export default function App({
   };
 
   const handleEliminarDelArray = (idCliente: number) => {
+    // Primero encontramos el grupo que contiene al cliente
+    const grupoOrigenIndex = grupos.findIndex((grupo) =>
+      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+    );
+
+    if (grupoOrigenIndex === -1) {
+      console.warn('No se encontró el grupo del cliente');
+      return;
+    }
+
+    const grupoOrigen = grupos[grupoOrigenIndex];
+
+    // Verificamos si el grupo tiene solo una persona
+    if (grupoOrigen.personas.length === 1) {
+      Swal.fire({
+        title: 'No se puede eliminar',
+        text: 'No puedes eliminar al pasajero porque es el único en el grupo. Un grupo debe tener al menos un pasajero.',
+        icon: 'warning',
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#3085d6',
+      });
+      return;
+    }
+
+    // Si el grupo tiene más de una persona, procedemos con la eliminación
     setGrupos((prevGrupos) => {
       let nuevosGrupos = [...prevGrupos];
 
-      let grupoOrigenIndex = nuevosGrupos.findIndex((grupo) =>
-        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+      let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
+        (persona: any) => persona.idCliente === idCliente,
       );
 
-      if (grupoOrigenIndex !== -1) {
-        let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
-          (persona: any) => persona.idCliente === idCliente,
-        );
+      if (clienteEliminado) {
+        clienteEliminado = {
+          ...clienteEliminado,
+          numGrupo: nuevosGrupos[grupoOrigenIndex].id,
+          ordenOriginal: idCliente,
+        };
 
-        if (clienteEliminado) {
-          clienteEliminado = {
-            ...clienteEliminado,
-            numGrupo: nuevosGrupos[grupoOrigenIndex].id,
-            ordenOriginal: idCliente,
-          };
+        // Eliminar el cliente del grupo
+        nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
+          grupoOrigenIndex
+        ].personas.filter((persona: any) => persona.idCliente !== idCliente);
 
-          // Eliminar el cliente del grupo
-          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
-            grupoOrigenIndex
-          ].personas.filter((persona: any) => persona.idCliente !== idCliente);
+        setEliminados((prevEliminados) => {
+          const nuevosEliminados = [...prevEliminados, clienteEliminado];
 
-          setEliminados((prevEliminados) => {
-            const nuevosEliminados = [...prevEliminados, clienteEliminado];
+          console.log(
+            `Cliente eliminado:`,
+            clienteEliminado,
+            `\nViene del grupo:`,
+            clienteEliminado.numGrupo,
+            `\nNuevo estado de eliminados:`,
+            nuevosEliminados,
+          );
 
-            console.log(
-              `Cliente eliminado:`,
-              clienteEliminado,
-              `\nViene del grupo:`,
-              clienteEliminado.numGrupo,
-              `\nNuevo estado de eliminados:`,
-              nuevosEliminados,
-            );
-
-            return nuevosEliminados;
-          });
-        }
+          return nuevosEliminados;
+        });
       }
 
       // Limpiar grupos vacíos y reindexar después de la eliminación
       const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+
+       if (onActualizarDatos) {
+      setTimeout(() => {
+        onActualizarDatos({
+          totalGrupos: gruposLimpios.length,
+          totalPasajeros: gruposLimpios.reduce(
+            (acc, grupo) => acc + (grupo.personas?.length || 0),
+            0,
+          ),
+        });
+      }, 0);
+    }
       return gruposLimpios;
     });
   };
@@ -817,6 +876,20 @@ export default function App({
         console.log('Estado actual de grupos:', nuevosGrupos);
         console.log('Buscando grupo con ID:', item.numGrupo);
       }
+
+       if (onActualizarDatos) {
+      setTimeout(() => {
+        const totalPasajeros = nuevosGrupos.reduce(
+          (acc, grupo) => acc + (grupo.personas?.length || 0),
+          0,
+        );
+        onActualizarDatos({
+          totalGrupos: nuevosGrupos.length,
+          totalPasajeros: totalPasajeros,
+        });
+      }, 0);
+    }
+    
       return nuevosGrupos;
     });
   };

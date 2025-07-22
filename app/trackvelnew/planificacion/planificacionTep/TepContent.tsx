@@ -111,11 +111,12 @@ export default function TepContent() {
     setDatosServicios(datos);
   };
 
-  const manejarRespuestaModal = (respuesta: string) => {
-    setDato(respuesta);
-    setActualizacion((prev) => prev + 1);
-    onOpenChange();
-  };
+const manejarRespuestaModal = (respuesta: string) => {
+  setEmpresaConfirmada(empresaSeleccionada); // ← MOVER AQUÍ
+  setDato(respuesta);
+  setActualizacion((prev) => prev + 1);
+  onOpenChange();
+};
 
   useEffect(() => {
     if (empresaConfirmada && dato) {
@@ -124,7 +125,7 @@ export default function TepContent() {
 
   const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setEmpresaSeleccionada(e.target.value);
-    setDato('');
+    // setDato('');
   };
 
   const [excelData, setExcelData] = useState<
@@ -673,7 +674,6 @@ export default function TepContent() {
                     <button
                       className="flex items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={() => {
-                        setEmpresaConfirmada(empresaSeleccionada);
                         onOpen();
                       }}
                     >
