@@ -177,7 +177,7 @@ export default function Login() {
 
         {/* Título del sistema en la parte superior izquierda */}
         <div className="absolute left-8 top-8 z-30">
-          <h2 className="text-xl font-bold uppercase tracking-wide text-blue-100 xl:text-2xl">
+          <h2 className="text-4xl font-bold uppercase tracking-wide text-blue-100 xl:text-4xl">
             <span className="text-orange-400">TrackVel</span> System
           </h2>
         </div>
@@ -185,9 +185,8 @@ export default function Login() {
         {/* Overlay con información */}
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 text-white xl:p-12">
           <div className="space-y-3 xl:space-y-4">
-            <h1 className="text-3xl font-bold uppercase leading-tight text-[#edf2f4] xl:text-4xl">
-              Rastreamiento de Vehículos
-              <span className="block text-orange-400">en Tiempo Real</span>
+            <h1 className="text-2xl font-bold uppercase leading-tight text-[#edf2f4] xl:text-2xl">
+              Sistema de <span className="text-orange-400">control logístico</span>
             </h1>
             <p className="max-w-md text-base leading-tight text-white xl:text-[15px]">
               Monitorea tu flota con tecnología avanzada y obtén información
