@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Modal,
   ModalContent,
@@ -44,6 +45,9 @@ const AppModalReportes: React.FC<AppModalProps> = ({
   const [endDate, setEndDate] = useState<string>('');
   const { data: session } = useSession();
   const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
+  
+  // Hooks para obtener la ruta actual
+  const pathname = usePathname();
 
   const username = session?.user.username;
 
@@ -83,7 +87,20 @@ const AppModalReportes: React.FC<AppModalProps> = ({
         richColors: true,
       });
     } else {
-      const url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
+      // Detectar si la URL actual contiene 'subtrackvelnew'
+      const isSubtrackVelNew = pathname.includes('subtrackvelnew');
+      
+      // Construir la URL basada en la detección
+      let url: string;
+      
+      if (isSubtrackVelNew && nameurl === 'detallerecorrido') {
+        // Caso especial: subtrackvelnew + detallerecorrido
+        url = `/subtrackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
+      } else {
+        // Caso por defecto: trackvelnew (para todos los demás casos)
+        url = `/trackvelnew/estadistica/${nameurl}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&deviceId=${encodeURIComponent(selectedDeviceId)}`;
+      }
+
       window.open(url, '_blank');
     }
   };
@@ -105,7 +122,6 @@ const AppModalReportes: React.FC<AppModalProps> = ({
                 {icono && (
                   <span className="text-[40px] text-gray-800">{icono}</span>
                 )}
-                
               </div>
             </ModalHeader>
             <ModalBody>
