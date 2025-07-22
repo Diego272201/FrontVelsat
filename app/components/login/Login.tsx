@@ -389,7 +389,7 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-6 text-center xl:mt-8">
             <p className="text-xs text-gray-400 xl:text-sm">
-              © 2025 Velsat - Sistema de Rastreamiento Vehicular
+              © 2025 Velsat - Sistema de Control Logístico
             </p>
           </div>
         </div>
