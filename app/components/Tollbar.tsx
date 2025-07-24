@@ -150,8 +150,8 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
     title: 'Gestión de Servicios',
     icon: GrServices,
     items: [
-      { id: 'conductores', title: 'Conductores', icon: 'user' },
-      { id: 'unidades', title: 'Unidades', icon: 'truck' },
+      { id: 'conductores', title: 'Conductores', href: '/trackvelnew/gestionconductores', icon: 'user' },
+      { id: 'unidades', title: 'Unidades', href: '/trackvelnew/gestionunidades', icon: 'truck' },
       {
         id: 'programacion',
         title: 'Programación',
