@@ -162,9 +162,11 @@ export default function RequestPage() {
     connectSignalR();
   }, [session, baseUrl]);
 
+  // MOVIDO FUERA DE LA CONDICIÓN
   useEffect(() => {
-    if (!isClient) return;
-    setMapLoaded(true);
+    if (isClient) {
+      setMapLoaded(true);
+    }
   }, [isClient]);
 
   const getDireccion = useCallback((heading: number): string => {
@@ -469,22 +471,28 @@ export default function RequestPage() {
 
       let intervalId: NodeJS.Timeout | undefined;
 
-      // *** MODIFICA SOLO LA PARTE DEL EVENTO 'add' EN createNewMarker ***
-      // Reemplaza la parte del popup2.on('add', () => { ... }) con esto:
-
       popup2.on('add', () => {
         const fechaEl = document.querySelector(`#fecha-${device.deviceId}`);
         if (fechaEl) {
-          // *** ACTUALIZAR INMEDIATAMENTE AL ABRIR ***
-          fechaEl.innerHTML = getCurrentDateTime();
+          // *** ESTABLECER LA FECHA INMEDIATAMENTE AL ABRIR ***
+          const setCurrentTime = () => {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+          };
 
-          // *** LUEGO CONFIGURAR EL INTERVALO ***
-          intervalId = setInterval(() => {
-            fechaEl.innerHTML = getCurrentDateTime();
-          }, 1000);
+          // Establecer la fecha inmediatamente
+          setCurrentTime();
+
+          // Luego iniciar el interval
+          intervalId = setInterval(setCurrentTime, 1000);
         }
 
-        // Configurar botón de cerrar
         const closeButton = document.querySelector(
           `#close-btn-${device.deviceId}`,
         );
@@ -529,13 +537,11 @@ export default function RequestPage() {
     [getMarkerIcon, getEstado, getDireccion, getColorScheme],
   );
 
-  // Modifica SOLO estas dos funciones - getOptimizedPopupContent y el evento 'add' del popup2
-
   const getOptimizedPopupContent = useCallback(
     (device: DeviceList) => {
       const colorScheme = getColorScheme();
 
-      // *** NO CALCULAR LA FECHA AQUÍ - SERÁ DINÁMICA ***
+      // *** NO CALCULAR LA FECHA AQUÍ - SERÁ MANEJADA POR EL INTERVAL ***
       return `
   <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} text-[12px] flex flex-col w-[290px] rounded border ${colorScheme.popup2.borderColor} shadow-lg" id="content2-${device.deviceId}">
     <h3 class="popup-title font-bold flex items-center justify-between" style="border-bottom: 1px solid #6c757d; background-color: #1f2937; color: #ffffff;">
@@ -561,7 +567,6 @@ export default function RequestPage() {
     <br>
     <h4 class="px-2 font-bold uppercase" style="color: #fff; margin-top: 3px; margin-bottom: 0px;">Último Reporte</h4>
     <p class="px-2" id="fecha-${device.deviceId}" style="color: #fff; margin-top: 0px; margin-bottom: 1px;">
-      <strong>Fecha:</strong> -- <strong>Hora:</strong> --
     </p>        
     <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
     <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
@@ -587,18 +592,6 @@ export default function RequestPage() {
     },
     [getEstado, getDireccion, getColorScheme],
   );
-
-  // *** FUNCIÓN HELPER PARA OBTENER FECHA/HORA ACTUAL ***
-  const getCurrentDateTime = useCallback(() => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
-  }, []);
 
   const handleStreetViewClick = useCallback(
     (e: MouseEvent) => {
@@ -634,9 +627,8 @@ export default function RequestPage() {
     [isClient],
   );
 
+  // MOVIDO FUERA DE LA CONDICIÓN
   useEffect(() => {
-    if (!isClient) return;
-
     if (!clickListenerAttached.current) {
       document.addEventListener('click', handleFollowLinkClick);
       document.addEventListener('click', handleStreetViewClick);
@@ -650,7 +642,7 @@ export default function RequestPage() {
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, handleStreetViewClick, isClient]);
+  }, [handleFollowLinkClick, handleStreetViewClick]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -728,10 +720,7 @@ export default function RequestPage() {
     setShowLayerSelector(false);
   }, []);
 
-  if (!isClient) {
-    return <Loader />;
-  }
-
+  // HOOKS MOVIDOS PARA ESTAR SIEMPRE DISPONIBLES
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -750,7 +739,11 @@ export default function RequestPage() {
     return () => {
       onUnmount();
     };
-  }, []);
+  }, [onUnmount]);
+
+  if (!isClient) {
+    return <Loader />;
+  }
 
   return (
     <>
