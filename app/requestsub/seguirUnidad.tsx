@@ -10,7 +10,9 @@ import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
-const initialCenter: [number, number] = [-12.046591525826495, -77.04689047482863];
+const initialCenter: [number, number] = [
+  -12.046591525826495, -77.04689047482863,
+];
 
 interface Device {
   deviceId: string;
@@ -26,7 +28,7 @@ interface FechaActual {
 }
 
 interface Props {
-  deviceId?: string; 
+  deviceId?: string;
   height?: string;
 }
 
@@ -38,15 +40,15 @@ interface MarkerData {
 }
 
 // Componente para acceder al mapa desde dentro
-const MapController = ({ 
-  onMapReady, 
-  device 
-}: { 
+const MapController = ({
+  onMapReady,
+  device,
+}: {
   onMapReady: (map: L.Map) => void;
   device: Device | null;
 }) => {
   const map = useMap();
-  
+
   useEffect(() => {
     if (map) {
       onMapReady(map);
@@ -57,8 +59,8 @@ const MapController = ({
   useEffect(() => {
     if (map && device) {
       const newCenter: [number, number] = [
-        device.lastValidLatitude, 
-        device.lastValidLongitude
+        device.lastValidLatitude,
+        device.lastValidLongitude,
       ];
       map.setView(newCenter, 16);
     }
@@ -67,7 +69,10 @@ const MapController = ({
   return null;
 };
 
-export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) {
+export default function SeguirUnidadPage({
+  deviceId,
+  height = '100vh',
+}: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
 
@@ -75,7 +80,7 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
-  
+
   const servidorUrl = localStorage.getItem('servidorUrl');
 
   useEffect(() => {
@@ -85,21 +90,26 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
       }
       return null;
     };
-    
+
     const deviceIdFinal = deviceId || getDeviceIdFromUrl();
-    if (!deviceIdFinal) return; 
-  
+    if (!deviceIdFinal) return;
+
     if (status === 'authenticated' && session) {
       const username = session.user.username;
       const hubUrl = `${servidorUrl}/dataHubDevice?username=${username}`;
-  
-      const connection = new signalR.HubConnectionBuilder().withUrl(hubUrl).build();
-      connection.start()
+
+      const connection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .build();
+      connection
+        .start()
         .then(() => connection.invoke('UnirGrupo', username))
         .catch(console.error);
-  
+
       connection.on('ActualizarDatos', (datos) => {
-        const updatedDevice = datos.datosDevice.find((d: Device) => d.deviceId === deviceIdFinal);
+        const updatedDevice = datos.datosDevice.find(
+          (d: Device) => d.deviceId === deviceIdFinal,
+        );
         if (updatedDevice) {
           setFechaActual(datos.fechaActual);
           setDevice(updatedDevice);
@@ -119,33 +129,67 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   }, []);
 
   const getDireccion = useCallback((heading: number) => {
-    if (heading >= 0 && heading <= 22.5) return "Norte";
-    if (heading >= 22.51 && heading <= 67.50) return "Noreste";
-    if (heading >= 67.51 && heading <= 112.50) return "Este";
-    if (heading >= 112.51 && heading <= 157.50) return "Sureste";
-    if (heading >= 157.51 && heading <= 202.50) return "Sur";
-    if (heading >= 202.51 && heading <= 247.50) return "Suroeste";
-    if (heading >= 247.51 && heading <= 292.50) return "Oeste";
-    if (heading >= 292.51 && heading <= 337.50) return "Noroeste";
-    if (heading >= 337.51 && heading <= 360.00) return "Norte";
-    return "Desconocido";
+    if (heading >= 0 && heading <= 22.5) return 'Norte';
+    if (heading >= 22.51 && heading <= 67.5) return 'Noreste';
+    if (heading >= 67.51 && heading <= 112.5) return 'Este';
+    if (heading >= 112.51 && heading <= 157.5) return 'Sureste';
+    if (heading >= 157.51 && heading <= 202.5) return 'Sur';
+    if (heading >= 202.51 && heading <= 247.5) return 'Suroeste';
+    if (heading >= 247.51 && heading <= 292.5) return 'Oeste';
+    if (heading >= 292.51 && heading <= 337.5) return 'Noroeste';
+    if (heading >= 337.51 && heading <= 360.0) return 'Norte';
+    return 'Desconocido';
   }, []);
 
   const getMarkerIcon = useCallback((heading: number) => {
     const directions = [
       { range: [0, 22.5], url: '/up.webp', size: [25, 35] as [number, number] },
-      { range: [22.51, 67.50], url: '/topright.webp', size: [42, 25] as [number, number] },
-      { range: [67.51, 112.50], url: '/right.webp', size: [42, 25] as [number, number] },
-      { range: [112.51, 157.50], url: '/downright.webp', size: [42, 25] as [number, number] },
-      { range: [157.51, 202.50], url: '/down.webp', size: [25, 35] as [number, number] },
-      { range: [202.51, 247.50], url: '/downleft.webp', size: [42, 25] as [number, number] },
-      { range: [247.51, 292.50], url: '/left.webp', size: [42, 25] as [number, number] },
-      { range: [292.51, 337.50], url: '/topleft.webp', size: [42, 25] as [number, number] },
-      { range: [337.51, 360.00], url: '/up.webp', size: [25, 35] as [number, number] },
+      {
+        range: [22.51, 67.5],
+        url: '/topright.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [67.51, 112.5],
+        url: '/right.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [112.51, 157.5],
+        url: '/downright.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [157.51, 202.5],
+        url: '/down.webp',
+        size: [25, 35] as [number, number],
+      },
+      {
+        range: [202.51, 247.5],
+        url: '/downleft.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [247.51, 292.5],
+        url: '/left.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [292.51, 337.5],
+        url: '/topleft.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [337.51, 360.0],
+        url: '/up.webp',
+        size: [25, 35] as [number, number],
+      },
     ];
-    
-    const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
-    
+
+    const direction = directions.find(
+      (d) => heading >= d.range[0] && heading <= d.range[1],
+    );
+
     return direction
       ? L.icon({
           iconUrl: direction.url,
@@ -163,79 +207,67 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
     return speed > 0 ? 'En Movimiento' : 'Estacionado';
   }, []);
 
-  const getPopupContent = useCallback((device: Device) => {
-    return `
-      <div class="bg-gray-800 text-white text-[14px] flex flex-col w-[280px] rounded-lg border border-gray-600 shadow-lg overflow-hidden text-left" id="content2-${device.deviceId}">
-        <!-- Header con botón X y título -->
-        <div class="bg-gray-800 text-white p-3 flex items-center justify-between border-b border-gray-600">
-          <button id="close-btn-${device.deviceId}" class="text-white hover:text-red-500 text-lg font-bold w-6 h-6 flex items-center justify-center">×</button>
-          <span class="font-bold text-sm">UNIDAD: ${device.deviceId.toUpperCase()}</span>
+  const getPopupContent = useCallback(
+    (device: Device) => {
+      return `
+    <div class="content-custom-popup bg-gray-800 text-white rounded-lg p-2" id="content2-${device.deviceId}">
+         <button id="close-btn-${device.deviceId}" class="absolute top-2 right-4 text-white hover:text-red-500 text-lg font-bold">&times;</button>
+        <span><strong>Unidad:</strong> <strong>${device.deviceId.toUpperCase()}</strong></span>
+        <span><strong>Velocidad:</strong> <strong>${device.lastValidSpeed} Km/h</strong></span>
+        <span><strong>Estado:</strong> <strong>${getEstado(device.lastValidSpeed)}</strong></span>
+        <br>
+ <hr class="my-2 border-gray-600">
           
-          <div class="flex items-center gap-2">
-            <svg height="16px" width="16px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 511.999 511.999">
-              <circle style="fill:#CFF09E;" cx="256.004" cy="110.958" r="49.727"></circle>
-              <g>
-                <path style="fill:#507C5C;" d="M350.878,174.891c-2.544,0-5.119-0.682-7.443-2.115c-6.677-4.118-8.751-12.87-4.633-19.546 c7.816-12.674,11.948-27.291,11.948-42.27c0-23.122-9.952-45.172-27.305-60.494c-5.88-5.193-6.437-14.169-1.244-20.048 c5.191-5.88,14.168-6.436,20.048-1.246c23.456,20.713,36.908,50.523,36.908,81.788c0,20.25-5.593,40.023-16.176,57.181 C360.296,172.495,355.642,174.891,350.878,174.891z"></path>
-              </g>
-            </svg>
-            <div class="flex items-center gap-1">
-              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span class="text-xs text-green-500 font-medium">Online</span>
-            </div>
-          </div>
-        </div>
+      <h4 class="font-medium text-gray-300 uppercase"><strong>Último Reporte</strong></h4>  
+        <span><strong>${formatFecha(fechaActual)}</strong></span>
+        <span><strong>Dirección:</strong> <strong>${getDireccion(device.lastValidHeading)}</strong></span>
+        <span><strong>Ubicación:</strong> <strong>${device.direccion}</strong></span>
+    </div>
+  `;
+    },
+    [fechaActual, getDireccion, getEstado, formatFecha],
+  );
 
-        <!-- Contenido principal -->
-        <div class="p-3 space-y-1 text-left">
-          <div class="text-sm text-left"><strong>Velocidad:</strong> ${device.lastValidSpeed} Km/h</div>
-          <div class="text-sm text-left"><strong>Estado:</strong> ${getEstado(device.lastValidSpeed)}</div>
-        </div>
+  const createMarkerAndPopup = useCallback(
+    (map: L.Map) => {
+      if (!device) return;
 
-        <!-- Sección último reporte -->
-        <div class="bg-gray-700 p-3 space-y-1 text-left">
-          <h4 class="font-bold text-sm text-gray-300 uppercase mb-2 text-left">Último Reporte</h4>
-          <div class="text-sm text-left">${formatFecha(fechaActual)}</div>
-          <div class="text-sm text-left"><strong>Dirección:</strong> ${getDireccion(device.lastValidHeading)}</div>
-          <div class="text-sm text-left"><strong>Ubicación:</strong> ${device.direccion}</div>
-        </div>
-      </div>
-    `;
-  }, [fechaActual, getDireccion, getEstado, formatFecha]);
+      const position: [number, number] = [
+        device.lastValidLatitude,
+        device.lastValidLongitude,
+      ];
 
-  const createMarkerAndPopup = useCallback((map: L.Map) => {
-    if (!device) return;
+      if (markerDataRef.current) {
+        // Actualizar marcador existente
+        const markerData = markerDataRef.current;
 
-    const position: [number, number] = [device.lastValidLatitude, device.lastValidLongitude];
+        // Actualizar posición
+        markerData.marker.setLatLng(position);
 
-    if (markerDataRef.current) {
-      // Actualizar marcador existente
-      const markerData = markerDataRef.current;
-      
-      // Actualizar posición
-      markerData.marker.setLatLng(position);
-      
-      // Actualizar icono
-      const newIcon = getMarkerIcon(device.lastValidHeading);
-      markerData.marker.setIcon(newIcon);
+        // Actualizar icono
+        const newIcon = getMarkerIcon(device.lastValidHeading);
+        markerData.marker.setIcon(newIcon);
 
-      // Actualizar contenido del popup2
-      const popupElement = markerData.popup2.getElement();
-      if (popupElement) {
-        popupElement.innerHTML = getPopupContent(device);
-        
-        // Re-agregar event listener al botón de cerrar
-        const closeButton = popupElement.querySelector(`#close-btn-${device.deviceId}`);
-        if (closeButton) {
-          closeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            markerData.marker.closePopup();
-            markerData.marker.bindPopup(markerData.popup1).openPopup();
-          });
+        // Actualizar contenido del popup2
+        const popupElement = markerData.popup2.getElement();
+        if (popupElement) {
+          popupElement.innerHTML = getPopupContent(device);
+
+          // Re-agregar event listener al botón de cerrar
+          const closeButton = popupElement.querySelector(
+            `#close-btn-${device.deviceId}`,
+          );
+          if (closeButton) {
+            closeButton.addEventListener('click', (e) => {
+              e.stopPropagation();
+              markerData.marker.closePopup();
+              markerData.marker.bindPopup(markerData.popup1).openPopup();
+            });
+          }
         }
-      }
-    } else {
-      // Crear nuevo marcador
-      const popup1Content = `
+      } else {
+        // Crear nuevo marcador
+        const popup1Content = `
         <div class="relative flex flex-col items-center mt-4">
           <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
             ${device.deviceId.toUpperCase()}
@@ -244,78 +276,85 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
         </div>
       `;
 
-      const popup1 = L.popup({
-        closeButton: false,
-        autoClose: false,
-        autoPan: false,
-        className: 'custom-popup-1 transparent-popup'
-      }).setContent(popup1Content);
+        const popup1 = L.popup({
+          closeButton: false,
+          autoClose: false,
+          autoPan: false,
+          className: 'custom-popup-1 transparent-popup',
+        }).setContent(popup1Content);
 
-      const popup2 = L.popup({
-        closeButton: false,
-        autoClose: false, // Cambiar a false para evitar que se cierre automáticamente
-        className: 'custom-popup-2 transparent-popup'
-      }).setContent(getPopupContent(device));
+        const popup2 = L.popup({
+          closeButton: false,
+          autoClose: false, // Cambiar a false para evitar que se cierre automáticamente
+          className: 'custom-popup-2 transparent-popup',
+        }).setContent(getPopupContent(device));
 
-      const icon = getMarkerIcon(device.lastValidHeading);
-      const marker = L.marker(position, { icon }).addTo(map);
+        const icon = getMarkerIcon(device.lastValidHeading);
+        const marker = L.marker(position, { icon }).addTo(map);
 
-      // Abrir popup1 por defecto
-      marker.bindPopup(popup1).openPopup();
+        // Abrir popup1 por defecto
+        marker.bindPopup(popup1).openPopup();
 
-      // Variable para rastrear estado del popup2
-      let popup2IsOpen = false;
+        // Variable para rastrear estado del popup2
+        let popup2IsOpen = false;
 
-      // Event listeners
-      marker.on('click', () => {
-        if (!popup2IsOpen) {
-          // Abrir popup2
-          marker.bindPopup(popup2).openPopup();
-          popup2IsOpen = true;
-        } else {
-          // Cerrar popup2 y volver a popup1
-          marker.closePopup();
-          marker.bindPopup(popup1).openPopup();
-          popup2IsOpen = false;
-        }
-      });
-
-      // Configurar event listeners para popup2
-      popup2.on('add', () => {
-        // Configurar botón de cerrar
-        const closeButton = document.querySelector(`#close-btn-${device.deviceId}`);
-        if (closeButton) {
-          closeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
+        // Event listeners
+        marker.on('click', () => {
+          if (!popup2IsOpen) {
+            // Abrir popup2
+            marker.bindPopup(popup2).openPopup();
+            popup2IsOpen = true;
+          } else {
+            // Cerrar popup2 y volver a popup1
             marker.closePopup();
             marker.bindPopup(popup1).openPopup();
             popup2IsOpen = false;
-          });
-        }
+          }
+        });
+
+        // Configurar event listeners para popup2
+        popup2.on('add', () => {
+          // Configurar botón de cerrar
+          const closeButton = document.querySelector(
+            `#close-btn-${device.deviceId}`,
+          );
+          if (closeButton) {
+            closeButton.addEventListener('click', (e) => {
+              e.stopPropagation();
+              marker.closePopup();
+              marker.bindPopup(popup1).openPopup();
+              popup2IsOpen = false;
+            });
+          }
+        });
+
+        // Guardar referencia
+        markerDataRef.current = {
+          marker,
+          popup1,
+          popup2,
+        };
+      }
+    },
+    [device, getMarkerIcon, getPopupContent],
+  );
+
+  const onMapReady = useCallback(
+    (map: L.Map) => {
+      mapRef.current = map;
+
+      // Prevenir que los clics en el mapa cierren los popups
+      map.on('click', (e) => {
+        e.originalEvent.stopPropagation();
+        // No hacer nada - mantener todos los popups abiertos
       });
 
-      // Guardar referencia
-      markerDataRef.current = {
-        marker,
-        popup1,
-        popup2,
-      };
-    }
-  }, [device, getMarkerIcon, getPopupContent]);
-
-  const onMapReady = useCallback((map: L.Map) => {
-    mapRef.current = map;
-    
-    // Prevenir que los clics en el mapa cierren los popups
-    map.on('click', (e) => {
-      e.originalEvent.stopPropagation();
-      // No hacer nada - mantener todos los popups abiertos
-    });
-    
-    if (device) {
-      createMarkerAndPopup(map);
-    }
-  }, [createMarkerAndPopup, device]);
+      if (device) {
+        createMarkerAndPopup(map);
+      }
+    },
+    [createMarkerAndPopup, device],
+  );
 
   useEffect(() => {
     if (mapRef.current && device) {
@@ -326,7 +365,11 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
   return (
     <div style={{ width: '100%', height }}>
       <MapContainer
-        center={device ? [device.lastValidLatitude + 0.009, device.lastValidLongitude] : initialCenter}
+        center={
+          device
+            ? [device.lastValidLatitude + 0.009, device.lastValidLongitude]
+            : initialCenter
+        }
         zoom={14}
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
@@ -334,18 +377,14 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
         maxZoom={19}
         minZoom={1}
         closePopupOnClick={false} // ← Esta es la configuración clave
-
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
-        
-        <MapController 
-          onMapReady={onMapReady}
-          device={device}
-        />
+
+        <MapController onMapReady={onMapReady} device={device} />
       </MapContainer>
 
       {/* CSS para popups transparentes y estilos */}
@@ -355,18 +394,18 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
           box-shadow: none !important;
           border: none !important;
         }
-        
+
         .transparent-popup .leaflet-popup-tip {
           background: transparent !important;
           box-shadow: none !important;
           border: none !important;
         }
-        
+
         .transparent-popup .leaflet-popup-content {
           margin: 0 !important;
           padding: 0 !important;
         }
-        
+
         .transparent-popup .leaflet-popup-close-button {
           display: none !important;
         }

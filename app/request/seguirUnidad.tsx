@@ -107,15 +107,15 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
 
   const getMarkerIcon = useCallback((heading: number) => {
     const directions = [
-      { range: [0, 22.5], url: '/up.png', size: new google.maps.Size(25, 35) },
-      { range: [22.51, 67.50], url: '/topright.png', size: new google.maps.Size(42, 25) },
-      { range: [67.51, 112.50], url: '/right.png', size: new google.maps.Size(42, 25) },
-      { range: [112.51, 157.50], url: '/downright.png', size: new google.maps.Size(42, 25) },
-      { range: [157.51, 202.50], url: '/down.png', size: new google.maps.Size(25, 35) },
-      { range: [202.51, 247.50], url: '/downleft.png', size: new google.maps.Size(42, 25) },
-      { range: [247.51, 292.50], url: '/left.png', size: new google.maps.Size(42, 25) },
-      { range: [292.51, 337.50], url: '/topleft.png', size: new google.maps.Size(42, 25) },
-      { range: [337.51, 360.00], url: '/up.png', size: new google.maps.Size(25, 35) },
+      { range: [0, 22.5], url: '/up.webp', size: new google.maps.Size(25, 35) },
+      { range: [22.51, 67.50], url: '/topright.webp', size: new google.maps.Size(42, 25) },
+      { range: [67.51, 112.50], url: '/right.webp', size: new google.maps.Size(42, 25) },
+      { range: [112.51, 157.50], url: '/downright.webp', size: new google.maps.Size(42, 25) },
+      { range: [157.51, 202.50], url: '/down.webp', size: new google.maps.Size(25, 35) },
+      { range: [202.51, 247.50], url: '/downleft.webp', size: new google.maps.Size(42, 25) },
+      { range: [247.51, 292.50], url: '/left.webp', size: new google.maps.Size(42, 25) },
+      { range: [292.51, 337.50], url: '/topleft.webp', size: new google.maps.Size(42, 25) },
+      { range: [337.51, 360.00], url: '/up.webp', size: new google.maps.Size(25, 35) },
     ];
     const direction = directions.find(d => heading >= d.range[0] && heading <= d.range[1]);
     
@@ -136,7 +136,8 @@ export default function SeguirUnidadPage({ deviceId, height = '100vh' }: Props) 
           <br>
    <hr class="my-2 border-gray-600">
             
-            <h4 class="font-medium text-gray-300 uppercase">Último Reporte</h4>          <span>${formatFecha(fechaActual)} </span>
+        <h4 class="font-medium text-gray-300 uppercase">Último Reporte</h4>  
+          <span>${formatFecha(fechaActual)} </span>
           <span>Dirección: ${getDireccion(device.lastValidHeading)}</span>
           <span>Ubicación: ${device.direccion} </span>
       </div>
