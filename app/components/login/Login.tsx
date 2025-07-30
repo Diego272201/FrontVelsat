@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import { Eye, EyeOff, LogIn, Check, Shield, Wifi } from 'lucide-react';
-import useFingerprint from '@/hooks/useFingerprint';
+import { Eye, EyeOff, LogIn, Check, Wifi } from 'lucide-react';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -16,33 +15,12 @@ export default function Login() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isCheckingFingerprint, setIsCheckingFingerprint] = useState(false);
   const router = useRouter();
   const [servidorUrl, setServidorUrl] = useState('');
 
   const toggleVisibility = useCallback(() => setIsVisible((prev) => !prev), []);
 
   const { baseUrl } = useApi();
-  const fingerprint = useFingerprint();
-
-  const FINGERPRINT_RESTRICTIONS: { [key: string]: string[] } = {
-    // transporvilla: [
-    //   '4e996930d502a9e306d3d14826d4325b',
-    //   '7ae9259ac21f44356551222e952d637f',
-    // ],
-  };
-
-  const validarFingerprintPermitido = (
-    usuario: string,
-    fingerprint: string,
-  ): boolean => {
-    const fingerprintsPermitidos =
-      FINGERPRINT_RESTRICTIONS[usuario.toLowerCase()];
-    if (!fingerprintsPermitidos) {
-      return true;
-    }
-    return fingerprintsPermitidos.includes(fingerprint);
-  };
 
   const obtenerServidor = async (usuario: string) => {
     try {
@@ -100,37 +78,6 @@ export default function Login() {
       }
 
       try {
-        // Verificar si el usuario tiene restricciones de fingerprint
-        if (FINGERPRINT_RESTRICTIONS[login.toLowerCase()]) {
-          setIsCheckingFingerprint(true);
-
-          // Verificar si el fingerprint está disponible
-          if (!fingerprint) {
-            setErrors([
-              'Error de seguridad: No se pudo verificar la identidad del dispositivo.',
-              'Por favor, recarga la página e intenta nuevamente.',
-            ]);
-            setIsLoading(false);
-            setIsCheckingFingerprint(false);
-            return;
-          }
-
-          console.log('Fingerprint del usuario:', fingerprint);
-
-          // Validar si el fingerprint está permitido
-          if (!validarFingerprintPermitido(login, fingerprint)) {
-            setErrors([
-              'Acceso denegado: Este dispositivo no tiene permisos para acceder.',
-            ]);
-            setIsLoading(false);
-            setIsCheckingFingerprint(false);
-            return;
-          }
-        }
-
-        setIsCheckingFingerprint(false);
-
-        // Proceder con la autenticación normal
         const responseNextAuth = await signIn('credentials', {
           login,
           clave,
@@ -148,22 +95,19 @@ export default function Login() {
 
           const urlGuardada = localStorage.getItem('servidorUrl');
 
-          setTimeout(() => {
-            if (urlGuardada === 'https://sub.velsat.pe:2096') {
-              router.push('/subtrackvelnew');
-            } else {
-              router.push('/trackvelnew');
-            }
-          }, 1000);
+          if (urlGuardada === 'https://sub.velsat.pe:2096') {
+            router.replace('/subtrackvelnew');
+          } else {
+            router.replace('/trackvelnew');
+          }
         }
       } catch (error: any) {
         console.error('Error durante la autenticación:', error);
         setErrors([error.message || 'Error durante la autenticación']);
         setIsLoading(false);
-        setIsCheckingFingerprint(false);
       }
     },
-    [login, clave, router, baseUrl, fingerprint],
+    [login, clave, router, baseUrl],
   );
 
   return (
@@ -186,7 +130,8 @@ export default function Login() {
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 text-white xl:p-12">
           <div className="space-y-3 xl:space-y-4">
             <h1 className="text-2xl font-bold uppercase leading-tight text-[#edf2f4] xl:text-2xl">
-              Sistema de <span className="text-orange-400">control logístico</span>
+              Sistema de{' '}
+              <span className="text-orange-400">control logístico</span>
             </h1>
             <p className="max-w-md text-base leading-tight text-white xl:text-[15px]">
               Monitorea tu flota con tecnología avanzada y obtén información
@@ -251,12 +196,6 @@ export default function Login() {
                   className="w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-2.5 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-200 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-orange-500 xl:py-3"
                   disabled={isLoading || isSuccess}
                 />
-                {/* Indicador de usuario con restricción de fingerprint */}
-                {login && FINGERPRINT_RESTRICTIONS[login.toLowerCase()] && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 transform">
-                    <Shield className="h-4 w-4 text-yellow-500" />
-                  </div>
-                )}
               </div>
             </div>
 
@@ -289,20 +228,6 @@ export default function Login() {
                 </button>
               </div>
             </div>
-
-            {/* Mostrar cuando se está verificando el fingerprint */}
-            {isCheckingFingerprint && (
-              <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-2.5 backdrop-blur-sm xl:p-3">
-                <div className="flex items-center space-x-2">
-                  <Spinner size="sm" color="warning" />
-                  <div className="min-w-0">
-                    <p className="text-xs text-yellow-300 xl:text-sm">
-                      Verificando identidad del dispositivo...
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Mostrar errores */}
             {errors.length > 0 && (
@@ -362,11 +287,7 @@ export default function Login() {
               {isLoading ? (
                 <>
                   <Spinner color="warning" size="sm" />
-                  <span className="text-sm xl:text-base">
-                    {isCheckingFingerprint
-                      ? 'Verificando dispositivo...'
-                      : 'Autenticando...'}
-                  </span>
+                  <span className="text-sm xl:text-base">Autenticando...</span>
                 </>
               ) : isSuccess ? (
                 <>

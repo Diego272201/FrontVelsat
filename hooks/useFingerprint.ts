@@ -10,9 +10,8 @@ export default function useFingerprint() {
         const fp = await FingerprintJS.load();
         const result = await fp.get();
         setFingerprint(result.visitorId);
-        console.log("✅ visitorId generado:", result.visitorId);
       } catch (error) {
-        console.error("❌ Error generando fingerprint:", error);
+        console.error("Error generando fingerprint:", error);
       }
     };
 
