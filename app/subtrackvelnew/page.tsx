@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'; 
 
 import React, { Suspense } from 'react';
-import { default as dynamicImport } from 'next/dynamic'; // ✅ Renombrar el import
+import { default as dynamicImport } from 'next/dynamic'; 
 import '@/app/styles/trackvelnew.css';
 import Loader from '../components/Loader';
 

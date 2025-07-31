@@ -150,8 +150,18 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
     title: 'Gestión de Servicios',
     icon: GrServices,
     items: [
-      { id: 'conductores', title: 'Conductores', href: '/trackvelnew/gestionconductores', icon: 'user' },
-      { id: 'unidades', title: 'Unidades', href: '/trackvelnew/gestionunidades', icon: 'truck' },
+      {
+        id: 'conductores',
+        title: 'Conductores',
+        href: '/trackvelnew/gestionconductores',
+        icon: 'user',
+      },
+      {
+        id: 'unidades',
+        title: 'Unidades',
+        href: '/trackvelnew/gestionunidades',
+        icon: 'truck',
+      },
       {
         id: 'programacion',
         title: 'Programación',
@@ -415,21 +425,16 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   );
 };
 
-// Componente principal
 const Tollbar: React.FC = () => {
-  const { data: session } = useSession();
-
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
 
   const { baseUrl } = useApi();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const { openMenus, toggleMenu, closeAllMenus } = useMenuState();
   const { modals, openModal, closeModal } = useModalState();
 
-  // Memoized values
   const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
   const isSedapal = useMemo(
     () => baseUrl === 'https://sub.velsat.pe:2096',
@@ -438,7 +443,6 @@ const Tollbar: React.FC = () => {
 
   const isTalmav = useMemo(() => username === 'talmav', [username]);
 
-  // Effects
   useEffect(() => {
     const storedUsername = localStorage.getItem('currentUser');
     if (storedUsername) {
@@ -494,7 +498,6 @@ const Tollbar: React.FC = () => {
     isOpen: boolean,
     onToggle: () => void,
   ) => {
-    // Si es un enlace directo (como Gestión Villa para transporvilla)
     if (config.href) {
       return (
         <li className="group relative">
@@ -752,7 +755,7 @@ const Tollbar: React.FC = () => {
             ? isSedapal
               ? 'tollbar-bgsub'
               : 'tollbar-bg'
-            : 'tollbar-bg-alt'
+            : 'tollbar-bgsub'
         }
       />
 
