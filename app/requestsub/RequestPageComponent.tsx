@@ -379,6 +379,9 @@ export default function RequestPage() {
         const directionElement = popupElement.querySelector('.direction-value');
         const locationElement = popupElement.querySelector('.location-value');
 
+        // *** AGREGAR ESTA LÍNEA PARA ACTUALIZAR COORDENADAS ***
+        const streetViewLink = popupElement.querySelector('.street-view-link');
+
         if (speedElement)
           speedElement.textContent = `${device.lastValidSpeed} Km/h`;
         if (stateElement)
@@ -386,6 +389,18 @@ export default function RequestPage() {
         if (directionElement)
           directionElement.textContent = getDireccion(device.lastValidHeading);
         if (locationElement) locationElement.textContent = device.direccion;
+
+        // *** ACTUALIZAR COORDENADAS DEL BOTÓN VISTA 3D ***
+        if (streetViewLink) {
+          streetViewLink.setAttribute(
+            'data-lat',
+            device.lastValidLatitude.toString(),
+          );
+          streetViewLink.setAttribute(
+            'data-lng',
+            device.lastValidLongitude.toString(),
+          );
+        }
       }
     },
     [getEstado, getDireccion],

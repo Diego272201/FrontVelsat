@@ -1,12 +1,5 @@
 'use client';
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  GoogleMap,
-  useJsApiLoader,
-  Marker,
-  InfoWindow,
-  Polyline,
-} from '@react-google-maps/api';
 import axios from 'axios';
 import '@/app/styles/markers.css';
 import { useSearchParams } from 'next/navigation';
@@ -16,6 +9,15 @@ import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
 import Leyenda from '@/app/components/Leyenda';
 import LeyendaPasajeros from '@/app/components/LeyendaPasajeros';
+import dynamic from 'next/dynamic';
+import type { Map as LeafletMap } from 'leaflet';
+
+// Importar Leaflet dinámicamente para evitar problemas de SSR
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
+const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline), { ssr: false });
 
 interface UnidadDetalleRecorrido {
   longitude: number;
@@ -25,7 +27,111 @@ interface UnidadDetalleRecorrido {
   speed: number;
 }
 
-const libraries: ("places")[] = ['places'];
+// Componente personalizado para el marcador con popup
+function CustomMarker({ 
+  markerData, 
+  index, 
+  selectedMarker, 
+  setSelectedMarker, 
+  getMarkerIcon 
+}: {
+  markerData: UnidadDetalleRecorrido;
+  index: number;
+  selectedMarker: UnidadDetalleRecorrido | null;
+  setSelectedMarker: (marker: UnidadDetalleRecorrido | null) => void;
+  getMarkerIcon: (speed: number) => string;
+}) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        // Configurar iconos personalizados de Leaflet
+        const DefaultIcon = L.Icon.Default;
+        const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
+        delete iconPrototype._getIconUrl;
+        
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+      });
+    }
+  }, [isClient]);
+
+  if (!isClient) return null;
+
+  // Crear icono personalizado
+  const createCustomIcon = () => {
+    const iconUrl = getMarkerIcon(markerData.speed);
+    
+    if (typeof window !== 'undefined') {
+      const L = require('leaflet');
+      
+      // Crear un div HTML con el icono y el número
+      const markerHtml = `
+        <div style="position: relative; width: 40px; height: 40px;">
+          <img src="${iconUrl}" style="width: 40px; height: 40px;" />
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #252424;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: 'Segoe UI';
+            text-shadow: 1px 1px 1px rgba(255,255,255,0.8);
+          ">${index + 1}</div>
+        </div>
+      `;
+      
+      return new L.DivIcon({
+        html: markerHtml,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20],
+        className: 'custom-div-icon'
+      });
+    }
+    return undefined;
+  };
+
+  const customIcon = createCustomIcon();
+
+  return (
+    <Marker
+      position={[markerData.latitude, markerData.longitude]}
+      icon={customIcon}
+      eventHandlers={{
+        click: () => {
+          setSelectedMarker(markerData);
+        },
+      }}
+    >
+      {selectedMarker === markerData && (
+        <Popup
+          closeOnClick={false}
+          autoClose={false}
+          eventHandlers={{
+            remove: () => setSelectedMarker(null),
+          }}
+        >
+          <div className="infoDetalleR">
+            <p>Fecha: {markerData.date}</p>
+            <p>Hora: {markerData.time}</p>
+            <p>Velocidad: {markerData.speed.toFixed(2)} Km/H</p>
+          </div>
+        </Popup>
+      )}
+    </Marker>
+  );
+}
 
 const ReportServicios = () => {
   const { data: session } = useSession();
@@ -48,22 +154,21 @@ const ReportServicios = () => {
 
   const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
 
-  const [mapCenter, setMapCenter] = useState({
-    lat: -12.046591525826495,
-    lng: -77.04689047482863,
-  });
+  const [mapCenter, setMapCenter] = useState<[number, number]>([
+    -12.046591525826495,
+    -77.04689047482863,
+  ]);
   const [markersData, setMarkersData] = useState<UnidadDetalleRecorrido[]>([]);
   const [selectedMarker, setSelectedMarker] =
     useState<UnidadDetalleRecorrido | null>(null);
-  const [map, setMap] = useState(null);
-
+  const [map, setMap] = useState<LeafletMap | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const [isMarkersLoaded, setIsMarkersLoaded] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries // ← importante
-  });
+  // Configurar Leaflet cuando se carga el cliente
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -87,10 +192,10 @@ const ReportServicios = () => {
       } else {
         setMarkersData(response.data.result);
         setIsMarkersLoaded(true);
-        setMapCenter({
-          lat: response.data.result[0].latitude,
-          lng: response.data.result[0].longitude,
-        });
+        setMapCenter([
+          response.data.result[0].latitude,
+          response.data.result[0].longitude,
+        ]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -100,14 +205,6 @@ const ReportServicios = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const onLoad = useCallback(function callback(map: any) {
-    setMap(map);
-  }, []);
-
-  const onUnmount = useCallback(function callback(map: any) {
-    setMap(null);
-  }, []);
 
   const handleMarkerClick = (markerData: UnidadDetalleRecorrido) => {
     setSelectedMarker(markerData);
@@ -129,32 +226,22 @@ const ReportServicios = () => {
     }
   };
 
-  const mapStyles = [
-    {
-      featureType: 'poi',
-      elementType: 'labels',
-      stylers: [{ visibility: 'off' }],
-    },
-    {
-      featureType: 'transit.station.bus',
-      elementType: 'labels.icon',
-      stylers: [{ visibility: 'off' }],
-    },
-    {
-      featureType: 'transit.station.rail',
-      elementType: 'labels.icon',
-      stylers: [{ visibility: 'off' }],
-    },
-  ];
+  const polylineCoordinates: [number, number][] = markersData.map((markerData) => [
+    markerData.latitude,
+    markerData.longitude,
+  ]);
 
-  const polylineCoordinates = markersData.map((markerData) => ({
-    lat: markerData.latitude,
-    lng: markerData.longitude,
-  }));
+  // Opciones para la polilínea punteada
+  const polylineOptions = {
+    color: '#003049',
+    weight: 3,
+    opacity: 0.8,
+    dashArray: '5, 10',
+  };
 
   return (
     <>
-      {!isLoaded || !isMarkersLoaded ? (
+      {!isClient || !isMarkersLoaded ? (
         <div
           style={{
             display: 'flex',
@@ -166,73 +253,67 @@ const ReportServicios = () => {
           <Loader />
         </div>
       ) : (
-        <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '100vh' }}
-          center={mapCenter}
-          zoom={12}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={{
-            mapTypeControl: false,
-            fullscreenControl: false,
-            styles: mapStyles,
-          }}
-        >
-          {markersData.map((markerData, index) => (
-            <Marker
-              key={index}
-              position={{ lat: markerData.latitude, lng: markerData.longitude }}
-              onClick={() => handleMarkerClick(markerData)}
-              icon={{
-                url: getMarkerIcon(markerData.speed),
-                scaledSize: new window.google.maps.Size(40, 40),
-              }}
-              label={{
-                className: 'markerlabel',
-                text: (index + 1).toString(),
-                color: '#252424',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                fontFamily: 'Segoe UI',
-              }}
-            >
-              {selectedMarker === markerData && (
-                <InfoWindow onCloseClick={handleCloseInfoWindow}>
-                  <div className="infoDetalleR">
-                    <p>Fecha: {markerData.date}</p>
-                    <p>Hora: {markerData.time}</p>
-                    <p>Velocidad: {markerData.speed.toFixed(2)} Km/H</p>
-                  </div>
-                </InfoWindow>
-              )}
-            </Marker>
-          ))}
+        <div style={{ width: '100%', height: '100vh' }}>
+          <MapContainer
+            center={mapCenter}
+            zoom={12}
+            style={{ width: '100%', height: '100%' }}
+            ref={setMap}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            
+            {/* Renderizar marcadores personalizados */}
+            {markersData.map((markerData, index) => (
+              <CustomMarker
+                key={index}
+                markerData={markerData}
+                index={index}
+                selectedMarker={selectedMarker}
+                setSelectedMarker={setSelectedMarker}
+                getMarkerIcon={getMarkerIcon}
+              />
+            ))}
 
-          <Polyline
-            path={polylineCoordinates}
-            options={{
-              strokeColor: '#003049',
-              strokeOpacity: 0,
-              strokeWeight: 0.5,
-              icons: [
-                {
-                  icon: {
-                    path: 'M 0,-1 0,1',
-                    strokeOpacity: 1,
-                    scale: 3,
-                  },
-                  offset: '0',
-                  repeat: '20px',
-                },
-              ],
-            }}
-          />
-        </GoogleMap>
+            {/* Polilínea punteada para mostrar el recorrido */}
+            {polylineCoordinates.length > 1 && (
+              <Polyline
+                positions={polylineCoordinates}
+                pathOptions={polylineOptions}
+              />
+            )}
+          </MapContainer>
+        </div>
       )}
 
-      <Leyenda numero={numero} tipo={tipo} unidad={unidad} empresa={empresa}  fecha={fecha} fechaIni={fechaIni} fechaFin={fechaFin}></Leyenda>
+      <Leyenda 
+        numero={numero} 
+        tipo={tipo} 
+        unidad={unidad} 
+        empresa={empresa}  
+        fecha={fecha} 
+        fechaIni={fechaIni} 
+        fechaFin={fechaFin}
+      />
 
-      <LeyendaPasajeros codigo={codigo} ></LeyendaPasajeros>
+      <LeyendaPasajeros codigo={codigo} />
+      
+      {/* Estilos para iconos personalizados y Leaflet CSS */}
+      <style jsx global>{`
+        @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+        
+        .custom-div-icon {
+          background: transparent !important;
+          border: none !important;
+        }
+        
+        .custom-div-icon div {
+          background: transparent !important;
+          border: none !important;
+        }
+      `}</style>
     </>
   );
 };

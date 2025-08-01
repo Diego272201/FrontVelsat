@@ -15,6 +15,8 @@ import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
 
+const blinkingIntervals: { [key: string]: NodeJS.Timeout } = {};
+
 const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
   { ssr: false },
@@ -40,6 +42,7 @@ interface DeviceList {
   direccion: string;
   lastValidHeading: number;
   rutaact: string;
+  servicio: string;
 }
 
 interface MarkerData {
@@ -51,6 +54,13 @@ interface MarkerData {
 
 export default function RequestPage() {
   const isClient = typeof window !== 'undefined';
+
+  const openStreetView = useCallback((lat: number, lng: number) => {
+    // URL que abre directamente en Street View (vista de calles)
+    const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+
+    window.open(streetViewUrl, '_blank');
+  }, []);
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
@@ -182,24 +192,83 @@ export default function RequestPage() {
     [],
   );
 
-  // Función para obtener colores unificados (sin lógica de transporvilla)
-  const getColorScheme = useCallback(() => {
-    return {
-      popup1: {
-        bgColor: 'bg-[#fca311]',
-        textColor: 'text-gray-800',
-        borderColor: 'border-[#fca311]',
-        triangleColor: 'border-t-[#fca311]',
-      },
-      popup2: {
-        bgColor: 'bg-[#1f2937]',
-        textColor: 'text-white',
-        borderColor: 'border-[#1f2937]',
-        closeButtonColor: 'text-white hover:text-gray-300',
-        linkColor: 'text-blue-300 hover:text-blue-100',
-      },
+  const getColorScheme = useCallback((device: DeviceList) => {
+      const isMovilbusUser = session?.user?.username === 'movilbus';
+
+      // Si NO es movilbus, usar color por defecto (naranja original)
+      if (!isMovilbusUser) {
+        return {
+          popup1: {
+            bgColor: 'bg-[#fca311]', // Color por defecto original
+            textColor: 'text-gray-800',
+            borderColor: 'border-[#fca311]',
+            triangleColor: 'border-t-[#fca311]',
+          },
+          popup2: {
+            bgColor: 'bg-[#1f2937]', // Color por defecto original
+            textColor: 'text-white',
+            borderColor: 'border-[#1f2937]',
+            closeButtonColor: 'text-white hover:text-gray-300',
+            linkColor: 'text-blue-300 hover:text-blue-100',
+          },
+        };
+      }
+
+      // Lógica de colores basada en servicio y velocidad
+let popup1Colors, popup2Colors;
+
+  if (device.servicio) {
+    // Tiene servicio - Color rojo
+    popup1Colors = {
+      bgColor: 'bg-red-500',
+      textColor: 'text-white',
+      borderColor: 'border-red-500',
+      triangleColor: 'border-t-red-500',
     };
-  }, []);
+    popup2Colors = {
+      bgColor: 'bg-red-600',
+      textColor: 'text-white',
+      borderColor: 'border-red-600',
+      closeButtonColor: 'text-white hover:text-gray-300',
+      linkColor: 'text-blue-300 hover:text-blue-100',
+    };
+  } else if (!device.servicio && device.lastValidSpeed < 1) {
+    // Sin servicio y velocidad < 1 - Color verde
+    popup1Colors = {
+      bgColor: 'bg-green-500',
+      textColor: 'text-white',
+      borderColor: 'border-green-500',
+      triangleColor: 'border-t-green-500',
+    };
+    popup2Colors = {
+      bgColor: 'bg-green-600',
+      textColor: 'text-white',
+      borderColor: 'border-green-600',
+      closeButtonColor: 'text-white hover:text-gray-300',
+      linkColor: 'text-blue-300 hover:text-blue-100',
+    };
+  } else {
+    // Sin servicio y velocidad >= 1 - Color naranja (para parpadeo)
+    popup1Colors = {
+      bgColor: 'bg-orange-500',
+      textColor: 'text-white',
+      borderColor: 'border-orange-500',
+      triangleColor: 'border-t-orange-500',
+    };
+    popup2Colors = {
+      bgColor: 'bg-orange-600',
+      textColor: 'text-white',
+      borderColor: 'border-orange-600',
+      closeButtonColor: 'text-white hover:text-gray-300',
+      linkColor: 'text-blue-300 hover:text-blue-100',
+    };
+  }
+
+  return {
+    popup1: popup1Colors,
+    popup2: popup2Colors,
+  };
+}, [session?.user?.username]);
 
   // Función optimizada para crear/actualizar marcadores
   const updateMarkersAndPopups = useCallback(
@@ -276,31 +345,155 @@ export default function RequestPage() {
     ],
   );
 
-  // Función para actualizar contenido del popup simplificada
+  // REEMPLAZAR la función updatePopupContent completa:
   const updatePopupContent = useCallback(
-    (device: DeviceList, markerData: MarkerData) => {
-      // Actualizar popup2 (información detallada)
-      const popupElement = document.querySelector(
-        `#content2-${device.deviceId}`,
-      ) as HTMLElement;
-      if (popupElement) {
-        // Actualizar solo los elementos que cambian
-        const speedElement = popupElement.querySelector('.speed-value');
-        const stateElement = popupElement.querySelector('.state-value');
-        const directionElement = popupElement.querySelector('.direction-value');
-        const locationElement = popupElement.querySelector('.location-value');
+  (device: DeviceList, markerData: MarkerData) => {
+    const colorScheme = getColorScheme(device);
+    
+    // VERIFICAR si es usuario 'movilbus'
+    const isMovilbusUser = session?.user?.username === 'movilbus';
 
-        if (speedElement)
-          speedElement.textContent = `${device.lastValidSpeed} Km/h`;
-        if (stateElement)
-          stateElement.textContent = getEstado(device.lastValidSpeed);
-        if (directionElement)
-          directionElement.textContent = getDireccion(device.lastValidHeading);
-        if (locationElement) locationElement.textContent = device.direccion;
+    // AGREGAR los colores personalizados al colorMap
+    const colorMap: { [key: string]: string } = {
+      'bg-red-500': '#ef4444',
+      'bg-green-500': '#22c55e',
+      'bg-orange-500': '#f97316',
+      'bg-red-600': '#dc2626',
+      'bg-green-600': '#16a34a',
+      'bg-orange-600': '#ea580c',
+      // AGREGAR tus colores personalizados:
+      'bg-[#fca311]': '#fca311',  // Color naranja/dorado original
+      'bg-[#1f2937]': '#1f2937',  // Color gris oscuro original
+    };
+
+    // DETECTAR si debe parpadear (SOLO para usuario movilbus)
+    const shouldBlink = isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
+
+    console.log(`${device.deviceId}: usuario=${session?.user?.username}, isMovilbus=${isMovilbusUser}, debe parpadear=${shouldBlink}`);
+
+    // ACTUALIZAR POPUP1 (etiqueta)
+    const popup1Element = document.querySelector(
+      `#content-${device.deviceId}`,
+    ) as HTMLElement;
+    if (popup1Element) {
+      const contentDiv = popup1Element.querySelector(
+        '#content',
+      ) as HTMLElement;
+      const triangleDiv = document.querySelector(
+        `#triangle-${device.deviceId}`,
+      ) as HTMLElement;
+
+      if (contentDiv) {
+        const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311'; // Fallback al color original
+
+        if (shouldBlink) {
+          // USAR JAVASCRIPT para animar (solo movilbus)
+          startBlinkingAnimation(contentDiv, 'background', device.deviceId);
+        } else {
+          // DETENER animación y aplicar color fijo
+          stopBlinkingAnimation(device.deviceId);
+          contentDiv.style.backgroundColor = bgColor;
+          contentDiv.style.borderColor = bgColor;
+        }
+
+        // APLICAR color de texto correcto según el esquema
+        if (colorScheme.popup1.textColor === 'text-gray-800') {
+          contentDiv.style.color = '#1f2937'; // Gris oscuro
+        } else {
+          contentDiv.style.color = 'white';
+        }
       }
-    },
-    [getEstado, getDireccion],
-  );
+
+      if (triangleDiv) {
+        const triangleColor = colorMap[colorScheme.popup1.bgColor] || '#fca311'; // Fallback al color original
+
+        triangleDiv.classList.remove(
+          'border-t-red-500',
+          'border-t-green-500',
+          'border-t-orange-500',
+          'border-t-red-600',
+          'border-t-green-600',
+          'border-t-orange-600',
+        );
+
+        if (shouldBlink) {
+          // USAR JAVASCRIPT para animar el triángulo (solo movilbus)
+          startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
+        } else {
+          // DETENER animación y aplicar color fijo
+          stopBlinkingAnimation(device.deviceId, 'triangle');
+          triangleDiv.style.setProperty(
+            'border-top-color',
+            triangleColor,
+            'important',
+          );
+        }
+
+        triangleDiv.style.setProperty(
+          'border-left-color',
+          'transparent',
+          'important',
+        );
+        triangleDiv.style.setProperty(
+          'border-right-color',
+          'transparent',
+          'important',
+        );
+      }
+    }
+
+    // ACTUALIZAR POPUP2 (información detallada)
+    const popupElement = document.querySelector(
+      `#content2-${device.deviceId}`,
+    ) as HTMLElement;
+    if (popupElement) {
+      const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937'; // Fallback al color original
+
+      if (shouldBlink) {
+        // USAR JAVASCRIPT para animar popup2 (solo movilbus)
+        startBlinkingAnimation(
+          popupElement,
+          'background',
+          device.deviceId,
+          'popup2',
+        );
+      } else {
+        // DETENER animación y aplicar color fijo
+        stopBlinkingAnimation(device.deviceId, 'popup2');
+        popupElement.style.backgroundColor = bgColor;
+        popupElement.style.borderColor = bgColor;
+      }
+
+      popupElement.style.color = 'white';
+
+      // Resto del contenido igual...
+      const speedElement = popupElement.querySelector('.speed-value');
+      const stateElement = popupElement.querySelector('.state-value');
+      const directionElement = popupElement.querySelector('.direction-value');
+      const locationElement = popupElement.querySelector('.location-value');
+      const streetViewLink = popupElement.querySelector('.street-view-link');
+
+      if (speedElement)
+        speedElement.textContent = `${device.lastValidSpeed} Km/h`;
+      if (stateElement)
+        stateElement.textContent = getEstado(device.lastValidSpeed);
+      if (directionElement)
+        directionElement.textContent = getDireccion(device.lastValidHeading);
+      if (locationElement) locationElement.textContent = device.direccion;
+      if (streetViewLink) {
+        streetViewLink.setAttribute(
+          'data-lat',
+          device.lastValidLatitude.toString(),
+        );
+        streetViewLink.setAttribute(
+          'data-lng',
+          device.lastValidLongitude.toString(),
+        );
+      }
+    }
+  },
+  [getEstado, getDireccion, getColorScheme, session?.user?.username],
+);
 
   // Función para crear nuevos marcadores
   const createNewMarker = useCallback(
@@ -309,7 +502,7 @@ export default function RequestPage() {
       position: google.maps.LatLng,
       map: google.maps.Map,
     ) => {
-      const colorScheme = getColorScheme();
+      const colorScheme = getColorScheme(device);
 
       // Crear popup1 (etiqueta) con colores fijos
       const content1 = document.createElement('div');
@@ -319,7 +512,7 @@ export default function RequestPage() {
           <div id="content" class="${colorScheme.popup1.bgColor} ${colorScheme.popup1.textColor} px-2 py-1.5 border ${colorScheme.popup1.borderColor}">
             ${device.deviceId.toUpperCase()}
           </div>
-          <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent ${colorScheme.popup1.triangleColor}"></div>
+          <div id="triangle-${device.deviceId}" class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent ${colorScheme.popup1.triangleColor}"></div>
         </div>
       `;
 
@@ -436,7 +629,7 @@ export default function RequestPage() {
       const minutes = String(fechaActualHoy.getMinutes()).padStart(2, '0');
       const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
 
-      const colorScheme = getColorScheme();
+      const colorScheme = getColorScheme(device);
 
       return `
         <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} text-[12px] flex flex-col w-[290px] rounded border ${colorScheme.popup2.borderColor} shadow-lg" id="content2-${device.deviceId}">
@@ -470,17 +663,44 @@ export default function RequestPage() {
           </p>        
           <span class="px-2"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
           <span class="px-2"><strong>Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
-          <a href="" class="follow-link ml-2 mr-2 mb-3 ${colorScheme.popup2.linkColor}" data-device-id="${device.deviceId}" style="text-decoration: none;">
-            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
-            Seguir Unidad
-          </a>
+<div style="display: flex; padding: 12px 8px 12px 8px; gap: 8px;">
+<a href="" class="street-view-link" style="width: 50% !important; height: 32px !important; background-color: #ea580c !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#c2410c'" onmouseout="this.style.backgroundColor='#ea580c'" data-lat="${device.lastValidLatitude}" data-lng="${device.lastValidLongitude}">
+  <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+  </svg>
+  <span>Vista 3D</span>
+</a>
+
+<a href="" class="follow-link" style="width: 50% !important; height: 32px !important; background-color: #2563eb !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'" data-device-id="${device.deviceId}">
+  <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.35-4.35"/>
+  </svg> 
+  <span>Seguir Unidad</span>
+</a>
+</div>
         </div>
       `;
     },
     [getEstado, getDireccion, getColorScheme],
+  );
+
+  const handleStreetViewClick = useCallback(
+    (e: MouseEvent) => {
+      if (!isClient) return;
+
+      const target = e.target as HTMLElement;
+      const streetViewLink = target.closest('.street-view-link');
+
+      if (streetViewLink) {
+        e.preventDefault();
+        const lat = parseFloat(streetViewLink.getAttribute('data-lat') || '0');
+        const lng = parseFloat(streetViewLink.getAttribute('data-lng') || '0');
+        openStreetView(lat, lng);
+      }
+    },
+    [isClient, openStreetView],
   );
 
   const handleFollowLinkClick = useCallback(
@@ -488,10 +708,12 @@ export default function RequestPage() {
       if (!isClient) return;
 
       const target = e.target as HTMLElement;
-      if (target.classList.contains('follow-link')) {
+      const followLink = target.closest('.follow-link');
+
+      if (followLink) {
         e.preventDefault();
-        const deviceID = target.getAttribute('data-device-id');
-        const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
+        const deviceID = followLink.getAttribute('data-device-id');
+        const url = `/subtrackvelnew/seguirUnidad?deviceId=${deviceID}`;
         window.open(url, '_blank');
       }
     },
@@ -503,16 +725,18 @@ export default function RequestPage() {
 
     if (!clickListenerAttached.current) {
       document.addEventListener('click', handleFollowLinkClick);
+      document.addEventListener('click', handleStreetViewClick);
       clickListenerAttached.current = true;
     }
 
     return () => {
       if (clickListenerAttached.current) {
         document.removeEventListener('click', handleFollowLinkClick);
+        document.addEventListener('click', handleStreetViewClick);
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, isClient]);
+  }, [handleFollowLinkClick, handleStreetViewClick, isClient]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -551,6 +775,76 @@ export default function RequestPage() {
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     setMarkersLoaded(false);
+  }, []);
+
+  function startBlinkingAnimation(
+    element: HTMLElement,
+    type: 'background' | 'triangle',
+    deviceId: string,
+    suffix: string = '',
+  ) {
+    const intervalKey = `${deviceId}_${type}_${suffix}`;
+
+    // DETENER intervalo anterior si existe
+    if (blinkingIntervals[intervalKey]) {
+      clearInterval(blinkingIntervals[intervalKey]);
+    }
+
+    const orange = '#f97316';
+    const yellow = '#eab308';
+    let isOrange = true;
+
+    // APLICAR color inicial
+    if (type === 'background') {
+      element.style.backgroundColor = orange;
+      element.style.borderColor = orange;
+    } else if (type === 'triangle') {
+      element.style.setProperty('border-top-color', orange, 'important');
+    }
+
+    // CREAR intervalo para alternar colores
+    blinkingIntervals[intervalKey] = setInterval(() => {
+      const currentColor = isOrange ? yellow : orange;
+
+      if (type === 'background') {
+        element.style.backgroundColor = currentColor;
+        element.style.borderColor = currentColor;
+      } else if (type === 'triangle') {
+        element.style.setProperty(
+          'border-top-color',
+          currentColor,
+          'important',
+        );
+      }
+
+      isOrange = !isOrange;
+    }, 500);
+  }
+
+  function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
+    // DETENER todos los intervalos relacionados con este device
+    const keysToStop = Object.keys(blinkingIntervals).filter(
+      (key) =>
+        key.startsWith(deviceId) && (suffix === '' || key.includes(suffix)),
+    );
+
+    keysToStop.forEach((key) => {
+      if (blinkingIntervals[key]) {
+        clearInterval(blinkingIntervals[key]);
+        delete blinkingIntervals[key];
+      }
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      Object.values(blinkingIntervals).forEach((interval) => {
+        clearInterval(interval);
+      });
+      Object.keys(blinkingIntervals).forEach((key) => {
+        delete blinkingIntervals[key];
+      });
+    };
   }, []);
 
   const onUnmount = useCallback(() => {

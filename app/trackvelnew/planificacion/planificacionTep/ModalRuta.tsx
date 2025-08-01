@@ -1,6 +1,24 @@
 'use client';
-import React, { useEffect } from 'react';
-import { GoogleMap, InfoWindow, Marker } from '@react-google-maps/api';
+import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import type { Map as LeafletMap } from 'leaflet';
+
+// Importar Leaflet dinámicamente para evitar problemas de SSR
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false },
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false },
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false },
+);
+const Popup = dynamic(() => import('react-leaflet').then((mod) => mod.Popup), {
+  ssr: false,
+});
 
 interface Coordenada {
   wx: string;
@@ -20,6 +38,125 @@ interface ModalMapaProps {
   getMarkerSVG: (index: number) => string;
 }
 
+// Componente personalizado para el marcador con popup
+function CustomMarker({
+  coord,
+  index,
+  selectedMarker,
+  setSelectedMarker,
+  getMarkerSVG,
+}: {
+  coord: Coordenada;
+  index: number;
+  selectedMarker: Coordenada | null;
+  setSelectedMarker: (marker: Coordenada | null) => void;
+  getMarkerSVG: (index: number) => string;
+}) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        // Configurar iconos personalizados de Leaflet
+        const DefaultIcon = L.Icon.Default;
+        const iconPrototype = DefaultIcon.prototype as {
+          _getIconUrl?: () => void;
+        };
+        delete iconPrototype._getIconUrl;
+
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+      });
+    }
+  }, [isClient]);
+
+  if (!isClient) return null;
+
+  // Crear icono personalizado usando el SVG
+  const createCustomIcon = () => {
+    const markerSvg = getMarkerSVG(index + 1);
+
+    if (typeof window !== 'undefined') {
+      const L = require('leaflet');
+      return new L.Icon({
+        iconUrl:
+          'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
+        iconSize: [40, 50],
+        iconAnchor: [20, 45],
+        popupAnchor: [0, -45],
+      });
+    }
+    return undefined;
+  };
+
+  const customIcon = createCustomIcon();
+
+  return (
+    <Marker
+      position={[parseFloat(coord.wy), parseFloat(coord.wx)]}
+      icon={customIcon}
+      eventHandlers={{
+        click: () => {
+          setSelectedMarker(coord);
+        },
+      }}
+    >
+      {selectedMarker === coord && (
+        <Popup
+          closeOnClick={false}
+          autoClose={false}
+          eventHandlers={{
+            remove: () => setSelectedMarker(null), // ✅ Evento correcto
+          }}
+        >
+          <div style={{ maxWidth: '200px' }}>
+            <h3
+              className="text-base font-bold text-gray-800"
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={selectedMarker.nombre}
+            >
+              {selectedMarker.nombre
+                ? selectedMarker.nombre.length > 36
+                  ? `${selectedMarker.nombre.slice(0, 36)}...`
+                  : selectedMarker.nombre
+                : 'Sin nombre'}
+            </h3>
+            <p
+              className="text-sm text-gray-600"
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+              title={selectedMarker.direccion}
+            >
+              {selectedMarker.direccion
+                ? selectedMarker.direccion.length > 36
+                  ? `${selectedMarker.direccion.slice(0, 36)}...`
+                  : selectedMarker.direccion
+                : 'Sin dirección'}
+            </p>
+          </div>
+        </Popup>
+      )}
+    </Marker>
+  );
+}
+
 export default function ModalMapa({
   isOpen,
   setIsOpen,
@@ -30,6 +167,12 @@ export default function ModalMapa({
   isLoaded,
   getMarkerSVG,
 }: ModalMapaProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   useEffect(() => {
     if (isOpen && coordenadas) {
       console.log('Coordenadas al abrir el modal:', coordenadas);
@@ -39,115 +182,71 @@ export default function ModalMapa({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-      onClick={() => setIsOpen(false)}
-    >
+    <>
       <div
-        className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        onClick={() => setIsOpen(false)}
       >
-        <button
-          onClick={() => setIsOpen(false)}
-          className="absolute right-4 top-4 text-3xl font-bold text-gray-500 hover:text-gray-700"
+        <div
+          className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
         >
-          &times;
-        </button>
-
-        <h2 className="mb-4 text-lg font-semibold">
-          Ruta programada - Grupo {grupo}
-        </h2>
-
-        {isLoaded ? (
-          <div className="h-[500px] w-full">
-            <GoogleMap
-              mapContainerStyle={{
-                width: '100%',
-                height: '100%',
-              }}
-              center={{
-                lat: -12.061171148647077,
-                lng: -77.03599608048779,
-              }}
-              zoom={11}
-            >
-              {coordenadas?.map((coord, index) => {
-                const markerSvg = getMarkerSVG(index + 1);
-                return (
-                  <Marker
-                    key={index}
-                    position={{
-                      lat: parseFloat(coord.wy),
-                      lng: parseFloat(coord.wx),
-                    }}
-                    onClick={() => setSelectedMarker(coord)}
-                    icon={{
-                      url:
-                        'data:image/svg+xml;charset=UTF-8,' +
-                        encodeURIComponent(markerSvg),
-                      scaledSize: new window.google.maps.Size(40, 50),
-                      anchor: new window.google.maps.Point(20, 45),
-                    }}
-                  />
-                );
-              })}
-              {selectedMarker && (
-                <InfoWindow
-                  position={{
-                    lat: parseFloat(selectedMarker.wy),
-                    lng: parseFloat(selectedMarker.wx),
-                  }}
-                  onCloseClick={() => setSelectedMarker(null)}
-                >
-                  <div style={{ maxWidth: '200px' }}>
-                    <h3
-                      className="text-base font-bold text-gray-800"
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={selectedMarker.nombre}
-                    >
-                      {selectedMarker.nombre
-                        ? selectedMarker.nombre.length > 36
-                          ? `${selectedMarker.nombre.slice(0, 36)}...`
-                          : selectedMarker.nombre
-                        : 'Sin nombre'}
-                    </h3>
-                    <p
-                      className="text-sm text-gray-600"
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={selectedMarker.direccion}
-                    >
-                      {selectedMarker.direccion
-                        ? selectedMarker.direccion.length > 36
-                          ? `${selectedMarker.direccion.slice(0, 36)}...`
-                          : selectedMarker.direccion
-                        : 'Sin dirección'}
-                    </p>
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-          </div>
-        ) : (
-          <p>Cargando mapa...</p>
-        )}
-
-        <div className="mt-4 flex justify-end">
           <button
             onClick={() => setIsOpen(false)}
-            className="rounded-lg bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+            className="absolute right-4 top-4 text-3xl font-bold text-gray-500 hover:text-gray-700"
           >
-            Cerrar
+            &times;
           </button>
+
+          <h2 className="mb-4 text-lg font-semibold">
+            Ruta programada - Grupo {grupo}
+          </h2>
+
+          {isLoaded && isClient ? (
+            <div className="h-[500px] w-full">
+              <MapContainer
+                center={[-12.061171148647077, -77.03599608048779]}
+                zoom={11}
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                {coordenadas?.map((coord, index) => (
+                  <CustomMarker
+                    key={index}
+                    coord={coord}
+                    index={index}
+                    selectedMarker={selectedMarker}
+                    setSelectedMarker={setSelectedMarker}
+                    getMarkerSVG={getMarkerSVG}
+                  />
+                ))}
+              </MapContainer>
+            </div>
+          ) : (
+            <div className="flex h-[500px] w-full items-center justify-center rounded bg-gray-100">
+              <p>Cargando mapa...</p>
+            </div>
+          )}
+
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Estilos para importar Leaflet CSS */}
+      <style jsx global>{`
+        @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+      `}</style>
+    </>
   );
 }

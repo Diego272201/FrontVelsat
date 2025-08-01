@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoMdSave } from 'react-icons/io';
 import Image from 'next/image';
@@ -23,10 +23,16 @@ import { BiEditAlt } from 'react-icons/bi';
 import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import dynamic from 'next/dynamic';
+import type { Map as LeafletMap } from 'leaflet';
 
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+// Importar Leaflet dinámicamente para evitar problemas de SSR
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 
-const libraries: ("places")[] = ['places'];
+// Importar useMapEvents de manera estática para evitar problemas de tipos
+import { useMapEvents } from 'react-leaflet';
 
 interface Props {
   title: string;
@@ -44,6 +50,38 @@ interface Pasajero {
   distrito: string;
   wy: string;
   wx: string;
+}
+
+// Interfaz para los resultados de búsqueda de Nominatim
+interface NominatimResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+  place_id: string;
+}
+
+// Componente para manejar clics en el mapa
+function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+// Componente para el marcador estático (no draggable)
+function StaticMarker({ 
+  position
+}: { 
+  position: [number, number]
+}) {
+  return (
+    <Marker
+      draggable={false}
+      position={position}
+    />
+  );
 }
 
 export default function App({ title, codCliente }: Props) {
@@ -78,10 +116,17 @@ export default function App({ title, codCliente }: Props) {
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
   const [isTarifaLoaded, setIsTarifaLoaded] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
   const { data: session } = useSession();
   const username = session?.user.username;
+
+  const mapRef = useRef<LeafletMap | null>(null);
 
   //MAPA
   const wy = watch('wy');
@@ -90,36 +135,163 @@ export default function App({ title, codCliente }: Props) {
   const lat = parseFloat(wy);
   const lng = parseFloat(wx);
 
-  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
+  const [markerPosition, setMarkerPosition] = useState<[number, number]>([0, 0]);
+  const [originalPosition, setOriginalPosition] = useState<[number, number]>([0, 0]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-12.0464, -77.0428]); // Lima, Perú
 
-  const [markerPosition, setMarkerPosition] = useState<{
-    lat: number;
-    lng: number;
-  }>({ lat: 0, lng: 0 });
-  const [originalPosition, setOriginalPosition] = useState<{
-    lat: number;
-    lng: number;
-  }>({ lat: 0, lng: 0 });
+  // Configurar iconos de Leaflet cuando se carga el cliente
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Configurar iconos de Leaflet solo en el cliente
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        const DefaultIcon = L.Icon.Default;
+        const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
+        delete iconPrototype._getIconUrl;
+        
+        // Configurar nuevos iconos
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+      });
+    }
+  }, []);
 
-  const containerStyle = {
-    width: '100%',
-    height: '250px',
+  // Función para buscar direcciones usando Nominatim (OpenStreetMap)
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`
+      );
+      setSearchResults(response.data);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Error searching address:', error);
+    }
   };
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: API_KEY,
-    libraries // ← importante
-  });
+  // Función para geocodificación inversa (obtener dirección desde coordenadas)
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      
+      if (response.data && response.data.display_name) {
+        const address = response.data.display_name;
+        const district = response.data.address?.suburb || 
+                        response.data.address?.city_district || 
+                        response.data.address?.county || 
+                        response.data.address?.city || '';
+                        
+        return { address, district };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error in reverse geocoding:', error);
+      return null;
+    }
+  };
+
+  // Manejar selección de dirección de los resultados de búsqueda
+  const handleAddressSelect = (result: NominatimResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    
+    setMarkerPosition([lat, lng]);
+    setMapCenter([lat, lng]);
+    setSearchInput(result.display_name);
+    setShowSearchResults(false);
+
+    // Extraer distrito de la dirección si está disponible
+    const addressParts = result.display_name.split(', ');
+    const possibleDistrict = addressParts.find(part => 
+      part.includes('Lima') || 
+      part.includes('Distrito') || 
+      addressParts.indexOf(part) === 1 || 
+      addressParts.indexOf(part) === 2
+    ) || '';
+
+    // Actualizar el formulario
+    reset((prev) => ({
+      ...prev,
+      direccion: result.display_name,
+      distrito: possibleDistrict,
+      wy: lat.toString(),
+      wx: lng.toString(),
+    }));
+
+    // Centrar el mapa en la nueva ubicación
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 15);
+    }
+  };
+
+  // Función con debounce para búsqueda
+  const debounceSearchRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Manejar cambios en el input de búsqueda
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    
+    // Limpiar timeout anterior
+    if (debounceSearchRef.current) {
+      clearTimeout(debounceSearchRef.current);
+    }
+    
+    // Crear nuevo timeout para debounce
+    debounceSearchRef.current = setTimeout(() => {
+      searchAddress(value);
+    }, 300);
+  };
+
+  // Manejar clics en el mapa
+  const handleMapClick = async (lat: number, lng: number) => {
+    setMarkerPosition([lat, lng]);
+    
+    // Actualizar coordenadas inmediatamente
+    reset((prev) => ({
+      ...prev,
+      wy: lat.toString(),
+      wx: lng.toString(),
+    }));
+
+    // Obtener dirección mediante geocodificación inversa
+    const geocodeResult = await reverseGeocode(lat, lng);
+    if (geocodeResult) {
+      setSearchInput(geocodeResult.address);
+      reset((prev) => ({
+        ...prev,
+        wy: lat.toString(),
+        wx: lng.toString(),
+        direccion: geocodeResult.address,
+        distrito: geocodeResult.district,
+      }));
+    }
+  };
 
   const handleClose = () => {
     // Restablece las coordenadas y el marcador a los valores originales
     reset((prev) => ({
       ...prev,
-      wy: originalPosition.lat.toString(),
-      wx: originalPosition.lng.toString(),
+      wy: originalPosition[0].toString(),
+      wx: originalPosition[1].toString(),
     }));
     setMarkerPosition(originalPosition);
+    setMapCenter(originalPosition[0] !== 0 && originalPosition[1] !== 0 ? originalPosition : [-12.0464, -77.0428]);
+    setSearchInput('');
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   useEffect(() => {
@@ -127,7 +299,6 @@ export default function App({ title, codCliente }: Props) {
       handleClose(); // Cuando el modal se cierre, restablecemos la posición
     }
   }, [isOpen]);
-  //FIN MAPA
 
   useEffect(() => {
     if (baseUrl) {
@@ -191,8 +362,10 @@ export default function App({ title, codCliente }: Props) {
           wx: pasajeroData.wx || '',
         });
 
-        setMarkerPosition({ lat, lng });
-        setOriginalPosition({ lat, lng });
+        setMarkerPosition([lat, lng]);
+        setOriginalPosition([lat, lng]);
+        setMapCenter([lat, lng]);
+        setSearchInput(pasajeroData.direccion || '');
       } catch (error) {
         console.error('Error fetching pasajero detail:', error);
       }
@@ -239,7 +412,7 @@ export default function App({ title, codCliente }: Props) {
       toast.success('Pasajero actualizado'); // 🎉 Aquí el toast
     } catch (error) {
       console.error('Error al actualizar el pasajero:', error);
-      toast.error('Error al agregar el pasajero');
+      toast.error('Error al actualizar el pasajero');
     }
   });
 
@@ -337,7 +510,6 @@ export default function App({ title, codCliente }: Props) {
 
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
                       <div className="w-full">
-                        {' '}
                         <Select
                           label="Empresa"
                           placeholder="Selecciona una empresa"
@@ -386,7 +558,6 @@ export default function App({ title, codCliente }: Props) {
                       </div>
 
                       <div className="w-full">
-                        {' '}
                         <Select
                           label="Tarifa"
                           placeholder="Selecciona una tarifa"
@@ -410,7 +581,6 @@ export default function App({ title, codCliente }: Props) {
                           type="text"
                           label="Dirección"
                           placeholder="Dirección"
-                          
                           labelPlacement="outside"
                           {...register('direccion', {
                             required: true,
@@ -419,7 +589,7 @@ export default function App({ title, codCliente }: Props) {
 
                         {errors.direccion && (
                           <span className="errorMesageUserI">
-                            Nombre es requerido
+                            Dirección es requerida
                           </span>
                         )}
                       </div>
@@ -438,7 +608,7 @@ export default function App({ title, codCliente }: Props) {
 
                         {errors.distrito && (
                           <span className="errorMesageUserI">
-                            Nombre es requerido
+                            Distrito es requerido
                           </span>
                         )}
                       </div>
@@ -462,7 +632,7 @@ export default function App({ title, codCliente }: Props) {
 
                         {errors.wy && (
                           <span className="errorMesageUserI">
-                            Nombre es requerido
+                            Latitud es requerida
                           </span>
                         )}
                       </div>
@@ -481,37 +651,73 @@ export default function App({ title, codCliente }: Props) {
 
                         {errors.wx && (
                           <span className="errorMesageUserI">
-                            Nombre es requerido
+                            Longitud es requerida
                           </span>
+                        )}
+                      </div>
+
+                      {/* Sección de búsqueda de direcciones con z-index corregido */}
+                      <div className="w-full -mt-1 relative" style={{ zIndex: 1050 }}>
+                        <label className="mb-2 block text-sm text-black">
+                          Buscar dirección
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Escribe una dirección..."
+                          className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none relative z-10"
+                          value={searchInput}
+                          onChange={handleSearchInputChange}
+                          onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                          onBlur={() => {
+                            // Delay para permitir clic en resultados
+                            setTimeout(() => setShowSearchResults(false), 200);
+                          }}
+                        />
+                        
+                        {/* Resultados de búsqueda con z-index alto */}
+                        {showSearchResults && searchResults.length > 0 && (
+                          <div 
+                            className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                            style={{ zIndex: 1060 }}
+                          >
+                            {searchResults.map((result, index) => (
+                              <div
+                                key={index}
+                                className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                onClick={() => handleAddressSelect(result)}
+                                onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes del clic
+                              >
+                                <div className="text-sm font-medium text-gray-900">
+                                  {result.display_name}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    <div>
-                      {isLoaded && !isNaN(lat) && !isNaN(lng) && (
-                        <div className="w-full">
-                          <GoogleMap
-                            mapContainerStyle={containerStyle}
-                            center={{ lat, lng }}
+                    {/* Contenedor del mapa con z-index más bajo */}
+                    <div style={{ zIndex: 1 }}>
+                      {isClient && !isNaN(lat) && !isNaN(lng) && markerPosition[0] !== 0 && markerPosition[1] !== 0 && (
+                        <div className="w-full h-[400px] rounded-lg overflow-hidden">
+                          <MapContainer
+                            center={mapCenter}
                             zoom={18}
+                            style={{ height: '100%', width: '100%' }}
+                            ref={mapRef}
                           >
-                            <Marker
-                              position={markerPosition}
-                              draggable={true}
-                              onDragEnd={(e) => {
-                                const newLat = e.latLng?.lat() || 0;
-                                const newLng = e.latLng?.lng() || 0;
-                                setMarkerPosition({ lat: newLat, lng: newLng });
-
-                                // Actualiza los campos del formulario
-                                reset((prev) => ({
-                                  ...prev,
-                                  wy: newLat.toString(),
-                                  wx: newLng.toString(),
-                                }));
-                              }}
+                            <TileLayer
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                          </GoogleMap>
+                            
+                            <MapClickHandler onMapClick={handleMapClick} />
+                            
+                            <StaticMarker 
+                              position={markerPosition}
+                            />
+                          </MapContainer>
                         </div>
                       )}
                     </div>
@@ -538,6 +744,11 @@ export default function App({ title, codCliente }: Props) {
           </ModalContent>
         </form>
       </Modal>
+      
+      {/* Estilos para importar Leaflet CSS */}
+      <style jsx global>{`
+        @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+      `}</style>
     </>
   );
 }
