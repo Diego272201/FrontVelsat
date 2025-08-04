@@ -577,7 +577,7 @@ export default function RequestPage() {
       </div>
     </h3>
 
-<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Velocidad:</strong> <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed} Km/h</span></p>
+<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Velocidad:</strong> <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed.toFixed(1)} Km/h</span></p>
 <p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Estado:</strong> <span class="state-value" style="color: #fff; font-size: 12px;">${getEstado(device.lastValidSpeed)}</span></p>
     <br>
     <h4 class="px-2 font-bold uppercase" style="color: #fff; margin-top: 3px; margin-bottom: 0px;">Último Reporte</h4>
