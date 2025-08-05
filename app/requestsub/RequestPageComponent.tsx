@@ -379,6 +379,9 @@ export default function RequestPage() {
         const directionElement = popupElement.querySelector('.direction-value');
         const locationElement = popupElement.querySelector('.location-value');
 
+        // *** AGREGAR ESTA LÍNEA PARA ACTUALIZAR COORDENADAS ***
+        const streetViewLink = popupElement.querySelector('.street-view-link');
+
         if (speedElement)
           speedElement.textContent = `${device.lastValidSpeed} Km/h`;
         if (stateElement)
@@ -386,6 +389,18 @@ export default function RequestPage() {
         if (directionElement)
           directionElement.textContent = getDireccion(device.lastValidHeading);
         if (locationElement) locationElement.textContent = device.direccion;
+
+        // *** ACTUALIZAR COORDENADAS DEL BOTÓN VISTA 3D ***
+        if (streetViewLink) {
+          streetViewLink.setAttribute(
+            'data-lat',
+            device.lastValidLatitude.toString(),
+          );
+          streetViewLink.setAttribute(
+            'data-lng',
+            device.lastValidLongitude.toString(),
+          );
+        }
       }
     },
     [getEstado, getDireccion],
@@ -562,10 +577,8 @@ export default function RequestPage() {
       </div>
     </h3>
 
-<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px;">  <span style="font-weight: 800;">Velocidad:</span>
- <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed} Km/h</span></p>
-
-<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px"><strong style="font-weight: 800;">Estado:</strong> <span class="state-value" style="color: #fff; font-size: 12px;">${getEstado(device.lastValidSpeed)}</span></p>
+<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Velocidad:</strong> <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed.toFixed(1)} Km/h</span></p>
+<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Estado:</strong> <span class="state-value" style="color: #fff; font-size: 12px;">${getEstado(device.lastValidSpeed)}</span></p>
     <br>
     <h4 class="px-2 font-bold uppercase" style="color: #fff; margin-top: 3px; margin-bottom: 0px;font-weight: 700;">Último Reporte</h4>
     

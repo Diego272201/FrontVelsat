@@ -442,6 +442,7 @@ const Tollbar: React.FC = () => {
   );
 
   const isTalmav = useMemo(() => username === 'talmav', [username]);
+  const isMovilbus = useMemo(() => username === 'movilbus', [username]);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem('currentUser');
@@ -825,6 +826,54 @@ const Tollbar: React.FC = () => {
                 </div>
               </div>
             </>
+          ) : isMovilbus ? (
+            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+              {renderDropdownMenu(
+                {
+                  ...MENU_CONFIG.SERVICIOS,
+                  items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
+                    ['conductores', 'unidades', 'control', 'latam'].includes(
+                      item.id,
+                    ),
+                  ),
+                },
+                openMenus.services,
+                () => toggleMenu('services'),
+              )}
+              {renderDropdownMenu(
+                {
+                  ...MENU_CONFIG.PLANIFICACION,
+                  items: MENU_CONFIG.PLANIFICACION.items?.filter(
+                    (item) => item.id !== 'replan-servicios',
+                  ),
+                },
+                openMenus.planificacion,
+                () => toggleMenu('planificacion'),
+              )}
+
+              <li className="group relative">
+                <Link
+                  href="/trackvelnew/gestionpasajeros"
+                  title="Gestión de Pasajeros"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  onClick={() => handleLinkClick(2)}
+                >
+                  <span>Gestión Pasajeros</span>
+                </Link>
+              </li>
+
+              {renderDropdownMenu(
+                MENU_CONFIG.REPORTES,
+                openMenus.reportes,
+                () => toggleMenu('reportes'),
+              )}
+
+              <div className="ml-auto">
+                <Profile toggleFullScreen={toggleFullScreen} />
+              </div>
+            </ul>
           ) : (
             <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
               {isSedapal ? (
@@ -1013,6 +1062,71 @@ const Tollbar: React.FC = () => {
                 />
               </svg>
             </div>
+          </div>
+        ) : isMovilbus ? (
+          <div className="mb-0 space-y-0">
+            {renderSidebarMenu(
+              {
+                ...MENU_CONFIG.SERVICIOS,
+                items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
+                  ['conductores', 'unidades', 'control', 'latam'].includes(
+                    item.id,
+                  ),
+                ),
+              },
+              openMenus.services,
+              () => toggleMenu('services'),
+            )}
+            {renderSidebarMenu(
+              {
+                ...MENU_CONFIG.PLANIFICACION,
+                items: MENU_CONFIG.PLANIFICACION.items?.filter(
+                  (item) => item.id !== 'replan-servicios',
+                ),
+              },
+              openMenus.planificacion,
+              () => toggleMenu('planificacion'),
+            )}
+
+            <Link
+              href="/trackvelnew/gestionpasajeros"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => toggleMenu('sidebar')}
+            >
+              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 px-2 py-0.5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <RiGpsFill className="text-lg text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-green-700">
+                    Gestión de Pasajeros
+                  </span>
+                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-green-500">
+                    Administra pasajeros
+                  </span>
+                </div>
+                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                  <svg
+                    className="h-4 w-4 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+
+            {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
+              toggleMenu('reportes'),
+            )}
           </div>
         ) : (
           <div className="mb-0 space-y-0">

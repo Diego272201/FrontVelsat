@@ -11,15 +11,66 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { TbEdit, TbGpsFilled } from 'react-icons/tb';
 import { toast } from 'sonner';
-import {
-  GoogleMap,
-  Marker,
-  useJsApiLoader,
-  Autocomplete,
-} from '@react-google-maps/api';
 import { useForm } from 'react-hook-form';
+import dynamic from 'next/dynamic';
+import type { Map as LeafletMap } from 'leaflet';
+import axios from 'axios';
 
-const libraries: 'places'[] = ['places'];
+// Importar Leaflet dinámicamente para evitar problemas de SSR
+const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
+const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
+const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+
+// Importar useMapEvents de manera estática para evitar problemas de tipos
+import { useMapEvents } from 'react-leaflet';
+
+// Interfaz para los resultados de búsqueda de Nominatim
+interface NominatimResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+  place_id: string;
+}
+
+// Componente para manejar clics en el mapa
+function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+// Componente para el marcador draggable
+function DraggableMarker({ 
+  position, 
+  onDragEnd
+}: { 
+  position: [number, number], 
+  onDragEnd: (lat: number, lng: number) => void
+}) {
+  const markerRef = useRef<L.Marker | null>(null);
+
+  const eventHandlers = {
+    dragend() {
+      const marker = markerRef.current;
+      if (marker != null) {
+        const { lat, lng } = marker.getLatLng();
+        onDragEnd(lat, lng);
+      }
+    },
+  };
+
+  return (
+    <Marker
+      draggable={true}
+      eventHandlers={eventHandlers}
+      position={position}
+      ref={markerRef}
+    />
+  );
+}
 
 export default function App({
   onDestinoSeleccionado,
@@ -28,6 +79,7 @@ export default function App({
 }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editable, setEditable] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const identificadorRef = useRef<HTMLInputElement>(null);
 
   const [codlan, setCodlan] = useState('');
@@ -37,61 +89,163 @@ export default function App({
   const [longitud, setLongitud] = useState('');
   const [nomDestino, setNomDestino] = useState('');
 
+  // Estados para búsqueda de direcciones
+  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+
   const { reset } = useForm();
 
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
-  const onPlaceChanged = () => {
-    if (autocompleteRef.current !== null) {
-      const place = autocompleteRef.current.getPlace();
-      const location = place.geometry?.location;
+  const [markerPosition, setMarkerPosition] = useState<[number, number]>([0, 0]);
 
-      if (location) {
-        const lat = location.lat();
-        const lng = location.lng();
+  // Configurar iconos de Leaflet cuando se carga el cliente
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Configurar iconos de Leaflet solo en el cliente
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        // Borrar la configuración por defecto usando Object.assign
+        const DefaultIcon = L.Icon.Default;
+        const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
+        delete iconPrototype._getIconUrl;
+        
+        // Configurar nuevos iconos
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        });
+      });
+    }
+  }, []);
 
-        setMarkerPosition({ lat, lng });
+  // Función para buscar direcciones usando Nominatim (OpenStreetMap)
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
 
-        if (mapRef.current) {
-          mapRef.current.panTo({ lat, lng });
-          mapRef.current.setZoom(15);
-        }
-
-        reset((prev) => ({
-          ...prev,
-          direccion: place.formatted_address || '',
-        }));
-
-        setDireccion(place.formatted_address || '');
-        setLatitud(lat.toString());
-        setLongitud(lng.toString());
-      }
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`
+      );
+      setSearchResults(response.data);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Error searching address:', error);
     }
   };
 
-  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string;
-
-  const [markerPosition, setMarkerPosition] = useState<{
-    lat: number;
-    lng: number;
-  }>({ lat: 0, lng: 0 });
-
-  const containerStyle = {
-    width: '100%',
-    height: '250px',
+  // Función para geocodificación inversa (obtener dirección desde coordenadas)
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+      );
+      
+      if (response.data && response.data.display_name) {
+        const address = response.data.display_name;
+        const district = response.data.address?.suburb || 
+                        response.data.address?.city_district || 
+                        response.data.address?.county || 
+                        response.data.address?.city || '';
+                        
+        return { address, district };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error in reverse geocoding:', error);
+      return null;
+    }
   };
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: API_KEY,
-    libraries,
-  });
+  // Manejar selección de dirección de los resultados de búsqueda
+  const handleAddressSelect = async (result: NominatimResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    
+    setMarkerPosition([lat, lng]);
+    setSearchInput(result.display_name);
+    setShowSearchResults(false);
+
+    // Extraer distrito de la dirección si está disponible
+    const addressParts = result.display_name.split(', ');
+    const possibleDistrict = addressParts.find(part => 
+      part.includes('Lima') || 
+      part.includes('Distrito') || 
+      addressParts.indexOf(part) === 1 || 
+      addressParts.indexOf(part) === 2
+    ) || '';
+
+    // Actualizar campos del formulario
+    setDireccion(result.display_name);
+    setDistrito(possibleDistrict);
+    setLatitud(lat.toString());
+    setLongitud(lng.toString());
+
+    // Centrar el mapa en la nueva ubicación
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 15);
+    }
+  };
+
+  // Función con debounce para búsqueda
+  const debounceSearchRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Manejar cambios en el input de búsqueda
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    
+    // Limpiar timeout anterior
+    if (debounceSearchRef.current) {
+      clearTimeout(debounceSearchRef.current);
+    }
+    
+    // Crear nuevo timeout para debounce
+    debounceSearchRef.current = setTimeout(() => {
+      searchAddress(value);
+    }, 300);
+  };
+
+  // Manejar clics en el mapa
+  const handleMapClick = async (lat: number, lng: number) => {
+    setMarkerPosition([lat, lng]);
+    setLatitud(lat.toString());
+    setLongitud(lng.toString());
+
+    // Obtener dirección mediante geocodificación inversa
+    const geocodeResult = await reverseGeocode(lat, lng);
+    if (geocodeResult) {
+      setSearchInput(geocodeResult.address);
+      setDireccion(geocodeResult.address);
+      setDistrito(geocodeResult.district);
+    }
+  };
+
+  // Manejar arrastre del marcador
+  const handleMarkerDragEnd = async (lat: number, lng: number) => {
+    setMarkerPosition([lat, lng]);
+    setLatitud(lat.toString());
+    setLongitud(lng.toString());
+
+    // Obtener dirección mediante geocodificación inversa
+    const geocodeResult = await reverseGeocode(lat, lng);
+    if (geocodeResult) {
+      setSearchInput(geocodeResult.address);
+      setDireccion(geocodeResult.address);
+      setDistrito(geocodeResult.district);
+    }
+  };
 
   const handleClose = () => {
     reset((prev) => ({
       ...prev,
-
       identificador: '',
       nombre: '',
       telefono: '',
@@ -103,7 +257,7 @@ export default function App({
       latitud: '',
       longitud: '',
     }));
-    setMarkerPosition({ lat: 0, lng: 0 });
+    setMarkerPosition([0, 0]);
   };
 
   useEffect(() => {
@@ -214,18 +368,20 @@ export default function App({
     setLongitud('');
     setNomDestino('');
     setDestinoSeleccionado(null);
+    setSearchInput('');
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   useEffect(() => {
     const lat = parseFloat(latitud);
     const lng = parseFloat(longitud);
     if (!isNaN(lat) && !isNaN(lng)) {
-      const newPos = { lat, lng };
+      const newPos: [number, number] = [lat, lng];
       setMarkerPosition(newPos);
 
       if (mapRef.current) {
-        mapRef.current.panTo(newPos);
-        mapRef.current.setZoom(18);
+        mapRef.current.setView(newPos, 18);
       }
     }
   }, [latitud, longitud]);
@@ -371,70 +527,79 @@ export default function App({
                   </div>
                 </div>
 
-                <div className="w-full">
-                  <Autocomplete
-                    onLoad={(autocomplete) =>
-                      (autocompleteRef.current = autocomplete)
-                    }
-                    onPlaceChanged={onPlaceChanged}
-                  >
-                    <>
-                      <label className="mb-1 block text-[12px] font-medium text-gray-900">
-                        Buscar dirección
-                      </label>
-                      <input
-                        disabled={!editable}
-                        type="text"
-                        placeholder="Escribe una dirección..."
-                        className="w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px]"
-                      />
-                    </>
-                  </Autocomplete>
+                {/* Sección de búsqueda de direcciones con z-index corregido */}
+                <div className="w-full relative" style={{ zIndex: 1050 }}>
+                  <label className="mb-1 block text-[12px] font-medium text-gray-900">
+                    Buscar dirección
+                  </label>
+                  <input
+                    disabled={!editable}
+                    type="text"
+                    placeholder="Escribe una dirección..."
+                    className="w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px] relative z-10"
+                    value={searchInput}
+                    onChange={handleSearchInputChange}
+                    onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                    onBlur={() => {
+                      // Delay para permitir clic en resultados
+                      setTimeout(() => setShowSearchResults(false), 200);
+                    }}
+                  />
+                  
+                  {/* Resultados de búsqueda con z-index alto */}
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div 
+                      className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                      style={{ zIndex: 1060 }}
+                    >
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          onClick={() => handleAddressSelect(result)}
+                          onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes del clic
+                        >
+                          <div className="text-[12px] font-medium text-gray-900">
+                            {result.display_name}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4 w-full rounded border">
-                  {isLoaded && (
-                    <div className="w-full">
-                      <GoogleMap
-                        mapContainerStyle={containerStyle}
+                {/* Contenedor del mapa con z-index más bajo */}
+                <div className="mt-4 w-full rounded border" style={{ zIndex: 1 }}>
+                  {isClient && (
+                    <div className="w-full h-[400px]">
+                      <MapContainer
                         center={
-                          markerPosition.lat !== 0 && markerPosition.lng !== 0
+                          markerPosition[0] !== 0 && markerPosition[1] !== 0
                             ? markerPosition
-                            : { lat: -12.0464, lng: -77.0428 }
+                            : [-12.0464, -77.0428]
                         }
                         zoom={
-                          markerPosition.lat !== 0 && markerPosition.lng !== 0
+                          markerPosition[0] !== 0 && markerPosition[1] !== 0
                             ? 18
                             : 5
                         }
-                        onLoad={(map) => {
-                          mapRef.current = map;
-                        }}
-                        onClick={(e) => {
-                          const lat = e.latLng?.lat() || 0;
-                          const lng = e.latLng?.lng() || 0;
-
-                          setMarkerPosition({ lat, lng });
-                          setLatitud(lat.toString());
-                          setLongitud(lng.toString());
-                        }}
+                        style={{ height: '100%', width: '100%' }}
+                        ref={mapRef}
                       >
-                        {markerPosition.lat !== 0 &&
-                          markerPosition.lng !== 0 && (
-                            <Marker
-                              position={markerPosition}
-                              draggable={true}
-                              onDragEnd={(e) => {
-                                const lat = e.latLng?.lat() || 0;
-                                const lng = e.latLng?.lng() || 0;
-
-                                setMarkerPosition({ lat, lng });
-                                setLatitud(lat.toString());
-                                setLongitud(lng.toString());
-                              }}
-                            />
-                          )}
-                      </GoogleMap>
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        
+                        <MapClickHandler onMapClick={handleMapClick} />
+                        
+                        {markerPosition[0] !== 0 && markerPosition[1] !== 0 && (
+                          <DraggableMarker 
+                            position={markerPosition} 
+                            onDragEnd={handleMarkerDragEnd}
+                          />
+                        )}
+                      </MapContainer>
                     </div>
                   )}
                 </div>
@@ -459,6 +624,11 @@ export default function App({
           )}
         </ModalContent>
       </Modal>
+      
+      {/* Estilos para importar Leaflet CSS */}
+      <style jsx global>{`
+        @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+      `}</style>
     </>
   );
 }
