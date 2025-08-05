@@ -1042,7 +1042,7 @@ function startBlinkingAnimation(
     
     // Alternar estado
     blinkingStates[key] = !blinkingStates[key];
-  }, 500); // Parpadeo cada 500ms (1 segundo completo entre cambios)
+  }, 1000); // Parpadeo cada 500ms (1 segundo completo entre cambios)
 }
 
 function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
