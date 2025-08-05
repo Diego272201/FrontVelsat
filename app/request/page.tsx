@@ -16,6 +16,7 @@ import { useApi } from '@/context/ApiContext';
 import dynamic from 'next/dynamic';
 
 const blinkingIntervals: { [key: string]: NodeJS.Timeout } = {};
+const blinkingStates: { [key: string]: boolean } = {};
 
 const DynamicGoogleMap = dynamic(
   () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
@@ -658,176 +659,124 @@ export default function RequestPage() {
   );
 
   // TAMBIÉN necesitas actualizar updatePopupContent para usar la misma función de extracción:
-  const updatePopupContent = useCallback(
-    (device: DeviceList, markerData: MarkerData) => {
-      const colorScheme = getColorScheme(device);
-      const isMovilbusUser = session?.user?.username === 'movilbus';
 
-      // ACTUALIZAR el colorMap con los colores correctos
-      const colorMap: { [key: string]: string } = {
-        'bg-red-500': '#ffccd5', // ✅ CAMBIO: Nuevo rojo suave
-        'bg-green-500': '#8fd694',
-        'bg-orange-500': '#ffd670',
-        'bg-red-600': '#ffccd5',
-        'bg-green-600': '#8fd694',
-        'bg-orange-600': '#ffd670',
-        'bg-[#fca311]': '#fca311',
-        'bg-[#1f2937]': '#1f2937',
-        'bg-[#ffccd5]': '#ffccd5',
-        'bg-[#8fd694]': '#8fd694',
-        'bg-[#ffd670]': '#ffd670',
-      };
+const updatePopupContent = useCallback(
+  (device: DeviceList, markerData: MarkerData) => {
+    const colorScheme = getColorScheme(device);
+    const isMovilbusUser = session?.user?.username === 'movilbus';
+    
+    // ACTUALIZAR el colorMap con los colores correctos
+    const colorMap: { [key: string]: string } = {
+      'bg-red-500': '#ffccd5',
+      'bg-green-500': '#8fd694',
+      'bg-orange-500': '#ffd670',
+      'bg-red-600': '#ffccd5',
+      'bg-green-600': '#8fd694',
+      'bg-orange-600': '#ffd670',
+      'bg-[#fca311]': '#fca311',
+      'bg-[#1f2937]': '#1f2937',
+      'bg-[#ffccd5]': '#ffccd5',
+      'bg-[#8fd694]': '#8fd694',
+      'bg-[#ffd670]': '#ffd670',
+    };
 
-      const shouldBlink =
-        isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
+    const shouldBlink =
+      isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
 
-      // ACTUALIZAR POPUP1 (etiqueta)
-      const popup1Element = document.querySelector(
-        `#content-${device.deviceId}`,
+    console.log(`Device ${device.deviceId}: servicio=${device.servicio}, speed=${device.lastValidSpeed}, shouldBlink=${shouldBlink}`);
+
+    // ACTUALIZAR POPUP1 (etiqueta)
+    const popup1Element = document.querySelector(
+      `#content-${device.deviceId}`,
+    ) as HTMLElement;
+    
+    if (popup1Element) {
+      const contentDiv = popup1Element.querySelector(
+        '#content',
       ) as HTMLElement;
-      if (popup1Element) {
-        const contentDiv = popup1Element.querySelector(
-          '#content',
-        ) as HTMLElement;
-        const triangleDiv = document.querySelector(
-          `#triangle-${device.deviceId}`,
-        ) as HTMLElement;
+      const triangleDiv = document.querySelector(
+        `#triangle-${device.deviceId}`,
+      ) as HTMLElement;
 
-        if (contentDiv) {
-          const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
-
-          if (shouldBlink) {
-            startBlinkingAnimation(contentDiv, 'background', device.deviceId);
-          } else {
-            stopBlinkingAnimation(device.deviceId);
-            contentDiv.style.backgroundColor = bgColor;
-            contentDiv.style.borderColor = bgColor;
-          }
-
-          // APLICAR color de texto según el esquema de colores
-          if (colorScheme.popup1.textColor === 'text-black') {
-            contentDiv.style.color = 'black';
-          } else if (colorScheme.popup1.textColor === 'text-gray-800') {
-            contentDiv.style.color = '#1f2937';
-          } else {
-            contentDiv.style.color = 'white';
-          }
+      if (contentDiv) {
+        const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
+        if (shouldBlink) {
+          console.log(`INICIANDO PARPADEO para ${device.deviceId} - velocidad: ${device.lastValidSpeed}`);
+          // Iniciar parpadeo para contenido
+          startBlinkingAnimation(contentDiv, 'background', device.deviceId);
+        } else {
+          console.log(`DETENIENDO PARPADEO para ${device.deviceId} - velocidad: ${device.lastValidSpeed}`);
+          stopBlinkingAnimation(device.deviceId);
+          // Aplicar el color correcto según el esquema
+          contentDiv.style.setProperty('background-color', bgColor, 'important');
+          contentDiv.style.setProperty('border-color', bgColor, 'important');
         }
 
-        if (triangleDiv) {
-          const triangleColor =
-            colorMap[colorScheme.popup1.bgColor] || '#fca311';
-
-          if (shouldBlink) {
-            startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
-          } else {
-            stopBlinkingAnimation(device.deviceId, 'triangle');
-            triangleDiv.style.setProperty(
-              'border-top-color',
-              triangleColor,
-              'important',
-            );
-          }
-
-          triangleDiv.style.setProperty(
-            'border-left-color',
-            'transparent',
-            'important',
-          );
-          triangleDiv.style.setProperty(
-            'border-right-color',
-            'transparent',
-            'important',
-          );
+        // Aplicar color de texto
+        if (colorScheme.popup1.textColor === 'text-black') {
+          contentDiv.style.color = 'black';
+        } else if (colorScheme.popup1.textColor === 'text-gray-800') {
+          contentDiv.style.color = '#1f2937';
+        } else {
+          contentDiv.style.color = 'white';
         }
       }
 
-      // ACTUALIZAR POPUP2
-      const popupElement = document.querySelector(
-        `#content2-${device.deviceId}`,
-      ) as HTMLElement;
-      if (popupElement) {
-        const conductorElement = popupElement.querySelector('.conductor-value');
-        const servicioElement = popupElement.querySelector('.servicio-value');
-        const hasUltimoServicio = device.ultimoServicio !== null;
-
-        const needsRegeneration =
-          (hasUltimoServicio && (!conductorElement || !servicioElement)) ||
-          (!hasUltimoServicio && (conductorElement || servicioElement));
-
-        if (needsRegeneration) {
-          // Regenerar contenido completo
-          if (markerData.intervalId) {
-            clearInterval(markerData.intervalId);
-            markerData.intervalId = undefined;
-          }
-
-          const newContent = getOptimizedPopupContent(device);
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = newContent;
-          const newPopupContent = tempDiv.firstElementChild;
-
-          if (newPopupContent) {
-            const originalClasses = popupElement.className;
-            const originalId = popupElement.id;
-
-            popupElement.innerHTML = newPopupContent.innerHTML;
-            popupElement.className = originalClasses;
-            popupElement.id = originalId;
-
-            // Aplicar colores inmediatamente después de regenerar
-            const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
-            popupElement.style.backgroundColor = bgColor;
-            popupElement.style.borderColor = bgColor;
-
-            // Aplicar color de texto
-            if (colorScheme.popup2.textColor === 'text-black') {
-              popupElement.style.color = 'black';
-            } else {
-              popupElement.style.color = 'white';
-            }
-          }
-
-          // Reconfigurar eventos
-          const closeButton = popupElement.querySelector(
-            `#close-btn-${device.deviceId}`,
-          );
-          if (closeButton) {
-            closeButton.addEventListener('click', () => {
-              markerData.popup2.setMap(null);
-            });
-          }
-
-          const fechaEl = popupElement.querySelector(
-            `#fecha-${device.deviceId}`,
-          );
-          if (fechaEl) {
-            markerData.intervalId = setInterval(() => {
-              const now = new Date();
-              const day = String(now.getDate()).padStart(2, '0');
-              const month = String(now.getMonth() + 1).padStart(2, '0');
-              const year = now.getFullYear();
-              const hours = String(now.getHours()).padStart(2, '0');
-              const minutes = String(now.getMinutes()).padStart(2, '0');
-              const seconds = String(now.getSeconds()).padStart(2, '0');
-              fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
-            }, 1000);
-          }
+      if (triangleDiv) {
+        const triangleColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
+        if (shouldBlink) {
+          // Iniciar parpadeo para triángulo
+          startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
         } else {
-          // Solo actualizar colores sin regenerar
-          const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
+          stopBlinkingAnimation(device.deviceId);
+          triangleDiv.style.setProperty('border-top-color', triangleColor, 'important');
+        }
+        triangleDiv.style.setProperty('border-left-color', 'transparent', 'important');
+        triangleDiv.style.setProperty('border-right-color', 'transparent', 'important');
+      }
+    }
 
+    // ACTUALIZAR POPUP2
+    const popupElement = document.querySelector(
+      `#content2-${device.deviceId}`,
+    ) as HTMLElement;
+    
+    if (popupElement) {
+      const conductorElement = popupElement.querySelector('.conductor-value');
+      const servicioElement = popupElement.querySelector('.servicio-value');
+      const hasUltimoServicio = device.ultimoServicio !== null;
+      const needsRegeneration =
+        (hasUltimoServicio && (!conductorElement || !servicioElement)) ||
+        (!hasUltimoServicio && (conductorElement || servicioElement));
+
+      if (needsRegeneration) {
+        // Regenerar contenido completo
+        if (markerData.intervalId) {
+          clearInterval(markerData.intervalId);
+          markerData.intervalId = undefined;
+        }
+        const newContent = getOptimizedPopupContent(device);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newContent;
+        const newPopupContent = tempDiv.firstElementChild;
+        
+        if (newPopupContent) {
+          const originalClasses = popupElement.className;
+          const originalId = popupElement.id;
+          popupElement.innerHTML = newPopupContent.innerHTML;
+          popupElement.className = originalClasses;
+          popupElement.id = originalId;
+
+          // Aplicar colores inmediatamente después de regenerar
+          const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
           if (shouldBlink) {
-            startBlinkingAnimation(
-              popupElement,
-              'background',
-              device.deviceId,
-              'popup2',
-            );
+            console.log(`INICIANDO PARPADEO POPUP2 para ${device.deviceId}`);
+            startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
           } else {
+            console.log(`DETENIENDO PARPADEO POPUP2 para ${device.deviceId}`);
             stopBlinkingAnimation(device.deviceId, 'popup2');
-            popupElement.style.backgroundColor = bgColor;
-            popupElement.style.borderColor = bgColor;
+            popupElement.style.setProperty('background-color', bgColor, 'important');
+            popupElement.style.setProperty('border-color', bgColor, 'important');
           }
 
           // Aplicar color de texto
@@ -838,73 +787,117 @@ export default function RequestPage() {
           }
         }
 
-        // Actualizar contenido de los elementos
-        const speedElement = popupElement.querySelector('.speed-value');
-        const stateElement = popupElement.querySelector('.state-value');
-        const directionElement = popupElement.querySelector('.direction-value');
-        const locationElement = popupElement.querySelector('.location-value');
-        const streetViewLink = popupElement.querySelector('.street-view-link');
-        const kilometrajeElement =
-          popupElement.querySelector('.kilometraje-value');
-
-        const conductorElementFinal =
-          popupElement.querySelector('.conductor-value');
-        const servicioElementFinal =
-          popupElement.querySelector('.servicio-value');
-
-        if (speedElement)
-          speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
-        if (stateElement)
-          stateElement.textContent = getEstado(device.lastValidSpeed);
-        if (directionElement)
-          directionElement.textContent = getDireccion(device.lastValidHeading);
-        if (locationElement) locationElement.textContent = device.direccion;
-        if (streetViewLink) {
-          streetViewLink.setAttribute(
-            'data-lat',
-            device.lastValidLatitude.toString(),
-          );
-          streetViewLink.setAttribute(
-            'data-lng',
-            device.lastValidLongitude.toString(),
-          );
+        // Reconfigurar eventos
+        const closeButton = popupElement.querySelector(
+          `#close-btn-${device.deviceId}`,
+        );
+        if (closeButton) {
+          closeButton.addEventListener('click', () => {
+            markerData.popup2.setMap(null);
+          });
         }
 
-        if (kilometrajeElement && isMovilbusUser) {
-          const kilometraje =
-            device.lastOdometerKM - device.odometerini + device.kmini;
-          kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
+        const fechaEl = popupElement.querySelector(
+          `#fecha-${device.deviceId}`,
+        );
+        if (fechaEl) {
+          markerData.intervalId = setInterval(() => {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+          }, 1000);
+        }
+      } else {
+        // Solo actualizar colores sin regenerar
+        const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
+        if (shouldBlink) {
+          console.log(`INICIANDO PARPADEO POPUP2 para ${device.deviceId}`);
+          startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
+        } else {
+          console.log(`DETENIENDO PARPADEO POPUP2 para ${device.deviceId}`);
+          stopBlinkingAnimation(device.deviceId, 'popup2');
+          popupElement.style.setProperty('background-color', bgColor, 'important');
+          popupElement.style.setProperty('border-color', bgColor, 'important');
         }
 
-        if (device.ultimoServicio !== null) {
-          if (conductorElementFinal) {
-            const conductor =
-              device.ultimoServicio?.conductor?.apepate || 'Sin asignar';
-            conductorElementFinal.textContent = conductor;
-          }
-
-          if (servicioElementFinal) {
-            const numero = device.ultimoServicio?.numero || '';
-            const empresa = device.ultimoServicio?.empresa || '';
-            const tipoRaw = device.ultimoServicio?.tipo || '';
-            const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
-            const servicioCompleto =
-              numero && empresa
-                ? `${numero} ${empresa} (${tipo})`
-                : 'Sin servicio';
-            servicioElementFinal.textContent = servicioCompleto;
-          }
+        // Aplicar color de texto
+        if (colorScheme.popup2.textColor === 'text-black') {
+          popupElement.style.color = 'black';
+        } else {
+          popupElement.style.color = 'white';
         }
       }
-    },
-    [
-      getEstado,
-      getDireccion,
-      getColorScheme,
-      getOptimizedPopupContent,
-      session?.user?.username,
-    ],
-  );
+
+      // Actualizar contenido de los elementos
+      const speedElement = popupElement.querySelector('.speed-value');
+      const stateElement = popupElement.querySelector('.state-value');
+      const directionElement = popupElement.querySelector('.direction-value');
+      const locationElement = popupElement.querySelector('.location-value');
+      const streetViewLink = popupElement.querySelector('.street-view-link');
+      const kilometrajeElement =
+        popupElement.querySelector('.kilometraje-value');
+      const conductorElementFinal =
+        popupElement.querySelector('.conductor-value');
+      const servicioElementFinal =
+        popupElement.querySelector('.servicio-value');
+
+      if (speedElement)
+        speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
+      if (stateElement)
+        stateElement.textContent = getEstado(device.lastValidSpeed);
+      if (directionElement)
+        directionElement.textContent = getDireccion(device.lastValidHeading);
+      if (locationElement) locationElement.textContent = device.direccion;
+      if (streetViewLink) {
+        streetViewLink.setAttribute(
+          'data-lat',
+          device.lastValidLatitude.toString(),
+        );
+        streetViewLink.setAttribute(
+          'data-lng',
+          device.lastValidLongitude.toString(),
+        );
+      }
+
+      if (kilometrajeElement && isMovilbusUser) {
+        const kilometraje =
+          device.lastOdometerKM - device.odometerini + device.kmini;
+        kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
+      }
+
+      if (device.ultimoServicio !== null) {
+        if (conductorElementFinal) {
+          const conductor =
+            device.ultimoServicio?.conductor?.apepate || 'Sin asignar';
+          conductorElementFinal.textContent = conductor;
+        }
+        if (servicioElementFinal) {
+          const numero = device.ultimoServicio?.numero || '';
+          const empresa = device.ultimoServicio?.empresa || '';
+          const tipoRaw = device.ultimoServicio?.tipo || '';
+          const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
+          const servicioCompleto =
+            numero && empresa
+              ? `${numero} ${empresa} (${tipo})`
+              : 'Sin servicio';
+          servicioElementFinal.textContent = servicioCompleto;
+        }
+      }
+    }
+  },
+  [
+    getEstado,
+    getDireccion,
+    getColorScheme,
+    getOptimizedPopupContent,
+    session?.user?.username,
+  ],
+);
 
   const handleStreetViewClick = useCallback(
     (e: MouseEvent) => {
@@ -997,65 +990,78 @@ export default function RequestPage() {
     setMarkersLoaded(false);
   }, []);
 
+
+
 function startBlinkingAnimation(
-    element: HTMLElement,
-    type: 'background' | 'triangle',
-    deviceId: string,
-    suffix: string = '',
-  ) {
-    const intervalKey = `${deviceId}_${type}_${suffix}`;
+  element: HTMLElement,
+  type: 'background' | 'triangle',
+  deviceId: string,
+  suffix: string = '',
+) {
+  const key = `${deviceId}-${type}-${suffix}`;
+  
+  // Si ya está parpadeando, no hacer nada
+  if (blinkingIntervals[key]) {
+    return;
+  }
 
-    // DETENER intervalo anterior si existe
-    if (blinkingIntervals[intervalKey]) {
-      clearInterval(blinkingIntervals[intervalKey]);
-    }
-
-    // ✅ NUEVOS colores de parpadeo con el naranja más suave
-    const lightOrange = '#ffd670';   // ✅ CAMBIO: Nuevo naranja suave
-    const darkerOrange = '#e9ff70';  // ✅ CAMBIO: Versión más oscura del nuevo naranja
-    let isLight = true;
-
-    // APLICAR color inicial
+  console.log(`Iniciando parpadeo para ${deviceId}, tipo: ${type}`);
+  
+  // Estado inicial
+  blinkingStates[key] = true;
+  
+  // Aplicar color inicial
+  if (type === 'background') {
+    element.style.setProperty('background-color', '#ffd670', 'important');
+    element.style.setProperty('border-color', '#ffd670', 'important');
+  } else if (type === 'triangle') {
+    element.style.setProperty('border-top-color', '#ffd670', 'important');
+  }
+  
+  // Crear intervalo para parpadeo
+  blinkingIntervals[key] = setInterval(() => {
+    const isYellow = blinkingStates[key];
+    
     if (type === 'background') {
-      element.style.backgroundColor = lightOrange;
-      element.style.borderColor = lightOrange;
+      if (isYellow) {
+        // Cambiar a amarillo claro
+        element.style.setProperty('background-color', '#e9ff70', 'important');
+        element.style.setProperty('border-color', '#e9ff70', 'important');
+      } else {
+        // Cambiar a amarillo normal
+        element.style.setProperty('background-color', '#ffd670', 'important');
+        element.style.setProperty('border-color', '#ffd670', 'important');
+      }
     } else if (type === 'triangle') {
-      element.style.setProperty('border-top-color', lightOrange, 'important');
+      if (isYellow) {
+        element.style.setProperty('border-top-color', '#e9ff70', 'important');
+      } else {
+        element.style.setProperty('border-top-color', '#ffd670', 'important');
+      }
     }
+    
+    // Alternar estado
+    blinkingStates[key] = !blinkingStates[key];
+  }, 500); // Parpadeo cada 500ms (1 segundo completo entre cambios)
+}
 
-    // CREAR intervalo para alternar colores
-    blinkingIntervals[intervalKey] = setInterval(() => {
-      const currentColor = isLight ? darkerOrange : lightOrange;
+function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
+  // Detener todos los parpadeos relacionados con este deviceId
+  const keysToStop = Object.keys(blinkingIntervals).filter(key => 
+    key.startsWith(`${deviceId}-`)
+  );
+  
+  keysToStop.forEach(key => {
+    if (blinkingIntervals[key]) {
+      clearInterval(blinkingIntervals[key]);
+      delete blinkingIntervals[key];
+      delete blinkingStates[key];
+    }
+  });
+  
+  console.log(`Deteniendo parpadeo para ${deviceId}`);
+}
 
-      if (type === 'background') {
-        element.style.backgroundColor = currentColor;
-        element.style.borderColor = currentColor;
-      } else if (type === 'triangle') {
-        element.style.setProperty(
-          'border-top-color',
-          currentColor,
-          'important',
-        );
-      }
-
-      isLight = !isLight;
-    }, 500); // Mantener la velocidad de 500ms
-  }
-
-  function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
-    // DETENER todos los intervalos relacionados con este device
-    const keysToStop = Object.keys(blinkingIntervals).filter(
-      (key) =>
-        key.startsWith(deviceId) && (suffix === '' || key.includes(suffix)),
-    );
-
-    keysToStop.forEach((key) => {
-      if (blinkingIntervals[key]) {
-        clearInterval(blinkingIntervals[key]);
-        delete blinkingIntervals[key];
-      }
-    });
-  }
 
   useEffect(() => {
     return () => {

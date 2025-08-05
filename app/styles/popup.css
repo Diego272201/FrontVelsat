@@ -255,3 +255,51 @@
   font-size: 13px;
   letter-spacing: 0px;
 }
+
+
+
+/* Reemplaza las animaciones existentes con estas que tienen mayor especificidad */
+
+/* Para el contenido principal (popup1) */
+div[id*="content-"] #content.blinking-background-orange,
+div[id*="content-"] div#content.blinking-background-orange {
+  animation: blink-orange 1s infinite !important;
+  background-color: #ffd670 !important;
+  border-color: #ffd670 !important;
+}
+
+/* Para el triángulo */
+div[id*="triangle-"].blinking-triangle-orange {
+  animation: blink-triangle-orange 1s infinite !important;
+  border-top-color: #ffd670 !important;
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+
+/* Para el popup2 (información detallada) */
+div[id*="content2-"].blinking-background-orange {
+  animation: blink-orange 1s infinite !important;
+  background-color: #ffd670 !important;
+  border-color: #ffd670 !important;
+}
+
+/* Animaciones mejoradas */
+@keyframes blink-orange {
+  0%, 100% {
+    background-color: #ffd670 !important;
+    border-color: #ffd670 !important;
+  }
+  50% {
+    background-color: #e9ff70 !important;
+    border-color: #e9ff70 !important;
+  }
+}
+
+@keyframes blink-triangle-orange {
+  0%, 100% {
+    border-top-color: #ffd670 !important;
+  }
+  50% {
+    border-top-color: #e9ff70 !important;
+  }
+}
