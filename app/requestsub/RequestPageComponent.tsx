@@ -483,7 +483,7 @@ export default function RequestPage() {
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
-            fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+            fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> ${day}/${month}/${year} <strong style="font-weight: 800;">Hora:</strong> ${hours}:${minutes}:${seconds}`;
           };
 
           // Establecer la fecha inmediatamente
@@ -562,14 +562,17 @@ export default function RequestPage() {
       </div>
     </h3>
 
-<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Velocidad:</strong> <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed} Km/h</span></p>
-<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px; font-weight: 700;"><strong>Estado:</strong> <span class="state-value" style="color: #fff; font-size: 12px;">${getEstado(device.lastValidSpeed)}</span></p>
+<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px;">  <span style="font-weight: 800;">Velocidad:</span>
+ <span class="speed-value" style="color: #fff; font-size: 12px;">${device.lastValidSpeed} Km/h</span></p>
+
+<p class="px-2" style="margin-top: 1px; margin-bottom: 0px; font-size: 12px"><strong style="font-weight: 800;">Estado:</strong> <span class="state-value" style="color: #fff; font-size: 12px;">${getEstado(device.lastValidSpeed)}</span></p>
     <br>
-    <h4 class="px-2 font-bold uppercase" style="color: #fff; margin-top: 3px; margin-bottom: 0px;">Último Reporte</h4>
+    <h4 class="px-2 font-bold uppercase" style="color: #fff; margin-top: 3px; margin-bottom: 0px;font-weight: 700;">Último Reporte</h4>
+    
     <p class="px-2" id="fecha-${device.deviceId}" style="color: #fff; margin-top: 0px; margin-bottom: 1px;">
     </p>        
-    <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
-    <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong>Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
+    <span class="px-2" style:"font-size: 12px;"><strong style="font-weight: 800;">Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
+    <span class="px-2" style:"font-size: 12px; font-weight: 700;"><strong style="font-weight: 800;">Ubicación:</strong> <span class="location-value">${device.direccion}</span></span>
 <div style="display: flex; padding: 12px 8px 12px 8px; gap: 8px;">
 <a href="javascript:void(0)" class="street-view-link" style="width: 50% !important; height: 32px !important; background-color: #ea580c !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#c2410c'" onmouseout="this.style.backgroundColor='#ea580c'" data-lat="${device.lastValidLatitude}" data-lng="${device.lastValidLongitude}">
   <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
