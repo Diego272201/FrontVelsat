@@ -159,7 +159,7 @@ export default function NuevoServicioModal({
 
       try {
         const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
         );
 
         const resultados = response.data.map((item: any) => ({

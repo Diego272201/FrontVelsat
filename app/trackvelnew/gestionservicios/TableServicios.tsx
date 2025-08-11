@@ -87,6 +87,7 @@ export default function App({
   selectedDate,
   refreshFlag,
   refreshFlagServicio,
+  refreshSearch
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -100,6 +101,7 @@ export default function App({
   selectedDate: string | null;
   refreshFlag: boolean;
   refreshFlagServicio: boolean;
+  refreshSearch: number;
 }) {
   const [coordenadas, setCoordenadas] = useState<
     { lat: number; lng: number }[]
@@ -221,6 +223,7 @@ export default function App({
 
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
+  const [resetMap, setResetMap] = useState(false);
 
   const seleccionarPasajero = (
     nombre: string,
@@ -261,7 +264,7 @@ export default function App({
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -291,7 +294,6 @@ export default function App({
   const [horaAto, setHoraAto] = useState('');
 
   const [horaAtencionFinal, setHoraAtencionFinal] = useState<string>('');
-  const [horaAtoFinal, setHoraAtoFinal] = useState<string>('');
 
   useEffect(() => {
     setIsEditing(false);
@@ -318,7 +320,7 @@ export default function App({
   const [agregarTrigger, setAgregarTrigger] = useState(0);
 
   const handleAgregar = () => {
-    if (!pasajero || !horaAtencion || !horaAto) {
+    if (!pasajero) {
       toast.error('Faltan datos para agregar.');
       return;
     }
@@ -460,6 +462,8 @@ export default function App({
         conductor: item.conductor?.apepate
           ? item.conductor.apepate.toUpperCase()
           : '-',
+        destino: item.destino || '-',
+        nomDestino: item.nomDestino || 'Sin destino',
         estado,
         color,
       };
@@ -472,11 +476,13 @@ export default function App({
   const [editandoFechaProg, setEditandoFechaProg] = useState(false);
   const [nuevaFechaProg, setNuevaFechaProg] = useState('');
 
-  const handleRowClick = (row: any) => {
-    setSelectedRow(row);
-    setPreviousSelectedCod(row.codServicio);
-    onOpen();
-  };
+const handleRowClick = (row: any) => {
+  setSelectedRow(row);
+  setPreviousSelectedCod(row.codServicio);
+  setResetMap(true);
+  setCentroMapa(null); // ✅ AGREGAR ESTA LÍNEA
+  onOpen();
+};
 
   useEffect(() => {
     if (selectedPasajeroCodlan) return;
@@ -504,6 +510,7 @@ export default function App({
     refreshFlagDelete,
     refreshFlagAsignar,
     refreshFlagServicio,
+    refreshSearch
   ]);
 
   useEffect(() => {
@@ -779,26 +786,23 @@ export default function App({
     };
   }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setIsOpenD(false);
-    }
-  }, [isOpen]);
-
   const handleAgregarLimpiar = () => {
     setPasajero('');
     setHoraAtencion('');
   };
 
-  const handleLimpiarAll = () => {
-    setConductor('');
-    setUnidadA('');
-    setPasajero('');
-    setHoraAtencion('');
-    setHoraAto('');
-    setNuevaFecha('');
-    setNuevaFechaProg('');
-  };
+const handleLimpiarAll = () => {
+  setConductor('');
+  setUnidadA('');
+  setPasajero('');
+  setHoraAtencion('');
+  setHoraAto('');
+  setNuevaFecha('');
+  setNuevaFechaProg('');
+  setResetMap(true);
+  setCentroMapa(null);
+  setTimeout(() => setResetMap(false), 500);
+};
 
   const handleGuardarHoraAto = () => {
     setData((prevData) =>
@@ -878,6 +882,26 @@ export default function App({
         : isVisibleAsignar
           ? 120
           : 60;
+
+useEffect(() => {
+  if (!isOpen) {
+    setIsOpenD(false);
+    setResetMap(true);
+    setCentroMapa(null);
+  } else {
+    setTimeout(() => setResetMap(false), 500);
+  }
+}, [isOpen]);
+
+  useEffect(() => {
+  if (resetMap) {
+    const timer = setTimeout(() => {
+      setResetMap(false);
+    }, 600);
+    
+    return () => clearTimeout(timer);
+  }
+}, [resetMap]);
 
   return (
     <div>
@@ -1013,11 +1037,8 @@ export default function App({
             <>
               <ModalBody>
                 {selectedRow ? (
-                  <div >
-                    <div
-                      className="flex  p-2"
-                      style={{ fontSize: '13px' }}
-                    >
+                  <div>
+                    <div className="flex  p-2" style={{ fontSize: '13px' }}>
                       <div className="mr-4 flex-1">
                         <h2 className="text-center text-[14px] font-semibold">
                           SERVICIO
@@ -1025,68 +1046,13 @@ export default function App({
 
                         <div className="mt-2 border border-gray-300">
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
-                            <p className="font-semibold">Servicio:</p>
+                            <p className="font-semibold">Destino:</p>
 
                             <div className="col-span-3 flex items-center gap-2">
-                              {!editandoFecha ? (
-                                <>
-                                  <span>
-                                    {nuevaFecha
-                                      ? formatearFechaParaMostrar(nuevaFecha)
-                                      : horaAto
-                                        ? parseFecha(horaAto)
-                                        : selectedRow?.fechaCompleta}
-                                  </span>
-
-                                  <span>
-                                    - {selectedRow.tipo} ({selectedRow.numero})
-                                    - {selectedRow.empresaSinNumber}
-                                  </span>
-
-                                  {!['FA', 'FT', 'CN'].includes(
-                                    selectedRow?.estado,
-                                  ) && (
-                                    <button
-                                      onClick={() => {
-                                        if (selectedRow?.fechaCompleta) {
-                                          const [dia, mes, anioHora] =
-                                            selectedRow.fechaCompleta.split(
-                                              '/',
-                                            );
-                                          const [anio, hora] =
-                                            anioHora.split(' ');
-                                          const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
-                                          setNuevaFecha(fechaFormateada);
-                                        }
-                                        setEditandoFecha(true);
-                                      }}
-                                      className="flex justify-center rounded bg-blue-700 px-1 py-1 text-gray-100 hover:bg-blue-500"
-                                    >
-                                      <BiSolidEdit />
-                                    </button>
-                                  )}
-                                </>
-                              ) : (
-                                <>
-                                  <input
-                                    type="datetime-local"
-                                    value={nuevaFecha}
-                                    onChange={(e) =>
-                                      setNuevaFecha(e.target.value)
-                                    }
-                                    className="rounded border bg-gray-100 p-1"
-                                  />
-                                  <button
-                                    onClick={() => {
-                                      console.log('Nueva fecha:', nuevaFecha);
-                                      setEditandoFecha(false);
-                                    }}
-                                    className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
-                                  >
-                                    <RiSaveFill />
-                                  </button>
-                                </>
-                              )}
+                              <span className="uppercase">
+                                {selectedRow?.nomDestino ||
+                                  'Sin destino asignado'}
+                              </span>
                             </div>
                           </div>
 
@@ -1148,6 +1114,72 @@ export default function App({
                                         nuevaFechaProg,
                                       );
                                       setEditandoFechaProg(false);
+                                    }}
+                                    className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
+                                  >
+                                    <RiSaveFill />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
+                            <p className="font-semibold">Servicio:</p>
+
+                            <div className="col-span-3 flex items-center gap-2">
+                              {!editandoFecha ? (
+                                <>
+                                  <span>
+                                    {nuevaFecha
+                                      ? formatearFechaParaMostrar(nuevaFecha)
+                                      : horaAto
+                                        ? parseFecha(horaAto)
+                                        : selectedRow?.fechaCompleta}
+                                  </span>
+
+                                  <span>
+                                    - {selectedRow.tipo} ({selectedRow.numero})
+                                    - {selectedRow.empresaSinNumber}
+                                  </span>
+
+                                  {!['FA', 'FT', 'CN'].includes(
+                                    selectedRow?.estado,
+                                  ) && (
+                                    <button
+                                      onClick={() => {
+                                        if (selectedRow?.fechaCompleta) {
+                                          const [dia, mes, anioHora] =
+                                            selectedRow.fechaCompleta.split(
+                                              '/',
+                                            );
+                                          const [anio, hora] =
+                                            anioHora.split(' ');
+                                          const fechaFormateada = `${anio}-${mes}-${dia}T${hora}`;
+                                          setNuevaFecha(fechaFormateada);
+                                        }
+                                        setEditandoFecha(true);
+                                      }}
+                                      className="flex justify-center rounded bg-blue-700 px-1 py-1 text-gray-100 hover:bg-blue-500"
+                                    >
+                                      <BiSolidEdit />
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <input
+                                    type="datetime-local"
+                                    value={nuevaFecha}
+                                    onChange={(e) =>
+                                      setNuevaFecha(e.target.value)
+                                    }
+                                    className="rounded border bg-gray-100 p-1"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      console.log('Nueva fecha:', nuevaFecha);
+                                      setEditandoFecha(false);
                                     }}
                                     className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
                                   >
@@ -1328,47 +1360,7 @@ export default function App({
                               )}
                             </div>
 
-                            <div className="flex flex-col">
-                              <label
-                                htmlFor="fechaA"
-                                className="mb-1 text-xs font-medium text-gray-700"
-                              >
-                                Hora Atención:
-                              </label>
-                              <input
-                                type="datetime-local"
-                                id="fechaA"
-                                value={horaAtencion}
-                                onChange={(e) =>
-                                  setHoraAtencion(e.target.value)
-                                }
-                                className={`col-span-1 rounded border bg-gray-200 p-1 ${
-                                  !horaAtencion ? 'text-gray-400' : 'text-black'
-                                }`}
-                                disabled={!isEditing}
-                              />
-                            </div>
-
-                            <div className="flex flex-col">
-                              <label
-                                htmlFor="fecha"
-                                className="mb-1 text-xs font-medium text-gray-700"
-                              >
-                                Nueva Hora Ato:
-                              </label>
-                              <input
-                                id="fecha"
-                                type="datetime-local"
-                                value={horaAto}
-                                onChange={(e) => setHoraAto(e.target.value)}
-                                className={`col-span-1 rounded border bg-gray-200 p-1 ${
-                                  !horaAto ? 'text-gray-400' : 'text-black'
-                                }`}
-                                disabled={!isEditing}
-                              />
-                            </div>
-
-                            <div className="flex h-[100%] flex-col  justify-end">
+                            <div className="flex h-[100%] flex-col justify-end">
                               <button
                                 className="rounded-md bg-gray-500 px-4 py-1.5 text-white"
                                 onClick={() => {
@@ -1509,6 +1501,8 @@ export default function App({
                             recorrido={recorrido}
                             marcadores={coordenadas}
                             centro={centroMapa}
+                            resetMap={resetMap}
+
                           />
                         ) : (
                           <div className="rounded-lg bg-white p-3">
@@ -1520,55 +1514,6 @@ export default function App({
                         )}
                       </div>
                     </div>
-
-                    {/* <p>
-                      <strong>CodServicio:</strong> {selectedRow.codServicio}
-                    </p> */}
-
-                    {/* <div className="mt-6 flex">
-                      <p>
-                        <strong>CodServicio:</strong> {selectedRow.codServicio}
-                      </p>
-                      <p>
-                        <strong>Área:</strong> {selectedRow.area}
-                      </p>
-                      <p>
-                        <strong>Número:</strong> {selectedRow.numero}
-                      </p>
-                      <p>
-                        <strong>Tipo:</strong> {selectedRow.tipo}
-                      </p>
-                      <p>
-                        <strong>Empresa:</strong> {selectedRow.empresa}
-                      </p>
-                      <p>
-                        <strong>Grupo:</strong> {selectedRow.grupo}
-                      </p>
-                      <p>
-                        <strong>Hora Programada:</strong> {selectedRow.horaProg}
-                      </p>
-                      <p>
-                        <strong>Hora ATO:</strong> {selectedRow.horaAto}
-                      </p>
-                      <p>
-                        <strong>Control ATO:</strong> {selectedRow.controlAto}
-                      </p>
-                      <p>
-                        <strong>Unidad:</strong> {selectedRow.unidad}
-                      </p>
-                      <p>
-                        <strong>Conductor:</strong> {selectedRow.conductor}
-                      </p>
-                      <p>
-                        <strong>Estado:</strong> {selectedRow.estado}
-                      </p>
-                      <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
-                      <p>Fecha Fin: {selectedRow?.fechafin}</p>
-                      <p>Fecha Ini: {selectedRow?.fechaini}</p>
-                    </div> */}
-                    {/* 
-                    <p>Fecha completa: {selectedRow?.fechaCompleta}</p>
-                    <p>Fecha completa: {selectedRow?.fecPlanCompleta}</p> */}
                   </div>
                 ) : (
                   <p>No hay datos seleccionados</p>

@@ -119,6 +119,8 @@ export default function Page() {
 
   const [refreshFlagServicio, setRefreshFlagServicio] = useState(false);
 
+  const [refreshSearch, setRefreshSearch] = useState(0);
+
   useEffect(() => {
     const fetchPasajeros = async () => {
       if (pasajero.length < 1) {
@@ -128,7 +130,7 @@ export default function Page() {
 
       try {
         const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -379,7 +381,10 @@ export default function Page() {
                   <div>
                     <button
                       className="flex items-center gap-2  bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
-                      onClick={() => setSearchDate(selectedDate)}
+                      onClick={() => {
+      setSearchDate(selectedDate);
+      setRefreshSearch(prev => prev + 1); // ← Forzar refresh
+    }}
                     >
                       Buscar
                       <IoSearchSharp className="h-4 w-4" />
@@ -390,9 +395,10 @@ export default function Page() {
                     <button
                       className="bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
-                        setSelectedDate(null);
-                        setSearchDate(null);
-                      }}
+      setSelectedDate(null);
+      setSearchDate(null);
+      setRefreshSearch(prev => prev + 1); // ← Forzar refresh
+    }}
                     >
                       Actual
                     </button>
@@ -647,6 +653,7 @@ export default function Page() {
           selectedDate={searchDate}
           refreshFlag={refreshFlag}
           refreshFlagServicio={refreshFlagServicio}
+          refreshSearch={refreshSearch} // ← Nuevo prop
         ></TableServicios>
       </div>
     </div>
