@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { Map as LeafletMap } from 'leaflet';
 
@@ -116,7 +116,7 @@ function CustomMarker({
           closeOnClick={false}
           autoClose={false}
           eventHandlers={{
-            remove: () => setSelectedMarker(null), // ✅ Evento correcto
+            remove: () => setSelectedMarker(null),
           }}
         >
           <div style={{ maxWidth: '200px' }}>
@@ -168,6 +168,8 @@ export default function ModalMapa({
   getMarkerSVG,
 }: ModalMapaProps) {
   const [isClient, setIsClient] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -178,6 +180,37 @@ export default function ModalMapa({
       console.log('Coordenadas al abrir el modal:', coordenadas);
     }
   }, [isOpen, coordenadas]);
+
+  // Manejo de pantalla completa
+  const toggleFullscreen = async () => {
+    if (!mapContainerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        // Entrar en pantalla completa
+        await mapContainerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        // Salir de pantalla completa
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Error al cambiar el modo de pantalla completa:', error);
+    }
+  };
+
+  // Listener para detectar cambios en el estado de pantalla completa
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -203,7 +236,59 @@ export default function ModalMapa({
           </h2>
 
           {isLoaded && isClient ? (
-            <div className="h-[500px] w-full">
+            <div 
+              ref={mapContainerRef}
+              className="relative h-[500px] w-full"
+              style={isFullscreen ? {
+                height: '100vh',
+                width: '100vw',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                zIndex: 9999,
+                backgroundColor: 'white'
+              } : {}}
+            >
+              {/* Botón de pantalla completa personalizado */}
+              <button
+                onClick={toggleFullscreen}
+                className="absolute right-2 top-2 z-[1000] flex h-8 w-8 items-center justify-center rounded bg-white shadow-md hover:bg-gray-100"
+                title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+                style={{ border: '2px solid rgba(0,0,0,0.2)' }}
+              >
+                {isFullscreen ? (
+                  // Ícono para salir de pantalla completa
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+                  </svg>
+                ) : (
+                  // Ícono para entrar en pantalla completa
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                  </svg>
+                )}
+              </button>
+
               <MapContainer
                 center={[-12.061171148647077, -77.03599608048779]}
                 zoom={11}
@@ -246,6 +331,23 @@ export default function ModalMapa({
       {/* Estilos para importar Leaflet CSS */}
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+        
+        /* Asegurar que los controles de Leaflet estén visibles */
+        .leaflet-control-container {
+          position: relative;
+          z-index: 800;
+        }
+        
+        /* Estilo para el contenedor en pantalla completa */
+        .fullscreen-map {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 9999 !important;
+          background: white;
+        }
       `}</style>
     </>
   );

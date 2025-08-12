@@ -298,9 +298,6 @@ const DragAndDropTable = forwardRef(
       if (!codServicio || data.length === 0) return;
     
       const API_URL = `https://velsat.pe:2096/api/Preplan/actualizarOrden`;
-
-      const fechaFinal = tempData.length > 0 ? parseFecha(horaAto) : fecha;
-
     
       const payload = {
         codservicio: codServicio,
