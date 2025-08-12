@@ -85,6 +85,17 @@ export default function Container({
   onRefrescarDatos,
   onUpdateDestino,
 }: ContainerProps) {
+
+
+
+console.log(`=== CONTAINER GRUPO ${grupo.id} ===`);
+console.log("grupo.tipo:", grupo.tipo);
+console.log("grupo.horaprog:", grupo.horaprog);
+console.log("grupo.fecha:", grupo.fecha);
+
+console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
+console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
+
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
@@ -101,19 +112,26 @@ export default function Container({
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
 
-  useEffect(() => {
-    const fechaInicio =
-      grupo.tipo === 'I'
-        ? formatDateToISO(grupo.horaprog)
-        : formatDateToISO(grupo.fecha);
-    const fechaFin =
-      grupo.tipo === 'S'
-        ? formatDateToISO(grupo.horaprog)
-        : formatDateToISO(grupo.fecha);
 
-    setFechaInicio(new Date(fechaInicio));
-    setFechaFin(new Date(fechaFin));
-  }, [grupo]);
+  
+
+useEffect(() => {
+  const fechaInicio =
+    grupo.tipo === 'I'
+      ? formatDateToISO(grupo.horaprog)
+      : formatDateToISO(grupo.fecha);
+  const fechaFin =
+    grupo.tipo === 'S'
+      ? formatDateToISO(grupo.horaprog)
+      : formatDateToISO(grupo.fecha);
+
+  // ✅ SOLUCIÓN: Solo crear Date si la string no está vacía
+  setFechaInicio(fechaInicio ? new Date(fechaInicio) : null);
+  setFechaFin(fechaFin ? new Date(fechaFin) : null);
+}, [grupo]);
+
+
+
 
   useEffect(() => {
     const fechaInicioValida =
@@ -196,17 +214,17 @@ export default function Container({
       .join(' ');
   };
 
-  useEffect(() => {
-    if (grupo?.fecha) {
-      setStartDate(grupo.fecha);
-    }
-  }, [grupo]);
 
-  useEffect(() => {
-    if (grupo?.horaprog) {
-      setEndDate(grupo.horaprog);
-    }
-  }, [grupo]);
+
+useEffect(() => {
+  setStartDate(grupo?.fecha || '');
+}, [grupo]);
+
+useEffect(() => {
+  setEndDate(grupo?.horaprog || ''); 
+}, [grupo]);
+
+
 
   const { setNodeRef } = useDroppable({
     id,

@@ -35,15 +35,20 @@ export function DateTimePicker({
   const [inputValue, setInputValue] = React.useState<string>('');
   const [isOpen, setIsOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    if (initialDateTime) {
-      const parsed = parseISO(initialDateTime);
-      if (!isNaN(parsed.getTime())) {
-        setDate(parsed);
-        setInputValue(format(parsed, 'dd/MM/yyyy HH:mm'));
-      }
+React.useEffect(() => {
+  if (initialDateTime) {
+    const parsed = parseISO(initialDateTime);
+    if (!isNaN(parsed.getTime())) {
+      setDate(parsed);
+      setInputValue(format(parsed, 'dd/MM/yyyy HH:mm'));
     }
-  }, [initialDateTime]);
+  } else {
+    // ⚠️ Esto estaba faltando
+    setDate(undefined);
+    setInputValue('');
+  }
+}, [initialDateTime]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

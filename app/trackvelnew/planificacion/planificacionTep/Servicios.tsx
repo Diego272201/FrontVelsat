@@ -299,6 +299,8 @@ export default function App({
   useEffect(() => {
     if (gruposFiltrados.length > 0) {
       const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
+              console.log(`\n--- Procesando Grupo ${grupo.id} para render ---`);
+      console.log(`Grupo.horaprog original: "${grupo.horaprog}" (tipo: ${typeof grupo.horaprog})`);
         if (grupo.personas && grupo.personas.length > 0) {
           acc[`container${index}`] = grupo.personas.map(
             (persona: any, idx: any) => {
@@ -601,6 +603,10 @@ export default function App({
         if (clienteMovido) {
           const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
 
+
+        console.log("=== ANTES DE CREAR NUEVO GRUPO ===");
+        console.log("grupoOrigen.horaprog:", grupoOrigen.horaprog);
+
           nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
             grupoOrigenIndex
           ].personas.filter((persona: any) => persona.idCliente !== idCliente);
@@ -615,6 +621,10 @@ export default function App({
             personas: [clienteMovido],
           };
 
+      console.log("=== NUEVO GRUPO RECIÉN CREADO ===");
+        console.log("nuevoGrupo.horaprog:", nuevoGrupo.horaprog);
+        console.log("nuevoGrupo completo:", nuevoGrupo);
+
           nuevosGrupos.splice(grupoOrigenIndex + 1, 0, nuevoGrupo);
 
           for (let i = grupoOrigenIndex + 2; i < nuevosGrupos.length; i++) {
@@ -623,6 +633,12 @@ export default function App({
 
           // Limpiar grupos vacíos y reindexar
           const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+
+                 console.log("=== DESPUÉS DE LIMPIAR GRUPOS ===");
+        gruposLimpios.forEach((g, index) => {
+          console.log(`Grupo ${index}: id=${g.id}, horaprog="${g.horaprog}"`);
+        });
+
 
            if (onActualizarDatos) {
       setTimeout(() => {
