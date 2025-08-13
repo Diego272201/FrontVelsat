@@ -364,6 +364,7 @@ export default function SeguirUnidadPage({
 
   return (
     <div style={{ width: '100%', height }}>
+      
       <MapContainer
         center={
           device
