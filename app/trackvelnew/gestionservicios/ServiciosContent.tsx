@@ -382,9 +382,9 @@ export default function Page() {
                     <button
                       className="flex items-center gap-2  bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
-      setSearchDate(selectedDate);
-      setRefreshSearch(prev => prev + 1); // ← Forzar refresh
-    }}
+                        setSearchDate(selectedDate);
+                        setRefreshSearch((prev) => prev + 1); // ← Forzar refresh
+                      }}
                     >
                       Buscar
                       <IoSearchSharp className="h-4 w-4" />
@@ -395,10 +395,10 @@ export default function Page() {
                     <button
                       className="bg-blue-500 px-4 py-[7px] font-medium text-white transition hover:bg-blue-600"
                       onClick={() => {
-      setSelectedDate(null);
-      setSearchDate(null);
-      setRefreshSearch(prev => prev + 1); // ← Forzar refresh
-    }}
+                        setSelectedDate(null);
+                        setSearchDate(null);
+                        setRefreshSearch((prev) => prev + 1); 
+                      }}
                     >
                       Actual
                     </button>
@@ -590,9 +590,8 @@ export default function Page() {
 
         {isVisibleAsignar && (
           <div>
-
             <div
-              className="mt-2 flex border-t justify-between gap-2 bg-gray-50 "
+              className="mt-2 flex justify-between gap-2 border-t bg-gray-50 "
               style={{ marginLeft: '5px', marginRight: '5px' }}
             >
               <div className="flex gap-2">
@@ -653,7 +652,7 @@ export default function Page() {
           selectedDate={searchDate}
           refreshFlag={refreshFlag}
           refreshFlagServicio={refreshFlagServicio}
-          refreshSearch={refreshSearch} // ← Nuevo prop
+          refreshSearch={refreshSearch} 
         ></TableServicios>
       </div>
     </div>

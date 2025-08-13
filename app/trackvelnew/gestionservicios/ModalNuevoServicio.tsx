@@ -94,7 +94,6 @@ export default function NuevoServicioModal({
   const [horaDestino, setHoraDestino] = useState('');
   const [horaProgramada, setHoraProgramada] = useState('');
   const [pasajeros, setPasajeros] = useState<any[]>([]);
-  const [horaAtencion, setHoraAtencion] = useState('');
 
   const [inputValue, setInputValue] = useState('');
   const [codUnidadSeleccionado, setCodUnidadSeleccionado] =
@@ -106,6 +105,8 @@ export default function NuevoServicioModal({
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setClienteSeleccionado(event.target.value);
   };
+
+  const [destino, setDestino] = useState('');
 
   const [pasajero, setPasajero] = useState('');
   const [codigoPasajero, setCodigoPasajero] = useState('');
@@ -186,7 +187,7 @@ export default function NuevoServicioModal({
   }, [pasajero, seleccionado]);
 
   const agregarPasajero = () => {
-    if (!pasajero || !horaAtencion) {
+    if (!pasajero) {
       toast.error(
         'Debe ingresar el nombre del pasajero y la hora de atención.',
       );
@@ -201,12 +202,10 @@ export default function NuevoServicioModal({
         nombre: pasajero,
         direccion: direccionPasajero,
         distrito: distritoPasajero,
-        hora: horaAtencion,
         codLugar: codigoLugar,
       },
     ]);
     setPasajero('');
-    setHoraAtencion('');
   };
 
   const eliminarPasajero = (id: number) => {
@@ -244,12 +243,10 @@ export default function NuevoServicioModal({
     onServicioAgregado: () => void,
   ) {
     if (
-      !datos.conductor?.codigo ||
       !datos.empresa ||
       !datos.fecha ||
       !datos.fecpreplan ||
       !datos.tipo ||
-      !datos.unidad?.codunidad ||
       !datos.listapuntos.length
     ) {
       toast.error(
@@ -471,13 +468,6 @@ export default function NuevoServicioModal({
                       </ul>
                     )}
 
-                    <input
-                      type="time"
-                      placeholder="Hora Atención"
-                      className="w-1/2 rounded-md border border-gray-300 bg-gray-100 p-2 text-[12px] shadow-sm focus:border-gray-400 focus:outline-none focus:ring-0"
-                      value={horaAtencion}
-                      onChange={(e) => setHoraAtencion(e.target.value)}
-                    />
                     <button
                       className="rounded-md bg-blue-600 px-3 py-1 text-xs text-white transition hover:bg-blue-700"
                       onClick={agregarPasajero}
@@ -517,6 +507,24 @@ export default function NuevoServicioModal({
                 </div>
               </div>
 
+              <div>
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Destino:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="inputDestino"
+                      type="text"
+                      className="w-full rounded-md border border-gray-300 bg-gray-100 p-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
+                      placeholder="Ingrese Destino"
+                      value={destino}
+                      onChange={(e) => setDestino(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4 text-[12px] text-gray-600">
                 <DndContext
                   collisionDetection={closestCenter}
@@ -535,7 +543,6 @@ export default function NuevoServicioModal({
                             <th className="px-4 py-2 text-left">Nombre</th>
                             <th className="px-4 py-2 text-left">Dirección</th>
                             <th className="px-4 py-2 text-left">Distrito</th>
-                            <th className="px-4 py-2 text-left">Hora</th>
                             <th className="px-4 py-2 text-center">Acciones</th>
                           </tr>
                         </thead>
@@ -574,12 +581,7 @@ export default function NuevoServicioModal({
                                   >
                                     {pasajero.distrito}
                                   </td>
-                                  <td
-                                    className="border-b border-gray-300 px-4 py-2"
-                                    {...listeners}
-                                  >
-                                    {pasajero.hora}
-                                  </td>
+
                                   <td className="border-b border-gray-300 px-4 py-2 text-center">
                                     <button
                                       onClick={(e) => {

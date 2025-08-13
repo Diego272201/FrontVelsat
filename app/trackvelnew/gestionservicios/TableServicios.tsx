@@ -9,7 +9,7 @@ import {
 } from '@nextui-org/react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { FaCar, FaEdit, FaUserTie } from 'react-icons/fa';
+import { FaCar, FaUserTie } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
@@ -352,7 +352,7 @@ export default function App({
   };
 
   useEffect(() => {
-    console.log('📌 dataSeleccionada actualizada:', dataSeleccionada);
+    console.log('DataSeleccionada actualizada:', dataSeleccionada);
   }, [dataSeleccionada]);
 
   useEffect(() => {
@@ -480,7 +480,7 @@ const handleRowClick = (row: any) => {
   setSelectedRow(row);
   setPreviousSelectedCod(row.codServicio);
   setResetMap(true);
-  setCentroMapa(null); // ✅ AGREGAR ESTA LÍNEA
+  setCentroMapa(null); 
   onOpen();
 };
 
@@ -765,12 +765,12 @@ const handleRowClick = (row: any) => {
 
     const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
 
-    console.log('🚀 Llamando a la API con URL:', API_URL);
+    console.log('Llamando a la API con URL:', API_URL);
 
     axios
       .get(API_URL)
       .then((response) => {
-        console.log('✅ Respuesta de la API:', response.data);
+        console.log('Respuesta de la API:', response.data);
 
         if (response.data.result) {
           const puntos = response.data.result.map((item: any) => ({
@@ -878,7 +878,7 @@ const handleLimpiarAll = () => {
     isVisible && isVisibleAsignar
       ? 280
       : isVisible
-        ? 218
+        ? 200
         : isVisibleAsignar
           ? 120
           : 60;
@@ -996,7 +996,7 @@ useEffect(() => {
                       <td
                         key={column.key}
                         className="px-4 py-2"
-                        style={{ fontSize: '12px' }}
+                        style={{ fontSize: '11px' }}
                       >
                         {column.key === 'select' ? (
                           <input

@@ -88,13 +88,13 @@ export default function Container({
 
 
 
-console.log(`=== CONTAINER GRUPO ${grupo.id} ===`);
-console.log("grupo.tipo:", grupo.tipo);
-console.log("grupo.horaprog:", grupo.horaprog);
-console.log("grupo.fecha:", grupo.fecha);
+// console.log(`=== CONTAINER GRUPO ${grupo.id} ===`);
+// console.log("grupo.tipo:", grupo.tipo);
+// console.log("grupo.horaprog:", grupo.horaprog);
+// console.log("grupo.fecha:", grupo.fecha);
 
-console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
-console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
+// console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
+// console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
 
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
@@ -124,8 +124,6 @@ useEffect(() => {
     grupo.tipo === 'S'
       ? formatDateToISO(grupo.horaprog)
       : formatDateToISO(grupo.fecha);
-
-  // ✅ SOLUCIÓN: Solo crear Date si la string no está vacía
   setFechaInicio(fechaInicio ? new Date(fechaInicio) : null);
   setFechaFin(fechaFin ? new Date(fechaFin) : null);
 }, [grupo]);

@@ -314,6 +314,14 @@ const manejarRespuestaModal = (respuesta: string) => {
   }, []);
 
   const handlePublicar = async () => {
+
+  if (guardar) {
+    await new Promise<void>((resolve) => {
+      guardar(false);
+      setTimeout(resolve, 700);
+    });
+  }
+
     if (!selectedDate || !empresaSeleccionada) {
       toast.error('Debe seleccionar una fecha y una empresa.');
       return;
@@ -404,6 +412,13 @@ const manejarRespuestaModal = (respuesta: string) => {
       toast.info('Publicación cancelada');
     }
   };
+
+
+
+
+
+
+
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);

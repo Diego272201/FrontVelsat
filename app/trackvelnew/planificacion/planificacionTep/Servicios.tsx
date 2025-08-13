@@ -660,71 +660,84 @@ export default function App({
     });
   };
 
-  const handleEliminarDelArray = (idCliente: number) => {
-    // Primero encontramos el grupo que contiene al cliente
-    const grupoOrigenIndex = grupos.findIndex((grupo) =>
-      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+const handleEliminarDelArray = (idCliente: number) => {
+  // Primero encontramos el grupo que contiene al cliente
+  const grupoOrigenIndex = grupos.findIndex((grupo) =>
+    grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+  );
+
+  if (grupoOrigenIndex === -1) {
+    console.warn('No se encontró el grupo del cliente');
+    return;
+  }
+
+  const grupoOrigen = grupos[grupoOrigenIndex];
+
+  // Verificamos si el grupo tiene solo una persona
+  if (grupoOrigen.personas.length === 1) {
+    Swal.fire({
+      title: 'Advertencia',
+      text: 'Al eliminar a este pasajero, se eliminará todo el grupo y no podrás regresar al pasajero a su grupo original.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar de todas formas',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Proceder con la eliminación
+        procederConEliminacion(idCliente, grupoOrigenIndex);
+      }
+    });
+    return;
+  }
+
+  // Si el grupo tiene más de una persona, proceder directamente
+  procederConEliminacion(idCliente, grupoOrigenIndex);
+};
+
+// Función auxiliar para realizar la eliminación
+const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => {
+  setGrupos((prevGrupos) => {
+    let nuevosGrupos = [...prevGrupos];
+
+    let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
+      (persona: any) => persona.idCliente === idCliente,
     );
 
-    if (grupoOrigenIndex === -1) {
-      console.warn('No se encontró el grupo del cliente');
-      return;
-    }
+    if (clienteEliminado) {
+      clienteEliminado = {
+        ...clienteEliminado,
+        numGrupo: nuevosGrupos[grupoOrigenIndex].id,
+        ordenOriginal: idCliente,
+      };
 
-    const grupoOrigen = grupos[grupoOrigenIndex];
+      // Eliminar el cliente del grupo
+      nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
+        grupoOrigenIndex
+      ].personas.filter((persona: any) => persona.idCliente !== idCliente);
 
-    // Verificamos si el grupo tiene solo una persona
-    if (grupoOrigen.personas.length === 1) {
-      Swal.fire({
-        title: 'No se puede eliminar',
-        text: 'No puedes eliminar al pasajero porque es el único en el grupo. Un grupo debe tener al menos un pasajero.',
-        icon: 'warning',
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: '#3085d6',
+      setEliminados((prevEliminados) => {
+        const nuevosEliminados = [...prevEliminados, clienteEliminado];
+
+        console.log(
+          `Cliente eliminado:`,
+          clienteEliminado,
+          `\nViene del grupo:`,
+          clienteEliminado.numGrupo,
+          `\nNuevo estado de eliminados:`,
+          nuevosEliminados,
+        );
+
+        return nuevosEliminados;
       });
-      return;
     }
 
-    // Si el grupo tiene más de una persona, procedemos con la eliminación
-    setGrupos((prevGrupos) => {
-      let nuevosGrupos = [...prevGrupos];
+    // Limpiar grupos vacíos y reindexar después de la eliminación
+    const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
 
-      let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
-        (persona: any) => persona.idCliente === idCliente,
-      );
-
-      if (clienteEliminado) {
-        clienteEliminado = {
-          ...clienteEliminado,
-          numGrupo: nuevosGrupos[grupoOrigenIndex].id,
-          ordenOriginal: idCliente,
-        };
-
-        // Eliminar el cliente del grupo
-        nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
-          grupoOrigenIndex
-        ].personas.filter((persona: any) => persona.idCliente !== idCliente);
-
-        setEliminados((prevEliminados) => {
-          const nuevosEliminados = [...prevEliminados, clienteEliminado];
-
-          console.log(
-            `Cliente eliminado:`,
-            clienteEliminado,
-            `\nViene del grupo:`,
-            clienteEliminado.numGrupo,
-            `\nNuevo estado de eliminados:`,
-            nuevosEliminados,
-          );
-
-          return nuevosEliminados;
-        });
-      }
-
-      // Limpiar grupos vacíos y reindexar después de la eliminación
-      const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
-
-       if (onActualizarDatos) {
+    if (onActualizarDatos) {
       setTimeout(() => {
         onActualizarDatos({
           totalGrupos: gruposLimpios.length,
@@ -735,9 +748,10 @@ export default function App({
         });
       }, 0);
     }
-      return gruposLimpios;
-    });
-  };
+
+    return gruposLimpios;
+  });
+};
 
   useEffect(() => {
     console.log('Estado actualizado de eliminados:', eliminados);
