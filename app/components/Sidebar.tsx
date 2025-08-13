@@ -49,124 +49,111 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
 
   // Función para crear conexión SignalR
   const createSignalRConnection = useCallback(async () => {
-    try {
-      console.log('🔗 Creando conexión SignalR...');
-      if (!session?.user?.username || !baseUrl) return;
-
-      const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`${baseUrl}/dataHubSimplified`, {
-          skipNegotiation: true,
-          transport: signalR.HttpTransportType.WebSockets,
-        })
-        .withAutomaticReconnect([0, 2000, 10000, 30000]) // Reconexión automática
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
-
-      // Event handlers
-      newConnection.onclose((error) => {
-        console.log('🔌 Conexión SignalR cerrada:', error);
-        setConnectionStatus('Disconnected');
-        setIsSignalRActive(false);
-      });
-
-      newConnection.onreconnecting((error) => {
-        console.log('🔄 Reconectando SignalR...', error);
-        setConnectionStatus('Connecting');
-      });
-
-      newConnection.onreconnected((connectionId) => {
-        console.log('✅ SignalR reconectado:', connectionId);
-        setConnectionStatus('Connected');
-        
-        // Reiniciar datos después de reconexión
-        if (username) {
-          setTimeout(() => {
-            newConnection.invoke('IniciarDatosSimplificados', username);
-          }, 1000);
-        }
-      });
-
-      // Escuchar datos simplificados
-      newConnection.on('ActualizarDatosSimplificados', (datos) => {        
-        if (Array.isArray(datos)) {
-          const unidadesFormateadas = datos.map((item: any) => ({
-            deviceId: item.DeviceId || item.deviceId || '',
-            lastValidSpeed: item.LastValidSpeed || item.lastValidSpeed || 0,
-            lastValidLatitude: item.LastValidLatitude || item.lastValidLatitude || 0,
-            lastValidLongitude: item.LastValidLongitude || item.lastValidLongitude || 0,
-          }));
-          
-          setUnidades(unidadesFormateadas);
-          setIsLoading(false);
-        }
-      });
-
-      // Eventos del hub
-      newConnection.on('DatosSimplificadosIniciados', (mensaje) => {
-        console.log('✅ Hub respuesta:', mensaje);
-        setIsSignalRActive(true);
-      });
-
-      newConnection.on('DatosSimplificadosDetenidos', (mensaje) => {
-        console.log('🛑 Hub detenido:', mensaje);
-        setIsSignalRActive(false);
-      });
-
-      newConnection.on('Error', (error) => {
-        console.error('❌ Error del Hub:', error);
-        setIsLoading(false);
-      });
-
-      setConnection(newConnection);
-      return newConnection;
-
-    } catch (error) {
-      console.error('❌ Error creando conexión SignalR:', error);
-      setConnectionStatus('Disconnected');
-      setIsLoading(false);
+  try {
+    if (!username || !baseUrl) {
       return null;
     }
-  }, []);
+
+    // ✅ URL CORREGIDA - Con username como parámetro de ruta
+    const hubUrl = `${baseUrl}/dataHubSimplified/${username}`;
+
+    const newConnection = new signalR.HubConnectionBuilder()
+      .withUrl(hubUrl, {
+        skipNegotiation: true,
+        transport: signalR.HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect([0, 2000, 10000, 30000])
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
+
+    // Event handlers
+    newConnection.onclose((error) => {
+      setConnectionStatus('Disconnected');
+      setIsSignalRActive(false);
+    });
+
+    newConnection.onreconnecting((error) => {
+      setConnectionStatus('Connecting');
+    });
+
+    newConnection.onreconnected((connectionId) => {
+      setConnectionStatus('Connected');
+      
+      // ✅ Reiniciar datos después de reconexión (sin parámetro - el hub obtiene username de la ruta)
+      setTimeout(() => {
+        newConnection.invoke('IniciarDatosSimplificados');
+      }, 1000);
+    });
+
+    // ✅ Evento de conexión automática del hub
+    newConnection.on('DatosSimplificadosConectados', (user) => {
+      setIsSignalRActive(true);
+    });
+
+    // Escuchar datos simplificados
+    newConnection.on('ActualizarDatosSimplificados', (datos) => {      
+      if (Array.isArray(datos)) {
+        const unidadesFormateadas = datos.map((item: any) => ({
+          deviceId: item.DeviceId || item.deviceId || '',
+          lastValidSpeed: item.LastValidSpeed || item.lastValidSpeed || 0,
+          lastValidLatitude: item.LastValidLatitude || item.lastValidLatitude || 0,
+          lastValidLongitude: item.LastValidLongitude || item.lastValidLongitude || 0,
+        }));
+        
+        setUnidades(unidadesFormateadas);
+        setIsLoading(false);
+      }
+    });
+
+    // Eventos del hub
+    newConnection.on('DatosSimplificadosIniciados', (mensaje) => {
+      setIsSignalRActive(true);
+    });
+
+    newConnection.on('DatosSimplificadosDetenidos', (mensaje) => {
+      setIsSignalRActive(false);
+    });
+
+    newConnection.on('Error', (error) => {
+      setIsLoading(false);
+    });
+
+    setConnection(newConnection);
+    return newConnection;
+
+  } catch (error) {
+    setConnectionStatus('Disconnected');
+    setIsLoading(false);
+    return null;
+  }
+}, [username, baseUrl]); 
 
   // Efecto principal: Inicializar SignalR UNA SOLA VEZ
   useEffect(() => {
-    if (username && baseUrl) {
-      console.log('🎯 Inicializando conexión para usuario:', username);
-      
-      const initializeConnection = async () => {
-        const newConnection = await createSignalRConnection();
-        if (newConnection) {
-          try {
-            setConnectionStatus('Connecting');
-            console.log('🚀 Conectando a SignalR...');
-            
-            await newConnection.start();
-            setConnectionStatus('Connected');
-            console.log('✅ Conectado a SignalR Hub Simplificado');
-            
-            // Iniciar datos después de conectar
-            setTimeout(() => {
-              newConnection.invoke('IniciarDatosSimplificados', username);
-            }, 1000);
-            
-          } catch (error) {
-            console.error('❌ Error conectando a SignalR:', error);
-            setConnectionStatus('Disconnected');
-            setIsLoading(false);
-          }
+  if (username && baseUrl) {    
+    const initializeConnection = async () => {
+      const newConnection = await createSignalRConnection();
+      if (newConnection) {
+        try {
+          setConnectionStatus('Connecting');
+          await newConnection.start();
+          setConnectionStatus('Connected');
+          
+        } catch (error) {
+          setConnectionStatus('Disconnected');
+          setIsLoading(false);
         }
-      };
-
-      initializeConnection();
-    }
-
-    return () => {
-      // Limpiar timeout de reconexión
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [username, baseUrl]); // Solo estas dependencias
+
+    initializeConnection();
+  }
+  return () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+  };
+}, [username, baseUrl, createSignalRConnection]);
 
 
   // Efecto: Filtros Sedapal (sin cambios)
@@ -197,19 +184,18 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
   }, [rutaSeleccionada, baseUrl, username, onFilteredIdsChange]);
 
   // Cleanup al desmontar componente
-  useEffect(() => {
-    return () => {
-      if (connection && username && isSignalRActive) {
-        connection.invoke('DetenerDatosSimplificados', username).catch(console.error);
-      }
-      if (connection) {
-        connection.stop().catch(console.error);
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, []); // Array vacío - solo al desmontar
+useEffect(() => {
+  return () => {
+    if (connection && username && isSignalRActive) {
+    }
+    if (connection) {
+      connection.stop().catch(console.error);
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+  };
+}, []); // Array vacío - solo al desmontar
 
   const showMenu = () => {
     setShowDropdown(true);
