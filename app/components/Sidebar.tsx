@@ -51,9 +51,10 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
   const createSignalRConnection = useCallback(async () => {
     try {
       console.log('🔗 Creando conexión SignalR...');
-      
+      if (!session?.user?.username || !baseUrl) return;
+
       const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl('https://velsat.pe:2096/dataHubSimplified', {
+        .withUrl(`${baseUrl}/dataHubSimplified`, {
           skipNegotiation: true,
           transport: signalR.HttpTransportType.WebSockets,
         })
