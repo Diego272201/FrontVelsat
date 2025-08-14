@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { parseFecha } from '@/app/components/dates/convertToCustomFormat ';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
+import InputDestino from '@/app/components/inputs/InputDestino'; // ← IMPORTAR EL COMPONENTE
+import { IDestino } from '@/app/components/inputs/IDestino'; // ← IMPORTAR LA INTERFAZ
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdAddBox } from 'react-icons/md';
 import { FiLoader } from 'react-icons/fi';
@@ -102,11 +104,19 @@ export default function NuevoServicioModal({
   const [apepateConductor, setApepateConductor] = useState('');
   const [codConductor, setCodConductor] = useState<number | null>(null);
 
+  // ← CAMBIAR ESTOS ESTADOS PARA MANEJAR EL DESTINO
+  const [destinoSeleccionado, setDestinoSeleccionado] = useState<IDestino | null>(null);
+  const [codigoDestino, setCodigoDestino] = useState('4175'); // ← VALOR POR DEFECTO
+
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setClienteSeleccionado(event.target.value);
   };
 
-  const [destino, setDestino] = useState('');
+  // ← NUEVA FUNCIÓN PARA MANEJAR LA SELECCIÓN DEL DESTINO
+  const handleSelectDestino = (destino: IDestino) => {
+    setDestinoSeleccionado(destino);
+    setCodigoDestino(destino.codigo); // Solo guardamos el código para enviar a la API
+  };
 
   const [pasajero, setPasajero] = useState('');
   const [codigoPasajero, setCodigoPasajero] = useState('');
@@ -154,7 +164,6 @@ export default function NuevoServicioModal({
       if (pasajero.trim() === '') {
         setSugerencias([]);
         setMostrarSugerencias(false);
-
         return;
       }
 
@@ -188,9 +197,7 @@ export default function NuevoServicioModal({
 
   const agregarPasajero = () => {
     if (!pasajero) {
-      toast.error(
-        'Debe ingresar el nombre del pasajero y la hora de atención.',
-      );
+      toast.error('Debe ingresar el nombre del pasajero.');
       return;
     }
 
@@ -248,6 +255,7 @@ export default function NuevoServicioModal({
       !datos.fecpreplan ||
       !datos.tipo ||
       !datos.listapuntos.length
+      // ← REMOVIDA LA VALIDACIÓN OBLIGATORIA DEL DESTINO
     ) {
       toast.error(
         'Todos los campos son obligatorios, incluyendo al menos un pasajero en la lista.',
@@ -295,6 +303,7 @@ export default function NuevoServicioModal({
     fecha: parseFecha(horaDestino),
     fecpreplan: parseFecha(horaProgramada),
     grupo: clienteSeleccionado == 'LATAM' ? 'T' : 'N',
+    destino: codigoDestino || '4175', // ← USAR '4175' SI NO HAY DESTINO SELECCIONADO
     listapuntos: [
       ...pasajeros.map((pasajero, index) => ({
         fecha: parseFecha(horaProgramada),
@@ -312,7 +321,7 @@ export default function NuevoServicioModal({
       },
     ],
     numero: '',
-    tipo: tipoServicio == 'RECOJO' ? 'I' : 'S',
+    tipo: tipoServicio, // ← Ya viene 'I' o 'S' directamente del select
     unidad: { codunidad: codUnidadSeleccionado },
   };
 
@@ -327,6 +336,9 @@ export default function NuevoServicioModal({
     setPasajero('');
     setApepateConductor('');
     setCodConductor(null);
+    // ← RESETEAR LOS ESTADOS DEL DESTINO AL VALOR POR DEFECTO
+    setDestinoSeleccionado(null);
+    setCodigoDestino('4175');
   };
 
   return (
@@ -376,7 +388,6 @@ export default function NuevoServicioModal({
                     <option value="" disabled>
                       Seleccione un tipo
                     </option>
-
                     <option value="I">RECOJO</option>
                     <option value="S">REPARTO</option>
                   </select>
@@ -403,6 +414,14 @@ export default function NuevoServicioModal({
                     value={horaProgramada}
                     onChange={(e) => setHoraProgramada(e.target.value)}
                   />
+                </div>
+
+                {/* ← REEMPLAZAR EL INPUT DE DESTINO CON EL COMPONENTE */}
+                <div className="col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-gray-700">
+                    Destino (Opcional):
+                  </label>
+                  <InputDestino onSelectDestino={handleSelectDestino}/>
                 </div>
 
                 <div className="col-span-2">
@@ -507,24 +526,6 @@ export default function NuevoServicioModal({
                 </div>
               </div>
 
-              <div>
-                <div className="col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-gray-700">
-                    Destino:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      id="inputDestino"
-                      type="text"
-                      className="w-full rounded-md border border-gray-300 bg-gray-100 p-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
-                      placeholder="Ingrese Destino"
-                      value={destino}
-                      onChange={(e) => setDestino(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="mt-4 text-[12px] text-gray-600">
                 <DndContext
                   collisionDetection={closestCenter}
@@ -581,7 +582,6 @@ export default function NuevoServicioModal({
                                   >
                                     {pasajero.distrito}
                                   </td>
-
                                   <td className="border-b border-gray-300 px-4 py-2 text-center">
                                     <button
                                       onClick={(e) => {
