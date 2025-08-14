@@ -29,6 +29,8 @@ import { FaRoad } from 'react-icons/fa';
 import Profile from './Profile';
 import { useSession } from 'next-auth/react';
 import { Dot, SquareCheck } from 'lucide-react';
+import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
+import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
 
 // Tipos TypeScript
 type IconType =
@@ -48,7 +50,11 @@ type ModalType =
   | 'details'
   | 'velocity'
   | 'kilometers'
-  | 'servicios';
+  | 'servicios'
+  | 'detalleServicios'
+   | 'duracionservicios';
+
+
 type MenuType =
   | 'services'
   | 'programacion'
@@ -94,6 +100,8 @@ interface ModalState {
   velocity: boolean;
   kilometers: boolean;
   servicios: boolean;
+  detalleServicios: boolean;
+  duracionservicios:boolean;
 }
 
 interface IconSVGProps {
@@ -182,9 +190,19 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         id: 'detalle-servicios',
         title: 'Detalle de Servicios',
         icon: 'document',
+        modalType: 'detalleServicios',
       },
       { id: 'latam', title: 'Control LATAM', icon: 'location' },
-      { id: 'duracion', title: 'Duración de Servicios', icon: 'chart' },
+
+    { 
+        id: 'duracion', 
+        title: 'Duración de Servicios', 
+        icon: 'chart',
+        modalType: 'duracionservicios' // Agrega esta línea
+      },
+
+
+
     ],
   },
   PLANIFICACION: {
@@ -250,6 +268,8 @@ const useModalState = () => {
     velocity: false,
     kilometers: false,
     servicios: false,
+    detalleServicios: false,
+    duracionservicios:false,
   });
 
   const openModal = useCallback((modalType: ModalType) => {
@@ -1013,6 +1033,30 @@ const Tollbar: React.FC = () => {
         namedesc="general"
         showDownloadButton={true}
       />
+
+      <AppModalDetalleServicios
+        isOpen={modals.detalleServicios}
+        onClose={() => closeModal('detalleServicios')}
+        titulo="DETALLE DE SERVICIOS"
+        nameurl="detalleservicios"
+        namedown="downloadExcelDS"
+        namedesc="detalleservicios"
+        showDownloadButton={true}
+      />
+
+
+    <AppModalDuracionServicios
+        isOpen={modals.duracionservicios}
+        onClose={() => closeModal('duracionservicios')}
+        titulo="DURACIÓN DE SERVICIOS"
+        nameurl="detalleservicios"
+        namedown="downloadExcelDS"
+        namedesc="detalleservicios"
+        showDownloadButton={true}
+      />
+
+
+
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
