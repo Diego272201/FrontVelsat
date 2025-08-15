@@ -103,7 +103,9 @@ export default function SeguirUnidadPage({
         .build();
       connection
         .start()
-        .then(() => connection.invoke('UnirGrupo', username))
+        .then(() => {
+          console.log(`Conectado a SignalR automáticamente con ${username}`);
+        })
         .catch(console.error);
 
       connection.on('ActualizarDatos', (datos) => {

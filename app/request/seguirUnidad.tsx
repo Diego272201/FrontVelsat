@@ -43,9 +43,13 @@ interface MarkerData {
 const MapController = ({
   onMapReady,
   device,
+  hasInitialCentered,
+  setHasInitialCentered,
 }: {
   onMapReady: (map: L.Map) => void;
   device: Device | null;
+  hasInitialCentered: boolean;
+  setHasInitialCentered: (value: boolean) => void;
 }) => {
   const map = useMap();
 
@@ -55,16 +59,17 @@ const MapController = ({
     }
   }, [map, onMapReady]);
 
-  // Centrar el mapa cuando cambie el device
+  // Centrar el mapa SOLO la primera vez cuando hay device y mapa listos
   useEffect(() => {
-    if (map && device) {
+    if (map && device && !hasInitialCentered) {
       const newCenter: [number, number] = [
         device.lastValidLatitude,
         device.lastValidLongitude,
       ];
       map.setView(newCenter, 16);
+      setHasInitialCentered(true);
     }
-  }, [map, device]);
+  }, [map, device, hasInitialCentered, setHasInitialCentered]);
 
   return null;
 };
@@ -78,10 +83,45 @@ export default function SeguirUnidadPage({
 
   const [device, setDevice] = useState<Device | null>(null);
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hasInitialCentered, setHasInitialCentered] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
 
   const servidorUrl = localStorage.getItem('servidorUrl');
+
+  // Manejo del fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const mapContainer = document.getElementById('map-container');
+    if (!mapContainer) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await mapContainer.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+
+      // Invalidar el tamaño del mapa después del cambio
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      }, 300);
+    } catch (error) {
+      console.error('Error al cambiar modo fullscreen:', error);
+    }
+  };
 
   useEffect(() => {
     const getDeviceIdFromUrl = () => {
@@ -103,7 +143,9 @@ export default function SeguirUnidadPage({
         .build();
       connection
         .start()
-        .then(() => connection.invoke('UnirGrupo', username))
+        .then(() => {
+          console.log(`Conectado a SignalR automáticamente con ${username}`);
+        })
         .catch(console.error);
 
       connection.on('ActualizarDatos', (datos) => {
@@ -363,8 +405,53 @@ export default function SeguirUnidadPage({
   }, [device, createMarkerAndPopup]);
 
   return (
-    <div style={{ width: '100%', height }}>
-      
+    <div
+      id="map-container"
+      className={`relative ${isFullscreen ? 'h-screen w-screen' : 'w-full'}`}
+      style={{
+        height: isFullscreen ? '100vh' : height,
+        backgroundColor: isFullscreen ? '#000' : 'transparent',
+      }}
+    >
+      {/* Botón de fullscreen */}
+      <button
+        onClick={toggleFullscreen}
+        className="absolute right-4 top-4 z-[1000] rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
+        title={
+          isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
+        }
+      >
+        {isFullscreen ? (
+          // Icono para salir de fullscreen
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
+          </svg>
+        ) : (
+          // Icono para entrar en fullscreen
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        )}
+      </button>
+
       <MapContainer
         center={
           device
@@ -385,7 +472,12 @@ export default function SeguirUnidadPage({
           maxZoom={19}
         />
 
-        <MapController onMapReady={onMapReady} device={device} />
+        <MapController
+          onMapReady={onMapReady}
+          device={device}
+          hasInitialCentered={hasInitialCentered}
+          setHasInitialCentered={setHasInitialCentered}
+        />
       </MapContainer>
 
       {/* CSS para popups transparentes y estilos */}
@@ -439,6 +531,15 @@ export default function SeguirUnidadPage({
 
         .popup-close-btnn:hover {
           background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Estilos para el modo fullscreen */
+        #map-container:fullscreen {
+          background: #000;
+        }
+
+        #map-container:fullscreen .leaflet-container {
+          background: #fff;
         }
       `}</style>
     </div>
