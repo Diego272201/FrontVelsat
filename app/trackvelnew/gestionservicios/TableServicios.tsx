@@ -1502,7 +1502,6 @@ useEffect(() => {
                             marcadores={coordenadas}
                             centro={centroMapa}
                             resetMap={resetMap}
-
                           />
                         ) : (
                           <div className="rounded-lg bg-white p-3">

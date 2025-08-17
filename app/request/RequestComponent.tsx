@@ -109,7 +109,6 @@ export default function RequestPage() {
 
       try {
         await connection.start();
-        await connection.invoke('UnirGrupo', username);
         console.log(`Conectado a SignalR con el grupo ${username}`);
 
         connection.on('ActualizarDatos', (datos) => {

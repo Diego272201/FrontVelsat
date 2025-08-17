@@ -6,6 +6,7 @@ import { BiTrash } from 'react-icons/bi';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
+import ModalDestino from '../planificacion/ModalDestino'; // Importar el componente ModalDestino
 import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
@@ -73,7 +74,7 @@ export default function PasajeroContent() {
 
   useEffect(() => {
     if (!isBaseUrlReady) return;
-  
+
     const fetchPasajeros = async () => {
       try {
         setLoading(true);
@@ -89,7 +90,7 @@ export default function PasajeroContent() {
         setLoading(false);
       }
     };
-  
+
     fetchPasajeros();
   }, [isBaseUrlReady, baseUrl, reloadPasajeros]);
 
@@ -140,19 +141,28 @@ export default function PasajeroContent() {
       );
 
       if (response.status === 200) {
-        toast.success('Pasajero eliminado'); 
+        toast.success('Pasajero eliminado');
         setSelectedCodCliente(null);
         setInputValue('');
         setQuery('');
 
         setPasajeros((prevPasajeros) =>
-          prevPasajeros.filter((pasajero) => pasajero.value !== selectedCodCliente)
+          prevPasajeros.filter(
+            (pasajero) => pasajero.value !== selectedCodCliente,
+          ),
         );
       }
     } catch (error) {
       console.error('Error al eliminar pasajero:', error);
       toast.error('Error al agregar el pasajero');
     }
+  };
+
+  // Función para manejar la selección de destino desde el modal
+  const handleDestinoSeleccionado = (nombre: string, codigo: string) => {
+    toast.success(`Destino seleccionado: ${nombre}`);
+    // Aquí puedes agregar cualquier lógica adicional que necesites
+    // cuando se selecciona un destino
   };
 
   return (
@@ -163,10 +173,9 @@ export default function PasajeroContent() {
         </div>
       </div>
 
-      <div className="p-4 bg-gray-200">
-        
+      <div className="bg-gray-200 p-4">
         <div className="pt-2">
-          <h3 className="text-[13px] font-semibold text-gray-700 pb-1" >
+          <h3 className="pb-1 text-[13px] font-semibold text-gray-700">
             Búsqueda por Nombre
           </h3>
           <div className="flex w-full gap-4">
@@ -205,8 +214,11 @@ export default function PasajeroContent() {
             </div>
 
             <div className="flex w-1/2 justify-end gap-2">
-            <ModalPasajeros title="AGREGAR PASAJERO" onPasajeroAgregado={() => setReloadPasajeros(prev => !prev)} />
-            <ModalPasajerosEdit
+              <ModalPasajeros
+                title="AGREGAR PASAJERO"
+                onPasajeroAgregado={() => setReloadPasajeros((prev) => !prev)}
+              />
+              <ModalPasajerosEdit
                 title="DETALLE PASAJERO"
                 codCliente={selectedCodCliente}
               />
@@ -222,8 +234,7 @@ export default function PasajeroContent() {
         </div>
 
         <div className="pt-2">
-        <h3 className="text-[13px] font-semibold text-gray-700">
-
+          <h3 className="text-[13px] font-semibold text-gray-700">
             Búsqueda por Código
           </h3>
           <div className="flex w-full gap-4 pt-1">
@@ -270,9 +281,21 @@ export default function PasajeroContent() {
           </div>
         </div>
 
+        {/* Nueva sección: Consultar o agregar destino */}
+        <div className="pt-2">
+          <h3 className="text-[13px] font-semibold text-gray-700">
+            Consultar o agregar destino
+          </h3>
+          <div className="pt-1">
+            <ModalDestino onDestinoSeleccionado={handleDestinoSeleccionado} />
+          </div>
+        </div>
+
         <div className="mt-2">
-          <h3 className="text-[14px] font-semibold text-gray-700">CARGA MASIVA</h3>
-          <form className="flex flex-col items-start gap-3 mt-1">
+          <h3 className="text-[14px] font-semibold text-gray-700">
+            CARGA MASIVA
+          </h3>
+          <form className="mt-1 flex flex-col items-start gap-3">
             <label
               htmlFor="file-input"
               className="w-full cursor-pointer rounded-lg border border-dashed border-gray-400 bg-gray-50 p-6 text-center hover:bg-gray-100"

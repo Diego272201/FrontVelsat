@@ -17,9 +17,18 @@ import type { Map as LeafletMap } from 'leaflet';
 import axios from 'axios';
 
 // Importar Leaflet dinámicamente para evitar problemas de SSR
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false },
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false },
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false },
+);
 
 // Importar useMapEvents de manera estática para evitar problemas de tipos
 import { useMapEvents } from 'react-leaflet';
@@ -33,43 +42,17 @@ interface NominatimResult {
 }
 
 // Componente para manejar clics en el mapa
-function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+function MapClickHandler({
+  onMapClick,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+}) {
   useMapEvents({
     click: (e) => {
       onMapClick(e.latlng.lat, e.latlng.lng);
     },
   });
   return null;
-}
-
-// Componente para el marcador draggable
-function DraggableMarker({ 
-  position, 
-  onDragEnd
-}: { 
-  position: [number, number], 
-  onDragEnd: (lat: number, lng: number) => void
-}) {
-  const markerRef = useRef<L.Marker | null>(null);
-
-  const eventHandlers = {
-    dragend() {
-      const marker = markerRef.current;
-      if (marker != null) {
-        const { lat, lng } = marker.getLatLng();
-        onDragEnd(lat, lng);
-      }
-    },
-  };
-
-  return (
-    <Marker
-      draggable={true}
-      eventHandlers={eventHandlers}
-      position={position}
-      ref={markerRef}
-    />
-  );
 }
 
 export default function App({
@@ -98,25 +81,32 @@ export default function App({
 
   const mapRef = useRef<LeafletMap | null>(null);
 
-  const [markerPosition, setMarkerPosition] = useState<[number, number]>([0, 0]);
+  const [markerPosition, setMarkerPosition] = useState<[number, number]>([
+    0, 0,
+  ]);
 
   // Configurar iconos de Leaflet cuando se carga el cliente
   useEffect(() => {
     setIsClient(true);
-    
+
     // Configurar iconos de Leaflet solo en el cliente
     if (typeof window !== 'undefined') {
       import('leaflet').then((L) => {
         // Borrar la configuración por defecto usando Object.assign
         const DefaultIcon = L.Icon.Default;
-        const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
+        const iconPrototype = DefaultIcon.prototype as {
+          _getIconUrl?: () => void;
+        };
         delete iconPrototype._getIconUrl;
-        
+
         // Configurar nuevos iconos
         L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          iconRetinaUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
         });
       });
     }
@@ -132,7 +122,7 @@ export default function App({
 
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
       );
       setSearchResults(response.data);
       setShowSearchResults(true);
@@ -145,16 +135,18 @@ export default function App({
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
       );
-      
+
       if (response.data && response.data.display_name) {
         const address = response.data.display_name;
-        const district = response.data.address?.suburb || 
-                        response.data.address?.city_district || 
-                        response.data.address?.county || 
-                        response.data.address?.city || '';
-                        
+        const district =
+          response.data.address?.suburb ||
+          response.data.address?.city_district ||
+          response.data.address?.county ||
+          response.data.address?.city ||
+          '';
+
         return { address, district };
       }
       return null;
@@ -168,19 +160,21 @@ export default function App({
   const handleAddressSelect = async (result: NominatimResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    
+
     setMarkerPosition([lat, lng]);
     setSearchInput(result.display_name);
     setShowSearchResults(false);
 
     // Extraer distrito de la dirección si está disponible
     const addressParts = result.display_name.split(', ');
-    const possibleDistrict = addressParts.find(part => 
-      part.includes('Lima') || 
-      part.includes('Distrito') || 
-      addressParts.indexOf(part) === 1 || 
-      addressParts.indexOf(part) === 2
-    ) || '';
+    const possibleDistrict =
+      addressParts.find(
+        (part) =>
+          part.includes('Lima') ||
+          part.includes('Distrito') ||
+          addressParts.indexOf(part) === 1 ||
+          addressParts.indexOf(part) === 2,
+      ) || '';
 
     // Actualizar campos del formulario
     setDireccion(result.display_name);
@@ -201,12 +195,12 @@ export default function App({
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
-    
+
     // Limpiar timeout anterior
     if (debounceSearchRef.current) {
       clearTimeout(debounceSearchRef.current);
     }
-    
+
     // Crear nuevo timeout para debounce
     debounceSearchRef.current = setTimeout(() => {
       searchAddress(value);
@@ -215,21 +209,6 @@ export default function App({
 
   // Manejar clics en el mapa
   const handleMapClick = async (lat: number, lng: number) => {
-    setMarkerPosition([lat, lng]);
-    setLatitud(lat.toString());
-    setLongitud(lng.toString());
-
-    // Obtener dirección mediante geocodificación inversa
-    const geocodeResult = await reverseGeocode(lat, lng);
-    if (geocodeResult) {
-      setSearchInput(geocodeResult.address);
-      setDireccion(geocodeResult.address);
-      setDistrito(geocodeResult.district);
-    }
-  };
-
-  // Manejar arrastre del marcador
-  const handleMarkerDragEnd = async (lat: number, lng: number) => {
     setMarkerPosition([lat, lng]);
     setLatitud(lat.toString());
     setLongitud(lng.toString());
@@ -390,7 +369,7 @@ export default function App({
     <>
       <button
         onClick={onOpen}
-        className="ml-2 mt-[1px] bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500 rounded"
+        className="ml-2 mt-[1px] rounded bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
       >
         <TbEdit size={18} />
       </button>
@@ -528,7 +507,7 @@ export default function App({
                 </div>
 
                 {/* Sección de búsqueda de direcciones con z-index corregido */}
-                <div className="w-full relative" style={{ zIndex: 1050 }}>
+                <div className="relative w-full" style={{ zIndex: 1050 }}>
                   <label className="mb-1 block text-[12px] font-medium text-gray-900">
                     Buscar dirección
                   </label>
@@ -536,26 +515,28 @@ export default function App({
                     disabled={!editable}
                     type="text"
                     placeholder="Escribe una dirección..."
-                    className="w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px] relative z-10"
+                    className="relative z-10 w-full rounded-md border border-gray-300 bg-gray-50 p-1.5 text-[12px]"
                     value={searchInput}
                     onChange={handleSearchInputChange}
-                    onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                    onFocus={() =>
+                      searchResults.length > 0 && setShowSearchResults(true)
+                    }
                     onBlur={() => {
                       // Delay para permitir clic en resultados
                       setTimeout(() => setShowSearchResults(false), 200);
                     }}
                   />
-                  
+
                   {/* Resultados de búsqueda con z-index alto */}
                   {showSearchResults && searchResults.length > 0 && (
-                    <div 
-                      className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    <div
+                      className="absolute left-0 right-0 top-full max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg"
                       style={{ zIndex: 1060 }}
                     >
                       {searchResults.map((result, index) => (
                         <div
                           key={index}
-                          className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          className="cursor-pointer border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-100"
                           onClick={() => handleAddressSelect(result)}
                           onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes del clic
                         >
@@ -569,9 +550,12 @@ export default function App({
                 </div>
 
                 {/* Contenedor del mapa con z-index más bajo */}
-                <div className="mt-4 w-full rounded border" style={{ zIndex: 1 }}>
+                <div
+                  className="mt-4 w-full rounded border"
+                  style={{ zIndex: 1 }}
+                >
                   {isClient && (
-                    <div className="w-full h-[400px]">
+                    <div className="h-[400px] w-full">
                       <MapContainer
                         center={
                           markerPosition[0] !== 0 && markerPosition[1] !== 0
@@ -590,14 +574,11 @@ export default function App({
                           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
-                        
+
                         <MapClickHandler onMapClick={handleMapClick} />
-                        
+
                         {markerPosition[0] !== 0 && markerPosition[1] !== 0 && (
-                          <DraggableMarker 
-                            position={markerPosition} 
-                            onDragEnd={handleMarkerDragEnd}
-                          />
+                          <Marker position={markerPosition} />
                         )}
                       </MapContainer>
                     </div>
@@ -624,7 +605,7 @@ export default function App({
           )}
         </ModalContent>
       </Modal>
-      
+
       {/* Estilos para importar Leaflet CSS */}
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');

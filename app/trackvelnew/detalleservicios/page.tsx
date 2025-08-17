@@ -1,7 +1,7 @@
 'use client';
 
 import ReporteHeader from '@/app/components/ReporteHeader';
-import React, { useMemo } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
@@ -22,10 +22,9 @@ interface TransportService {
   empresa: string;
 }
 
-export default function Page() {
-
-    const searchParams = useSearchParams();
-  
+// Componente que contiene la lógica con useSearchParams
+function PageContent() {
+  const searchParams = useSearchParams();
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
@@ -50,8 +49,6 @@ export default function Page() {
 
   // Crear el texto de información extra
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
-
-  
 
   const data: TransportService[] = [
     {
@@ -88,7 +85,7 @@ export default function Page() {
 
   return (
     <div>
-     <ReporteHeader
+      <ReporteHeader
         title="DETALLE DEL SERVICIO"
         deviceId={deviceId ?? ''}
         startDate={startDate ?? ''}
@@ -218,5 +215,24 @@ export default function Page() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Componente de carga
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center p-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <span className="ml-2 text-gray-600">Cargando parámetros...</span>
+    </div>
+  );
+}
+
+// Componente principal - este es tu código completo actualizado
+export default function Page() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PageContent />
+    </Suspense>
   );
 }

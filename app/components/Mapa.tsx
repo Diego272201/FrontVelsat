@@ -152,6 +152,7 @@ function CustomMarker({
 const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
   const [isClient, setIsClient] = useState(false);
   const [mapKey, setMapKey] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const initialCenter: [number, number] = [-12.0464, -77.0428];
   const initialZoom = 10;
 
@@ -166,6 +167,36 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
     }
   }, [resetMap]);
 
+  // Manejo del fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const mapContainer = document.getElementById('map-container');
+    if (!mapContainer) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await mapContainer.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+      
+      // Invalidar el tamaño del mapa después del cambio
+      setTimeout(() => {
+        setMapKey(prev => prev + 1);
+      }, 300);
+    } catch (error) {
+      console.error('Error al cambiar modo fullscreen:', error);
+    }
+  };
+
   const polylineCoordinates: [number, number][] = recorrido.map((punto) => [
     punto.lat,
     punto.lng,
@@ -178,7 +209,52 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
   };
 
   return (
-    <div className="flex h-[350px] w-full items-center justify-center p-2 border border-gray-300">
+    <div 
+      id="map-container"
+      className={`relative flex items-center justify-center p-2 border border-gray-300 ${
+        isFullscreen ? 'w-screen h-screen' : 'h-[350px] w-full'
+      }`}
+      style={{
+        backgroundColor: isFullscreen ? '#000' : 'transparent'
+      }}
+    >
+      {/* Botón de fullscreen */}
+      <button
+        onClick={toggleFullscreen}
+        className="absolute top-4 right-4 z-[1000] bg-white hover:bg-gray-100 border border-gray-300 rounded-md p-2 shadow-lg transition-colors duration-200"
+        title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+      >
+        {isFullscreen ? (
+          // Icono para salir de fullscreen
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/>
+          </svg>
+        ) : (
+          // Icono para entrar en fullscreen
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        )}
+      </button>
+
       {isClient ? (
         <div style={{ width: '100%', height: '100%' }}>
           <MapContainer
@@ -224,8 +300,18 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
       
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+        
+        /* Estilos para el modo fullscreen */
+        #map-container:fullscreen {
+          background: #000;
+        }
+        
+        #map-container:fullscreen .leaflet-container {
+          background: #fff;
+        }
       `}</style>
     </div>
   );
 };
+
 export default Mapa;
