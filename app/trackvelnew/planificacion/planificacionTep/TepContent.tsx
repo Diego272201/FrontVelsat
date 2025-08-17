@@ -111,12 +111,12 @@ export default function TepContent() {
     setDatosServicios(datos);
   };
 
-const manejarRespuestaModal = (respuesta: string) => {
-  setEmpresaConfirmada(empresaSeleccionada); // ← MOVER AQUÍ
-  setDato(respuesta);
-  setActualizacion((prev) => prev + 1);
-  onOpenChange();
-};
+  const manejarRespuestaModal = (respuesta: string) => {
+    setEmpresaConfirmada(empresaSeleccionada); // ← MOVER AQUÍ
+    setDato(respuesta);
+    setActualizacion((prev) => prev + 1);
+    onOpenChange();
+  };
 
   useEffect(() => {
     if (empresaConfirmada && dato) {
@@ -277,6 +277,15 @@ const manejarRespuestaModal = (respuesta: string) => {
               id: toastId,
             });
 
+            if (guardar) {
+              setTimeout(() => {
+                guardar(false);
+                toast.success(
+                  'Guardado automático ejecutado después de la carga exitosa',
+                );
+              }, 1000); 
+            }
+
             if (response.data.errores?.length > 0) {
               setErroresCarga(response.data.errores);
               setIsModalOpen(true);
@@ -314,13 +323,12 @@ const manejarRespuestaModal = (respuesta: string) => {
   }, []);
 
   const handlePublicar = async () => {
-
-  if (guardar) {
-    await new Promise<void>((resolve) => {
-      guardar(false);
-      setTimeout(resolve, 700);
-    });
-  }
+    if (guardar) {
+      await new Promise<void>((resolve) => {
+        guardar(false);
+        setTimeout(resolve, 700);
+      });
+    }
 
     if (!selectedDate || !empresaSeleccionada) {
       toast.error('Debe seleccionar una fecha y una empresa.');
@@ -412,13 +420,6 @@ const manejarRespuestaModal = (respuesta: string) => {
       toast.info('Publicación cancelada');
     }
   };
-
-
-
-
-
-
-
 
   useEffect(() => {
     console.log('Errores actualizados en el estado:', erroresCarga);
@@ -803,7 +804,7 @@ const manejarRespuestaModal = (respuesta: string) => {
               <div className="cargaArchivos">
                 <div className="grid grid-cols-2 gap-2">
                   {/* Card Total Servicios - Compacta con fondo azul claro */}
-                  <div className="border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm flex justify-center items-center">
+                  <div className="flex items-center justify-center border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm">
                     <div className="flex items-center space-x-2">
                       <div className="rounded-lg bg-blue-600 p-2 shadow-sm">
                         <MdHomeRepairService size={14} className="text-white" />
