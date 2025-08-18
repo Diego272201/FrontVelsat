@@ -1522,6 +1522,7 @@ export default function App({
                             <SeguirUnidad
                               deviceId={selectedRow.unidadSF?.toLowerCase()}
                               height="30vh"
+                              marcadores={coordenadas} // ← Agregar esta línea
                             />
                           </div>
                         )}
