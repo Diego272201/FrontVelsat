@@ -17,30 +17,33 @@ import type { Map as LeafletMap } from 'leaflet';
 // Importar Leaflet dinámicamente para evitar problemas de SSR
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => {
-    const MapContainerComponent = mod.MapContainer;
-    return forwardRef<any, any>((props, ref) => (
-      <MapContainerComponent {...props} ref={ref} />
+    const MapContainerComponent = forwardRef<any, any>((props, ref) => (
+      <mod.MapContainer {...props} ref={ref} />
     ));
+    MapContainerComponent.displayName = 'DynamicMapContainer';
+    return MapContainerComponent;
   }),
   { ssr: false },
 );
 
 const TileLayer = dynamic(
   () => import('react-leaflet').then((mod) => {
-    const TileLayerComponent = mod.TileLayer;
-    return forwardRef<any, any>((props, ref) => (
-      <TileLayerComponent {...props} ref={ref} />
+    const TileLayerComponent = forwardRef<any, any>((props, ref) => (
+      <mod.TileLayer {...props} ref={ref} />
     ));
+    TileLayerComponent.displayName = 'DynamicTileLayer';
+    return TileLayerComponent;
   }),
   { ssr: false },
 );
 
 const Marker = dynamic(
   () => import('react-leaflet').then((mod) => {
-    const MarkerComponent = mod.Marker;
-    return forwardRef<any, any>((props, ref) => (
-      <MarkerComponent {...props} ref={ref} />
+    const MarkerComponent = forwardRef<any, any>((props, ref) => (
+      <mod.Marker {...props} ref={ref} />
     ));
+    MarkerComponent.displayName = 'DynamicMarker';
+    return MarkerComponent;
   }),
   { ssr: false },
 );
