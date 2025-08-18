@@ -14,6 +14,7 @@ import Swal from 'sweetalert2';
 import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
 import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
+import ModalUpdDestino from './ModalUpdDestino';
 
 import dynamic from 'next/dynamic';
 
@@ -87,7 +88,7 @@ export default function App({
   selectedDate,
   refreshFlag,
   refreshFlagServicio,
-  refreshSearch
+  refreshSearch,
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -114,8 +115,8 @@ export default function App({
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [isOpenD, setIsOpenD] = useState(false);
+  const [isModalDestinoOpen, setIsModalDestinoOpen] = useState(false);
 
   const handleModificarServicio = () => {
     setIsEditing(true);
@@ -476,13 +477,13 @@ export default function App({
   const [editandoFechaProg, setEditandoFechaProg] = useState(false);
   const [nuevaFechaProg, setNuevaFechaProg] = useState('');
 
-const handleRowClick = (row: any) => {
-  setSelectedRow(row);
-  setPreviousSelectedCod(row.codServicio);
-  setResetMap(true);
-  setCentroMapa(null); 
-  onOpen();
-};
+  const handleRowClick = (row: any) => {
+    setSelectedRow(row);
+    setPreviousSelectedCod(row.codServicio);
+    setResetMap(true);
+    setCentroMapa(null);
+    onOpen();
+  };
 
   useEffect(() => {
     if (selectedPasajeroCodlan) return;
@@ -510,7 +511,7 @@ const handleRowClick = (row: any) => {
     refreshFlagDelete,
     refreshFlagAsignar,
     refreshFlagServicio,
-    refreshSearch
+    refreshSearch,
   ]);
 
   useEffect(() => {
@@ -791,18 +792,18 @@ const handleRowClick = (row: any) => {
     setHoraAtencion('');
   };
 
-const handleLimpiarAll = () => {
-  setConductor('');
-  setUnidadA('');
-  setPasajero('');
-  setHoraAtencion('');
-  setHoraAto('');
-  setNuevaFecha('');
-  setNuevaFechaProg('');
-  setResetMap(true);
-  setCentroMapa(null);
-  setTimeout(() => setResetMap(false), 500);
-};
+  const handleLimpiarAll = () => {
+    setConductor('');
+    setUnidadA('');
+    setPasajero('');
+    setHoraAtencion('');
+    setHoraAto('');
+    setNuevaFecha('');
+    setNuevaFechaProg('');
+    setResetMap(true);
+    setCentroMapa(null);
+    setTimeout(() => setResetMap(false), 500);
+  };
 
   const handleGuardarHoraAto = () => {
     setData((prevData) =>
@@ -883,25 +884,25 @@ const handleLimpiarAll = () => {
           ? 120
           : 60;
 
-useEffect(() => {
-  if (!isOpen) {
-    setIsOpenD(false);
-    setResetMap(true);
-    setCentroMapa(null);
-  } else {
-    setTimeout(() => setResetMap(false), 500);
-  }
-}, [isOpen]);
+  useEffect(() => {
+    if (!isOpen) {
+      setIsOpenD(false);
+      setResetMap(true);
+      setCentroMapa(null);
+    } else {
+      setTimeout(() => setResetMap(false), 500);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
-  if (resetMap) {
-    const timer = setTimeout(() => {
-      setResetMap(false);
-    }, 600);
-    
-    return () => clearTimeout(timer);
-  }
-}, [resetMap]);
+    if (resetMap) {
+      const timer = setTimeout(() => {
+        setResetMap(false);
+      }, 600);
+
+      return () => clearTimeout(timer);
+    }
+  }, [resetMap]);
 
   return (
     <div>
@@ -1053,6 +1054,19 @@ useEffect(() => {
                                 {selectedRow?.nomDestino ||
                                   'Sin destino asignado'}
                               </span>
+
+                              {!['FA', 'FT', 'CN'].includes(
+                                selectedRow?.estado,
+                              ) && (
+                                <button
+                                  onClick={() => {
+                                    setIsModalDestinoOpen(true);
+                                  }}
+                                  className="flex justify-center rounded bg-blue-700 px-1 py-1 text-gray-100 hover:bg-blue-500"
+                                >
+                                  <BiSolidEdit />
+                                </button>
+                              )}
                             </div>
                           </div>
 
@@ -1544,6 +1558,32 @@ useEffect(() => {
           )}
         </ModalContent>
       </Modal>
+
+      <ModalUpdDestino
+        isOpen={isModalDestinoOpen}
+        onClose={() => setIsModalDestinoOpen(false)}
+        codservicio={selectedRow?.codServicio} // Pasar el código de servicio
+        onDestinoSeleccionado={(nombre, codigo) => {
+          // Actualizar el destino en la tabla local
+          setData((prevData) =>
+            prevData.map((item) =>
+              item.codServicio === selectedRow?.codServicio
+                ? { ...item, nomDestino: nombre }
+                : item,
+            ),
+          );
+
+          // Actualizar el selectedRow también
+          if (selectedRow) {
+            setSelectedRow({
+              ...selectedRow,
+              nomDestino: nombre,
+            });
+          }
+
+          console.log('Destino actualizado:', nombre, codigo);
+        }}
+      />
     </div>
   );
 }
