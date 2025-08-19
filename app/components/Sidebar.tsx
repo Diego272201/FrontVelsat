@@ -47,14 +47,12 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     return localStorage.getItem('currentUser') || session?.user?.username || '';
   }, [session]);
 
-  // Función para crear conexión SignalR
   const createSignalRConnection = useCallback(async () => {
   try {
     if (!username || !baseUrl) {
       return null;
     }
 
-    // ✅ URL CORREGIDA - Con username como parámetro de ruta
     const hubUrl = `${baseUrl}/dataHubSimplified/${username}`;
 
     const newConnection = new signalR.HubConnectionBuilder()
@@ -66,7 +64,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
-    // Event handlers
     newConnection.onclose((error) => {
       setConnectionStatus('Disconnected');
       setIsSignalRActive(false);
@@ -79,18 +76,15 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     newConnection.onreconnected((connectionId) => {
       setConnectionStatus('Connected');
       
-      // ✅ Reiniciar datos después de reconexión (sin parámetro - el hub obtiene username de la ruta)
       setTimeout(() => {
         newConnection.invoke('IniciarDatosSimplificados');
       }, 1000);
     });
 
-    // ✅ Evento de conexión automática del hub
     newConnection.on('DatosSimplificadosConectados', (user) => {
       setIsSignalRActive(true);
     });
 
-    // Escuchar datos simplificados
     newConnection.on('ActualizarDatosSimplificados', (datos) => {      
       if (Array.isArray(datos)) {
         const unidadesFormateadas = datos.map((item: any) => ({
@@ -105,7 +99,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
       }
     });
 
-    // Eventos del hub
     newConnection.on('DatosSimplificadosIniciados', (mensaje) => {
       setIsSignalRActive(true);
     });
@@ -128,7 +121,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
   }
 }, [username, baseUrl]); 
 
-  // Efecto principal: Inicializar SignalR UNA SOLA VEZ
   useEffect(() => {
   if (username && baseUrl) {    
     const initializeConnection = async () => {
@@ -156,7 +148,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
 }, [username, baseUrl, createSignalRConnection]);
 
 
-  // Efecto: Filtros Sedapal (sin cambios)
   useEffect(() => {
     const fetchFiltroSedapal = async () => {
       if (rutaSeleccionada && rutaSeleccionada !== 'Todas') {
@@ -183,7 +174,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     }
   }, [rutaSeleccionada, baseUrl, username, onFilteredIdsChange]);
 
-  // Cleanup al desmontar componente
 useEffect(() => {
   return () => {
     if (connection && username && isSignalRActive) {
@@ -195,7 +185,7 @@ useEffect(() => {
       clearTimeout(reconnectTimeoutRef.current);
     }
   };
-}, []); // Array vacío - solo al desmontar
+}, []); 
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -234,15 +224,6 @@ useEffect(() => {
     setSearchTerm(e.target.value);
   };
 
-  // Indicador visual del estado de conexión
-  const getConnectionStatusColor = () => {
-    switch (connectionStatus) {
-      case 'Connected': return 'text-green-500';
-      case 'Connecting': return 'text-yellow-500';
-      case 'Disconnected': return 'text-red-500';
-      default: return 'text-gray-500';
-    }
-  };
 
   return (
     <div className="sidebarScroll">
@@ -326,9 +307,6 @@ useEffect(() => {
             {idLoading ? (
               <div className="h-[500px] flex items-center justify-center w-full">
                 <Spinner />
-                <div className="ml-3">
-                  {connectionStatus === 'Connecting' ? 'Conectando...' : 'Cargando datos...'}
-                </div>
               </div>
             ) : (
               filteredUnidades.map((unidad, index) => (

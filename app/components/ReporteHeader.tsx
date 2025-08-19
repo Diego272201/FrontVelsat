@@ -34,7 +34,7 @@ export default function ReporteHeader({
       {/* Título e información */}
     <div className="text-center">
   <h2 className="text-[14px] font-bold uppercase flex items-center justify-center gap-2">
-    {title}: <span className="text-[#ffbe0b]">{deviceId?.toUpperCase()}</span> {icon}
+    {title} : <span className="text-[#ffbe0b]">{deviceId?.toUpperCase()}</span> {icon}
   </h2>
   <span className="text-[13px] text-gray-300 font-medium -mt-1 block">{extraInfo}</span>
 </div>

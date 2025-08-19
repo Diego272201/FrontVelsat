@@ -165,7 +165,6 @@ export default function App({
     setSearchInput(result.display_name);
     setShowSearchResults(false);
 
-    // Extraer distrito de la dirección si está disponible
     const addressParts = result.display_name.split(', ');
     const possibleDistrict =
       addressParts.find(
@@ -176,44 +175,36 @@ export default function App({
           addressParts.indexOf(part) === 2,
       ) || '';
 
-    // Actualizar campos del formulario
     setDireccion(result.display_name);
     setDistrito(possibleDistrict);
     setLatitud(lat.toString());
     setLongitud(lng.toString());
 
-    // Centrar el mapa en la nueva ubicación
     if (mapRef.current) {
       mapRef.current.setView([lat, lng], 15);
     }
   };
 
-  // Función con debounce para búsqueda
   const debounceSearchRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Manejar cambios en el input de búsqueda
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
 
-    // Limpiar timeout anterior
     if (debounceSearchRef.current) {
       clearTimeout(debounceSearchRef.current);
     }
 
-    // Crear nuevo timeout para debounce
     debounceSearchRef.current = setTimeout(() => {
       searchAddress(value);
     }, 300);
   };
 
-  // Manejar clics en el mapa
   const handleMapClick = async (lat: number, lng: number) => {
     setMarkerPosition([lat, lng]);
     setLatitud(lat.toString());
     setLongitud(lng.toString());
 
-    // Obtener dirección mediante geocodificación inversa
     const geocodeResult = await reverseGeocode(lat, lng);
     if (geocodeResult) {
       setSearchInput(geocodeResult.address);
@@ -369,9 +360,10 @@ export default function App({
     <>
       <button
         onClick={onOpen}
-        className="ml-2 mt-[1px] rounded bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
+        className="mt-[1px] flex w-full items-center justify-center gap-2 rounded bg-green-700 px-3 py-2 text-[14px] text-white hover:bg-green-600"
       >
-        <TbEdit size={18} />
+        Consultar o agregar destino
+        <TbEdit size={16} />
       </button>
 
       <Modal

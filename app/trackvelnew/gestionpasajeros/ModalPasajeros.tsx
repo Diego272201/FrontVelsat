@@ -94,20 +94,17 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const mapRef = useRef<LeafletMap | null>(null);
 
   const [markerPosition, setMarkerPosition] = useState<[number, number]>([0, 0]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-12.0464, -77.0428]); // Lima, Perú
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-12.0464, -77.0428]); 
 
-  // Configurar iconos de Leaflet cuando se carga el cliente
   useEffect(() => {
     setIsClient(true);
     
-    // Configurar iconos de Leaflet solo en el cliente
     if (typeof window !== 'undefined') {
       import('leaflet').then((L) => {
         const DefaultIcon = L.Icon.Default;
         const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
         delete iconPrototype._getIconUrl;
         
-        // Configurar nuevos iconos
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
           iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -117,7 +114,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   }, []);
 
-  // Función para buscar direcciones usando Nominatim (OpenStreetMap)
   const searchAddress = async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -136,7 +132,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   };
 
-  // Función para geocodificación inversa (obtener dirección desde coordenadas)
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await axios.get(
@@ -159,7 +154,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   };
 
-  // Manejar selección de dirección de los resultados de búsqueda
   const handleAddressSelect = (result: NominatimResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
@@ -169,7 +163,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     setSearchInput(result.display_name);
     setShowSearchResults(false);
 
-    // Extraer distrito de la dirección si está disponible
     const addressParts = result.display_name.split(', ');
     const possibleDistrict = addressParts.find(part => 
       part.includes('Lima') || 
@@ -178,7 +171,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       addressParts.indexOf(part) === 2
     ) || '';
 
-    // Actualizar el formulario
     reset((prev) => ({
       ...prev,
       direccion: result.display_name,
@@ -187,43 +179,35 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       longitud: lng.toString(),
     }));
 
-    // Centrar el mapa en la nueva ubicación
     if (mapRef.current) {
       mapRef.current.setView([lat, lng], 15);
     }
   };
 
-  // Función con debounce para búsqueda
   const debounceSearchRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Manejar cambios en el input de búsqueda
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
     
-    // Limpiar timeout anterior
     if (debounceSearchRef.current) {
       clearTimeout(debounceSearchRef.current);
     }
     
-    // Crear nuevo timeout para debounce
     debounceSearchRef.current = setTimeout(() => {
       searchAddress(value);
     }, 300);
   };
 
-  // Manejar clics en el mapa
   const handleMapClick = async (lat: number, lng: number) => {
     setMarkerPosition([lat, lng]);
     
-    // Actualizar coordenadas inmediatamente
     reset((prev) => ({
       ...prev,
       latitud: lat.toString(),
       longitud: lng.toString(),
     }));
 
-    // Obtener dirección mediante geocodificación inversa
     const geocodeResult = await reverseGeocode(lat, lng);
     if (geocodeResult) {
       setSearchInput(geocodeResult.address);
@@ -258,7 +242,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     setShowSearchResults(false);
   };
 
-  // Manejar clic fuera del dropdown
   const handleClickOutside = () => {
     setShowSearchResults(false);
   };
@@ -334,7 +317,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
         <button
           onClick={onOpen}
-          className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600"
+          className="inline-flex items-center h-[40px] gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-700"
         >
           <IoIosAddCircle className="text-white" size={18} />
           Nuevo
@@ -352,8 +335,8 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           <ModalContent>
             {(onClose) => (
               <>
-                <ModalHeader className="flex items-center gap-1 text-[14px]">
-                  <MdAddBox size={20} />
+                <ModalHeader className="flex items-center justify-center gap-1 text-[15px]">
+                  <MdAddBox size={20}  />
                   {title}
                 </ModalHeader>
                 <ModalBody>

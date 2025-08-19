@@ -6,12 +6,13 @@ import { BiTrash } from 'react-icons/bi';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
-import ModalDestino from '../planificacion/ModalDestino'; // Importar el componente ModalDestino
+import ModalDestino from '../planificacion/ModalDestino';
 import { useApi } from '@/context/ApiContext';
 import { useSession } from 'next-auth/react';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 import '@/app/styles/pasajeros.css';
+import { Download, FileText, MapPin, Search, Upload, User } from 'lucide-react';
 
 interface Pasajero {
   codcliente: number;
@@ -158,11 +159,8 @@ export default function PasajeroContent() {
     }
   };
 
-  // Función para manejar la selección de destino desde el modal
   const handleDestinoSeleccionado = (nombre: string, codigo: string) => {
     toast.success(`Destino seleccionado: ${nombre}`);
-    // Aquí puedes agregar cualquier lógica adicional que necesites
-    // cuando se selecciona un destino
   };
 
   return (
@@ -173,49 +171,81 @@ export default function PasajeroContent() {
         </div>
       </div>
 
-      <div className="bg-gray-200 p-4">
-        <div className="pt-2">
-          <h3 className="pb-1 text-[13px] font-semibold text-gray-700">
-            Búsqueda por Nombre
-          </h3>
-          <div className="flex w-full gap-4">
-            <div className="w-1/2">
-              <div className="relative w-full">
+      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 px-6 py-4">
+          <div className="mb-3 flex items-center gap-2">
+            <User className="h-5 w-5 text-blue-500" />
+            <h3 className="text-base font-semibold text-gray-800">
+              Buscar Pasajero por Nombre
+            </h3>
+          </div>
+
+          <div className="flex flex-col gap-4 lg:flex-row">
+            <div className="flex-1">
+              <div className="relative">
                 <input
                   type="text"
-                  placeholder="Buscar Pasajero"
-                  className="w-full rounded-md border bg-white p-2 ps-4 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                  placeholder="Escriba el nombre del pasajero..."
+                  className="w-full rounded-lg border-2 border-gray-200 bg-white p-2 text-sm 
+                           transition-all duration-200 focus:border-blue-400 focus:outline-none
+                           focus:ring-2 focus:ring-blue-100"
                   onChange={(e) => {
                     setInputValue(e.target.value);
                     handleSearchChange(e.target.value);
                   }}
                   value={inputValue}
                 />
+
+                {query.length > 0 && query.length < 2 && (
+                  <div className="absolute right-3 top-3 text-xs text-gray-400">
+                    Escriba al menos 2 caracteres
+                  </div>
+                )}
+
                 {query.length >= 2 && (
-                  <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                  <div className="absolute z-20 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
                     {filteredPasajeros.length > 0 ? (
-                      filteredPasajeros.map((pasajero) => (
-                        <li
-                          key={pasajero.value}
-                          onClick={() => handleSelectionChange(pasajero.value)}
-                          className="cursor-pointer px-4 py-2 hover:bg-green-100"
-                        >
-                          {pasajero.label}
-                        </li>
-                      ))
+                      <div className="max-h-64 overflow-auto">
+                        <div className="border-b bg-gray-50 p-2 text-xs font-medium text-gray-600">
+                          {filteredPasajeros.length} resultado(s) encontrado(s)
+                        </div>
+                        {filteredPasajeros.map((pasajero, index) => (
+                          <div
+                            key={pasajero.value}
+                            onClick={() =>
+                              handleSelectionChange(pasajero.value)
+                            }
+                            className="cursor-pointer border-b border-gray-50 px-4 py-3 text-sm transition-colors
+                                     duration-150 last:border-b-0 hover:bg-blue-50"
+                          >
+                            <div className="font-medium text-gray-800">
+                              {pasajero.label}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Código: {pasajero.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
-                      <li className="px-4 py-2 text-sm text-gray-500">
-                        No se encontraron pasajeros
-                      </li>
+                      <div className="p-4 text-center">
+                        <Search className="mx-auto mb-2 h-8 w-8 text-gray-300" />
+                        <div className="text-sm text-gray-400">
+                          No se encontraron pasajeros
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          Intente con otro nombre
+                        </div>
+                      </div>
                     )}
-                  </ul>
+                  </div>
                 )}
               </div>
             </div>
 
-            <div className="flex w-1/2 justify-end gap-2">
+            <div className="flex flex-wrap gap-2 lg:flex-nowrap">
               <ModalPasajeros
-                title="AGREGAR PASAJERO"
+                title="Agregar Pasajero"
                 onPasajeroAgregado={() => setReloadPasajeros((prev) => !prev)}
               />
               <ModalPasajerosEdit
@@ -223,97 +253,152 @@ export default function PasajeroContent() {
                 codCliente={selectedCodCliente}
               />
               <button
-                className="inline-flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600"
+                className="inline-flex h-[40px] items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600"
                 onClick={handleDelete}
+                disabled={!selectedCodCliente}
               >
-                <BiTrash className="text-white" size={18} />
+                <BiTrash size={16} />
                 Eliminar
               </button>
             </div>
           </div>
         </div>
 
-        <div className="pt-2">
-          <h3 className="text-[13px] font-semibold text-gray-700">
-            Búsqueda por Código
-          </h3>
-          <div className="flex w-full gap-4 pt-1">
-            <input
-              type="text"
-              placeholder="Ingrese Código"
-              className="flex-[0.7] rounded-md border bg-white p-2 ps-4 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
-              value={codigoInputValue}
-              onChange={(e) => {
-                setCodigoInputValue(e.target.value);
-                setCodigoQuery(e.target.value);
-                fetchPasajerosPorCodigo(e.target.value);
-              }}
-            />
+        <div className="border-b border-gray-100 px-6 py-2">
+          <div className="mb-3 flex items-center gap-2">
+            <Search className="h-5 w-5 text-purple-500" />
+            <h3 className="text-base font-semibold text-gray-800">
+              Buscar por Código
+            </h3>
+          </div>
 
-            {codigoQuery.length >= 2 && (
-              <ul className="absolute z-10 mt-10 max-h-60 w-[70%] overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                {codigoResultados.length > 0 ? (
-                  codigoResultados.map((item) => (
-                    <li
-                      key={item.codigo}
-                      onClick={() => {
-                        setCodigoInputValue(`${item.codlan} - ${item.apepate}`);
-                        setSelectedCodigo(item.codigo);
-                        setCodigoQuery('');
-                      }}
-                      className="cursor-pointer px-4 py-2 hover:bg-blue-100"
-                    >
-                      {item.codlan}
-                    </li>
-                  ))
-                ) : (
-                  <li className="px-4 py-2 text-sm text-gray-500">
-                    No se encontraron resultados
-                  </li>
-                )}
-              </ul>
-            )}
+          <div className="flex flex-col gap-4 lg:flex-row">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Ingrese el código del pasajero..."
+                className="w-full rounded-lg border-2 border-gray-200 bg-white p-2 text-sm
+                         transition-all duration-200 focus:border-purple-400 focus:outline-none
+                         focus:ring-2 focus:ring-purple-100"
+                value={codigoInputValue}
+                onChange={(e) => {
+                  setCodigoInputValue(e.target.value);
+                  setCodigoQuery(e.target.value);
+                  fetchPasajerosPorCodigo(e.target.value);
+                }}
+              />
+
+              {codigoQuery.length >= 2 && (
+                <div className="absolute z-20 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
+                  {codigoResultados.length > 0 ? (
+                    <div className="max-h-64 overflow-auto">
+                      <div className="border-b bg-gray-50 p-2 text-xs font-medium text-gray-600">
+                        Resultados por código
+                      </div>
+                      {codigoResultados.map((item) => (
+                        <div
+                          key={item.codigo}
+                          onClick={() => {
+                            setCodigoInputValue(
+                              `${item.codlan} - ${item.apepate}`,
+                            );
+                            setSelectedCodigo(item.codigo);
+                            setCodigoQuery('');
+                          }}
+                          className="cursor-pointer border-b border-gray-50 px-4 py-3 transition-colors duration-150
+                                   last:border-b-0 hover:bg-purple-50"
+                        >
+                          <div className="font-medium text-gray-800">
+                            {item.codlan}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {item.apepate}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center">
+                      <div className="text-sm text-gray-400">
+                        No hay resultados
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <ModalPasajerosEdit
-              title="Detalle Pasajero"
+              title="📋 Ver Detalle"
               codCliente={Number(selectedCodigo)}
             />
           </div>
         </div>
 
-        {/* Nueva sección: Consultar o agregar destino */}
-        <div className="pt-2">
-          <h3 className="text-[13px] font-semibold text-gray-700">
-            Consultar o agregar destino
-          </h3>
-          <div className="pt-1">
-            <ModalDestino onDestinoSeleccionado={handleDestinoSeleccionado} />
+        {/* Selector de Destino */}
+        <div className="border-b border-gray-100 px-6 py-2">
+          <div className="mb-3 flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-orange-500" />
+            <h3 className="text-base font-semibold text-gray-800">
+              Seleccionar Destino
+            </h3>
           </div>
+          <ModalDestino onDestinoSeleccionado={handleDestinoSeleccionado} />
         </div>
 
-        <div className="mt-2">
-          <h3 className="text-[14px] font-semibold text-gray-700">
-            CARGA MASIVA
-          </h3>
-          <form className="mt-1 flex flex-col items-start gap-3">
-            <label
-              htmlFor="file-input"
-              className="w-full cursor-pointer rounded-lg border border-dashed border-gray-400 bg-gray-50 p-6 text-center hover:bg-gray-100"
-            >
-              <span className="block font-medium text-gray-600">
-                Suelte los archivos aquí
-              </span>
-              <span className="text-sm text-gray-400">
-                o haga clic para seleccionar
-              </span>
-              <input type="file" id="file-input" className="hidden" />
-            </label>
-            <button
-              type="submit"
-              className="mb-4 mt-2 rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
-            >
-              Cargar
-            </button>
+        {/* Carga Masiva - Mejorada */}
+        <div className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Upload className="h-5 w-5 text-green-500" />
+            <h3 className="text-base font-semibold text-gray-800">
+              Carga Masiva de Pasajeros
+            </h3>
+          </div>
+
+          <form className="space-y-4">
+            <div className="relative">
+              <label
+                htmlFor="file-input"
+                className="group block w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 
+                         bg-gray-50 p-8 text-center transition-all duration-200
+                         hover:border-green-400 hover:bg-green-50"
+              >
+                <FileText className="mx-auto mb-3 h-12 w-12 text-gray-400 transition-colors group-hover:text-green-500" />
+                <div className="font-medium text-gray-700 group-hover:text-green-700">
+                  Arrastra tus archivos aquí
+                </div>
+                <div className="mt-1 text-sm text-gray-500 group-hover:text-green-600">
+                  o haz clic para seleccionar (Excel, CSV)
+                </div>
+                <input
+                  type="file"
+                  id="file-input"
+                  className="hidden"
+                  accept=".xlsx,.xls,.csv"
+                  multiple
+                />
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="flex items-center gap-2 rounded-lg bg-green-500 px-6 py-3 text-sm
+                         font-medium text-white shadow-sm transition-colors duration-200 hover:bg-green-600"
+              >
+                <Upload className="h-4 w-4" />
+                Cargar Archivos
+              </button>
+
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-4
+                         py-3 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-200"
+              >
+                <Download className="h-4 w-4" />
+                Plantilla
+              </button>
+            </div>
           </form>
         </div>
       </div>
