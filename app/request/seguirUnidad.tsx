@@ -1,6 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -9,6 +9,7 @@ import '@/app/styles/popup.css';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG'; // Ajusta la ruta según tu estructura
 
 const initialCenter: [number, number] = [
   -12.046591525826495, -77.04689047482863,
@@ -30,6 +31,7 @@ interface FechaActual {
 interface Props {
   deviceId?: string;
   height?: string;
+  marcadores?: { lat: number; lng: number }[]; // ← Nueva prop agregada
 }
 
 interface MarkerData {
@@ -38,6 +40,33 @@ interface MarkerData {
   popup2: L.Popup;
   intervalId?: NodeJS.Timeout;
 }
+
+// Componente para mostrar marcadores adicionales
+const AdditionalMarkers = ({ marcadores }: { marcadores: { lat: number; lng: number }[] }) => {
+  // Crear íconos personalizados para los marcadores
+  const createCustomIcon = (index: number) => {
+    const markerSvg = getMarkerSVG(index + 1);
+    
+    return L.icon({
+      iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
+      iconSize: [40, 50],
+      iconAnchor: [20, 45],
+      popupAnchor: [0, -45],
+    });
+  };
+
+  return (
+    <>
+      {marcadores.map((punto, index) => (
+        <Marker
+          key={index}
+          position={[punto.lat, punto.lng]}
+          icon={createCustomIcon(index)}
+        />
+      ))}
+    </>
+  );
+};
 
 // Componente para acceder al mapa desde dentro
 const MapController = ({
@@ -77,6 +106,7 @@ const MapController = ({
 export default function SeguirUnidadPage({
   deviceId,
   height = '100vh',
+  marcadores = [], // ← Nueva prop con valor por defecto
 }: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -89,6 +119,12 @@ export default function SeguirUnidadPage({
   const markerDataRef = useRef<MarkerData | null>(null);
 
   const servidorUrl = localStorage.getItem('servidorUrl');
+
+  // ← Debug para verificar que llegan los marcadores
+  useEffect(() => {
+    console.log('🔍 SeguirUnidad - Marcadores recibidos:', marcadores);
+    console.log('🔍 SeguirUnidad - Cantidad de marcadores:', marcadores?.length);
+  }, [marcadores]);
 
   // Manejo del fullscreen
   useEffect(() => {
@@ -478,6 +514,11 @@ export default function SeguirUnidadPage({
           hasInitialCentered={hasInitialCentered}
           setHasInitialCentered={setHasInitialCentered}
         />
+
+        {/* ← Componente para mostrar marcadores adicionales */}
+        {marcadores && marcadores.length > 0 && (
+          <AdditionalMarkers marcadores={marcadores} />
+        )}
       </MapContainer>
 
       {/* CSS para popups transparentes y estilos */}
