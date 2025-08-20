@@ -95,33 +95,92 @@ export default function RequestPage() {
   }, [filteredIdsFromSidebar]);
 
   useEffect(() => {
-    const connectSignalR = async () => {
-      if (!session?.user?.username || !baseUrl) return;
+    // ✅ Evitar ejecución si faltan datos
+    if (!session?.user?.username || !baseUrl) return;
 
+    let connection: signalR.HubConnection | null = null;
+    let isActive = true; // ✅ Flag para evitar setState en componente desmontado
+
+    const initConnection = async () => {
       const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice?username=${username}`;
+      const hubUrl = `${baseUrl}/dataHubDevice?username=${encodeURIComponent(username)}`;
 
-      const connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl)
-        .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
+      console.log(`🎯 Conectando a: ${hubUrl}`);
+
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl, {
+          transport:
+            signalR.HttpTransportType.WebSockets |
+            signalR.HttpTransportType.ServerSentEvents,
+        })
+        .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
+        .configureLogging(signalR.LogLevel.Error)
         .build();
+
+      // ✅ Eventos SIN setState innecesarios
+      connection.onclose((error) => {
+        console.log(
+          '❌ Conexión cerrada:',
+          error?.message || 'Sin error específico',
+        );
+        // ✅ NO cambiar markersLoaded para evitar refresh
+      });
+
+      connection.onreconnecting((error) => {
+        console.log('🔄 Reconectando...', error?.message || '');
+        // ✅ NO cambiar markersLoaded para evitar refresh
+      });
+
+      connection.onreconnected(() => {
+        console.log('✅ Reconectado exitosamente');
+      });
 
       try {
         await connection.start();
-        console.log(`Conectado a SignalR con el grupo ${username}`);
+        console.log(`✅ Conectado a SignalR con el grupo ${username}`);
 
+        // ✅ Solo cambiar estado si el componente sigue activo
         connection.on('ActualizarDatos', (datos) => {
-          setMarkersLoaded(true);
-          setDeviceList(datos.datosDevice);
+          if (isActive) {
+            setMarkersLoaded(true);
+            setDeviceList(datos.datosDevice || []);
+          }
+        });
+
+        connection.on('ConectadoExitosamente', (user) => {
+          console.log(`🏠 Confirmación: Conectado como ${user}`);
+        });
+
+        connection.on('Error', (error) => {
+          console.error('❌ Error del servidor:', error);
         });
       } catch (err) {
-        console.error('Error al conectar con SignalR:', err);
+        console.error('❌ Error al conectar con SignalR:', err);
       }
     };
 
-    connectSignalR();
-  }, [session, baseUrl]);
+    // ✅ Iniciar conexión
+    initConnection();
+
+    // ✅ Cleanup correcto
+    return () => {
+      isActive = false; // ✅ Prevenir setState después del desmontaje
+
+      if (connection) {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+          connection
+            .stop()
+            .then(() =>
+              console.log('✅ Conexión SignalR cerrada correctamente'),
+            )
+            .catch((error) =>
+              console.error('❌ Error cerrando conexión:', error),
+            );
+        }
+        connection = null;
+      }
+    };
+  }, [session?.user?.username, baseUrl]);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -659,116 +718,204 @@ export default function RequestPage() {
 
   // TAMBIÉN necesitas actualizar updatePopupContent para usar la misma función de extracción:
 
-const updatePopupContent = useCallback(
-  (device: DeviceList, markerData: MarkerData) => {
-    const colorScheme = getColorScheme(device);
-    const isMovilbusUser = session?.user?.username === 'movilbus';
-    
-    // ACTUALIZAR el colorMap con los colores correctos
-    const colorMap: { [key: string]: string } = {
-      'bg-red-500': '#ffccd5',
-      'bg-green-500': '#8fd694',
-      'bg-orange-500': '#ffd670',
-      'bg-red-600': '#ffccd5',
-      'bg-green-600': '#8fd694',
-      'bg-orange-600': '#ffd670',
-      'bg-[#fca311]': '#fca311',
-      'bg-[#1f2937]': '#1f2937',
-      'bg-[#ffccd5]': '#ffccd5',
-      'bg-[#8fd694]': '#8fd694',
-      'bg-[#ffd670]': '#ffd670',
-    };
+  const updatePopupContent = useCallback(
+    (device: DeviceList, markerData: MarkerData) => {
+      const colorScheme = getColorScheme(device);
+      const isMovilbusUser = session?.user?.username === 'movilbus';
 
-    const shouldBlink = isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
+      // ACTUALIZAR el colorMap con los colores correctos
+      const colorMap: { [key: string]: string } = {
+        'bg-red-500': '#ffccd5',
+        'bg-green-500': '#8fd694',
+        'bg-orange-500': '#ffd670',
+        'bg-red-600': '#ffccd5',
+        'bg-green-600': '#8fd694',
+        'bg-orange-600': '#ffd670',
+        'bg-[#fca311]': '#fca311',
+        'bg-[#1f2937]': '#1f2937',
+        'bg-[#ffccd5]': '#ffccd5',
+        'bg-[#8fd694]': '#8fd694',
+        'bg-[#ffd670]': '#ffd670',
+      };
 
-    // ACTUALIZAR POPUP1 (etiqueta)
-    const popup1Element = document.querySelector(
-      `#content-${device.deviceId}`,
-    ) as HTMLElement;
-    
-    if (popup1Element) {
-      const contentDiv = popup1Element.querySelector(
-        '#content',
-      ) as HTMLElement;
-      const triangleDiv = document.querySelector(
-        `#triangle-${device.deviceId}`,
+      const shouldBlink =
+        isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
+
+      // ACTUALIZAR POPUP1 (etiqueta)
+      const popup1Element = document.querySelector(
+        `#content-${device.deviceId}`,
       ) as HTMLElement;
 
-      if (contentDiv) {
-        const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
-        if (shouldBlink) {
-          // Iniciar parpadeo para contenido
-          startBlinkingAnimation(contentDiv, 'background', device.deviceId);
-        } else {
-          stopBlinkingAnimation(device.deviceId);
-          // Aplicar el color correcto según el esquema
-          contentDiv.style.setProperty('background-color', bgColor, 'important');
-          contentDiv.style.setProperty('border-color', bgColor, 'important');
+      if (popup1Element) {
+        const contentDiv = popup1Element.querySelector(
+          '#content',
+        ) as HTMLElement;
+        const triangleDiv = document.querySelector(
+          `#triangle-${device.deviceId}`,
+        ) as HTMLElement;
+
+        if (contentDiv) {
+          const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
+          if (shouldBlink) {
+            // Iniciar parpadeo para contenido
+            startBlinkingAnimation(contentDiv, 'background', device.deviceId);
+          } else {
+            stopBlinkingAnimation(device.deviceId);
+            // Aplicar el color correcto según el esquema
+            contentDiv.style.setProperty(
+              'background-color',
+              bgColor,
+              'important',
+            );
+            contentDiv.style.setProperty('border-color', bgColor, 'important');
+          }
+
+          // Aplicar color de texto
+          if (colorScheme.popup1.textColor === 'text-black') {
+            contentDiv.style.color = 'black';
+          } else if (colorScheme.popup1.textColor === 'text-gray-800') {
+            contentDiv.style.color = '#1f2937';
+          } else {
+            contentDiv.style.color = 'white';
+          }
         }
 
-        // Aplicar color de texto
-        if (colorScheme.popup1.textColor === 'text-black') {
-          contentDiv.style.color = 'black';
-        } else if (colorScheme.popup1.textColor === 'text-gray-800') {
-          contentDiv.style.color = '#1f2937';
-        } else {
-          contentDiv.style.color = 'white';
+        if (triangleDiv) {
+          const triangleColor =
+            colorMap[colorScheme.popup1.bgColor] || '#fca311';
+          if (shouldBlink) {
+            // Iniciar parpadeo para triángulo
+            startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
+          } else {
+            stopBlinkingAnimation(device.deviceId);
+            triangleDiv.style.setProperty(
+              'border-top-color',
+              triangleColor,
+              'important',
+            );
+          }
+          triangleDiv.style.setProperty(
+            'border-left-color',
+            'transparent',
+            'important',
+          );
+          triangleDiv.style.setProperty(
+            'border-right-color',
+            'transparent',
+            'important',
+          );
         }
       }
 
-      if (triangleDiv) {
-        const triangleColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
-        if (shouldBlink) {
-          // Iniciar parpadeo para triángulo
-          startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
+      // ACTUALIZAR POPUP2
+      const popupElement = document.querySelector(
+        `#content2-${device.deviceId}`,
+      ) as HTMLElement;
+
+      if (popupElement) {
+        const conductorElement = popupElement.querySelector('.conductor-value');
+        const servicioElement = popupElement.querySelector('.servicio-value');
+        const hasUltimoServicio = device.ultimoServicio !== null;
+        const needsRegeneration =
+          (hasUltimoServicio && (!conductorElement || !servicioElement)) ||
+          (!hasUltimoServicio && (conductorElement || servicioElement));
+
+        if (needsRegeneration) {
+          // Regenerar contenido completo
+          if (markerData.intervalId) {
+            clearInterval(markerData.intervalId);
+            markerData.intervalId = undefined;
+          }
+          const newContent = getOptimizedPopupContent(device);
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = newContent;
+          const newPopupContent = tempDiv.firstElementChild;
+
+          if (newPopupContent) {
+            const originalClasses = popupElement.className;
+            const originalId = popupElement.id;
+            popupElement.innerHTML = newPopupContent.innerHTML;
+            popupElement.className = originalClasses;
+            popupElement.id = originalId;
+
+            // Aplicar colores inmediatamente después de regenerar
+            const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
+            if (shouldBlink) {
+              startBlinkingAnimation(
+                popupElement,
+                'background',
+                device.deviceId,
+                'popup2',
+              );
+            } else {
+              stopBlinkingAnimation(device.deviceId, 'popup2');
+              popupElement.style.setProperty(
+                'background-color',
+                bgColor,
+                'important',
+              );
+              popupElement.style.setProperty(
+                'border-color',
+                bgColor,
+                'important',
+              );
+            }
+
+            // Aplicar color de texto
+            if (colorScheme.popup2.textColor === 'text-black') {
+              popupElement.style.color = 'black';
+            } else {
+              popupElement.style.color = 'white';
+            }
+          }
+
+          // Reconfigurar eventos
+          const closeButton = popupElement.querySelector(
+            `#close-btn-${device.deviceId}`,
+          );
+          if (closeButton) {
+            closeButton.addEventListener('click', () => {
+              markerData.popup2.setMap(null);
+            });
+          }
+
+          const fechaEl = popupElement.querySelector(
+            `#fecha-${device.deviceId}`,
+          );
+          if (fechaEl) {
+            markerData.intervalId = setInterval(() => {
+              const now = new Date();
+              const day = String(now.getDate()).padStart(2, '0');
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const year = now.getFullYear();
+              const hours = String(now.getHours()).padStart(2, '0');
+              const minutes = String(now.getMinutes()).padStart(2, '0');
+              const seconds = String(now.getSeconds()).padStart(2, '0');
+              fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+            }, 1000);
+          }
         } else {
-          stopBlinkingAnimation(device.deviceId);
-          triangleDiv.style.setProperty('border-top-color', triangleColor, 'important');
-        }
-        triangleDiv.style.setProperty('border-left-color', 'transparent', 'important');
-        triangleDiv.style.setProperty('border-right-color', 'transparent', 'important');
-      }
-    }
-
-    // ACTUALIZAR POPUP2
-    const popupElement = document.querySelector(
-      `#content2-${device.deviceId}`,
-    ) as HTMLElement;
-    
-    if (popupElement) {
-      const conductorElement = popupElement.querySelector('.conductor-value');
-      const servicioElement = popupElement.querySelector('.servicio-value');
-      const hasUltimoServicio = device.ultimoServicio !== null;
-      const needsRegeneration =
-        (hasUltimoServicio && (!conductorElement || !servicioElement)) ||
-        (!hasUltimoServicio && (conductorElement || servicioElement));
-
-      if (needsRegeneration) {
-        // Regenerar contenido completo
-        if (markerData.intervalId) {
-          clearInterval(markerData.intervalId);
-          markerData.intervalId = undefined;
-        }
-        const newContent = getOptimizedPopupContent(device);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newContent;
-        const newPopupContent = tempDiv.firstElementChild;
-        
-        if (newPopupContent) {
-          const originalClasses = popupElement.className;
-          const originalId = popupElement.id;
-          popupElement.innerHTML = newPopupContent.innerHTML;
-          popupElement.className = originalClasses;
-          popupElement.id = originalId;
-
-          // Aplicar colores inmediatamente después de regenerar
+          // Solo actualizar colores sin regenerar
           const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
           if (shouldBlink) {
-            startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
+            startBlinkingAnimation(
+              popupElement,
+              'background',
+              device.deviceId,
+              'popup2',
+            );
           } else {
             stopBlinkingAnimation(device.deviceId, 'popup2');
-            popupElement.style.setProperty('background-color', bgColor, 'important');
-            popupElement.style.setProperty('border-color', bgColor, 'important');
+            popupElement.style.setProperty(
+              'background-color',
+              bgColor,
+              'important',
+            );
+            popupElement.style.setProperty(
+              'border-color',
+              bgColor,
+              'important',
+            );
           }
 
           // Aplicar color de texto
@@ -779,115 +926,71 @@ const updatePopupContent = useCallback(
           }
         }
 
-        // Reconfigurar eventos
-        const closeButton = popupElement.querySelector(
-          `#close-btn-${device.deviceId}`,
-        );
-        if (closeButton) {
-          closeButton.addEventListener('click', () => {
-            markerData.popup2.setMap(null);
-          });
+        // Actualizar contenido de los elementos
+        const speedElement = popupElement.querySelector('.speed-value');
+        const stateElement = popupElement.querySelector('.state-value');
+        const directionElement = popupElement.querySelector('.direction-value');
+        const locationElement = popupElement.querySelector('.location-value');
+        const streetViewLink = popupElement.querySelector('.street-view-link');
+        const kilometrajeElement =
+          popupElement.querySelector('.kilometraje-value');
+        const conductorElementFinal =
+          popupElement.querySelector('.conductor-value');
+        const servicioElementFinal =
+          popupElement.querySelector('.servicio-value');
+
+        if (speedElement)
+          speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
+        if (stateElement)
+          stateElement.textContent = getEstado(device.lastValidSpeed);
+        if (directionElement)
+          directionElement.textContent = getDireccion(device.lastValidHeading);
+        if (locationElement) locationElement.textContent = device.direccion;
+        if (streetViewLink) {
+          streetViewLink.setAttribute(
+            'data-lat',
+            device.lastValidLatitude.toString(),
+          );
+          streetViewLink.setAttribute(
+            'data-lng',
+            device.lastValidLongitude.toString(),
+          );
         }
 
-        const fechaEl = popupElement.querySelector(
-          `#fecha-${device.deviceId}`,
-        );
-        if (fechaEl) {
-          markerData.intervalId = setInterval(() => {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            fechaEl.innerHTML = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
-          }, 1000);
-        }
-      } else {
-        // Solo actualizar colores sin regenerar
-        const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
-        if (shouldBlink) {
-          startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
-        } else {
-          stopBlinkingAnimation(device.deviceId, 'popup2');
-          popupElement.style.setProperty('background-color', bgColor, 'important');
-          popupElement.style.setProperty('border-color', bgColor, 'important');
+        if (kilometrajeElement && isMovilbusUser) {
+          const kilometraje =
+            device.lastOdometerKM - device.odometerini + device.kmini;
+          kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
         }
 
-        // Aplicar color de texto
-        if (colorScheme.popup2.textColor === 'text-black') {
-          popupElement.style.color = 'black';
-        } else {
-          popupElement.style.color = 'white';
-        }
-      }
-
-      // Actualizar contenido de los elementos
-      const speedElement = popupElement.querySelector('.speed-value');
-      const stateElement = popupElement.querySelector('.state-value');
-      const directionElement = popupElement.querySelector('.direction-value');
-      const locationElement = popupElement.querySelector('.location-value');
-      const streetViewLink = popupElement.querySelector('.street-view-link');
-      const kilometrajeElement =
-        popupElement.querySelector('.kilometraje-value');
-      const conductorElementFinal =
-        popupElement.querySelector('.conductor-value');
-      const servicioElementFinal =
-        popupElement.querySelector('.servicio-value');
-
-      if (speedElement)
-        speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
-      if (stateElement)
-        stateElement.textContent = getEstado(device.lastValidSpeed);
-      if (directionElement)
-        directionElement.textContent = getDireccion(device.lastValidHeading);
-      if (locationElement) locationElement.textContent = device.direccion;
-      if (streetViewLink) {
-        streetViewLink.setAttribute(
-          'data-lat',
-          device.lastValidLatitude.toString(),
-        );
-        streetViewLink.setAttribute(
-          'data-lng',
-          device.lastValidLongitude.toString(),
-        );
-      }
-
-      if (kilometrajeElement && isMovilbusUser) {
-        const kilometraje =
-          device.lastOdometerKM - device.odometerini + device.kmini;
-        kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
-      }
-
-      if (device.ultimoServicio !== null) {
-        if (conductorElementFinal) {
-          const conductor =
-            device.ultimoServicio?.conductor?.apepate || 'Sin asignar';
-          conductorElementFinal.textContent = conductor;
-        }
-        if (servicioElementFinal) {
-          const numero = device.ultimoServicio?.numero || '';
-          const empresa = device.ultimoServicio?.empresa || '';
-          const tipoRaw = device.ultimoServicio?.tipo || '';
-          const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
-          const servicioCompleto =
-            numero && empresa
-              ? `${numero} ${empresa} (${tipo})`
-              : 'Sin servicio';
-          servicioElementFinal.textContent = servicioCompleto;
+        if (device.ultimoServicio !== null) {
+          if (conductorElementFinal) {
+            const conductor =
+              device.ultimoServicio?.conductor?.apepate || 'Sin asignar';
+            conductorElementFinal.textContent = conductor;
+          }
+          if (servicioElementFinal) {
+            const numero = device.ultimoServicio?.numero || '';
+            const empresa = device.ultimoServicio?.empresa || '';
+            const tipoRaw = device.ultimoServicio?.tipo || '';
+            const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
+            const servicioCompleto =
+              numero && empresa
+                ? `${numero} ${empresa} (${tipo})`
+                : 'Sin servicio';
+            servicioElementFinal.textContent = servicioCompleto;
+          }
         }
       }
-    }
-  },
-  [
-    getEstado,
-    getDireccion,
-    getColorScheme,
-    getOptimizedPopupContent,
-    session?.user?.username,
-  ],
-);
+    },
+    [
+      getEstado,
+      getDireccion,
+      getColorScheme,
+      getOptimizedPopupContent,
+      session?.user?.username,
+    ],
+  );
 
   const handleStreetViewClick = useCallback(
     (e: MouseEvent) => {
@@ -980,74 +1083,71 @@ const updatePopupContent = useCallback(
     setMarkersLoaded(false);
   }, []);
 
+  function startBlinkingAnimation(
+    element: HTMLElement,
+    type: 'background' | 'triangle',
+    deviceId: string,
+    suffix: string = '',
+  ) {
+    const key = `${deviceId}-${type}-${suffix}`;
 
-
-function startBlinkingAnimation(
-  element: HTMLElement,
-  type: 'background' | 'triangle',
-  deviceId: string,
-  suffix: string = '',
-) {
-  const key = `${deviceId}-${type}-${suffix}`;
-  
-  // Si ya está parpadeando, no hacer nada
-  if (blinkingIntervals[key]) {
-    return;
-  }
-    
-  // Estado inicial
-  blinkingStates[key] = true;
-  
-  // Aplicar color inicial
-  if (type === 'background') {
-    element.style.setProperty('background-color', '#ffd670', 'important');
-    element.style.setProperty('border-color', '#ffd670', 'important');
-  } else if (type === 'triangle') {
-    element.style.setProperty('border-top-color', '#ffd670', 'important');
-  }
-  
-  // Crear intervalo para parpadeo
-  blinkingIntervals[key] = setInterval(() => {
-    const isYellow = blinkingStates[key];
-    
-    if (type === 'background') {
-      if (isYellow) {
-        // Cambiar a amarillo claro
-        element.style.setProperty('background-color', '#e9ff70', 'important');
-        element.style.setProperty('border-color', '#e9ff70', 'important');
-      } else {
-        // Cambiar a amarillo normal
-        element.style.setProperty('background-color', '#ffd670', 'important');
-        element.style.setProperty('border-color', '#ffd670', 'important');
-      }
-    } else if (type === 'triangle') {
-      if (isYellow) {
-        element.style.setProperty('border-top-color', '#e9ff70', 'important');
-      } else {
-        element.style.setProperty('border-top-color', '#ffd670', 'important');
-      }
-    }
-    
-    // Alternar estado
-    blinkingStates[key] = !blinkingStates[key];
-  }, 1000); // Parpadeo cada 500ms (1 segundo completo entre cambios)
-}
-
-function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
-  // Detener todos los parpadeos relacionados con este deviceId
-  const keysToStop = Object.keys(blinkingIntervals).filter(key => 
-    key.startsWith(`${deviceId}-`)
-  );
-  
-  keysToStop.forEach(key => {
+    // Si ya está parpadeando, no hacer nada
     if (blinkingIntervals[key]) {
-      clearInterval(blinkingIntervals[key]);
-      delete blinkingIntervals[key];
-      delete blinkingStates[key];
+      return;
     }
-  });
-}
 
+    // Estado inicial
+    blinkingStates[key] = true;
+
+    // Aplicar color inicial
+    if (type === 'background') {
+      element.style.setProperty('background-color', '#ffd670', 'important');
+      element.style.setProperty('border-color', '#ffd670', 'important');
+    } else if (type === 'triangle') {
+      element.style.setProperty('border-top-color', '#ffd670', 'important');
+    }
+
+    // Crear intervalo para parpadeo
+    blinkingIntervals[key] = setInterval(() => {
+      const isYellow = blinkingStates[key];
+
+      if (type === 'background') {
+        if (isYellow) {
+          // Cambiar a amarillo claro
+          element.style.setProperty('background-color', '#e9ff70', 'important');
+          element.style.setProperty('border-color', '#e9ff70', 'important');
+        } else {
+          // Cambiar a amarillo normal
+          element.style.setProperty('background-color', '#ffd670', 'important');
+          element.style.setProperty('border-color', '#ffd670', 'important');
+        }
+      } else if (type === 'triangle') {
+        if (isYellow) {
+          element.style.setProperty('border-top-color', '#e9ff70', 'important');
+        } else {
+          element.style.setProperty('border-top-color', '#ffd670', 'important');
+        }
+      }
+
+      // Alternar estado
+      blinkingStates[key] = !blinkingStates[key];
+    }, 1000); // Parpadeo cada 500ms (1 segundo completo entre cambios)
+  }
+
+  function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
+    // Detener todos los parpadeos relacionados con este deviceId
+    const keysToStop = Object.keys(blinkingIntervals).filter((key) =>
+      key.startsWith(`${deviceId}-`),
+    );
+
+    keysToStop.forEach((key) => {
+      if (blinkingIntervals[key]) {
+        clearInterval(blinkingIntervals[key]);
+        delete blinkingIntervals[key];
+        delete blinkingStates[key];
+      }
+    });
+  }
 
   useEffect(() => {
     return () => {

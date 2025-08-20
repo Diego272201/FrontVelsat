@@ -189,8 +189,7 @@ export default function App({
                   <h4 className="text-sm font-medium text-gray-700 mb-2">
                     Buscar y seleccionar pasajero:
                   </h4>
-                  <InputPasajero onSelectPasajero={handleSeleccionarPasajero}   clearAfterSelect={true} 
-/>
+                  <InputPasajero onSelectPasajero={handleSeleccionarPasajero} clearAfterSelect={true}/>
                 </div>
 
                 {/* Lista de pasajeros seleccionados */}

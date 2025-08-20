@@ -1609,8 +1609,6 @@ export default function App({
               nomDestino: nombre,
             });
           }
-
-          console.log('Destino actualizado:', nombre, codigo);
         }}
       />
     </div>

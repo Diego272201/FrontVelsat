@@ -360,10 +360,9 @@ export default function App({
     <>
       <button
         onClick={onOpen}
-        className="mt-[1px] flex w-full items-center justify-center gap-2 rounded bg-green-700 px-3 py-2 text-[14px] text-white hover:bg-green-600"
+        className="ml-2 mt-[1px] rounded bg-blue-600 px-1 py-1 text-[12px] text-white hover:bg-blue-500"
       >
-        Consultar o agregar destino
-        <TbEdit size={16} />
+        <TbEdit size={18}/>
       </button>
 
       <Modal

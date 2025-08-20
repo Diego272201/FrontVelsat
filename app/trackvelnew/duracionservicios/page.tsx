@@ -1,11 +1,12 @@
 'use client';
 
 import ReporteHeader from '@/app/components/ReporteHeader';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
 
+// ✅ Interfaces permanecen igual
 interface APIResponse {
   codservicio: string | null;
   destino: string | null;
@@ -77,10 +78,13 @@ interface TransportService {
   empresa: string;
 }
 
-export default function Page() {
+// ✅ COMPONENTE QUE USA useSearchParams (debe estar dentro de Suspense)
+function DuracionServiciosContent() {
   const [data, setData] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // ✅ useSearchParams dentro del componente envuelto en Suspense
   const searchParams = useSearchParams();
 
   const startDate = searchParams.get('startDate');
@@ -144,7 +148,7 @@ export default function Page() {
     };
 
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, fechaIni, fechaFin]);
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -220,7 +224,6 @@ export default function Page() {
 
       <div className="w-full overflow-x-auto bg-gradient-to-br from-gray-50 to-gray-100 p-2 shadow-lg">
         <div className="overflow-hidden border border-gray-200 bg-white shadow-sm">
-          {/* Scroll vertical con altura máxima */}
           <div className="h-[calc(100vh-125px)] overflow-y-auto">
             
             <table className="w-full min-w-max">
@@ -302,11 +305,42 @@ export default function Page() {
           </div>
         </div>
 
-        {/* Información adicional */}
         <div className="mt-2 flex items-center justify-end text-sm text-gray-600">
           <div className="text-gray-500">Total: {data.length} servicios</div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ✅ COMPONENTE DE LOADING para Suspense
+function SearchParamsLoading() {
+  return (
+    <div>
+      <ReporteHeader
+        title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
+        deviceId="CORPORACION CGACELA S.A.C"
+        startDate=""
+        endDate=""
+        extraInfo="Cargando parámetros..."
+        formatDate={formatDate}
+        icon={<BiSolidReport size={25} />}
+      />
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center space-x-2 text-gray-600">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <span>Cargando parámetros de URL...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ✅ COMPONENTE PRINCIPAL - Exporta este componente
+export default function Page() {
+  return (
+    <Suspense fallback={<SearchParamsLoading />}>
+      <DuracionServiciosContent />
+    </Suspense>
   );
 }
