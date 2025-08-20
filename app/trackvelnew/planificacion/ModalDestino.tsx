@@ -33,8 +33,8 @@ const Marker = dynamic(
 // Importar useMapEvents de manera estática para evitar problemas de tipos
 import { useMapEvents } from 'react-leaflet';
 
-// Interfaz para los resultados de búsqueda de Nominatim
-interface NominatimResult {
+// Interfaz para los resultados de búsqueda
+interface SearchResult {
   lat: string;
   lon: string;
   display_name: string;
@@ -55,6 +55,30 @@ function MapClickHandler({
   return null;
 }
 
+// Hook personalizado para Google Places Autocomplete
+const useGooglePlacesAutocomplete = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+
+  useEffect(() => {
+    const checkGoogleMaps = () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setAutocompleteService(new window.google.maps.places.AutocompleteService());
+        setPlacesService(new window.google.maps.places.PlacesService(document.createElement('div')));
+        setIsLoaded(true);
+      } else {
+        // Intentar de nuevo en 100ms si no está cargado
+        setTimeout(checkGoogleMaps, 100);
+      }
+    };
+
+    checkGoogleMaps();
+  }, []);
+
+  return { isLoaded, autocompleteService, placesService };
+};
+
 export default function App({
   onDestinoSeleccionado,
 }: {
@@ -73,7 +97,7 @@ export default function App({
   const [nomDestino, setNomDestino] = useState('');
 
   // Estados para búsqueda de direcciones
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchInput, setSearchInput] = useState('');
 
@@ -84,6 +108,9 @@ export default function App({
   const [markerPosition, setMarkerPosition] = useState<[number, number]>([
     0, 0,
   ]);
+
+  // Hook de Google Places
+  const { isLoaded, autocompleteService, placesService } = useGooglePlacesAutocomplete();
 
   // Configurar iconos de Leaflet cuando se carga el cliente
   useEffect(() => {
@@ -112,14 +139,8 @@ export default function App({
     }
   }, []);
 
-  // Función para buscar direcciones usando Nominatim (OpenStreetMap)
-  const searchAddress = async (query: string) => {
-    if (query.length < 3) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
-
+  // Función de fallback a Nominatim
+  const fallbackToNominatim = async (query: string) => {
     try {
       const response = await axios.get(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
@@ -127,12 +148,85 @@ export default function App({
       setSearchResults(response.data);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('Error searching address:', error);
+      console.error('Error with fallback search:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
     }
   };
 
-  // Función para geocodificación inversa (obtener dirección desde coordenadas)
-  const reverseGeocode = async (lat: number, lng: number) => {
+  // Función principal de búsqueda con Google Places
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    // Usar Google Places Autocomplete si está disponible
+    if (isLoaded && autocompleteService && placesService) {
+      try {
+        const request: google.maps.places.AutocompletionRequest = {
+          input: query,
+          componentRestrictions: { country: 'pe' },
+          types: ['address']
+        };
+
+        autocompleteService.getPlacePredictions(request, (predictions, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+            // Obtener detalles de cada predicción
+            const processedResults: SearchResult[] = [];
+            let processedCount = 0;
+            const totalPredictions = Math.min(5, predictions.length);
+
+            if (totalPredictions === 0) {
+              fallbackToNominatim(query);
+              return;
+            }
+
+            predictions.slice(0, 5).forEach((prediction) => {
+              const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+                placeId: prediction.place_id,
+                fields: ['geometry', 'formatted_address', 'address_components']
+              };
+
+              placesService.getDetails(detailsRequest, (place, detailsStatus) => {
+                if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
+                  processedResults.push({
+                    lat: place.geometry.location!.lat().toString(),
+                    lon: place.geometry.location!.lng().toString(),
+                    display_name: place.formatted_address || prediction.description,
+                    place_id: prediction.place_id
+                  });
+                }
+                
+                processedCount++;
+                if (processedCount === totalPredictions) {
+                  if (processedResults.length > 0) {
+                    setSearchResults(processedResults);
+                    setShowSearchResults(true);
+                  } else {
+                    fallbackToNominatim(query);
+                  }
+                }
+              });
+            });
+          } else {
+            // Fallback a Nominatim si Google Places falla
+            fallbackToNominatim(query);
+          }
+        });
+      } catch (error) {
+        console.error('Error with Google Places:', error);
+        fallbackToNominatim(query);
+      }
+    } else {
+      // Fallback a Nominatim si Google Places no está disponible
+      fallbackToNominatim(query);
+    }
+  };
+
+  // Función de fallback para geocodificación inversa
+  const fallbackReverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await axios.get(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
@@ -151,13 +245,47 @@ export default function App({
       }
       return null;
     } catch (error) {
-      console.error('Error in reverse geocoding:', error);
+      console.error('Error in reverse geocoding fallback:', error);
       return null;
     }
   };
 
+  // Función de geocodificación inversa con Google
+  const reverseGeocodeGoogle = async (lat: number, lng: number): Promise<{ address: string; district: string } | null> => {
+    return new Promise((resolve) => {
+      if (isLoaded && window.google && window.google.maps) {
+        const geocoder = new google.maps.Geocoder();
+        const latlng = new google.maps.LatLng(lat, lng);
+
+        geocoder.geocode({ location: latlng }, (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+            const result = results[0];
+            const address = result.formatted_address;
+            
+            // Extraer distrito
+            const districtComponent = result.address_components.find(
+              (component) => 
+                component.types.includes('sublocality') || 
+                component.types.includes('locality') ||
+                component.types.includes('administrative_area_level_2')
+            );
+            
+            const district = districtComponent ? districtComponent.long_name : '';
+            resolve({ address, district });
+          } else {
+            // Fallback a Nominatim
+            fallbackReverseGeocode(lat, lng).then(resolve);
+          }
+        });
+      } else {
+        // Fallback a Nominatim
+        fallbackReverseGeocode(lat, lng).then(resolve);
+      }
+    });
+  };
+
   // Manejar selección de dirección de los resultados de búsqueda
-  const handleAddressSelect = async (result: NominatimResult) => {
+  const handleAddressSelect = async (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
 
@@ -205,7 +333,8 @@ export default function App({
     setLatitud(lat.toString());
     setLongitud(lng.toString());
 
-    const geocodeResult = await reverseGeocode(lat, lng);
+    // Usar Google para geocodificación inversa
+    const geocodeResult = await reverseGeocodeGoogle(lat, lng);
     if (geocodeResult) {
       setSearchInput(geocodeResult.address);
       setDireccion(geocodeResult.address);
