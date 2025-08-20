@@ -430,8 +430,11 @@ export default function RequestPage() {
       const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
 
       const colorScheme = getColorScheme(device);
-      const kilometraje =
-        device.lastOdometerKM - device.odometerini + device.kmini;
+
+      const kilometraje = (device.odometerini !== null && device.kmini !== null) 
+  ? device.lastOdometerKM - device.odometerini + device.kmini 
+  : 0;
+
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
       // Obtener datos del servicio
