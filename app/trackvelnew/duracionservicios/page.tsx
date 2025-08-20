@@ -6,7 +6,6 @@ import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
 
-// ✅ Interfaces permanecen igual
 interface APIResponse {
   codservicio: string | null;
   destino: string | null;
@@ -78,13 +77,11 @@ interface TransportService {
   empresa: string;
 }
 
-// ✅ COMPONENTE QUE USA useSearchParams (debe estar dentro de Suspense)
 function DuracionServiciosContent() {
   const [data, setData] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // ✅ useSearchParams dentro del componente envuelto en Suspense
   const searchParams = useSearchParams();
 
   const startDate = searchParams.get('startDate');
