@@ -11,7 +11,6 @@ const Polyline = dynamic(() => import('react-leaflet').then(mod => mod.Polyline)
 const MapControllerInner = dynamic(
   () => import('react-leaflet').then(mod => {
     const { useMap } = mod;
-    
     function MapControllerComponent({ 
       centro,
       resetMap
