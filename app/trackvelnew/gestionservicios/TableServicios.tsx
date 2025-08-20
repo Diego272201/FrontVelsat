@@ -1414,20 +1414,35 @@ export default function App({
                             </button>
 
                             {isOpenD && (
-                              <div className="absolute z-10 mt-2 w-48 rounded-md border border-gray-300 bg-white shadow-lg">
+                              <div className="z-9999 absolute mt-2 w-[150px] rounded-md border border-gray-300 bg-white shadow-lg">
                                 <ul className="py-1">
                                   {['AS', 'NI', 'NA'].includes(
                                     selectedRow.estado,
                                   ) && (
                                     <li
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                      onClick={() =>
-                                        handleClickOption(() =>
-                                          handleCancelarServicio(
-                                            selectedRow.codServicio,
-                                          ),
-                                        )
-                                      }
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+
+                                        const result = await Swal.fire({
+                                          title: '¿Estás seguro?',
+                                          text: '¿Deseas cancelar este servicio?',
+                                          icon: 'warning',
+                                          showCancelButton: true,
+                                          confirmButtonColor: '#3085d6',
+                                          cancelButtonColor: '#d33',
+                                          confirmButtonText: 'Sí, cancelar',
+                                          cancelButtonText: 'No, mantener',
+                                        });
+
+                                        if (result.isConfirmed) {
+                                          handleClickOption(() =>
+                                            handleCancelarServicio(
+                                              selectedRow.codServicio,
+                                            ),
+                                          );
+                                        }
+                                      }}
                                     >
                                       Cancelar Servicio
                                     </li>
@@ -1439,11 +1454,24 @@ export default function App({
                                     <li
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                                       onClick={() =>
-                                        handleClickOption(() =>
-                                          handleCancelarAsignacion(
-                                            selectedRow.codServicio,
-                                          ),
-                                        )
+                                        handleClickOption(async () => {
+                                          const result = await Swal.fire({
+                                            title: '¿Estás seguro?',
+                                            text: '¿Deseas cancelar esta asignación?',
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33',
+                                            confirmButtonText: 'Sí, cancelar',
+                                            cancelButtonText: 'No, mantener',
+                                          });
+
+                                          if (result.isConfirmed) {
+                                            handleCancelarAsignacion(
+                                              selectedRow.codServicio,
+                                            );
+                                          }
+                                        })
                                       }
                                     >
                                       Cancelar Asignación

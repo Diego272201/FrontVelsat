@@ -222,6 +222,7 @@ export default function Page() {
         <div className="overflow-hidden border border-gray-200 bg-white shadow-sm">
           {/* Scroll vertical con altura máxima */}
           <div className="h-[calc(100vh-125px)] overflow-y-auto">
+            
             <table className="w-full min-w-max">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">

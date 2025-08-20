@@ -1,10 +1,12 @@
 'use client';
 
 import ReporteHeader from '@/app/components/ReporteHeader';
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, useState, useEffect } from 'react';
 import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
+import { Spinner } from '@nextui-org/react';
+import { AlertCircle } from 'lucide-react';
 
 interface TransportService {
   servicio: number;
@@ -22,6 +24,74 @@ interface TransportService {
   empresa: string;
 }
 
+interface ApiResponse {
+  id: null | number;
+  codigo: number;
+  numero: string;
+  empresa: string;
+  calificacion: string;
+  fecha: string;
+  fechaini: string;
+  pasajero: {
+    codigo: null | number;
+    nombre: string;
+    codlan: null | string;
+    apepate: null | string;
+    login: null | string;
+    clave: null | string;
+    sexo: null | string;
+    telefono: null | string;
+    empresa: null | string;
+    lugar: null | string;
+    servicioactual: null | string;
+  };
+  lugar: {
+    codlugar: null | string;
+    codcli: null | string;
+    direccion: string;
+    distrito: string;
+    wy: null | string;
+    wx: null | string;
+    estado: null | string;
+    codcliente: null | string;
+    referencia: null | string;
+    zona: null | string;
+  };
+  servicio: {
+    codservicio: null | string;
+    destino: null | string;
+    nomDestino: null | string;
+    empresa: null | string;
+    area: null | string;
+    nomgrupo: null | string;
+    fecha: string;
+    grupo: string;
+    tipo: string;
+    conductor: {
+      codigo: null | number;
+      nombre: string;
+      codlan: null | string;
+      apepate: string;
+      login: null | string;
+      clave: null | string;
+      sexo: null | string;
+      telefono: null | string;
+      empresa: null | string;
+      lugar: null | string;
+      servicioactual: null | string;
+    };
+    unidad: {
+      id: null | number;
+      codunidad: string;
+      gps: null | string;
+      listadespachos: null | string;
+      historico: null | string;
+      conductor: null | string;
+      cobrador: null | string;
+    };
+  };
+}
+
 // Componente que contiene la lógica con useSearchParams
 function PageContent() {
   const searchParams = useSearchParams();
@@ -29,59 +99,139 @@ function PageContent() {
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
 
+  const [data, setData] = useState<TransportService[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Función para obtener datos de la API
+  const fetchData = async () => {
+    if (!startDate || !endDate) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const fechaIni = encodeURIComponent(
+        `${startDate.split('T')[0].split('-').reverse().join('/')} 00:00`,
+      );
+      const fechaFin = encodeURIComponent(
+        `${endDate.split('T')[0].split('-').reverse().join('/')} 23:55`,
+      );
+
+      const apiUrl = `https://velsat.pe:2096/api/Gacela/DetalleServicios?usuario=cgacela&fechaIni=${fechaIni}&fechaFin=${fechaFin}`;
+
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        throw new Error(`Error en la API: ${response.status}`);
+      }
+
+      const apiData: ApiResponse[] = await response.json();
+
+      // Mapear los datos de la API al formato requerido
+      const mappedData: TransportService[] = apiData.map((item, index) => ({
+        servicio: parseInt(item.numero) || index + 1,
+        tierraAire: item.servicio?.grupo || 'N/A',
+        ingresoSalida: item.servicio?.tipo || 'N/A',
+        conductor: item.servicio?.conductor?.apepate?.trim() || 'N/A',
+        unidad: item.servicio?.unidad?.codunidad || 'N/A',
+        pasajero: item.pasajero?.nombre || 'N/A',
+        calificacion: item.calificacion || 'SIN CALIFICACION',
+        fechaServicio: item.servicio?.fecha || 'N/A',
+        fechaPasajero: item.fecha || 'N/A',
+        fechAt: item.fechaini || '',
+        lugar: item.lugar?.direccion || 'N/A',
+        distrito: item.lugar?.distrito || 'N/A',
+        empresa: item.empresa || 'N/A',
+      }));
+
+      setData(mappedData);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Efecto para cargar datos cuando cambien las fechas
+  useEffect(() => {
+    fetchData();
+  }, [startDate, endDate]);
+
   // Función para calcular la diferencia entre fechas
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const diffMs = endDate.getTime() - startDate.getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const hours = Math.floor(
+      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    );
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return { days, hours, minutes };
   };
 
   // Calcular la diferencia usando useMemo para optimización
-  const diff = useMemo(() => (
-    startDate && endDate
-      ? calculateDifference(startDate, endDate)
-      : { days: 0, hours: 0, minutes: 0 }
-  ), [startDate, endDate]);
+  const diff = useMemo(
+    () =>
+      startDate && endDate
+        ? calculateDifference(startDate, endDate)
+        : { days: 0, hours: 0, minutes: 0 },
+    [startDate, endDate],
+  );
 
   // Crear el texto de información extra
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
-  const data: TransportService[] = [
-    {
-      servicio: 1,
-      tierraAire: 'TIERRA',
-      ingresoSalida: 'SALIDA',
-      conductor: 'VALENCIA FRANCIA ANGEL EDGARDO DE LA CRUZ',
-      unidad: 'C40-C8256',
-      pasajero: 'SANCHEZ ESPADA DAYANA ANGELICA',
-      calificacion: 'SIN CALIFICACION',
-      fechaServicio: '13.08.2025 06:00',
-      fechaPasajero: '13.08.2025 06:00',
-      fechAt: '',
-      lugar: 'AV HERNANDO DE SOTO 147 CERCA DE LA AV MARINA',
-      distrito: 'SAN MIGUEL',
-      empresa: 'TALMA',
-    },
-    {
-      servicio: 2,
-      tierraAire: 'TIERRA',
-      ingresoSalida: 'SALIDA',
-      conductor: 'SUAREZ PAREDES FELIX',
-      unidad: 'C212-bqg739',
-      pasajero: 'FALCON BARRIENTOS ALESSANDRA LUCILA',
-      calificacion: 'SIN CALIFICACION',
-      fechaServicio: '13.08.2025 06:00',
-      fechaPasajero: '13.08.2025 06:00',
-      fechAt: '',
-      lugar: 'JR RAMON CARCAMO MZ C3 LT 7',
-      distrito: 'LIMA - CERCADO DE LIMA',
-      empresa: 'TALMA',
-    },
-  ];
+  // Mostrar estado de carga
+  if (loading) {
+    return (
+      <div>
+        <ReporteHeader
+          title="DETALLE DEL SERVICIO"
+          deviceId={deviceId ?? ''}
+          startDate={startDate ?? ''}
+          endDate={endDate ?? ''}
+          extraInfo={extraInfo}
+          formatDate={formatDate}
+          icon={<BiSolidReport size={25} />}
+        />
+        <div className="flex flex-col items-center justify-center gap-2 p-8">
+          <Spinner color="primary" />
+          <span className="text-gray-600">Cargando Servicios</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error
+  if (error) {
+    return (
+      <div>
+        <ReporteHeader
+          title="DETALLE DEL SERVICIO"
+          deviceId={deviceId ?? ''}
+          startDate={startDate ?? ''}
+          endDate={endDate ?? ''}
+          extraInfo={extraInfo}
+          formatDate={formatDate}
+          icon={<BiSolidReport size={25} />}
+        />
+
+        <div className="flex items-center justify-center p-6">
+          <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span className="font-medium">Error al cargar los datos:</span>
+            <span>{error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -95,10 +245,12 @@ function PageContent() {
         icon={<BiSolidReport size={25} />}
       />
 
-      <div>
-        <div className="w-full overflow-x-auto  bg-gradient-to-br from-gray-50 to-gray-100 p-2 shadow-lg">
-          <div className="overflow-hidden  border border-gray-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
+
+       <div className="w-full overflow-x-auto bg-gradient-to-br from-gray-50 to-gray-100 p-2 shadow-lg">
+        <div className="overflow-hidden border border-gray-200 bg-white shadow-sm">
+          {/* Scroll vertical con altura máxima */}
+          <div className="h-[calc(100vh-125px)] overflow-y-auto">
+
               <table className="w-full min-w-max">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
@@ -144,65 +296,77 @@ function PageContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {data.map((row, index) => (
-                    <tr
-                      key={row.servicio}
-                      className={`${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      } transition-colors duration-200 hover:bg-blue-50`}
-                    >
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                        {row.servicio}
-                      </td>
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                        {row.tierraAire}
-                      </td>
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                        {row.ingresoSalida}
-                      </td>
-
-                      <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                        <div className="line-clamp-2 whitespace-normal break-words leading-tight">
-                          {row.conductor}
-                        </div>
-                      </td>
-
-                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                        <span className="rounded bg-gray-100 px-2 py-1 text-xs">
-                          {row.unidad}
-                        </span>
-                      </td>
-
-                      <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                        <div className="whitespace-normal break-words leading-tight">
-                          {row.pasajero}
-                        </div>
-                      </td>
-
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                        {row.calificacion}
-                      </td>
-                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                        <div className="text-xs">{row.fechaServicio}</div>
-                      </td>
-                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                        <div className="text-xs">{row.fechaPasajero}</div>
-                      </td>
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                        {row.fechAt || '-'}
-                      </td>
-                      <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                        {row.lugar}
-                      </td>
-
-                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                        {row.distrito}
-                      </td>
-                      <td className="px-4 py-4 text-[11px] text-gray-700">
-                        {row.empresa}
+                  {data.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={13}
+                        className="px-4 py-8 text-center text-gray-500"
+                      >
+                        No se encontraron servicios para el rango de fechas
+                        seleccionado
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    data.map((row, index) => (
+                      <tr
+                        key={`${row.servicio}-${index}`}
+                        className={`${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                        } transition-colors duration-200 hover:bg-blue-50`}
+                      >
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                          {row.servicio}
+                        </td>
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                          {row.tierraAire}
+                        </td>
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                          {row.ingresoSalida}
+                        </td>
+
+                        <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                          <div className="line-clamp-2 whitespace-normal break-words leading-tight">
+                            {row.conductor}
+                          </div>
+                        </td>
+
+                        <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                          <span className="rounded bg-gray-100 px-2 py-1 text-xs">
+                            {row.unidad}
+                          </span>
+                        </td>
+
+                        <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                          <div className="whitespace-normal break-words leading-tight">
+                            {row.pasajero}
+                          </div>
+                        </td>
+
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                          {row.calificacion}
+                        </td>
+                        <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                          <div className="text-xs">{row.fechaServicio}</div>
+                        </td>
+                        <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                          <div className="text-xs">{row.fechaPasajero}</div>
+                        </td>
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                          {row.fechAt || '-'}
+                        </td>
+                        <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                          {row.lugar}
+                        </td>
+
+                        <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                          {row.distrito}
+                        </td>
+                        <td className="px-4 py-4 text-[11px] text-gray-700">
+                          {row.empresa}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -214,7 +378,7 @@ function PageContent() {
           </div>
         </div>
       </div>
-    </div>
+
   );
 }
 
@@ -222,7 +386,7 @@ function PageContent() {
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center p-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
       <span className="ml-2 text-gray-600">Cargando parámetros...</span>
     </div>
   );
