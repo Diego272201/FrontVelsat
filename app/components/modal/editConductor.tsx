@@ -28,6 +28,8 @@ import {
   X,
   Loader2,
   Edit,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -79,6 +81,7 @@ export default function ConductorDialogModificar({
 }: ConductorDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<Record<FormField, string>>({
     apellidos: "",
@@ -127,6 +130,7 @@ export default function ConductorDialogModificar({
       telefono: "",
       email: "",
     });
+    setShowPassword(false);
   };
 
   const validateForm = () => {
@@ -320,7 +324,7 @@ export default function ConductorDialogModificar({
                 <div className="relative">
                   <Input
                     id={field.id}
-                    type={field.type}
+                    type={field.id === "clave" && showPassword ? "text" : field.type}
                     value={formData[field.id]}
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
@@ -330,8 +334,23 @@ export default function ConductorDialogModificar({
                     placeholder={`Ingrese ${field.label.toLowerCase()}`}
                     maxLength={field.id === "dni" ? 8 : undefined}
                   />
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                    <div className="w-2 h-2 bg-green-400 rounded-full opacity-50"></div>
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    {field.id === "clave" ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading}
+                        className="text-gray-500 hover:text-green-500 transition-colors disabled:opacity-50"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="w-2 h-2 bg-green-400 rounded-full opacity-50 pointer-events-none"></div>
+                    )}
                   </div>
                 </div>
               </div>
