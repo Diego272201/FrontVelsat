@@ -27,6 +27,8 @@ import {
   Save,
   X,
   Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +57,7 @@ export default function ConductorDialog({
 }: ConductorDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<Record<FormField, string>>({
     apellidos: "",
@@ -83,6 +86,7 @@ export default function ConductorDialog({
       telefono: "",
       email: "",
     });
+    setShowPassword(false);
   };
 
   const validateForm = () => {
@@ -218,7 +222,7 @@ export default function ConductorDialog({
         type="button"
         onClick={() => setIsOpen(true)}
         disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-[6px] px-6 text-sm shadow-lg transition-all duration-300 transform disabled:opacity-50"
+        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-[9px] px-6 text-sm shadow-lg transition-all duration-300 transform disabled:opacity-50"
       >
         Nuevo Conductor
       </button>
@@ -257,7 +261,7 @@ export default function ConductorDialog({
                 <div className="relative">
                   <Input
                     id={field.id}
-                    type={field.type}
+                    type={field.id === "clave" && showPassword ? "text" : field.type}
                     value={formData[field.id]}
                     onChange={(e) =>
                       handleInputChange(field.id, e.target.value)
@@ -267,8 +271,23 @@ export default function ConductorDialog({
                     placeholder={`Ingrese ${field.label.toLowerCase()}`}
                     maxLength={field.id === "dni" ? 8 : undefined}
                   />
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full opacity-50"></div>
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    {field.id === "clave" ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading}
+                        className="text-gray-500 hover:text-orange-500 transition-colors disabled:opacity-50"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="w-2 h-2 bg-blue-400 rounded-full opacity-50 pointer-events-none"></div>
+                    )}
                   </div>
                 </div>
               </div>
