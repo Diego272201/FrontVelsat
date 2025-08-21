@@ -128,94 +128,105 @@ export default function RequestPage() {
 
   const iconCache = useRef<{ [key: string]: L.Icon }>({});
 
+  useEffect(() => {}, [filteredIdsFromSidebar]);
+
   useEffect(() => {
-  }, [filteredIdsFromSidebar]);
+    // ✅ Verificación temprana
+    if (!session?.user?.username || !baseUrl) return;
 
-useEffect(() => {
-  // ✅ Verificación temprana
-  if (!session?.user?.username || !baseUrl) return;
+    let connection: signalR.HubConnection | null = null;
+    let isActive = true; // ✅ Flag para evitar setState en componente desmontado
 
-  let connection: signalR.HubConnection | null = null;
-  let isActive = true; // ✅ Flag para evitar setState en componente desmontado
+    const initConnection = async () => {
+      const username = session.user.username;
+      const hubUrl = `${baseUrl}/dataHubDevice?username=${encodeURIComponent(username)}`;
 
-  const initConnection = async () => {
-    const username = session.user.username;
-    const hubUrl = `${baseUrl}/dataHubDevice?username=${encodeURIComponent(username)}`;
+      console.log(`🎯 Conectando a: ${hubUrl}`);
 
-    console.log(`🎯 Conectando a: ${hubUrl}`);
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl, {
+          // ✅ Configuración mejorada vs tu código original
+          transport:
+            signalR.HttpTransportType.WebSockets |
+            signalR.HttpTransportType.ServerSentEvents,
+        })
+        .withAutomaticReconnect([0, 1000, 2000, 5000, 10000]) // ✅ Intervalos específicos
+        .configureLogging(signalR.LogLevel.Error) // ✅ Menos logs que Information
+        .build();
 
-    connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, {
-        // ✅ Configuración mejorada vs tu código original
-        transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.ServerSentEvents,
-      })
-      .withAutomaticReconnect([0, 1000, 2000, 5000, 10000]) // ✅ Intervalos específicos
-      .configureLogging(signalR.LogLevel.Error) // ✅ Menos logs que Information
-      .build();
-
-    // ✅ Eventos de conexión (opcional - tu código original no los tenía)
-    connection.onclose((error) => {
-      console.log("❌ Conexión cerrada:", error?.message || "Sin error específico");
-    });
-
-    connection.onreconnecting((error) => {
-      console.log("🔄 Reconectando...", error?.message || "");
-    });
-
-    connection.onreconnected(() => {
-      console.log("✅ Reconectado exitosamente");
-    });
-
-    try {
-      await connection.start();
-      console.log(`✅ Conectado a SignalR con el grupo ${username}`);
-
-      // ✅ Solo cambiar estado si el componente sigue activo
-      connection.on('ActualizarDatos', (datos) => {
-        if (isActive) {
-          setMarkersLoaded(true);
-          setDeviceList(datos.datosDevice || []); // ✅ Fallback por seguridad
-        }
+      // ✅ Eventos de conexión (opcional - tu código original no los tenía)
+      connection.onclose((error) => {
+        console.log(
+          '❌ Conexión cerrada:',
+          error?.message || 'Sin error específico',
+        );
       });
 
-      // ✅ Eventos adicionales (opcional)
-      connection.on('ConectadoExitosamente', (user) => {
-        console.log(`🏠 Confirmación: Conectado como ${user}`);
+      connection.onreconnecting((error) => {
+        console.log('🔄 Reconectando...', error?.message || '');
       });
 
-      connection.on('Error', (error) => {
-        console.error("❌ Error del servidor:", error);
+      connection.onreconnected(() => {
+        console.log('✅ Reconectado exitosamente');
       });
 
-    } catch (err) {
-      console.error('❌ Error al conectar con SignalR:', err);
-      
-      // ✅ Reintento opcional (tu código original no lo tenía)
-      setTimeout(() => {
-        if (isActive && connection?.state === signalR.HubConnectionState.Disconnected) {
-          initConnection();
-        }
-      }, 5000);
-    }
-  };
+      try {
+        await connection.start();
+        console.log(`✅ Conectado a SignalR con el grupo ${username}`);
 
-  // ✅ Iniciar conexión
-  initConnection();
+        // ✅ Solo cambiar estado si el componente sigue activo
+        connection.on('ActualizarDatos', (datos) => {
+          if (isActive) {
+            setMarkersLoaded(true);
+            setDeviceList(datos.datosDevice || []); // ✅ Fallback por seguridad
+          }
+        });
 
-  // ✅ Cleanup correcto (tu código original NO tenía cleanup)
-  return () => {
-    isActive = false; // ✅ Prevenir setState después del desmontaje
-    
-    if (connection) {
-      if (connection.state === signalR.HubConnectionState.Connected) {
-        connection.stop()
-          .then(() => console.log("✅ Conexión SignalR cerrada correctamente"))
-          .catch((error) => console.error("❌ Error cerrando conexión:", error));
+        // ✅ Eventos adicionales (opcional)
+        connection.on('ConectadoExitosamente', (user) => {
+          console.log(`🏠 Confirmación: Conectado como ${user}`);
+        });
+
+        connection.on('Error', (error) => {
+          console.error('❌ Error del servidor:', error);
+        });
+      } catch (err) {
+        console.error('❌ Error al conectar con SignalR:', err);
+
+        // ✅ Reintento opcional (tu código original no lo tenía)
+        setTimeout(() => {
+          if (
+            isActive &&
+            connection?.state === signalR.HubConnectionState.Disconnected
+          ) {
+            initConnection();
+          }
+        }, 5000);
       }
-      connection = null;
-    }
-  };
-}, [session?.user?.username, baseUrl]);
+    };
+
+    // ✅ Iniciar conexión
+    initConnection();
+
+    // ✅ Cleanup correcto (tu código original NO tenía cleanup)
+    return () => {
+      isActive = false; // ✅ Prevenir setState después del desmontaje
+
+      if (connection) {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+          connection
+            .stop()
+            .then(() =>
+              console.log('✅ Conexión SignalR cerrada correctamente'),
+            )
+            .catch((error) =>
+              console.error('❌ Error cerrando conexión:', error),
+            );
+        }
+        connection = null;
+      }
+    };
+  }, [session?.user?.username, baseUrl]);
 
   // MOVIDO FUERA DE LA CONDICIÓN
   useEffect(() => {
@@ -700,20 +711,42 @@ useEffect(() => {
 
   // MOVIDO FUERA DE LA CONDICIÓN
   useEffect(() => {
+    if (!isClient) return;
+
     if (!clickListenerAttached.current) {
-      document.addEventListener('click', handleFollowLinkClick);
-      document.addEventListener('click', handleStreetViewClick);
+      // ✅ Especificar opciones de event listener para evitar warnings
+      const eventOptions: AddEventListenerOptions = {
+        passive: false, // Necesario porque usamos preventDefault
+        capture: false,
+      };
+
+      document.addEventListener('click', handleFollowLinkClick, eventOptions);
+      document.addEventListener('click', handleStreetViewClick, eventOptions);
       clickListenerAttached.current = true;
     }
 
     return () => {
       if (clickListenerAttached.current) {
-        document.removeEventListener('click', handleFollowLinkClick);
-        document.removeEventListener('click', handleStreetViewClick);
+        // ✅ Usar las mismas opciones para remover
+        const eventOptions: AddEventListenerOptions = {
+          passive: false,
+          capture: false,
+        };
+
+        document.removeEventListener(
+          'click',
+          handleFollowLinkClick,
+          eventOptions,
+        );
+        document.removeEventListener(
+          'click',
+          handleStreetViewClick,
+          eventOptions,
+        ); // ✅ CORREGIDO: era addEventListener
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, handleStreetViewClick]);
+  }, [handleFollowLinkClick, handleStreetViewClick, isClient]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {

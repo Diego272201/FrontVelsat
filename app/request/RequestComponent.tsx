@@ -430,8 +430,11 @@ export default function RequestPage() {
       const seconds = String(fechaActualHoy.getSeconds()).padStart(2, '0');
 
       const colorScheme = getColorScheme(device);
-      const kilometraje =
-        device.lastOdometerKM - device.odometerini + device.kmini;
+
+      const kilometraje = (device.odometerini !== null && device.kmini !== null) 
+  ? device.lastOdometerKM - device.odometerini + device.kmini 
+  : 0;
+
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
       // Obtener datos del servicio
@@ -1026,19 +1029,40 @@ export default function RequestPage() {
     [isClient],
   );
 
+  // ✅ REEMPLAZA tu useEffect actual con esto:
   useEffect(() => {
     if (!isClient) return;
 
     if (!clickListenerAttached.current) {
-      document.addEventListener('click', handleFollowLinkClick);
-      document.addEventListener('click', handleStreetViewClick);
+      // ✅ Especificar opciones de event listener para evitar warnings
+      const eventOptions: AddEventListenerOptions = {
+        passive: false, // Necesario porque usamos preventDefault
+        capture: false,
+      };
+
+      document.addEventListener('click', handleFollowLinkClick, eventOptions);
+      document.addEventListener('click', handleStreetViewClick, eventOptions);
       clickListenerAttached.current = true;
     }
 
     return () => {
       if (clickListenerAttached.current) {
-        document.removeEventListener('click', handleFollowLinkClick);
-        document.addEventListener('click', handleStreetViewClick);
+        // ✅ Usar las mismas opciones para remover
+        const eventOptions: AddEventListenerOptions = {
+          passive: false,
+          capture: false,
+        };
+
+        document.removeEventListener(
+          'click',
+          handleFollowLinkClick,
+          eventOptions,
+        );
+        document.removeEventListener(
+          'click',
+          handleStreetViewClick,
+          eventOptions,
+        ); // ✅ CORREGIDO: era addEventListener
         clickListenerAttached.current = false;
       }
     };

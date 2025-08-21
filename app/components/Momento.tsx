@@ -43,8 +43,8 @@ export default function Momento({
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const markerRef = React.useRef<L.Marker>(null);
 
-  // API Key de Google Maps (reemplaza con tu propia API key)
-  const GOOGLE_MAPS_API_KEY = "AIzaSyB69HY-OKCtBsbRsKuHns-7HJxjvSqpogg";
+  // ✅ API Key desde variables de entorno
+  const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
 
   useEffect(() => {
     setIsClient(true);
@@ -77,8 +77,12 @@ export default function Momento({
     setIsPanelOpen(false);
   };
 
-  // Función para generar URL de Google Street View
+  // ✅ Función para generar URL de Google Street View con verificación
   const getStreetViewEmbedUrl = (lat: number, lng: number) => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error('❌ API Key de Google Maps no disponible');
+      return '';
+    }
     return `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lng}&heading=0&pitch=0&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
   };
 
@@ -106,6 +110,7 @@ export default function Momento({
     return null;
   };
 
+  // ✅ Mostrar error si no hay API Key
   if (!isClient) {
     return (
       <div
@@ -158,7 +163,6 @@ export default function Momento({
                 <p className="popup-address" title={direccion}>
                   Dirección: {direccion}
                 </p>
-              
               </div>
             </Popup>
           </Marker>
@@ -222,16 +226,30 @@ export default function Momento({
 
           {/* Contenido del Street View */}
           <div style={{ position: 'relative', height: 'calc(100% - 100px)' }}>
-            <iframe
-              src={getStreetViewEmbedUrl(latitude, longitude)}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title={`Street View - ${deviceId}`}
-            />
+            {/* ✅ Verificar API Key antes de mostrar iframe */}
+            {GOOGLE_MAPS_API_KEY ? (
+              <iframe
+                src={getStreetViewEmbedUrl(latitude, longitude)}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Street View - ${deviceId}`}
+              />
+            ) : (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+                backgroundColor: '#f5f5f5',
+                color: '#666'
+              }}>
+                <p>Street View no disponible - API Key faltante</p>
+              </div>
+            )}
 
             {/* Botones flotantes */}
             <div style={{
@@ -365,7 +383,6 @@ export default function Momento({
                   Coordenadas: {latitude.toFixed(6)}, {longitude.toFixed(6)}
                 </div>
               </div>
-         
             </div>
           </div>
         </div>
