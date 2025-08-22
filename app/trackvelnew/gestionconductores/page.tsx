@@ -473,7 +473,7 @@ export default function Page() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el conductor "{conductor.nombre}" del sistema.
+                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el conductor &quot;{conductor.nombre}&quot; del sistema.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -507,7 +507,7 @@ export default function Page() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    ¿Deseas liberar al conductor "{conductor.nombre}"? Esta acción liberará al conductor de su unidad actual.
+                                    ¿Deseas liberar al conductor &quot;{conductor.nombre}&quot;? Esta acción liberará al conductor de su unidad actual.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -547,7 +547,7 @@ export default function Page() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      ¿Deseas deshabilitar al conductor "{conductor.nombre}"? El conductor no podrá ser asignado a unidades mientras esté deshabilitado.
+                                      ¿Deseas deshabilitar al conductor &quot;{conductor.nombre}&quot;? El conductor no podrá ser asignado a unidades mientras esté deshabilitado.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -580,7 +580,7 @@ export default function Page() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      ¿Deseas habilitar al conductor "{conductor.nombre}"? El conductor podrá ser asignado a unidades una vez habilitado.
+                                      ¿Deseas habilitar al conductor &quot;{conductor.nombre}&quot;? El conductor podrá ser asignado a unidades una vez habilitado.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

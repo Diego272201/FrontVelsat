@@ -431,7 +431,7 @@ export default function RequestPage() {
 
       const colorScheme = getColorScheme(device);
 
-      const kilometraje = (device.odometerini !== null && device.kmini !== null) 
+      const kilometraje = (device.lastOdometerKM != null && device.odometerini != null && device.kmini != null) 
   ? device.lastOdometerKM - device.odometerini + device.kmini 
   : 0;
 
