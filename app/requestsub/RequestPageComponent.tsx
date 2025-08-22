@@ -139,7 +139,7 @@ export default function RequestPage() {
 
     const initConnection = async () => {
       const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice?username=${encodeURIComponent(username)}`;
+      const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
 
       console.log(`🎯 Conectando a: ${hubUrl}`);
 

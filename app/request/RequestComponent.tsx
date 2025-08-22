@@ -99,11 +99,11 @@ export default function RequestPage() {
     if (!session?.user?.username || !baseUrl) return;
 
     let connection: signalR.HubConnection | null = null;
-    let isActive = true; // ✅ Flag para evitar setState en componente desmontado
+    let isActive = true; 
 
     const initConnection = async () => {
       const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice?username=${encodeURIComponent(username)}`;
+      const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
 
       console.log(`🎯 Conectando a: ${hubUrl}`);
 

@@ -10,7 +10,6 @@ import { FcSearch } from 'react-icons/fc';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
 import SelectSidebar from './selectUI/SelectSidebar';
-import * as signalR from '@microsoft/signalr';
 
 interface SidebarProps {
   centerMap: () => void;
@@ -37,57 +36,30 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [filteredDeviceIds, setFilteredDeviceIds] = useState<string[] | null>(null);
 
-  // Estados para SignalR
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
+  // Estados para el polling de API
   const [connectionStatus, setConnectionStatus] = useState<'Connecting' | 'Connected' | 'Disconnected'>('Disconnected');
-  const [isSignalRActive, setIsSignalRActive] = useState(false);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isPollingActive, setIsPollingActive] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const username = useMemo(() => {
     return localStorage.getItem('currentUser') || session?.user?.username || '';
   }, [session]);
 
-  const createSignalRConnection = useCallback(async () => {
-  try {
+  // Función para obtener datos de la API
+  const fetchDataFromAPI = useCallback(async () => {
     if (!username || !baseUrl) {
-      return null;
+      return;
     }
 
-    const hubUrl = `${baseUrl}/dataHubSimplified/${username}`;
-
-    const newConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, {
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets,
-      })
-      .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Information)
-      .build();
-
-    newConnection.onclose((error) => {
-      setConnectionStatus('Disconnected');
-      setIsSignalRActive(false);
-    });
-
-    newConnection.onreconnecting((error) => {
+    try {
       setConnectionStatus('Connecting');
-    });
-
-    newConnection.onreconnected((connectionId) => {
-      setConnectionStatus('Connected');
       
-      setTimeout(() => {
-        newConnection.invoke('IniciarDatosSimplificados');
-      }, 1000);
-    });
+      const response = await axios.get(
+        `${baseUrl}/api/DeviceList/simplified/${username}`
+      );
 
-    newConnection.on('DatosSimplificadosConectados', (user) => {
-      setIsSignalRActive(true);
-    });
-
-    newConnection.on('ActualizarDatosSimplificados', (datos) => {      
-      if (Array.isArray(datos)) {
-        const unidadesFormateadas = datos.map((item: any) => ({
+      if (response.data && Array.isArray(response.data)) {
+        const unidadesFormateadas = response.data.map((item: any) => ({
           deviceId: item.DeviceId || item.deviceId || '',
           lastValidSpeed: item.LastValidSpeed || item.lastValidSpeed || 0,
           lastValidLatitude: item.LastValidLatitude || item.lastValidLatitude || 0,
@@ -96,57 +68,36 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
         
         setUnidades(unidadesFormateadas);
         setIsLoading(false);
+        setConnectionStatus('Connected');
+        setIsPollingActive(true);
       }
-    });
-
-    newConnection.on('DatosSimplificadosIniciados', (mensaje) => {
-      setIsSignalRActive(true);
-    });
-
-    newConnection.on('DatosSimplificadosDetenidos', (mensaje) => {
-      setIsSignalRActive(false);
-    });
-
-    newConnection.on('Error', (error) => {
+    } catch (error) {
+      console.error('Error al obtener datos de la API:', error);
+      setConnectionStatus('Disconnected');
       setIsLoading(false);
-    });
+      setIsPollingActive(false);
+    }
+  }, [username, baseUrl]);
 
-    setConnection(newConnection);
-    return newConnection;
-
-  } catch (error) {
-    setConnectionStatus('Disconnected');
-    setIsLoading(false);
-    return null;
-  }
-}, [username, baseUrl]); 
-
+  // Inicializar polling
   useEffect(() => {
-  if (username && baseUrl) {    
-    const initializeConnection = async () => {
-      const newConnection = await createSignalRConnection();
-      if (newConnection) {
-        try {
-          setConnectionStatus('Connecting');
-          await newConnection.start();
-          setConnectionStatus('Connected');
-          
-        } catch (error) {
-          setConnectionStatus('Disconnected');
-          setIsLoading(false);
-        }
+    if (username && baseUrl) {
+      // Llamada inicial
+      fetchDataFromAPI();
+      
+      // Configurar polling cada 20 segundos
+      pollingIntervalRef.current = setInterval(() => {
+        fetchDataFromAPI();
+      }, 20000);
+    }
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     };
-
-    initializeConnection();
-  }
-  return () => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-  };
-}, [username, baseUrl, createSignalRConnection]);
-
+  }, [username, baseUrl, fetchDataFromAPI]);
 
   useEffect(() => {
     const fetchFiltroSedapal = async () => {
@@ -174,18 +125,15 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     }
   }, [rutaSeleccionada, baseUrl, username, onFilteredIdsChange]);
 
-useEffect(() => {
-  return () => {
-    if (connection && username && isSignalRActive) {
-    }
-    if (connection) {
-      connection.stop().catch(console.error);
-    }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-  };
-}, []); 
+  // Cleanup al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []); 
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -223,7 +171,6 @@ useEffect(() => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
-
 
   return (
     <div className="sidebarScroll">
@@ -269,6 +216,7 @@ useEffect(() => {
           <div className="unidades bg-[#113EB9]">
             <div className="flex justify-between items-center">
               <span>TOTAL DE UNIDADES: {filteredUnidades.length}</span>
+         
             </div>
             <div className="imap">
               <a href="#" onClick={centerMap}>
