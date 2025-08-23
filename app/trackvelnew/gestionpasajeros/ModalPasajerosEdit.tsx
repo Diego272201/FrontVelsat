@@ -121,6 +121,7 @@ export default function App({ title, codCliente }: Props) {
     reset,
     clearErrors,
     watch,
+    setValue, // ✅ Agregado setValue
   } = useForm({
     defaultValues: {
       codlan: '',
@@ -152,6 +153,7 @@ export default function App({ title, codCliente }: Props) {
   const username = session?.user.username;
 
   const mapRef = useRef<LeafletMap | null>(null);
+  const zonaValue = watch('zona');
 
   const wy = watch('wy');
   const wx = watch('wx');
@@ -512,17 +514,19 @@ export default function App({ title, codCliente }: Props) {
   const onSubmit = handleSubmit(async (data) => {
     if (!baseUrl || codCliente === null || username === null) return;
 
-    setIsLoading(true); // Activar loading al inicio
+    setIsLoading(true); 
 
     try {
       const codlan = data.codlan;
+      const zonaValue = data.zona && data.zona.trim() !== '' ? data.zona : null;
+
       console.log('Datos enviados:', {
         codlan: data.codlan,
         apellidos: data.apellidos,
         telefono: data.telefono,
         sexo: data.sexo,
         empresa: data.empresa,
-        zona: data.zona,
+        zona: zonaValue,
         direccion: data.direccion,
         distrito: data.distrito,
         wy: data.wy,
@@ -538,7 +542,7 @@ export default function App({ title, codCliente }: Props) {
           telefono: data.telefono,
           sexo: data.sexo,
           empresa: data.empresa,
-          zona: data.zona,
+          zona: zonaValue,
           direccion: data.direccion,
           distrito: data.distrito,
           wy: data.wy,
@@ -553,7 +557,7 @@ export default function App({ title, codCliente }: Props) {
       console.error('Error al actualizar el pasajero:', error);
       toast.error('Error al actualizar el pasajero');
     } finally {
-      setIsLoading(false); // Desactivar loading siempre (éxito o error)
+      setIsLoading(false); 
     }
   });
 
@@ -712,11 +716,15 @@ export default function App({ title, codCliente }: Props) {
                           className="max-w-xs"
                           disableSelectorIconRotation
                           selectorIcon={<SelectorIcon />}
-                          {...register('zona')}
+                          selectedKeys={zonaValue ? [zonaValue] : []}
+                          onSelectionChange={(keys) => {
+                            const selectedValue = Array.from(keys)[0] as string;
+                            setValue('zona', selectedValue);
+                          }}
                           isDisabled={!isTarifaLoaded}
                         >
-                          {tarifa.map((item, index) => (
-                            <SelectItem key={index} value={item.zona}>
+                          {tarifa.map((item) => (
+                            <SelectItem key={item.zona}>
                               {item.zona}
                             </SelectItem>
                           ))}

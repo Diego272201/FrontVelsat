@@ -31,6 +31,7 @@ import { useSession } from 'next-auth/react';
 import { Dot, SquareCheck } from 'lucide-react';
 import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
+import AppModalUnidadesCercanas from '../trackvelnew/unidadescercanas/ModalUnidadesCercanas';
 
 // Tipos TypeScript
 type IconType =
@@ -52,14 +53,16 @@ type ModalType =
   | 'kilometers'
   | 'servicios'
   | 'detalleServicios'
-   | 'duracionservicios';
-
+  | 'duracionservicios'
+  | 'unidadesCercanas' // ← Nuevo
+  | 'autosParados'; // ← Nuevo
 
 type MenuType =
   | 'services'
   | 'programacion'
   | 'planificacion'
   | 'reportes'
+  | 'operaciones' // ← Nuevo
   | 'sidebar';
 
 interface SubMenuItem {
@@ -90,6 +93,7 @@ interface MenuState {
   programacion: boolean;
   planificacion: boolean;
   reportes: boolean;
+  operaciones: boolean;
   sidebar: boolean;
 }
 
@@ -101,7 +105,9 @@ interface ModalState {
   kilometers: boolean;
   servicios: boolean;
   detalleServicios: boolean;
-  duracionservicios:boolean;
+  duracionservicios: boolean;
+  unidadesCercanas: boolean; // ← Nuevo
+  autosParados: boolean; // ← Nuevo
 }
 
 interface IconSVGProps {
@@ -194,15 +200,12 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
       },
       { id: 'latam', title: 'Control LATAM', icon: 'location' },
 
-    { 
-        id: 'duracion', 
-        title: 'Duración de Servicios', 
+      {
+        id: 'duracion',
+        title: 'Duración de Servicios',
         icon: 'chart',
-        modalType: 'duracionservicios' // Agrega esta línea
+        modalType: 'duracionservicios', // Agrega esta línea
       },
-
-
-
     ],
   },
   PLANIFICACION: {
@@ -229,6 +232,26 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
       },
     ],
   },
+
+  OPERACIONES: {
+    id: 'operaciones',
+    title: 'Operaciones',
+    icon: MdDisplaySettings,
+    items: [
+      {
+        id: 'unidades-cercanas',
+        title: 'Unidades Cercanas',
+        icon: 'location',
+        modalType: 'unidadesCercanas', // Necesitarás crear este modal
+      },
+      {
+        id: 'autos-parados',
+        title: 'Autos Parados',
+        icon: 'stop',
+        modalType: 'autosParados', // Necesitarás crear este modal
+      },
+    ],
+  },
 };
 
 const useMenuState = () => {
@@ -237,6 +260,7 @@ const useMenuState = () => {
     programacion: false,
     planificacion: false,
     reportes: false,
+    operaciones: false,
     sidebar: false,
   });
 
@@ -253,6 +277,8 @@ const useMenuState = () => {
       programacion: false,
       planificacion: false,
       reportes: false,
+      operaciones: false, // ← Nuevo
+
       sidebar: false,
     });
   }, []);
@@ -269,7 +295,9 @@ const useModalState = () => {
     kilometers: false,
     servicios: false,
     detalleServicios: false,
-    duracionservicios:false,
+    duracionservicios: false,
+    unidadesCercanas: false, // ← Nuevo
+    autosParados: false, // ← Nuevo
   });
 
   const openModal = useCallback((modalType: ModalType) => {
@@ -631,8 +659,7 @@ const Tollbar: React.FC = () => {
                     }
                   />
                 )}
-
-                {(index === 1 || index === 3) && (
+                {config.id === 'reportes' && (index === 1 || index === 3) && (
                   <li key={`separator-${index}`} className="mx-3 my-2">
                     <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
                   </li>
@@ -941,16 +968,11 @@ const Tollbar: React.FC = () => {
                     </Link>
                   </li>
 
-                  <li className="group relative">
-                    <Link
-                      href="#"
-                      title="Operaciones"
-                      className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                      onClick={() => handleLinkClick(3)}
-                    >
-                      <span>Operaciones</span>
-                    </Link>
-                  </li>
+                  {renderDropdownMenu(
+                    MENU_CONFIG.OPERACIONES,
+                    openMenus.operaciones,
+                    () => toggleMenu('operaciones'),
+                  )}
 
                   {renderDropdownMenu(
                     MENU_CONFIG.REPORTES,
@@ -1044,8 +1066,7 @@ const Tollbar: React.FC = () => {
         showDownloadButton={true}
       />
 
-
-    <AppModalDuracionServicios
+      <AppModalDuracionServicios
         isOpen={modals.duracionservicios}
         onClose={() => closeModal('duracionservicios')}
         titulo="DURACIÓN DE SERVICIOS"
@@ -1055,8 +1076,13 @@ const Tollbar: React.FC = () => {
         showDownloadButton={true}
       />
 
-
-
+      <AppModalUnidadesCercanas
+        isOpen={modals.unidadesCercanas}
+        onClose={() => closeModal('unidadesCercanas')}
+        titulo="UNIDADES CERCANAS"
+        useSelectAll={true}
+        icono={<RiGpsFill size={25} />}
+      />
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
