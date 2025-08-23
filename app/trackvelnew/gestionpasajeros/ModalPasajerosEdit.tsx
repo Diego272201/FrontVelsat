@@ -342,6 +342,43 @@ export default function App({ title, codCliente }: Props) {
     });
   };
 
+  const fetchPasajeroDetail = async () => {
+  if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
+
+  try {
+    const response = await axios.get(
+      `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
+    );
+    const pasajeroData = response.data[0];
+
+    console.log('Datos del pasajero:', pasajeroData);
+
+    const lat = parseFloat(pasajeroData.wy) || 0;
+    const lng = parseFloat(pasajeroData.wx) || 0;
+
+    reset({
+      codlan: pasajeroData.codlan || '',
+      apellidos: pasajeroData.apellidos || '',
+      telefono: pasajeroData.telefono || '',
+      sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
+      empresa: pasajeroData.empresa || '',
+      zona: pasajeroData.zona || '',
+      direccion: pasajeroData.direccion || '',
+      distrito: pasajeroData.distrito || '',
+      wy: pasajeroData.wy || '',
+      wx: pasajeroData.wx || '',
+      codusuario: pasajeroData.codusuario || '',
+    });
+
+    setMarkerPosition([lat, lng]);
+    setOriginalPosition([lat, lng]);
+    setMapCenter([lat, lng]);
+    setSearchInput(pasajeroData.direccion || '');
+  } catch (error) {
+    console.error('Error fetching pasajero detail:', error);
+  }
+};
+
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
@@ -551,6 +588,7 @@ export default function App({ title, codCliente }: Props) {
       );
 
       console.log('Pasajero actualizado con éxito:', response.data);
+      await fetchPasajeroDetail();
       onClose();
       toast.success('Pasajero actualizado');
     } catch (error) {
