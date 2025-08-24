@@ -24,6 +24,7 @@ interface RowData {
   area: string;
   codigo: number;
   nombre: string;
+  lugar: string;
   direccion: string;
   distrito: string;
   estado: string;
@@ -252,6 +253,7 @@ const DragAndDropTable = forwardRef(
               orden: item.orden.toString(),
               area: item.arealan || 'N/A',
               nombre: item?.pasajero?.nombre || 'N/A',
+              lugar: item?.codlugar || 'N/A',
               direccion: item?.lugar?.direccion || 'N/A',
               distrito: item?.lugar?.distrito || 'N/A',
               estado, 
