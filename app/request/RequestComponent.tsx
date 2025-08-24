@@ -95,89 +95,149 @@ export default function RequestPage() {
   }, [filteredIdsFromSidebar]);
 
   useEffect(() => {
-    // ✅ Evitar ejecución si faltan datos
-    if (!session?.user?.username || !baseUrl) return;
-
     let connection: signalR.HubConnection | null = null;
-    let isActive = true; 
+    let isComponentMounted = true;
+    let reconnectionAttempts = 0;
+    const MAX_RECONNECTION_ATTEMPTS = 3;
+    const RECONNECTION_DELAY = 1000;
 
-    const initConnection = async () => {
-      const username = session.user.username;
-      const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
+    const connectSignalR = async () => {
+      if (!isComponentMounted || !session?.user?.username || !baseUrl) {
+        return;
+      }
 
-      console.log(`🎯 Conectando a: ${hubUrl}`);
-
-      connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl, {
-          transport:
-            signalR.HttpTransportType.WebSockets |
-            signalR.HttpTransportType.ServerSentEvents,
-        })
-        .withAutomaticReconnect([0, 1000, 2000, 5000, 10000])
-        .configureLogging(signalR.LogLevel.Error)
-        .build();
-
-      // ✅ Eventos SIN setState innecesarios
-      connection.onclose((error) => {
-        console.log(
-          '❌ Conexión cerrada:',
-          error?.message || 'Sin error específico',
-        );
-        // ✅ NO cambiar markersLoaded para evitar refresh
-      });
-
-      connection.onreconnecting((error) => {
-        console.log('🔄 Reconectando...', error?.message || '');
-        // ✅ NO cambiar markersLoaded para evitar refresh
-      });
-
-      connection.onreconnected(() => {
-        console.log('✅ Reconectado exitosamente');
-      });
+      if (
+        connection &&
+        connection.state !== signalR.HubConnectionState.Disconnected
+      ) {
+        try {
+          await connection.stop();
+        } catch (error) {
+          console.warn('Error cerrando conexión previa:', error);
+        }
+      }
 
       try {
-        await connection.start();
-        console.log(`✅ Conectado a SignalR con el grupo ${username}`);
+        const username = session.user.username;
+        // ✅ NUEVA URL CON PARÁMETRO DE RUTA
+        const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
 
-        // ✅ Solo cambiar estado si el componente sigue activo
-        connection.on('ActualizarDatos', (datos) => {
-          if (isActive) {
-            setMarkersLoaded(true);
-            setDeviceList(datos.datosDevice || []);
+        console.log('🚀 Iniciando nueva conexión SignalR...');
+
+        connection = new signalR.HubConnectionBuilder()
+          .withUrl(hubUrl, {
+            transport: signalR.HttpTransportType.WebSockets,
+            skipNegotiation: true,
+            headers: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+          })
+          .configureLogging(signalR.LogLevel.Warning)
+          .withAutomaticReconnect([0, 1000, 5000, 10000])
+          .build();
+
+        // Configurar timeouts EXACTOS del HTML
+        connection.keepAliveIntervalInMilliseconds = 15000; // 15 segundos
+        connection.serverTimeoutInMilliseconds = 30000; // 30 segundos
+
+        connection.onclose((error) => {
+          if (isComponentMounted) {
+            console.log('❌ Conexión cerrada:', error?.message || 'Sin error');
+
+            if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
+              reconnectionAttempts++;
+              setTimeout(() => {
+                if (isComponentMounted) {
+                  console.log(
+                    `🔄 Reintentando conexión (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
+                  );
+                  connectSignalR();
+                }
+              }, RECONNECTION_DELAY);
+            }
           }
         });
 
-        connection.on('ConectadoExitosamente', (user) => {
-          console.log(`🏠 Confirmación: Conectado como ${user}`);
+        connection.onreconnecting(() => {
+          console.log('🔄 Reconectando...');
+        });
+
+        connection.onreconnected((connectionId) => {
+          console.log('✅ Reconectado:', connectionId);
+          reconnectionAttempts = 0;
+        });
+
+        // Iniciar conexión
+        const startTime = Date.now();
+        let isFirstDataReceived = false;
+        await connection.start();
+
+        if (!isComponentMounted) {
+          await connection.stop();
+          return;
+        }
+
+        console.log('✅ Conexión SignalR establecida');
+        reconnectionAttempts = 0;
+
+        console.log(`🏠 Automáticamente unido al grupo: ${username}`);
+
+        connection.on('ActualizarDatos', (datos) => {
+          if (!isComponentMounted) return;
+          if (!isFirstDataReceived) {
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            isFirstDataReceived = true;
+          }
+
+          setMarkersLoaded(true);
+          setDeviceList(datos.datosDevice);
         });
 
         connection.on('Error', (error) => {
-          console.error('❌ Error del servidor:', error);
+          if (isComponentMounted) {
+            console.error('❌ Error desde SignalR:', error);
+          }
         });
-      } catch (err) {
-        console.error('❌ Error al conectar con SignalR:', err);
+
+        // ✅ NUEVO EVENTO
+        connection.on('ConectadoExitosamente', (username) => {
+          console.log(
+            `✅ Confirmación: Conectado exitosamente para usuario ${username}`,
+          );
+        });
+      } catch (error) {
+        console.error('❌ Error conectando SignalR:', error);
+
+        if (
+          isComponentMounted &&
+          reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS
+        ) {
+          reconnectionAttempts++;
+          setTimeout(() => {
+            if (isComponentMounted) {
+              console.log(
+                `🔄 Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
+              );
+              connectSignalR();
+            }
+          }, RECONNECTION_DELAY);
+        }
       }
     };
 
-    // ✅ Iniciar conexión
-    initConnection();
+    // Delay inicial más corto
+    const timeoutId = setTimeout(connectSignalR, 50);
 
-    // ✅ Cleanup correcto
+    // Cleanup
     return () => {
-      isActive = false; // ✅ Prevenir setState después del desmontaje
+      isComponentMounted = false;
+      clearTimeout(timeoutId);
 
       if (connection) {
-        if (connection.state === signalR.HubConnectionState.Connected) {
-          connection
-            .stop()
-            .then(() =>
-              console.log('✅ Conexión SignalR cerrada correctamente'),
-            )
-            .catch((error) =>
-              console.error('❌ Error cerrando conexión:', error),
-            );
-        }
-        connection = null;
+        connection.stop().catch((error) => {
+          console.warn('Error al cerrar conexión en cleanup:', error);
+        });
       }
     };
   }, [session?.user?.username, baseUrl]);
