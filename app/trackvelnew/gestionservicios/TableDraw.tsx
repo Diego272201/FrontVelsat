@@ -18,6 +18,8 @@ import {
 } from '@nextui-org/react';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
 import { toast } from 'sonner';
+import { MapPin, Home, XCircle } from 'lucide-react';
+import ModalDirecciones from './ModalDireccionServicio';
 
 interface RowData {
   orden: string;
@@ -30,10 +32,9 @@ interface RowData {
   estado: string;
   wy: string;
   wx: string;
-  fechafin:string;
-  feccancelpas:string;
-  codlugar:string;
-
+  fechafin: string;
+  feccancelpas: string;
+  codlugar: string;
 }
 
 interface Props {
@@ -52,11 +53,23 @@ interface Props {
     wx: string;
     wy: string;
   }[];
-  agregarTrigger:number;
-  areaLan:string;
+  agregarTrigger: number;
+  areaLan: string;
 }
 
-const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index: number; onUbicar: (coords: { lat: number; lng: number }) => void; onCancelar: (codigo: number) => void }) => {
+const SortableRow = ({
+  row,
+  index,
+  onUbicar,
+  onCancelar,
+  onDireccion,
+}: {
+  row: RowData;
+  index: number;
+  onUbicar: (coords: { lat: number; lng: number }) => void;
+  onCancelar: (codigo: number) => void;
+  onDireccion: (codCliente: string, nombrePasajero: string, codigo: string) => void;
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
 
@@ -66,9 +79,11 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
   };
 
   const rowBgColor =
-  row.estado === 'NA' || row.estado === 'AT' ? 'bg-[#fff]' : 
-  row.estado === 'CC' || row.estado === 'CP' ? 'bg-[#FDBDAA]' : 
-  'bg-white';
+    row.estado === 'NA' || row.estado === 'AT'
+      ? 'bg-[#fff]'
+      : row.estado === 'CC' || row.estado === 'CP'
+        ? 'bg-[#FDBDAA]'
+        : 'bg-white';
 
   return (
     <tr
@@ -76,12 +91,12 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
       style={style}
       {...attributes}
       {...listeners}
-      className={`cursor-grab border ${rowBgColor} active:cursor-grabbing`}   
-       >
+      className={`cursor-grab border ${rowBgColor} active:cursor-grabbing`}
+    >
       <td className="border p-1">
         <div className="flex items-center justify-center gap-2">
           <span>{index + 1}</span>
-          <Dropdown>
+          <Dropdown className="ml-10">
             <DropdownTrigger>
               <Button isIconOnly variant="light" className="p-0 shadow-none">
                 <BsArrowDownSquareFill size={20} color="#0353a4" />
@@ -89,16 +104,38 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
             </DropdownTrigger>
 
             <DropdownMenu aria-label="Acciones">
-            <DropdownItem key="edit" onPress={() => onUbicar({ lat: parseFloat(row.wy), lng: parseFloat(row.wx) })}>
+              <DropdownItem
+                key="edit"
+                onPress={() =>
+                  onUbicar({ lat: parseFloat(row.wy), lng: parseFloat(row.wx) })
+                }
+                startContent={<MapPin className="h-4 w-4 text-blue-600" />}
+              >
                 Ubicar
               </DropdownItem>
-              <DropdownItem key="delete" className="text-danger" color="danger" onPress={() => onCancelar(row.codigo)}>  
+
+              <DropdownItem
+                key="direccion"
+                onPress={() => onDireccion(row.lugar, row.nombre, row.codigo.toString())}
+                startContent={<Home className="h-4 w-4 text-green-600" />}
+              >
+                Dirección
+              </DropdownItem>
+
+              <DropdownItem
+                key="delete"
+                className="text-danger"
+                color="danger"
+                onPress={() => onCancelar(row.codigo)}
+                startContent={<XCircle className="h-4 w-4 text-red-400" />}
+              >
                 Cancelar
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>
         </div>
       </td>
+
       <td className="border p-1">{row.area}</td>
       <td className="border p-1">{row.nombre}</td>
       <td className="border p-1">{row.direccion}</td>
@@ -106,58 +143,80 @@ const SortableRow = ({ row, index, onUbicar, onCancelar }: { row: RowData; index
       <td className="border p-1">{row.estado}</td>
     </tr>
   );
-  
 };
 
-SortableRow.displayName = 'SortableRow';  
+SortableRow.displayName = 'SortableRow';
 
 const DragAndDropTable = forwardRef(
-  ({ codServicio, onCoordenadasUpdate, onCenterUpdate, fecha ,dataAgregada,agregarTrigger,areaLan,horaAtencion, horaAto  }: Props, ref) => {
+  (
+    {
+      codServicio,
+      onCoordenadasUpdate,
+      onCenterUpdate,
+      fecha,
+      dataAgregada,
+      agregarTrigger,
+      areaLan,
+      horaAtencion,
+      horaAto,
+    }: Props,
+    ref,
+  ) => {
     const [data, setData] = useState<RowData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [tempData, setTempData] = useState<typeof dataAgregada>([]); 
-
+    const [tempData, setTempData] = useState<typeof dataAgregada>([]);
+    const [shouldRefetch, setShouldRefetch] = useState(false);
+    
+    // Estado para el modal de direcciones
+    const [modalData, setModalData] = useState<{
+      codCliente: string;
+      nombrePasajero: string;
+      codigo: string;
+    } | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const parseFecha = (fechaStr: string | null) => {
       if (!fechaStr) return null;
-    
+
       try {
-        const fecha = new Date(fechaStr); 
-    
+        const fecha = new Date(fechaStr);
+
         if (isNaN(fecha.getTime())) {
-          console.error("Fecha inválida:", fechaStr);
+          console.error('Fecha inválida:', fechaStr);
           return null;
         }
-    
-        const dia = fecha.getDate().toString().padStart(2, "0");
-        const mes = (fecha.getMonth() + 1).toString().padStart(2, "0"); 
+
+        const dia = fecha.getDate().toString().padStart(2, '0');
+        const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
         const año = fecha.getFullYear();
-        const horas = fecha.getHours().toString().padStart(2, "0");
-        const minutos = fecha.getMinutes().toString().padStart(2, "0");
-    
+        const horas = fecha.getHours().toString().padStart(2, '0');
+        const minutos = fecha.getMinutes().toString().padStart(2, '0');
+
         return `${dia}/${mes}/${año} ${horas}:${minutos}`;
       } catch (error) {
-        console.error("Error al parsear la fecha:", error);
+        console.error('Error al parsear la fecha:', error);
         return null;
       }
     };
-    
+
     useEffect(() => {
       setTempData([]);
       setTimeout(() => {
-        setTempData(dataAgregada); 
-      }, 0); 
-    }, [agregarTrigger,dataAgregada]); 
+        setTempData(dataAgregada);
+      }, 0);
+    }, [agregarTrigger, dataAgregada]);
 
     useEffect(() => {
-      console.log("tempData actualizado:", tempData);
+      console.log('tempData actualizado:', tempData);
     }, [tempData]);
-    
 
     useEffect(() => {
       if (tempData.length > 0) {
         setData((prevData: any) => {
-          let ultimoOrden = prevData.length > 0 ? parseInt(prevData[prevData.length - 1].orden) : 0;
+          let ultimoOrden =
+            prevData.length > 0
+              ? parseInt(prevData[prevData.length - 1].orden)
+              : 0;
 
           const nuevosItems = tempData.map((item) => ({
             orden: (++ultimoOrden).toString(),
@@ -166,34 +225,31 @@ const DragAndDropTable = forwardRef(
             nombre: item.nombre,
             direccion: item.direccion,
             distrito: item.distrito,
-            estado: "NW",
-            wy: item.wy || "",
-            wx: item.wx || "",
+            estado: 'NW',
+            wy: item.wy || '',
+            wx: item.wx || '',
             fechafin: null,
             feccancelpas: null,
             codlugar: item.codlugar,
-
+            lugar: item.codlugar.toString(), // Agregamos el lugar basado en codlugar
           }));
 
           return [...prevData, ...nuevosItems];
         });
 
-        setTempData([]); 
+        setTempData([]);
       }
-    }, [tempData,areaLan]);
-    
-
-
+    }, [tempData, areaLan]);
 
     const handleUbicar = (coords: { lat: number; lng: number }) => {
-      console.log("Coordenadas enviadas:", coords);
-    
+      console.log('Coordenadas enviadas:', coords);
+
       if (!isNaN(coords.lat) && !isNaN(coords.lng)) {
         if (onCenterUpdate) {
-          onCenterUpdate(coords); 
+          onCenterUpdate(coords);
         }
       } else {
-        toast.error("Coordenadas inválidas");
+        toast.error('Coordenadas inválidas');
       }
     };
 
@@ -201,54 +257,72 @@ const DragAndDropTable = forwardRef(
       console.log('Código a cancelar:', codigo);
 
       try {
-        await axios.put("https://velsat.pe:2096/api/Preplan/UpdateEstado" , {codigo});
-        toast.success('Pasajero cancelado con éxito.');   
+        await axios.put('https://velsat.pe:2096/api/Preplan/UpdateEstado', {
+          codigo,
+        });
+        toast.success('Pasajero cancelado con éxito.');
         setData((prevData) =>
           prevData.map((item) => {
             if (item.codigo === codigo) {
-              
               const nuevoItem = { ...item, estado: 'C' };
               let estado = 'NA';
-    
+
               if (nuevoItem.fechafin) {
                 estado = 'AT';
               } else if (nuevoItem.estado === 'C') {
                 estado = nuevoItem.feccancelpas ? 'CP' : 'CC';
               }
-            
-              return { ...nuevoItem, estado }; 
+
+              return { ...nuevoItem, estado };
             }
-    
-            return item; 
-          })
+
+            return item;
+          }),
         );
-    
       } catch (error) {
         toast.error('Error al cancelar el pasajero.');
       }
     };
-    
-    
-    
+
+    // Nueva función para manejar la apertura del modal de direcciones
+    const handleDireccion = (codCliente: string, nombrePasajero: string, codigo: string) => {
+      setModalData({
+        codCliente,
+        nombrePasajero,
+        codigo,
+      });
+      setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+      setIsModalOpen(false);
+      setModalData(null);
+      // Resetear shouldRefetch al cerrar el modal
+      if (shouldRefetch) {
+        setShouldRefetch(false);
+      }
+    };
+
     useEffect(() => {
       if (!codServicio) return;
-    
+
       const API_URL = `https://velsat.pe:2096/api/Preplan/PasajeroList?codservicio=${codServicio}`;
       setLoading(true);
-    
+
+      console.log('Refrescando datos de la tabla...', { shouldRefetch });
+
       axios
         .get(API_URL)
         .then((response) => {
           const fetchedData = response.data.map((item: any, index: number) => {
             let estado = 'NA';
 
-            
             if (item.fechafin) {
               estado = 'AT';
             } else if (item.estado === 'C') {
               estado = item.feccancelpas ? 'CP' : 'CC';
             }
-            
+
             return {
               orden: item.orden.toString(),
               area: item.arealan || 'N/A',
@@ -256,17 +330,17 @@ const DragAndDropTable = forwardRef(
               lugar: item?.codlugar || 'N/A',
               direccion: item?.lugar?.direccion || 'N/A',
               distrito: item?.lugar?.distrito || 'N/A',
-              estado, 
+              estado,
               wy: item.lugar?.wy ?? '',
               wx: item.lugar?.wx ?? '',
               codigo: item.codigo,
-              fechafin:item.fechafin,
-              feccancelpas:item.feccancelpas,
+              fechafin: item.fechafin,
+              feccancelpas: item.feccancelpas,
             };
           });
-    
+
           setData(fetchedData);
-    
+
           const coordenadas = fetchedData
             .map((item: { wy: string; wx: string }) => ({
               lat: parseFloat(item.wy),
@@ -276,38 +350,42 @@ const DragAndDropTable = forwardRef(
               (coord: { lat: number; lng: number }) =>
                 !isNaN(coord.lat) && !isNaN(coord.lng),
             );
-    
+
           onCoordenadasUpdate(coordenadas);
         })
         .catch((error) => console.error('Error fetching data:', error))
         .finally(() => setLoading(false));
-    }, [codServicio, onCoordenadasUpdate]);
-    
+    }, [codServicio, onCoordenadasUpdate, shouldRefetch]);
+
+    // Resetear shouldRefetch después de usarlo
+    useEffect(() => {
+      if (shouldRefetch) {
+        setShouldRefetch(false);
+      }
+    }, [shouldRefetch]);
 
     useEffect(() => {
       console.log(data);
     }, [data]);
 
-
     useEffect(() => {
-      console.log("Cambios " + horaAto);
+      console.log('Cambios ' + horaAto);
     }, [horaAto]);
 
     const actualizarOrdenEnServidor = async () => {
-
-      console.log(tempData.length)
+      console.log(tempData.length);
 
       if (!codServicio || data.length === 0) return;
-    
+
       const API_URL = `https://velsat.pe:2096/api/Preplan/actualizarOrden`;
-    
+
       const payload = {
         codservicio: codServicio,
         fecha: horaAto,
         listapuntos: data.map(({ codigo, orden, codlugar, estado }) => {
           if (codlugar) {
             return {
-              estado: estado || "NW",
+              estado: estado || 'NW',
               fecha: parseFecha(horaAtencion),
               lugar: {
                 codlugar: codlugar.toString(),
@@ -319,8 +397,7 @@ const DragAndDropTable = forwardRef(
                 codservicio: codServicio.toString(),
               },
               orden: orden.toString(),
-              arealan:areaLan,
-              
+              arealan: areaLan,
             };
           } else {
             return {
@@ -330,18 +407,20 @@ const DragAndDropTable = forwardRef(
           }
         }),
       };
-    
-      console.log("Payload enviado al servidor:", JSON.stringify(payload, null, 2));
-    
+
+      console.log(
+        'Payload enviado al servidor:',
+        JSON.stringify(payload, null, 2),
+      );
+
       try {
         const response = await axios.put(API_URL, payload);
         toast.success('Datos actualizados con éxito.');
       } catch (error) {
-        console.error("Error en la actualización:", error);
+        console.error('Error en la actualización:', error);
         toast.error('Error al actualizar la orden.');
       }
     };
-    
 
     useImperativeHandle(ref, () => ({
       actualizarOrdenEnServidor,
@@ -365,62 +444,80 @@ const DragAndDropTable = forwardRef(
     };
 
     return (
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext
-          items={data.map((item) => ({ id: item.orden }))}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="bg-white ml-2">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-blue-300">
-                  <th className="border p-2">Orden</th>
-                  <th className="border p-2">Área</th>
-                  <th className="border p-2">Nombre</th>
-                  <th className="border p-2">Dirección</th>
-                  <th className="border p-2">Distrito</th>
-                  <th className="border p-2">Estado</th>
-                </tr>
-              </thead>
+      <>
+        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={data.map((item) => ({ id: item.orden }))}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="ml-2 bg-white">
+              <table className="w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-blue-300">
+                    <th className="border p-2">Orden</th>
+                    <th className="border p-2">Área</th>
+                    <th className="border p-2">Nombre</th>
+                    <th className="border p-2">Dirección</th>
+                    <th className="border p-2">Distrito</th>
+                    <th className="border p-2">Estado</th>
+                  </tr>
+                </thead>
 
-              <tbody style={{ fontSize: '13px' }}>
-                {loading
-                  ? Array.from({ length: 5 }).map((_, index) => (
-                      <tr key={index} className="animate-pulse bg-gray-200">
-                        <td className="border p-2">
-                          <div className="h-4 w-8 rounded bg-gray-300"></div>
-                        </td>
-                        <td className="border p-2">
-                          <div className="h-4 w-20 rounded bg-gray-300"></div>
-                        </td>
-                        <td className="border p-2">
-                          <div className="h-4 w-24 rounded bg-gray-300"></div>
-                        </td>
-                        <td className="border p-2">
-                          <div className="h-4 w-32 rounded bg-gray-300"></div>
-                        </td>
-                        <td className="border p-2">
-                          <div className="h-4 w-20 rounded bg-gray-300"></div>
-                        </td>
-                        <td className="border p-2">
-                          <div className="h-4 w-16 rounded bg-gray-300"></div>
-                        </td>
-                      </tr>
-                    ))
-                  : data.map((row, index) => (
-                      <SortableRow key={row.orden} row={row} index={index} onUbicar={handleUbicar} onCancelar={handleCancelar}/>
-                    ))}
-              </tbody>
-            </table>
+                <tbody style={{ fontSize: '13px' }}>
+                  {loading
+                    ? Array.from({ length: 5 }).map((_, index) => (
+                        <tr key={index} className="animate-pulse bg-gray-200">
+                          <td className="border p-2">
+                            <div className="h-4 w-8 rounded bg-gray-300"></div>
+                          </td>
+                          <td className="border p-2">
+                            <div className="h-4 w-20 rounded bg-gray-300"></div>
+                          </td>
+                          <td className="border p-2">
+                            <div className="h-4 w-24 rounded bg-gray-300"></div>
+                          </td>
+                          <td className="border p-2">
+                            <div className="h-4 w-32 rounded bg-gray-300"></div>
+                          </td>
+                          <td className="border p-2">
+                            <div className="h-4 w-20 rounded bg-gray-300"></div>
+                          </td>
+                          <td className="border p-2">
+                            <div className="h-4 w-16 rounded bg-gray-300"></div>
+                          </td>
+                        </tr>
+                      ))
+                    : data.map((row, index) => (
+                        <SortableRow
+                          key={row.orden}
+                          row={row}
+                          index={index}
+                          onUbicar={handleUbicar}
+                          onCancelar={handleCancelar}
+                          onDireccion={handleDireccion}
+                        />
+                      ))}
+                </tbody>
+              </table>
+            </div>
+          </SortableContext>
+        </DndContext>
 
-        
-          </div>
-        </SortableContext>
-      </DndContext>
+        {/* Modal de Direcciones */}
+        {modalData && (
+          <ModalDirecciones
+            codCliente={modalData.codCliente}
+            nombrePasajero={modalData.nombrePasajero}
+            codigo={modalData.codigo}
+            setShouldRefetch={setShouldRefetch}
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+          />
+        )}
+      </>
     );
   },
 );
-
 
 DragAndDropTable.displayName = 'DragAndDropTable';
 
