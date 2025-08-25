@@ -1082,7 +1082,7 @@ export default function RequestPage() {
       if (followLink) {
         e.preventDefault();
         const deviceID = followLink.getAttribute('data-device-id');
-        const url = `/subtrackvelnew/seguirUnidad?deviceId=${deviceID}`;
+        const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
         window.open(url, '_blank');
       }
     },
