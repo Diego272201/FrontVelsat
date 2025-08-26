@@ -198,7 +198,6 @@ export default function Page() {
       toast.error(
         'Debe seleccionar al menos un servicio, un conductor y una unidad.',
       );
-
       return;
     }
 
