@@ -3,16 +3,14 @@ import { MapPin, Truck, Home } from 'lucide-react';
 
 const options = [
   'Todas',
-  'SURTIDOR CONCRETO-2',
-  'SURTIDOR 205 - ATOCONGO',
-  'SURTIDOR EL SOL – GRUPO 1',
-  'SURTIDOR 2 - MANCHAY',
-  'CR 27 - MUSA - LA MOLINA',
-  'SURTIDOR 06 - GRUPO 2 -SAN JUAN / CHORRILLOS',
-  'SURTIDOR SAN BARTOLO',
-  'SURTIDOR PUNTA HERMOSA',
+  'SURTIDOR 06',
+  'SURTIDOR 205',
   'SURTIDOR EL SOL',
-  'SURTIDOR EL SOL – GRUPO 04',
+  'SURTIDOR MANCHAY 02',
+  'SURTIDOR MUSA',
+  'SURTIDOR R-CONCRETO',
+  'SURTIDOR SAN BARTOLO',
+  'CISTERNA VENTA AGUA',
 ];
 
 export default function SelectSidebar({
