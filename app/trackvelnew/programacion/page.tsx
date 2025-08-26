@@ -10,6 +10,9 @@ import {
   Eye,
   X,
   RotateCcw,
+  Settings,
+  LogOut,
+  Filter,
 } from 'lucide-react';
 
 interface Service {
@@ -139,99 +142,97 @@ const ServicesSearchSystem: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 ">
+      <div className="bg-blue-800 p-2 text-center text-[13px] font-bold  text-white shadow-md">
+        ADMINISTRACIÓN DE SERVICIOS
+      </div>
+
       <div className="mx-auto space-y-3">
         {/* Header */}
 
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md">
-  <h1 className="mb-3 flex items-center gap-2 text-lg font-bold text-slate-800">
-    BÚSQUEDA DE SERVICIOS
-  </h1>
+        <div className="border-slate-200 px-3 py-2">
+          <h1 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
+            <Search className="h-4 w-4 text-blue-600" />
+            Búsqueda de Servicios
+          </h1>
 
-  {/* Search Filters */}
-  <div className="mb-3 grid grid-cols-1 gap-3 lg:grid-cols-4">
-    <div className="grid grid-cols-2 gap-3">
-      <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">
-          Desde:
-        </label>
-        <div className="relative">
-          <Calendar className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 transform text-slate-400" />
-          <input
-            type="datetime-local"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-          />
+          {/* Search Filters */}
+          <div className="mb-0 grid grid-cols-1 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-700">
+                  Desde:
+                </label>
+                <div className="relative">
+                  <input
+                    type="datetime-local"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 py-1 pl-2 pr-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-[12px] font-medium text-slate-700">
+                  Hasta:
+                </label>
+                <div className="relative">
+                  <input
+                    type="datetime-local"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 py-1 pl-2 pr-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-700">
+                Grupo:
+              </label>
+              <select
+                value={grupo}
+                onChange={(e) => setGrupo(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+              >
+                <option value="Tierra">Tierra</option>
+                <option value="Aire">Aire</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-700">
+                Tipo:
+              </label>
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+              >
+                <option value="Salida">Salida</option>
+                <option value="Llegada">Llegada</option>
+              </select>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <button className="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-blue-700">
+                <Search className="h-3 w-3" />
+                Total Servicios
+              </button>
+
+              <button className="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-blue-700">
+                <Plus className="h-3 w-3" />
+                Nuevo Servicio
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">
-          Hasta:
-        </label>
-        <div className="relative">
-          <Calendar className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 transform text-slate-400" />
-          <input
-            type="datetime-local"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <label className="mb-1 block text-xs font-medium text-slate-700">
-        Grupo:
-      </label>
-      <select
-        value={grupo}
-        onChange={(e) => setGrupo(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="Tierra">Tierra</option>
-        <option value="Aire">Aire</option>
-      </select>
-    </div>
-
-    <div>
-      <label className="mb-1 block text-xs font-medium text-slate-700">
-        Tipo:
-      </label>
-      <select
-        value={tipo}
-        onChange={(e) => setTipo(e.target.value)}
-        className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="Salida">Salida</option>
-        <option value="Llegada">Llegada</option>
-      </select>
-    </div>
-
-    <div className="flex items-end gap-2">
-      <button className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-[15px] text-xs leading-none font-medium text-white hover:bg-blue-700 transition-colors">
-        <Search className="h-3 w-3" />
-        Total Servicios
-      </button>
-      <button className="flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-[15px] text-xs leading-none font-medium text-white hover:bg-emerald-700 transition-colors">
-        <Search className="h-3 w-3" />
-        Buscar
-      </button>
-      <button className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-[15px] text-xs leading-none font-medium text-white hover:bg-blue-700 transition-colors">
-        <Plus className="h-3 w-3" />
-        Nuevo Servicio
-      </button>
-    </div>
-  </div>
-</div>
-
-     
 
         {/* Driver Assignment */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md">
-          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-slate-800">
+        <div className="bg-gray-100 px-3 py-2">
+          <h2 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
             <User className="h-4 w-4 text-blue-600" />
             Asignación Conductor/Unidad
           </h2>
@@ -244,7 +245,7 @@ const ServicesSearchSystem: React.FC = () => {
                 type="text"
                 value={unidad}
                 onChange={(e) => setUnidad(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-2 py-[5px] text-sm transition-colors focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div>
@@ -255,11 +256,11 @@ const ServicesSearchSystem: React.FC = () => {
                 type="text"
                 value={conductor}
                 onChange={(e) => setConductor(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-2 py-[5px] text-sm transition-colors focus:border-blue-500 focus:outline-none"
               />
             </div>
             <div className="flex items-end">
-              <button className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+              <button className="w-full rounded-lg bg-blue-600 px-4 py-[6px] text-sm font-medium text-white transition-colors hover:bg-blue-700">
                 Asignar
               </button>
             </div>
@@ -267,8 +268,11 @@ const ServicesSearchSystem: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-md">
-          <h2 className="mb-3 text-lg font-semibold text-slate-800">Filtros</h2>
+        <div className=" bg-white px-3 py-2">
+          <h2 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
+            <Filter className="h-4 w-4 text-blue-600" />
+            Filtros
+          </h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium text-slate-700">
@@ -281,11 +285,11 @@ const ServicesSearchSystem: React.FC = () => {
                     type="text"
                     value={pasajero}
                     onChange={(e) => setPasajero(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    className="w-full rounded-lg border border-slate-300 py-[5px] pl-7 pr-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
                     placeholder="Buscar pasajero..."
                   />
                 </div>
-                <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+                <button className="rounded-lg bg-blue-600 px-4 py-[5px] text-sm font-medium text-white transition-colors hover:bg-blue-700">
                   Buscar Pasajero
                 </button>
               </div>
@@ -298,13 +302,13 @@ const ServicesSearchSystem: React.FC = () => {
                 <select
                   value={aerolinea}
                   onChange={(e) => setAerolinea(e.target.value)}
-                  className="flex-1 rounded-lg border border-slate-300 px-2 py-2 text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 rounded-lg border border-slate-300 px-2 py-[5px] text-sm transition-colors focus:border-blue-500 focus:outline-none"
                 >
                   <option value="TALMA">TALMA</option>
                   <option value="LATAM">LATAM</option>
                   <option value="AVIANCA">AVIANCA</option>
                 </select>
-                <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700">
+                <button className="rounded-lg bg-teal-600 px-4 py-[5px] text-sm font-medium text-white transition-colors hover:bg-teal-700">
                   Resumen
                 </button>
               </div>
@@ -316,7 +320,7 @@ const ServicesSearchSystem: React.FC = () => {
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
           <div className="border-b border-slate-200 p-3">
             <div className="flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800">
+              <h2 className="flex items-center gap-2 text-[12px] font-semibold text-slate-800">
                 <MapPin className="h-4 w-4 text-blue-600" />
                 Lista de Servicios ({filteredServices.length})
               </h2>
@@ -391,22 +395,27 @@ const ServicesSearchSystem: React.FC = () => {
                 </div>
                 <div className="col-span-2 flex items-center gap-1">
                   <button
-                    className="rounded p-1 text-blue-600 transition-colors hover:bg-blue-50"
+                    className="flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-[11px] text-white transition-colors hover:bg-red-700"
                     title="Reiniciar"
                   >
                     <RotateCcw className="h-3 w-3" />
+                    Reiniciar
                   </button>
+
                   <button
-                    className="rounded p-1 text-emerald-600 transition-colors hover:bg-emerald-50"
+                    className="flex items-center gap-1 rounded bg-emerald-600 px-3 py-1 text-[11px]  text-white transition-colors hover:bg-emerald-700"
                     title="Ver Pasajeros"
                   >
                     <Eye className="h-3 w-3" />
+                    Pasajero
                   </button>
+
                   <button
-                    className="rounded p-1 text-red-600 transition-colors hover:bg-red-50"
+                    className="flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-[11px] text-white transition-colors hover:bg-red-700"
                     title="Cancelar"
                   >
-                    <X className="h-3 w-3" />
+                    Cancelar
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>

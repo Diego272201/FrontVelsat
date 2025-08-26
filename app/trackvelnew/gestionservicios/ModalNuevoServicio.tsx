@@ -12,8 +12,8 @@ import { toast } from 'sonner';
 import { parseFecha } from '@/app/components/dates/convertToCustomFormat ';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
-import InputDestino from '@/app/components/inputs/InputDestino'; // ← IMPORTAR EL COMPONENTE
-import { IDestino } from '@/app/components/inputs/IDestino'; // ← IMPORTAR LA INTERFAZ
+import InputDestino from '@/app/components/inputs/InputDestino'; 
+import { IDestino } from '@/app/components/inputs/IDestino'; 
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdAddBox } from 'react-icons/md';
 import { FiLoader } from 'react-icons/fi';
