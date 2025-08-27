@@ -1,6 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
@@ -33,6 +33,8 @@ interface Props {
   deviceId?: string;
   height?: string;
   marcadores?: { lat: number; lng: number }[];
+  centro?: { lat: number; lng: number } | null;
+  resetMap?: boolean;
 }
 
 interface MarkerData {
@@ -67,11 +69,11 @@ const AdditionalMarkers = ({
       {marcadores.map((punto, index) => {
         const StaticMarkerComponent = () => {
           const map = useMap();
-          
+
           useEffect(() => {
             const markerId = `static-marker-${index}`;
             const marker = L.marker([punto.lat, punto.lng], {
-              icon: createCustomIcon(index)
+              icon: createCustomIcon(index),
             }).addTo(map);
 
             // ✅ Solo abrir Street View al hacer clic - sin popups
@@ -127,10 +129,40 @@ const MapController = ({
   return null;
 };
 
+const MapCenterController = ({
+  centro,
+  resetMap,
+}: {
+  centro: { lat: number; lng: number } | null;
+  resetMap: boolean;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (resetMap) {
+      // Opcional: resetear el mapa a la posición inicial o hacer alguna acción de reset
+      console.log('🔄 Reseteando mapa...');
+      return;
+    }
+
+    if (centro && centro.lat && centro.lng) {
+      console.log('🎯 Centrando mapa en SeguirUnidad:', centro);
+      map.setView([centro.lat, centro.lng], 16, {
+        animate: true,
+        duration: 1,
+      });
+    }
+  }, [map, centro, resetMap]);
+
+  return null;
+};
+
 export default function SeguirUnidadPage({
   deviceId,
   height = '100vh',
   marcadores = [],
+  centro = null,
+  resetMap = false,
 }: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -147,7 +179,7 @@ export default function SeguirUnidadPage({
     markerId: string;
     title: string;
   } | null>(null);
-  
+
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
 
@@ -218,13 +250,17 @@ export default function SeguirUnidadPage({
   };
 
   // ✅ Handler para abrir Street View de marcadores estáticos
-  const handleStaticMarkerStreetView = (lat: number, lng: number, markerId: string) => {
+  const handleStaticMarkerStreetView = (
+    lat: number,
+    lng: number,
+    markerId: string,
+  ) => {
     const markerIndex = markerId.replace('static-marker-', '');
     setStreetViewData({
       lat,
       lng,
       markerId,
-      title: `PUNTO ${parseInt(markerIndex) + 1}`
+      title: `PUNTO ${parseInt(markerIndex) + 1}`,
     });
     setIsStreetViewOpen(true);
   };
@@ -636,7 +672,7 @@ export default function SeguirUnidadPage({
               lat: device.lastValidLatitude,
               lng: device.lastValidLongitude,
               markerId: device.deviceId,
-              title: device.deviceId.toUpperCase()
+              title: device.deviceId.toUpperCase(),
             });
             setIsStreetViewOpen(true);
           } else {
@@ -700,12 +736,16 @@ export default function SeguirUnidadPage({
   }, [device, createMarkerAndPopup]);
 
   // ✅ Determinar qué datos usar para Street View
-  const currentStreetViewData = streetViewData || (device && isStreetViewOpen ? {
-    lat: device.lastValidLatitude,
-    lng: device.lastValidLongitude,
-    markerId: device.deviceId,
-    title: device.deviceId.toUpperCase()
-  } : null);
+  const currentStreetViewData =
+    streetViewData ||
+    (device && isStreetViewOpen
+      ? {
+          lat: device.lastValidLatitude,
+          lng: device.lastValidLongitude,
+          markerId: device.deviceId,
+          title: device.deviceId.toUpperCase(),
+        }
+      : null);
 
   return (
     <div
@@ -783,9 +823,11 @@ export default function SeguirUnidadPage({
           setHasInitialCentered={setHasInitialCentered}
         />
 
+        <MapCenterController centro={centro} resetMap={resetMap} />
+
         {marcadores && marcadores.length > 0 && (
-          <AdditionalMarkers 
-            marcadores={marcadores} 
+          <AdditionalMarkers
+            marcadores={marcadores}
             onStreetViewOpen={handleStaticMarkerStreetView}
           />
         )}
@@ -891,117 +933,128 @@ export default function SeguirUnidadPage({
       )}
 
       {/* CSS Styles */}
-<style jsx global>{`
- .transparent-popup .leaflet-popup-content-wrapper {
-   background: transparent !important;
-   box-shadow: none !important;
-   border: none !important;
- }
+      <style jsx global>{`
+        .transparent-popup .leaflet-popup-content-wrapper {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
 
- .transparent-popup .leaflet-popup-tip {
-   background: transparent !important;
-   box-shadow: none !important;
-   border: none !important;
- }
+        .transparent-popup .leaflet-popup-tip {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
 
- .transparent-popup .leaflet-popup-content {
-   margin: 0 !important;
-   padding: 0 !important;
- }
+        .transparent-popup .leaflet-popup-content {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
 
- .transparent-popup .leaflet-popup-close-button {
-   display: none !important;
- }
+        .transparent-popup .leaflet-popup-close-button {
+          display: none !important;
+        }
 
- .custom-popup-2 * {
-   text-align: left !important;
- }
+        .custom-popup-2 * {
+          text-align: left !important;
+        }
 
- .custom-popup1-font {
-   font-size: 12px;
-   font-weight: 700;
- }
+        .custom-popup1-font {
+          font-size: 12px;
+          font-weight: 700;
+        }
 
- .popup-title {
-   padding: 8px 12px;
-   font-size: 12px;
-   font-weight: 700;
- }
+        .popup-title {
+          padding: 8px 12px;
+          font-size: 12px;
+          font-weight: 700;
+        }
 
- #map-container:fullscreen {
-   background: #000;
- }
+        #map-container:fullscreen {
+          background: #000;
+        }
 
- #map-container:fullscreen .leaflet-container {
-   background: #fff;
- }
+        #map-container:fullscreen .leaflet-container {
+          background: #fff;
+        }
 
- /* Indicadores de estado en tiempo real */
- .status-indicator {
-   display: inline-block;
-   width: 8px;
-   height: 8px;
-   border-radius: 50%;
-   margin-right: 6px;
- }
+        /* Indicadores de estado en tiempo real */
+        .status-indicator {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          margin-right: 6px;
+        }
 
- .status-moving {
-   background-color: #10b981;
-   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-   animation: pulse-green 2s infinite;
- }
+        .status-moving {
+          background-color: #10b981;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+          animation: pulse-green 2s infinite;
+        }
 
- .status-stopped {
-   background-color: #f59e0b;
-   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
-   animation: pulse-orange 2s infinite;
- }
+        .status-stopped {
+          background-color: #f59e0b;
+          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+          animation: pulse-orange 2s infinite;
+        }
 
- @keyframes pulse-green {
-   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-   70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
- }
+        @keyframes pulse-green {
+          0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+          }
+        }
 
- @keyframes pulse-orange {
-   0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-   70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
-   100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
- }
+        @keyframes pulse-orange {
+          0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+          }
+        }
 
- /* Responsividad para pantallas pequeñas */
- @media (max-width: 768px) {
-   .street-view-panel {
-     width: 90% !important;
-     height: 50% !important;
-     left: 5% !important;
-     bottom: 5% !important;
-   }
- }
+        /* Responsividad para pantallas pequeñas */
+        @media (max-width: 768px) {
+          .street-view-panel {
+            width: 90% !important;
+            height: 50% !important;
+            left: 5% !important;
+            bottom: 5% !important;
+          }
+        }
 
- /* Mejoras visuales para el panel Street View */
- .street-view-panel {
-   backdrop-filter: blur(10px);
-   background: rgba(255, 255, 255, 0.95);
- }
+        /* Mejoras visuales para el panel Street View */
+        .street-view-panel {
+          backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.95);
+        }
 
- .street-view-header {
-   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
- }
+        .street-view-header {
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
 
- .street-view-footer {
-   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
- }
+        .street-view-footer {
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
 
- /* Hacer más pequeños los controles del Street View */
- div[style*="position: absolute"][style*="bottom: 2%"] iframe {
-   transform: scale(0.85);
-   transform-origin: top left;
-   width: 117.6%;
-   height: 117.6%;
- }
-`}</style>
-
+        /* Hacer más pequeños los controles del Street View */
+        div[style*='position: absolute'][style*='bottom: 2%'] iframe {
+          transform: scale(0.85);
+          transform-origin: top left;
+          width: 117.6%;
+          height: 117.6%;
+        }
+      `}</style>
     </div>
   );
 }

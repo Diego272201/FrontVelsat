@@ -1550,7 +1550,9 @@ export default function App({
                             <SeguirUnidad
                               deviceId={selectedRow.unidadSF?.toLowerCase()}
                               height="30vh"
-                              marcadores={coordenadas} // ← Agregar esta línea
+                              marcadores={coordenadas}
+                              centro={centroMapa}
+                              resetMap={resetMap}
                             />
                           </div>
                         )}
