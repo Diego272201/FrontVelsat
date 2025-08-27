@@ -9,7 +9,8 @@ import '@/app/styles/popup.css';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG'; // Ajusta la ruta según tu estructura
+import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
+import { X, Maximize2, Map, MapPin, Eye } from 'lucide-react';
 
 const initialCenter: [number, number] = [
   -12.046591525826495, -77.04689047482863,
@@ -31,7 +32,7 @@ interface FechaActual {
 interface Props {
   deviceId?: string;
   height?: string;
-  marcadores?: { lat: number; lng: number }[]; // ← Nueva prop agregada
+  marcadores?: { lat: number; lng: number }[];
 }
 
 interface MarkerData {
@@ -41,14 +42,17 @@ interface MarkerData {
   intervalId?: NodeJS.Timeout;
 }
 
-// Componente para mostrar marcadores adicionales
-const AdditionalMarkers = ({ marcadores }: { marcadores: { lat: number; lng: number }[] }) => {
-  // Crear íconos personalizados para los marcadores
+const AdditionalMarkers = ({
+  marcadores,
+}: {
+  marcadores: { lat: number; lng: number }[];
+}) => {
   const createCustomIcon = (index: number) => {
     const markerSvg = getMarkerSVG(index + 1);
-    
+
     return L.icon({
-      iconUrl: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
+      iconUrl:
+        'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
       iconSize: [40, 50],
       iconAnchor: [20, 45],
       popupAnchor: [0, -45],
@@ -68,7 +72,6 @@ const AdditionalMarkers = ({ marcadores }: { marcadores: { lat: number; lng: num
   );
 };
 
-// Componente para acceder al mapa desde dentro
 const MapController = ({
   onMapReady,
   device,
@@ -88,7 +91,6 @@ const MapController = ({
     }
   }, [map, onMapReady]);
 
-  // Centrar el mapa SOLO la primera vez cuando hay device y mapa listos
   useEffect(() => {
     if (map && device && !hasInitialCentered) {
       const newCenter: [number, number] = [
@@ -106,7 +108,7 @@ const MapController = ({
 export default function SeguirUnidadPage({
   deviceId,
   height = '100vh',
-  marcadores = [], // ← Nueva prop con valor por defecto
+  marcadores = [],
 }: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -115,15 +117,20 @@ export default function SeguirUnidadPage({
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInitialCentered, setHasInitialCentered] = useState(false);
+  const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
 
   const servidorUrl = localStorage.getItem('servidorUrl');
 
-  // ← Debug para verificar que llegan los marcadores
+  // ✅ API Key desde variables de entorno
+  const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
+
   useEffect(() => {
-    console.log('🔍 SeguirUnidad - Marcadores recibidos:', marcadores);
-    console.log('🔍 SeguirUnidad - Cantidad de marcadores:', marcadores?.length);
+    console.log(
+      '🔍 SeguirUnidad - Cantidad de marcadores:',
+      marcadores?.length,
+    );
   }, [marcadores]);
 
   // Manejo del fullscreen
@@ -148,7 +155,6 @@ export default function SeguirUnidadPage({
         await document.exitFullscreen();
       }
 
-      // Invalidar el tamaño del mapa después del cambio
       setTimeout(() => {
         if (mapRef.current) {
           mapRef.current.invalidateSize();
@@ -159,182 +165,203 @@ export default function SeguirUnidadPage({
     }
   };
 
-useEffect(() => {
-  let connection: signalR.HubConnection | null = null;
-  let isComponentMounted = true;
-  let reconnectionAttempts = 0;
-  const MAX_RECONNECTION_ATTEMPTS = 3;
-  const RECONNECTION_DELAY = 1000;
-
-  const getDeviceIdFromUrl = () => {
-    if (typeof window !== 'undefined') {
-      return searchParams.get('deviceId');
+  // ✅ Funciones para Street View
+  const getStreetViewEmbedUrl = (lat: number, lng: number) => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error('❌ API Key de Google Maps no disponible');
+      return '';
     }
-    return null;
+    return `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lng}&heading=0&pitch=0&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
   };
 
-  const connectSignalR = async () => {
-    const deviceIdFinal = deviceId || getDeviceIdFromUrl();
-    
-    // Validaciones iniciales
-    if (!isComponentMounted || !deviceIdFinal) {
-      console.warn('❌ Componente desmontado o deviceId no disponible');
-      return;
-    }
+  const getDirectGoogleMapsUrl = (lat: number, lng: number) => {
+    return `https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s0!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com!7i16384!8i8192`;
+  };
 
-    if (status !== 'authenticated' || !session?.user?.username || !servidorUrl) {
-      console.warn('❌ Sesión no autenticada o datos faltantes');
-      return;
-    }
+  const toggleStreetView = () => {
+    setIsStreetViewOpen(!isStreetViewOpen);
+  };
 
-    // Cerrar conexión previa si existe
-    if (connection && connection.state !== signalR.HubConnectionState.Disconnected) {
-      try {
-        await connection.stop();
-      } catch (error) {
-        console.warn('Error cerrando conexión previa:', error);
+  const closeStreetView = () => {
+    setIsStreetViewOpen(false);
+  };
+
+  // SignalR Connection (mismo código que tenías)
+  useEffect(() => {
+    let connection: signalR.HubConnection | null = null;
+    let isComponentMounted = true;
+    let reconnectionAttempts = 0;
+    const MAX_RECONNECTION_ATTEMPTS = 3;
+    const RECONNECTION_DELAY = 1000;
+
+    const getDeviceIdFromUrl = () => {
+      if (typeof window !== 'undefined') {
+        return searchParams.get('deviceId');
       }
-    }
+      return null;
+    };
 
-    try {
-      const username = session.user.username;
-      // ✅ USAR EL ENDPOINT CORRECTO CON PARÁMETRO DE RUTA
-      const hubUrl = `${servidorUrl}/dataHubDevice/${username}`;
+    const connectSignalR = async () => {
+      const deviceIdFinal = deviceId || getDeviceIdFromUrl();
 
-      console.log('🚀 Iniciando nueva conexión SignalR para device:', deviceIdFinal);
-
-      connection = new signalR.HubConnectionBuilder()
-        .withUrl(hubUrl, {
-          transport: signalR.HttpTransportType.WebSockets,
-          skipNegotiation: true,
-          headers: {
-            'Cache-Control': 'no-cache',
-            Pragma: 'no-cache',
-          },
-        })
-        .configureLogging(signalR.LogLevel.Warning)
-        .withAutomaticReconnect([0, 1000, 5000, 10000])
-        .build();
-
-      // Configurar timeouts EXACTOS
-      connection.keepAliveIntervalInMilliseconds = 15000; // 15 segundos
-      connection.serverTimeoutInMilliseconds = 30000; // 30 segundos
-
-      // Manejar cierre de conexión
-      connection.onclose((error) => {
-        if (isComponentMounted) {
-          console.log('❌ Conexión cerrada:', error?.message || 'Sin error');
-
-          if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
-            reconnectionAttempts++;
-            setTimeout(() => {
-              if (isComponentMounted) {
-                console.log(
-                  `🔄 Reintentando conexión (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-                );
-                connectSignalR();
-              }
-            }, RECONNECTION_DELAY);
-          }
-        }
-      });
-
-      // Manejar reconexión
-      connection.onreconnecting(() => {
-        console.log('🔄 Reconectando...');
-      });
-
-      connection.onreconnected((connectionId) => {
-        console.log('✅ Reconectado:', connectionId);
-        reconnectionAttempts = 0;
-      });
-
-      // Iniciar conexión
-      const startTime = Date.now();
-      let isFirstDataReceived = false;
-      await connection.start();
-
-      // Verificar si el componente sigue montado después de la conexión
-      if (!isComponentMounted) {
-        await connection.stop();
+      if (!isComponentMounted || !deviceIdFinal) {
+        console.warn('❌ Componente desmontado o deviceId no disponible');
         return;
       }
 
-      console.log('✅ Conexión SignalR establecida');
-      reconnectionAttempts = 0;
-
-      console.log(`🏠 Automáticamente unido al grupo: ${username}`);
-
-      // ✅ EVENTO PRINCIPAL - Filtrar por deviceId específico
-      connection.on('ActualizarDatos', (datos) => {
-        if (!isComponentMounted) return;
-
-        if (!isFirstDataReceived) {
-          const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-          console.log(`⚡ Primera actualización recibida en ${totalTime}s`);
-          isFirstDataReceived = true;
-        }
-
-        // Buscar el dispositivo específico
-        const updatedDevice = datos.datosDevice.find(
-          (d: Device) => d.deviceId === deviceIdFinal,
-        );
-
-        if (updatedDevice) {
-          console.log(`📱 Dispositivo ${deviceIdFinal} actualizado`);
-          setFechaActual(datos.fechaActual);
-          setDevice(updatedDevice);
-        } else {
-          console.warn(`⚠️ Dispositivo ${deviceIdFinal} no encontrado en los datos`);
-        }
-      });
-
-      // Manejar errores del servidor
-      connection.on('Error', (error) => {
-        if (isComponentMounted) {
-          console.error('❌ Error desde SignalR:', error);
-        }
-      });
-
-      // ✅ CONFIRMACIÓN DE CONEXIÓN EXITOSA
-      connection.on('ConectadoExitosamente', (username) => {
-        console.log(
-          `✅ Confirmación: Conectado exitosamente para usuario ${username}`,
-        );
-      });
-
-    } catch (error) {
-      console.error('❌ Error conectando SignalR:', error);
-
-      if (isComponentMounted && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
-        reconnectionAttempts++;
-        setTimeout(() => {
-          if (isComponentMounted) {
-            console.log(
-              `🔄 Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-            );
-            connectSignalR();
-          }
-        }, RECONNECTION_DELAY);
+      if (
+        status !== 'authenticated' ||
+        !session?.user?.username ||
+        !servidorUrl
+      ) {
+        console.warn('⚠️ Sesión no autenticada o datos faltantes');
+        return;
       }
-    }
-  };
 
-  // Iniciar conexión con un pequeño delay
-  const timeoutId = setTimeout(connectSignalR, 50);
+      if (
+        connection &&
+        connection.state !== signalR.HubConnectionState.Disconnected
+      ) {
+        try {
+          await connection.stop();
+        } catch (error) {
+          console.warn('Error cerrando conexión previa:', error);
+        }
+      }
 
-  // Cleanup function
-  return () => {
-    isComponentMounted = false;
-    clearTimeout(timeoutId);
+      try {
+        const username = session.user.username;
+        const hubUrl = `${servidorUrl}/dataHubDevice/${username}`;
 
-    if (connection) {
-      connection.stop().catch((error) => {
-        console.warn('Error al cerrar conexión en cleanup:', error);
-      });
-    }
-  };
-}, [status, session, deviceId, servidorUrl, searchParams]); // ✅ Dependencias completas
+        console.log(
+          '🚀 Iniciando nueva conexión SignalR para device:',
+          deviceIdFinal,
+        );
+
+        connection = new signalR.HubConnectionBuilder()
+          .withUrl(hubUrl, {
+            transport: signalR.HttpTransportType.WebSockets,
+            skipNegotiation: true,
+            headers: {
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+          })
+          .configureLogging(signalR.LogLevel.Warning)
+          .withAutomaticReconnect([0, 1000, 5000, 10000])
+          .build();
+
+        connection.keepAliveIntervalInMilliseconds = 15000;
+        connection.serverTimeoutInMilliseconds = 30000;
+
+        connection.onclose((error) => {
+          if (isComponentMounted) {
+            console.log('Conexión cerrada:', error?.message || 'Sin error');
+
+            if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
+              reconnectionAttempts++;
+              setTimeout(() => {
+                if (isComponentMounted) {
+                  console.log(
+                    `🔄 Reintentando conexión (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
+                  );
+                  connectSignalR();
+                }
+              }, RECONNECTION_DELAY);
+            }
+          }
+        });
+
+        connection.onreconnecting(() => {
+          console.log('Reconectando...');
+        });
+
+        connection.onreconnected((connectionId) => {
+          console.log('Reconectado:', connectionId);
+          reconnectionAttempts = 0;
+        });
+
+        const startTime = Date.now();
+        let isFirstDataReceived = false;
+        await connection.start();
+
+        if (!isComponentMounted) {
+          await connection.stop();
+          return;
+        }
+
+        reconnectionAttempts = 0;
+
+        console.log(`Automáticamente unido al grupo: ${username}`);
+
+        connection.on('ActualizarDatos', (datos) => {
+          if (!isComponentMounted) return;
+
+          if (!isFirstDataReceived) {
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+            console.log(`⚡ Primera actualización recibida en ${totalTime}s`);
+            isFirstDataReceived = true;
+          }
+
+          const updatedDevice = datos.datosDevice.find(
+            (d: Device) => d.deviceId === deviceIdFinal,
+          );
+
+          if (updatedDevice) {
+            console.log(`📱 Dispositivo ${deviceIdFinal} actualizado`);
+            setFechaActual(datos.fechaActual);
+            setDevice(updatedDevice);
+          } else {
+            console.warn(
+              `⚠️ Dispositivo ${deviceIdFinal} no encontrado en los datos`,
+            );
+          }
+        });
+
+        connection.on('Error', (error) => {
+          if (isComponentMounted) {
+            console.error('❌ Error desde SignalR:', error);
+          }
+        });
+
+        connection.on('ConectadoExitosamente', (username) => {
+          console.log(
+            `Confirmación: Conectado exitosamente para usuario ${username}`,
+          );
+        });
+      } catch (error) {
+        console.error('Error conectando SignalR:', error);
+
+        if (
+          isComponentMounted &&
+          reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS
+        ) {
+          reconnectionAttempts++;
+          setTimeout(() => {
+            if (isComponentMounted) {
+              console.log(
+                `🔄 Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
+              );
+              connectSignalR();
+            }
+          }, RECONNECTION_DELAY);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(connectSignalR, 50);
+
+    return () => {
+      isComponentMounted = false;
+      clearTimeout(timeoutId);
+
+      if (connection) {
+        connection.stop().catch((error) => {
+          console.warn('Error al cerrar conexión en cleanup:', error);
+        });
+      }
+    };
+  }, [status, session, deviceId, servidorUrl, searchParams]);
 
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
@@ -343,7 +370,14 @@ useEffect(() => {
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}`;
+
+    return `
+      <span class="text-gray-300 text-[12px]">
+        Fecha: <span class="ml-1 text-white font-medium">${day}/${month}/${year}</span>
+        <span class="mx-2"></span>
+        Hora: <span class="ml-1 text-white font-medium">${hours}:${minutes}</span>
+      </span>
+    `;
   }, []);
 
   const getDireccion = useCallback((heading: number) => {
@@ -428,20 +462,51 @@ useEffect(() => {
   const getPopupContent = useCallback(
     (device: Device) => {
       return `
-    <div class="content-custom-popup bg-gray-800 text-white rounded-lg p-2" id="content2-${device.deviceId}">
-         <button id="close-btn-${device.deviceId}" class="absolute top-2 right-4 text-white hover:text-red-500 text-lg font-bold">&times;</button>
-        <span><strong>Unidad:</strong> <strong>${device.deviceId.toUpperCase()}</strong></span>
-        <span><strong>Velocidad:</strong> <strong>${device.lastValidSpeed} Km/h</strong></span>
-        <span><strong>Estado:</strong> <strong>${getEstado(device.lastValidSpeed)}</strong></span>
-        <br>
- <hr class="my-2 border-gray-600">
+    <div class="content-custom-popup bg-gray-800 text-white p-4 shadow-lg border border-gray-600 min-w-82" id="content2-${device.deviceId}">
+      <button id="close-btn-${device.deviceId}" class="absolute top-0 right-3 text-gray-300 hover:text-red-400 text-xl font-bold transition-colors">&times;</button>
+      
+      <div class="space-y-1">
+        <div class="flex items-center">
+          <span class="text-gray-300">Unidad:</span> 
+          <strong class="text-blue-300 ml-1">${device.deviceId.toUpperCase()}</strong>
+        </div>
+        
+        <div class="flex items-center">
+          <span class="text-gray-300">Velocidad:</span> 
+          <strong class="text-green-300 ml-1">${device.lastValidSpeed} Km/h</strong>
+        </div>
+        
+        <div class="flex items-center">
+          <span class="text-gray-300">Estado:</span> 
+          <strong class="text-yellow-300 ml-1">${getEstado(device.lastValidSpeed)}</strong>
+        </div>
+      </div>
+
+      <hr class="my-1 border-gray-600">
+      
+      <h4 class="font-semibold text-gray-200 uppercase text-[10px] mb-1 ml-[2px]">
+        <strong>Último Reporte</strong>
+      </h4>
+      
+      <div class="bg-gray-700 p-1 space-y-2">
+        <div class="text-center">
+            <strong>${formatFecha(fechaActual)}</strong>
+        </div>
+        
+        <div class="space-y-1">
+          <div>
+            <span class="text-gray-300 text-[12px]">Dirección:</span> 
+            <strong class="text-white">${getDireccion(device.lastValidHeading)}</strong>
+          </div>
           
-      <h4 class="font-medium text-gray-300 uppercase"><strong>Último Reporte</strong></h4>  
-        <span><strong>${formatFecha(fechaActual)}</strong></span>
-        <span><strong>Dirección:</strong> <strong>${getDireccion(device.lastValidHeading)}</strong></span>
-        <span><strong>Ubicación:</strong> <strong>${device.direccion}</strong></span>
+          <div>
+            <span class="text-gray-300 text-[12px]">Ubicación:</span> 
+            <strong class="text-white text-[12x]">${device.direccion}</strong>
+          </div>
+        </div>
+      </div>
     </div>
-  `;
+    `;
     },
     [fechaActual, getDireccion, getEstado, formatFecha],
   );
@@ -471,7 +536,7 @@ useEffect(() => {
         if (popupElement) {
           popupElement.innerHTML = getPopupContent(device);
 
-          // Re-agregar event listener al botón de cerrar
+          // Re-agregar event listeners
           const closeButton = popupElement.querySelector(
             `#close-btn-${device.deviceId}`,
           );
@@ -480,11 +545,13 @@ useEffect(() => {
               e.stopPropagation();
               markerData.marker.closePopup();
               markerData.marker.bindPopup(markerData.popup1).openPopup();
+              // ✅ Cerrar Street View al cerrar popup
+              setIsStreetViewOpen(false);
             });
           }
         }
       } else {
-        // Crear nuevo marcador
+        // Crear nuevo marcador (mismo código que tenías)
         const popup1Content = `
         <div class="relative flex flex-col items-center mt-4">
           <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
@@ -503,7 +570,7 @@ useEffect(() => {
 
         const popup2 = L.popup({
           closeButton: false,
-          autoClose: false, // Cambiar a false para evitar que se cierre automáticamente
+          autoClose: false,
           className: 'custom-popup-2 transparent-popup',
         }).setContent(getPopupContent(device));
 
@@ -513,26 +580,26 @@ useEffect(() => {
         // Abrir popup1 por defecto
         marker.bindPopup(popup1).openPopup();
 
-        // Variable para rastrear estado del popup2
         let popup2IsOpen = false;
 
         // Event listeners
         marker.on('click', () => {
           if (!popup2IsOpen) {
-            // Abrir popup2
             marker.bindPopup(popup2).openPopup();
             popup2IsOpen = true;
+            // ✅ Abrir Street View automáticamente al hacer clic en el marcador
+            setIsStreetViewOpen(true);
           } else {
-            // Cerrar popup2 y volver a popup1
             marker.closePopup();
             marker.bindPopup(popup1).openPopup();
             popup2IsOpen = false;
+            // ✅ Cerrar Street View al cerrar popup2
+            setIsStreetViewOpen(false);
           }
         });
 
         // Configurar event listeners para popup2
         popup2.on('add', () => {
-          // Configurar botón de cerrar
           const closeButton = document.querySelector(
             `#close-btn-${device.deviceId}`,
           );
@@ -542,6 +609,8 @@ useEffect(() => {
               marker.closePopup();
               marker.bindPopup(popup1).openPopup();
               popup2IsOpen = false;
+              // ✅ Cerrar Street View al cerrar popup2
+              setIsStreetViewOpen(false);
             });
           }
         });
@@ -561,10 +630,8 @@ useEffect(() => {
     (map: L.Map) => {
       mapRef.current = map;
 
-      // Prevenir que los clics en el mapa cierren los popups
       map.on('click', (e) => {
         e.originalEvent.stopPropagation();
-        // No hacer nada - mantener todos los popups abiertos
       });
 
       if (device) {
@@ -589,44 +656,45 @@ useEffect(() => {
         backgroundColor: isFullscreen ? '#000' : 'transparent',
       }}
     >
-      {/* Botón de fullscreen */}
-      <button
-        onClick={toggleFullscreen}
-        className="absolute right-4 top-4 z-[1000] rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
-        title={
-          isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
-        }
-      >
-        {isFullscreen ? (
-          // Icono para salir de fullscreen
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
-          </svg>
-        ) : (
-          // Icono para entrar en fullscreen
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-          </svg>
-        )}
-      </button>
+      {/* Botones de control */}
+      <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-2">
+        {/* Botón fullscreen */}
+        <button
+          onClick={toggleFullscreen}
+          className="rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
+          title={
+            isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
+          }
+        >
+          {isFullscreen ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
+            </svg>
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       <MapContainer
         center={
@@ -640,7 +708,7 @@ useEffect(() => {
         zoomControl={true}
         maxZoom={19}
         minZoom={1}
-        closePopupOnClick={false} // ← Esta es la configuración clave
+        closePopupOnClick={false}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -655,74 +723,221 @@ useEffect(() => {
           setHasInitialCentered={setHasInitialCentered}
         />
 
-        {/* ← Componente para mostrar marcadores adicionales */}
         {marcadores && marcadores.length > 0 && (
           <AdditionalMarkers marcadores={marcadores} />
         )}
       </MapContainer>
 
-      {/* CSS para popups transparentes y estilos */}
-      <style jsx global>{`
-        .transparent-popup .leaflet-popup-content-wrapper {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
+      {device && isStreetViewOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '2%',
+            left: '2%',
+            width: '35%',
+            height: '55%',
+            backgroundColor: 'white',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            zIndex: 1000,
+            border: '2px solid #e0e0e0',
+            borderRadius: '8px',
+            fontFamily: 'Segoe UI, sans-serif',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header del panel */}
+          <div
+            style={{
+              padding: '0px 12px',
+              borderBottom: '1px solid #e0e0e0',
+              backgroundColor: '#fff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              minHeight: '25px',
+            }}
+          >
+            <h3
+              style={{
+                margin: '0',
+                color: '#333',
+                fontSize: '13px',
+                fontWeight: 'bold',
+              }}
+            >
+              {device.deviceId.toUpperCase()}
+            </h3>
+            <button
+              onClick={closeStreetView}
+              style={{
+                width: '18px',
+                height: '18px',
+                border: 'none',
+                backgroundColor: '#ff4757',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
 
-        .transparent-popup .leaflet-popup-tip {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
-        }
+          {/* Contenido del Street View */}
+          <div
+            style={{
+              position: 'relative',
+              height: 'calc(100% - 25px)', // Ajustado para el header y footer más pequeños
+            }}
+          >
+            {GOOGLE_MAPS_API_KEY ? (
+              <iframe
+                src={getStreetViewEmbedUrl(
+                  device.lastValidLatitude,
+                  device.lastValidLongitude,
+                )}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Street View - ${device.deviceId}`}
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%',
+                  backgroundColor: '#f5f5f5',
+                  color: '#666',
+                }}
+              >
+                <p>Street View no disponible - API Key faltante</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-        .transparent-popup .leaflet-popup-content {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
+      {/* CSS Styles */}
+<style jsx global>{`
+ .transparent-popup .leaflet-popup-content-wrapper {
+   background: transparent !important;
+   box-shadow: none !important;
+   border: none !important;
+ }
 
-        .transparent-popup .leaflet-popup-close-button {
-          display: none !important;
-        }
+ .transparent-popup .leaflet-popup-tip {
+   background: transparent !important;
+   box-shadow: none !important;
+   border: none !important;
+ }
 
-        /* Forzar alineación a la izquierda en todo el contenido del popup */
-        .custom-popup-2 * {
-          text-align: left !important;
-        }
+ .transparent-popup .leaflet-popup-content {
+   margin: 0 !important;
+   padding: 0 !important;
+ }
 
-        /* Estilos específicos para elementos del popup */
-        .custom-popup1-font {
-          font-size: 12px;
-          font-weight: 700;
-        }
+ .transparent-popup .leaflet-popup-close-button {
+   display: none !important;
+ }
 
-        .popup-title {
-          padding: 8px 12px;
-          font-size: 12px;
-          font-weight: 700;
-        }
+ .custom-popup-2 * {
+   text-align: left !important;
+ }
 
-        .popup-close-btnn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 4px 8px;
-          border-radius: 4px;
-          transition: all 0.2s ease;
-        }
+ .custom-popup1-font {
+   font-size: 12px;
+   font-weight: 700;
+ }
 
-        .popup-close-btnn:hover {
-          background-color: rgba(255, 255, 255, 0.1);
-        }
+ .popup-title {
+   padding: 8px 12px;
+   font-size: 12px;
+   font-weight: 700;
+ }
 
-        /* Estilos para el modo fullscreen */
-        #map-container:fullscreen {
-          background: #000;
-        }
+ #map-container:fullscreen {
+   background: #000;
+ }
 
-        #map-container:fullscreen .leaflet-container {
-          background: #fff;
-        }
-      `}</style>
+ #map-container:fullscreen .leaflet-container {
+   background: #fff;
+ }
+
+ /* Indicadores de estado en tiempo real */
+ .status-indicator {
+   display: inline-block;
+   width: 8px;
+   height: 8px;
+   border-radius: 50%;
+   margin-right: 6px;
+ }
+
+ .status-moving {
+   background-color: #10b981;
+   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+   animation: pulse-green 2s infinite;
+ }
+
+ .status-stopped {
+   background-color: #f59e0b;
+   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+   animation: pulse-orange 2s infinite;
+ }
+
+ @keyframes pulse-green {
+   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+   70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+ }
+
+ @keyframes pulse-orange {
+   0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+   70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+   100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+ }
+
+ /* Responsividad para pantallas pequeñas */
+ @media (max-width: 768px) {
+   .street-view-panel {
+     width: 90% !important;
+     height: 50% !important;
+     left: 5% !important;
+     bottom: 5% !important;
+   }
+ }
+
+ /* Mejoras visuales para el panel Street View */
+ .street-view-panel {
+   backdrop-filter: blur(10px);
+   background: rgba(255, 255, 255, 0.95);
+ }
+
+ .street-view-header {
+   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+ }
+
+ .street-view-footer {
+   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+ }
+
+ /* Hacer más pequeños los controles del Street View */
+ div[style*="position: absolute"][style*="bottom: 2%"] iframe {
+   transform: scale(0.85);
+   transform-origin: top left;
+   width: 117.6%;
+   height: 117.6%;
+ }
+`}</style>
+
     </div>
   );
 }

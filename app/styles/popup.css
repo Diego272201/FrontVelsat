@@ -33,13 +33,13 @@
 .content-custom-popup {
   display: flex;
   flex-direction: column;
-  max-height: 280px;
-  min-width: 250px;
+  max-height: 290px;
+  min-width: 290px;
   background-color: #1f2937;
   color: #fff;
-  border-radius: 12px;
   font-size: 12px;
   padding: 5px;
+  border-radius: 5px;
 
 
 }
