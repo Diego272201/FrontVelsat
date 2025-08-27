@@ -491,9 +491,12 @@ export default function RequestPage() {
 
       const colorScheme = getColorScheme(device);
 
-      const kilometraje = (device.lastOdometerKM != null && device.odometerini != null && device.kmini != null) 
-  ? device.lastOdometerKM - device.odometerini + device.kmini 
-  : 0;
+      const kilometraje =
+        device.lastOdometerKM != null &&
+        device.odometerini != null &&
+        device.kmini != null
+          ? device.lastOdometerKM - device.odometerini + device.kmini
+          : 0;
 
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
@@ -1165,6 +1168,10 @@ export default function RequestPage() {
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     setMarkersLoaded(false);
+
+    //Tráfico
+    const trafficLayer = new google.maps.TrafficLayer();
+    trafficLayer.setMap(map);
   }, []);
 
   function startBlinkingAnimation(
