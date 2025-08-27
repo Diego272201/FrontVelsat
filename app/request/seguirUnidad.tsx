@@ -42,10 +42,13 @@ interface MarkerData {
   intervalId?: NodeJS.Timeout;
 }
 
+// ✅ Componente simplificado para marcadores estáticos - solo Street View al hacer clic
 const AdditionalMarkers = ({
   marcadores,
+  onStreetViewOpen,
 }: {
   marcadores: { lat: number; lng: number }[];
+  onStreetViewOpen: (lat: number, lng: number, markerId: string) => void;
 }) => {
   const createCustomIcon = (index: number) => {
     const markerSvg = getMarkerSVG(index + 1);
@@ -61,13 +64,32 @@ const AdditionalMarkers = ({
 
   return (
     <>
-      {marcadores.map((punto, index) => (
-        <Marker
-          key={index}
-          position={[punto.lat, punto.lng]}
-          icon={createCustomIcon(index)}
-        />
-      ))}
+      {marcadores.map((punto, index) => {
+        const StaticMarkerComponent = () => {
+          const map = useMap();
+          
+          useEffect(() => {
+            const markerId = `static-marker-${index}`;
+            const marker = L.marker([punto.lat, punto.lng], {
+              icon: createCustomIcon(index)
+            }).addTo(map);
+
+            // ✅ Solo abrir Street View al hacer clic - sin popups
+            marker.on('click', () => {
+              onStreetViewOpen(punto.lat, punto.lng, markerId);
+            });
+
+            // Cleanup al desmontar
+            return () => {
+              map.removeLayer(marker);
+            };
+          }, []);
+
+          return null;
+        };
+
+        return <StaticMarkerComponent key={index} />;
+      })}
     </>
   );
 };
@@ -118,6 +140,14 @@ export default function SeguirUnidadPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInitialCentered, setHasInitialCentered] = useState(false);
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
+  // ✅ Estado para manejar Street View de marcadores estáticos
+  const [streetViewData, setStreetViewData] = useState<{
+    lat: number;
+    lng: number;
+    markerId: string;
+    title: string;
+  } | null>(null);
+  
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
 
@@ -165,7 +195,7 @@ export default function SeguirUnidadPage({
     }
   };
 
-  // ✅ Funciones para Street View
+  // ✅ Funciones para Street View (mejoradas)
   const getStreetViewEmbedUrl = (lat: number, lng: number) => {
     if (!GOOGLE_MAPS_API_KEY) {
       console.error('❌ API Key de Google Maps no disponible');
@@ -184,6 +214,19 @@ export default function SeguirUnidadPage({
 
   const closeStreetView = () => {
     setIsStreetViewOpen(false);
+    setStreetViewData(null);
+  };
+
+  // ✅ Handler para abrir Street View de marcadores estáticos
+  const handleStaticMarkerStreetView = (lat: number, lng: number, markerId: string) => {
+    const markerIndex = markerId.replace('static-marker-', '');
+    setStreetViewData({
+      lat,
+      lng,
+      markerId,
+      title: `PUNTO ${parseInt(markerIndex) + 1}`
+    });
+    setIsStreetViewOpen(true);
   };
 
   // SignalR Connection (mismo código que tenías)
@@ -547,6 +590,7 @@ export default function SeguirUnidadPage({
               markerData.marker.bindPopup(markerData.popup1).openPopup();
               // ✅ Cerrar Street View al cerrar popup
               setIsStreetViewOpen(false);
+              setStreetViewData(null);
             });
           }
         }
@@ -588,6 +632,12 @@ export default function SeguirUnidadPage({
             marker.bindPopup(popup2).openPopup();
             popup2IsOpen = true;
             // ✅ Abrir Street View automáticamente al hacer clic en el marcador
+            setStreetViewData({
+              lat: device.lastValidLatitude,
+              lng: device.lastValidLongitude,
+              markerId: device.deviceId,
+              title: device.deviceId.toUpperCase()
+            });
             setIsStreetViewOpen(true);
           } else {
             marker.closePopup();
@@ -595,6 +645,7 @@ export default function SeguirUnidadPage({
             popup2IsOpen = false;
             // ✅ Cerrar Street View al cerrar popup2
             setIsStreetViewOpen(false);
+            setStreetViewData(null);
           }
         });
 
@@ -611,6 +662,7 @@ export default function SeguirUnidadPage({
               popup2IsOpen = false;
               // ✅ Cerrar Street View al cerrar popup2
               setIsStreetViewOpen(false);
+              setStreetViewData(null);
             });
           }
         });
@@ -646,6 +698,14 @@ export default function SeguirUnidadPage({
       createMarkerAndPopup(mapRef.current);
     }
   }, [device, createMarkerAndPopup]);
+
+  // ✅ Determinar qué datos usar para Street View
+  const currentStreetViewData = streetViewData || (device && isStreetViewOpen ? {
+    lat: device.lastValidLatitude,
+    lng: device.lastValidLongitude,
+    markerId: device.deviceId,
+    title: device.deviceId.toUpperCase()
+  } : null);
 
   return (
     <div
@@ -724,11 +784,15 @@ export default function SeguirUnidadPage({
         />
 
         {marcadores && marcadores.length > 0 && (
-          <AdditionalMarkers marcadores={marcadores} />
+          <AdditionalMarkers 
+            marcadores={marcadores} 
+            onStreetViewOpen={handleStaticMarkerStreetView}
+          />
         )}
       </MapContainer>
 
-      {device && isStreetViewOpen && (
+      {/* ✅ Panel de Street View mejorado que funciona para ambos tipos de marcadores */}
+      {currentStreetViewData && isStreetViewOpen && (
         <div
           style={{
             position: 'absolute',
@@ -765,7 +829,7 @@ export default function SeguirUnidadPage({
                 fontWeight: 'bold',
               }}
             >
-              {device.deviceId.toUpperCase()}
+              {currentStreetViewData.title}
             </h3>
             <button
               onClick={closeStreetView}
@@ -791,14 +855,14 @@ export default function SeguirUnidadPage({
           <div
             style={{
               position: 'relative',
-              height: 'calc(100% - 25px)', // Ajustado para el header y footer más pequeños
+              height: 'calc(100% - 25px)', // Ajustado para el header
             }}
           >
             {GOOGLE_MAPS_API_KEY ? (
               <iframe
                 src={getStreetViewEmbedUrl(
-                  device.lastValidLatitude,
-                  device.lastValidLongitude,
+                  currentStreetViewData.lat,
+                  currentStreetViewData.lng,
                 )}
                 width="100%"
                 height="100%"
@@ -806,7 +870,7 @@ export default function SeguirUnidadPage({
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                title={`Street View - ${device.deviceId}`}
+                title={`Street View - ${currentStreetViewData.title}`}
               />
             ) : (
               <div
