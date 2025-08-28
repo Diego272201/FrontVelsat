@@ -526,6 +526,8 @@ export default function App({
 
       const API_URL = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
 
+      console.log(API_URL)
+
       setLoading(true);
       setErrorPasajero(null);
 
