@@ -223,7 +223,7 @@ const PasajeroAutocompleteInput: React.FC<PasajeroAutocompleteInputProps> = ({
       {showSuggestions && suggestions.length === 0 && !loading && inputValue.length >= 3 && (
         <div className="absolute left-0 right-0 z-50 mt-1 rounded-lg border border-slate-200 bg-white shadow-lg p-3">
           <div className="text-center text-sm text-slate-500">
-            No se encontraron pasajeros con "{inputValue}"
+            No se encontraron pasajeros con &quot;{inputValue}&quot;
             {allowManualEntry && (
               <div className="text-xs text-slate-400 mt-1">
                 Presiona Enter para agregar manualmente
