@@ -26,7 +26,6 @@ const MapControllerInner = dynamic(
         if (!map) return;
 
         if (resetMap) {
-          console.log('🔄 Reseteando mapa a posición inicial');
           setTimeout(() => {
             map.setView([-12.0464, -77.0428], 10);
             map.invalidateSize();
@@ -35,7 +34,6 @@ const MapControllerInner = dynamic(
         }
 
         if (centro) {
-          console.log('🎯 Centrando mapa en punto específico:', centro);
           setTimeout(() => {
             map.setView([centro.lat, centro.lng], 14);
           }, 100);
@@ -174,12 +172,9 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
 
   useEffect(() => {
     if (resetMap) {
-      console.log('🔄 Forzando re-render del mapa');
       setMapKey(prev => prev + 1);
     }
   }, [resetMap]);
-
-  console.log(marcadores)
 
   // Manejo del fullscreen
   useEffect(() => {
@@ -222,7 +217,6 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
 
   // ✅ Manejar click en marcador
   const handleMarkerClick = (punto: { lat: number; lng: number }, index: number) => {
-    console.log('🎯 Marcador clickeado:', { punto, index });
     setSelectedMarker({ punto, index });
     setIsStreetViewOpen(true);
   };

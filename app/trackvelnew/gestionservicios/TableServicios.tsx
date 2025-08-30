@@ -351,19 +351,21 @@ export default function App({
   }, [dataSeleccionada]);
 
   useEffect(() => {
-    const fetchConductores = async () => {
-      try {
-        const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`,
-        );
-        setConductores(response.data);
-      } catch (error) {
-        console.error('Error al obtener conductores:', error);
-      }
-    };
+  const fetchConductores = async () => {
 
-    fetchConductores();
-  }, []);
+    try {
+      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`;
+      console.log('Making request to:', url);
+      
+      const response = await axios.get(url);
+      setConductores(response.data);
+    } catch (error) {
+      console.error('Error al obtener conductores:', error);
+    }
+  };
+
+  fetchConductores();
+}, [username, isReady]);
 
   useEffect(() => {
     const fetchUnidades = async () => {
