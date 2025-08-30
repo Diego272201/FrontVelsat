@@ -352,9 +352,19 @@ export default function App({
 
   useEffect(() => {
   const fetchConductores = async () => {
+    if (!isReady) {
+      console.log('useUsername hook not ready yet');
+      return;
+    }
+
+    if (!username || username.trim() === '') {
+      console.error('Username is empty or invalid:', username);
+      return;
+    }
 
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`;
+      const encodedUsername = encodeURIComponent(username);
+      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${encodedUsername}`;
       console.log('Making request to:', url);
       
       const response = await axios.get(url);
