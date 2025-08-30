@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
-import { X, Maximize2, Map, MapPin } from 'lucide-react';
+import { X, Maximize2, Map, MapPin, Calendar, Clock, Gauge, Zap } from 'lucide-react';
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -25,6 +25,9 @@ interface MomentoProps {
   longitude: number;
   deviceId: string;
   direccion: string;
+  fecha?: string;
+  hora?: string;
+  velocidad?: number;
 }
 
 const containerStyle = {
@@ -38,6 +41,9 @@ export default function Momento({
   longitude = -77.042793,
   deviceId = "VH001",
   direccion = "Plaza de Armas, Lima, Perú",
+  fecha = "",
+  hora = "",
+  velocidad = 0,
 }: MomentoProps) {
   const [isClient, setIsClient] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -159,8 +165,40 @@ export default function Momento({
               autoPan={false}
             >
               <div className="popup-content">
-                <p className="popup-title">Unidad: {deviceId.toUpperCase()}</p>
-                <p className="popup-address" title={direccion}>
+                <p className="popup-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>
+                  <span>🚗</span>
+                  Unidad: {deviceId.toUpperCase()}
+                </p>
+                {/* Mostrar fecha, hora y velocidad si están disponibles */}
+                {fecha && (
+                  <p className="popup-info" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '4px 0', fontSize: '12px' }}>
+                    <Calendar size={14} color="#4a90e2" />
+                    Fecha: {fecha}
+                  </p>
+                )}
+                {hora && (
+                  <p className="popup-info" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '4px 0', fontSize: '12px' }}>
+                    <Clock size={14} color="#f39c12" />
+                    Hora: {hora}
+                  </p>
+                )}
+                {velocidad > 0 && (
+                  <p className="popup-info" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '4px 0', fontSize: '12px' }}>
+                    <Gauge size={14} color="#e74c3c" />
+                    Velocidad: {velocidad} km/h
+                  </p>
+                )}
+                {/* Estado basado en la velocidad */}
+                <p className="popup-info" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '4px 0', fontSize: '12px' }}>
+                  {velocidad > 1 ? (
+                    <Zap size={14} color="#27ae60" />
+                  ) : (
+                    <Zap size={14} color="#95a5a6" />
+                  )}
+                  Estado: {velocidad > 1 ? 'En Movimiento' : 'Estacionado'}
+                </p>
+                <p className="popup-address" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', margin: '8px 0 0 0', fontSize: '12px' }} title={direccion}>
+                  <MapPin size={14} color="#27ae60" style={{ marginTop: '1px', flexShrink: 0 }} />
                   Dirección: {direccion}
                 </p>
               </div>

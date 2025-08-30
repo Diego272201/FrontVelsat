@@ -15,11 +15,10 @@ import TableDraw from './TableDraw';
 import Mapa from '@/app/components/Mapa';
 import { getEstadoYColor, getEstadoYColorVerifica } from './ObtenerEstadoColor';
 import ModalUpdDestino from './ModalUpdDestino';
-
 import dynamic from 'next/dynamic';
-
 import { RiSaveFill } from 'react-icons/ri';
 import { BiSolidEdit } from 'react-icons/bi';
+import { useUsername } from '@/hooks/useUsername';
 
 const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
   ssr: false,
@@ -104,15 +103,10 @@ export default function App({
   refreshFlagServicio: boolean;
   refreshSearch: number;
 }) {
-  const [coordenadas, setCoordenadas] = useState<
-    { lat: number; lng: number }[]
-  >([]);
+  const { username, isReady } = useUsername();
 
-  const [centroMapa, setCentroMapa] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-
+  const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number }[]>([]);
+  const [centroMapa, setCentroMapa] = useState<{lat: number; lng: number;} | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isOpenD, setIsOpenD] = useState(false);
@@ -265,7 +259,7 @@ export default function App({
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
+          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -289,7 +283,7 @@ export default function App({
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado]);
+  }, [pasajero, seleccionado, username, isReady]);
 
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
@@ -360,7 +354,7 @@ export default function App({
     const fetchConductores = async () => {
       try {
         const response = await axios.get(
-          'https://velsat.pe:2096/api/Preplan/conductores?usuario=movilbus',
+          `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`,
         );
         setConductores(response.data);
       } catch (error) {
@@ -489,9 +483,10 @@ export default function App({
     if (selectedPasajeroCodlan) return;
 
     const fetchData = async () => {
+      if (!isReady) return;
       setLoading(true);
       const currentDate = selectedDate || getFormattedDate();
-      const API_URL = `https://velsat.pe:2096/api/Preplan/Getservicios?fecha=${currentDate}&usu=movilbus`;
+      const API_URL = `https://velsat.pe:2096/api/Preplan/Getservicios?fecha=${currentDate}&usu=${username}`;
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
@@ -512,6 +507,8 @@ export default function App({
     refreshFlagAsignar,
     refreshFlagServicio,
     refreshSearch,
+    username,
+    isReady
   ]);
 
   useEffect(() => {
@@ -522,9 +519,9 @@ export default function App({
     if (!selectedPasajeroCodlan) return;
 
     const fetchPasajeroData = async () => {
+      if (!isReady) return;
       const currentDate = selectedDate || getFormattedDate();
-
-      const API_URL = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=movilbus&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
+      const API_URL = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
 
       console.log(API_URL)
 
@@ -551,6 +548,8 @@ export default function App({
     refreshFlag,
     refreshFlagDelete,
     refreshFlagServicio,
+    username,
+    isReady
   ]);
 
   useEffect(() => {
@@ -766,7 +765,7 @@ export default function App({
     const fechaInicial = formatFecha(selectedRow?.fechaini);
     const fechaFinal = formatFecha(selectedRow?.fechafin);
 
-    const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/movilbus`;
+    const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/${username}`;
 
     console.log('Llamando a la API con URL:', API_URL);
 

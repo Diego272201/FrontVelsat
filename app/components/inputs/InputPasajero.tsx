@@ -2,6 +2,7 @@ import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { FaUser } from 'react-icons/fa';
 import { FiAlertTriangle } from 'react-icons/fi';
+import { useUsername } from '@/hooks/useUsername';
 
 interface IPasajero {
     apepate: string;
@@ -24,19 +25,19 @@ export default function InputPasajero({
   >([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
-
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
+  const { username, isReady } = useUsername();
 
   useEffect(() => {
     const fetchPasajeros = async () => {
-      if (pasajero.length < 1) {
-        setSugerencias([]);
-        return;
-      }
+      if (!isReady || pasajero.length < 1) { // ✅ Agregar !isReady
+      setSugerencias([]);
+      return;
+    }
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
+          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
         const resultados = Array.isArray(response.data)
@@ -61,7 +62,7 @@ export default function InputPasajero({
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado]);
+  }, [pasajero, seleccionado, username, isReady]);
 
   const seleccionarPasajero = (
     nombre: string,

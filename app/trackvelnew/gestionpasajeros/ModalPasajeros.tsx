@@ -373,10 +373,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     setShowSearchResults(false);
   };
 
-  const handleClickOutside = () => {
-    setShowSearchResults(false);
-  };
-
   useEffect(() => {
     if (!isOpen) {
       handleClose();
@@ -395,7 +391,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     const fetchTarifa = async () => {
       try {
         const response = await axios.get(
-          `${baseUrl}/api/Pasajero/Tarifa/movilbus`,
+          `${baseUrl}/api/Pasajero/Tarifa/${username}`,
         );
         const data = response.data;
 

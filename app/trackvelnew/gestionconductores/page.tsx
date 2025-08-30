@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/app/components/ui/alert-dialog';
+import { useUsername } from '@/hooks/useUsername';
 
 // Definir tipos
 interface Conductor {
@@ -63,14 +64,17 @@ export default function Page() {
   const [eliminandoLoading, setEliminandoLoading] = useState<number | null>(null);
   const [liberandoLoading, setLiberandoLoading] = useState<number | null>(null);
   const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(null);
+  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
 
   // Función para obtener datos de la API
   const fetchConductores = async () => {
+    if (!isReady) return; 
+
     try {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        'https://velsat.pe:2096/api/Preplan/conductores/movilbus',
+        `https://velsat.pe:2096/api/Preplan/conductores/${username}`,
       );
 
       if (!response.ok) {
@@ -299,7 +303,7 @@ export default function Page() {
   // Cargar datos al montar el componente
   useEffect(() => {
     fetchConductores();
-  }, []);
+  }, [isReady, username]);
 
   const filteredConductores = conductores.filter((conductor) =>
     conductor.nombre.toLowerCase().includes(searchTerm.toLowerCase()),

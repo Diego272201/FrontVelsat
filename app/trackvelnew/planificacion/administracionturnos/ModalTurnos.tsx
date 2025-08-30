@@ -21,6 +21,7 @@ import { IoSave } from 'react-icons/io5';
 import { IoMdAdd, IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
 import { toast, Toaster } from 'sonner';
+import { useUsername } from '@/hooks/useUsername';
 
 interface Props {
   titleM: string;
@@ -28,6 +29,8 @@ interface Props {
 }
 
 export default function App({ titleM, onSaveSuccess }: Props) {
+  const { username, isReady } = useUsername();
+
   const {
     register,
     handleSubmit,
@@ -42,15 +45,17 @@ export default function App({ titleM, onSaveSuccess }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!isReady) return;
+
     axios
-      .get('https://velsat.pe:2096/api/Turnos/empresa/movilbus')
+      .get(`https://velsat.pe:2096/api/Turnos/empresa/${username}`)
       .then((response) => {
         setEmpresas(response.data);
       })
       .catch((error) => {
         console.error('Error fetching areas:', error);
       });
-  }, []);
+  }, [username, isReady]);
 
   useEffect(() => {
     if (isOpen || !isOpen) {
@@ -60,6 +65,9 @@ export default function App({ titleM, onSaveSuccess }: Props) {
   }, [isOpen, reset, clearErrors]);
 
   const onSubmit = async (data: any, onClose: () => void) => {
+    if (!isReady) {
+    return;
+  }
     if (Object.keys(errors).length === 0) {
       const formattedHora = hora.toString().slice(0, 5);
       data.hora = formattedHora;
@@ -94,7 +102,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.post(
-          'https://velsat.pe:2096/api/Turnos/movilbus',
+          `https://velsat.pe:2096/api/Turnos/${username}`,
           postData,
         );
         console.log('Datos enviados correctamente', postData);

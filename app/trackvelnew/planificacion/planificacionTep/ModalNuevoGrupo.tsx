@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import InputPasajero from '@/app/components/inputs/InputPasajero';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdLibraryAdd, MdDelete } from 'react-icons/md';
+import { useUsername } from '@/hooks/useUsername';
 
 interface ModalNuevoGrupoProps {
   isOpen: boolean;
@@ -37,6 +38,8 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   fechaActual,
   totalGruposActuales = 0,
 }) => {
+  const { username, isReady } = useUsername();
+
   const [formData, setFormData] = useState({
     tipo: 'I', // Por defecto tipo "I" (Ingreso)
     fechaInicio: '', // Fecha y hora de inicio
@@ -121,6 +124,10 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   };
 
   const handleSubmit = async () => {
+    if (!isReady) {
+    return;
+  }
+
     if (!validateForm()) {
       toast.error('Por favor, completa todos los campos obligatorios');
       return;
@@ -184,7 +191,7 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
         );
 
         const response = await fetch(
-          `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=movilbus`,
+          `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`,
           {
             method: 'POST',
             headers: {

@@ -31,6 +31,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useUsername } from '@/hooks/useUsername';
 
 type FormField =
   | "apellidos"
@@ -58,6 +59,7 @@ export default function ConductorDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
 
   const [formData, setFormData] = useState<Record<FormField, string>>({
     apellidos: "",
@@ -128,7 +130,7 @@ export default function ConductorDialog({
   };
 
   const handleGuardar = async () => {
-    if (!validateForm()) return;
+    if (!validateForm() || !isReady) return; // ✅ Agregar !isReady
 
     setLoading(true);
     const loadingToast = toast.loading("Guardando conductor...");
@@ -153,7 +155,7 @@ export default function ConductorDialog({
       };
 
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/NuevoConductor/movilbus`,
+        `https://velsat.pe:2096/api/Preplan/NuevoConductor/${username}`,
         {
           method: "POST",
           headers: {
@@ -221,7 +223,7 @@ export default function ConductorDialog({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        disabled={loading}
+        disabled={loading || !isReady}
         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-[9px] px-6 text-sm shadow-lg transition-all duration-300 transform disabled:opacity-50"
       >
         Nuevo Conductor

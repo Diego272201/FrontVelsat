@@ -17,6 +17,7 @@ import { IDestino } from '@/app/components/inputs/IDestino';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdAddBox } from 'react-icons/md';
 import { FiLoader } from 'react-icons/fi';
+import { useUsername } from '@/hooks/useUsername'; 
 
 interface NuevoServicioModalProps {
   isOpen: boolean;
@@ -88,10 +89,9 @@ export default function NuevoServicioModal({
   onOpenChange,
   onServicioAgregado,
 }: NuevoServicioModalProps) {
+  const { username, isReady } = useUsername();
   const [loading, setLoading] = useState(false);
-
   const [clienteSeleccionado, setClienteSeleccionado] = useState('');
-
   const [tipoServicio, setTipoServicio] = useState('');
   const [horaDestino, setHoraDestino] = useState('');
   const [horaProgramada, setHoraProgramada] = useState('');
@@ -161,7 +161,7 @@ export default function NuevoServicioModal({
 
   useEffect(() => {
     const fetchPasajeros = async () => {
-      if (pasajero.trim() === '') {
+      if (!isReady || pasajero.trim() === '') {
         setSugerencias([]);
         setMostrarSugerencias(false);
         return;
@@ -169,7 +169,7 @@ export default function NuevoServicioModal({
 
       try {
         const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -193,7 +193,7 @@ export default function NuevoServicioModal({
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado]);
+  }, [pasajero, seleccionado, username, isReady]);
 
   const agregarPasajero = () => {
     if (!pasajero) {
@@ -263,7 +263,7 @@ export default function NuevoServicioModal({
       return;
     }
 
-    const url = `${API_BASE_URL125}/api/Preplan/AgregarServicio?usuario=movilbus`;
+    const url = `${API_BASE_URL125}/api/Preplan/AgregarServicio?usuario=${username}`;
 
     try {
       setLoading(true);
