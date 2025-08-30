@@ -17,6 +17,9 @@ import {
   Loader2,
   ChevronDown,
 } from 'lucide-react';
+import ModalAddService from './ModalAddService';
+import ModalPasajero from './ModalPasajero';
+import ModalAddPasajeros from './ModalAddPasajeros';
 
 interface ApiService {
   codservicio: string;
@@ -126,8 +129,13 @@ const ServicesSearchSystem: React.FC = () => {
 
   // Estados para el autocomplete de pasajeros
   const [pasajeroInput, setPasajeroInput] = useState('');
-  const [selectedPasajero, setSelectedPasajero] = useState<{codlan: string; apepate: string} | null>(null);
-  const [pasajeroSuggestions, setPasajeroSuggestions] = useState<Pasajero[]>([]);
+  const [selectedPasajero, setSelectedPasajero] = useState<{
+    codlan: string;
+    apepate: string;
+  } | null>(null);
+  const [pasajeroSuggestions, setPasajeroSuggestions] = useState<Pasajero[]>(
+    [],
+  );
   const [showPasajeroSuggestions, setShowPasajeroSuggestions] = useState(false);
   const [loadingPasajeros, setLoadingPasajeros] = useState(false);
   const pasajeroAutocompleteRef = useRef<HTMLDivElement>(null);
@@ -135,21 +143,31 @@ const ServicesSearchSystem: React.FC = () => {
 
   // Estados para el autocomplete de conductores
   const [conductorInput, setConductorInput] = useState('');
-  const [selectedConductor, setSelectedConductor] = useState<{codigo: string; apepate: string} | null>(null);
-  const [conductorSuggestions, setConductorSuggestions] = useState<Conductor[]>([]);
-  const [showConductorSuggestions, setShowConductorSuggestions] = useState(false);
+  const [selectedConductor, setSelectedConductor] = useState<{
+    codigo: string;
+    apepate: string;
+  } | null>(null);
+  const [conductorSuggestions, setConductorSuggestions] = useState<Conductor[]>(
+    [],
+  );
+  const [showConductorSuggestions, setShowConductorSuggestions] =
+    useState(false);
   const [loadingConductores, setLoadingConductores] = useState(false);
   const conductorAutocompleteRef = useRef<HTMLDivElement>(null);
   const conductorInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para el autocomplete de unidades
   const [unidadInput, setUnidadInput] = useState('');
-  const [selectedUnidad, setSelectedUnidad] = useState<{codunidad: string} | null>(null);
+  const [selectedUnidad, setSelectedUnidad] = useState<{
+    codunidad: string;
+  } | null>(null);
   const [unidadSuggestions, setUnidadSuggestions] = useState<Unidad[]>([]);
   const [showUnidadSuggestions, setShowUnidadSuggestions] = useState(false);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
   const unidadAutocompleteRef = useRef<HTMLDivElement>(null);
   const unidadInputRef = useRef<HTMLInputElement>(null);
+
+  const [loadingAsignacion, setLoadingAsignacion] = useState(false);
 
   // Función para transformar datos de la API
   const transformApiData = (apiData: ApiService[]): Service[] => {
@@ -189,7 +207,7 @@ const ServicesSearchSystem: React.FC = () => {
     try {
       const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=cgacela`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
@@ -218,18 +236,19 @@ const ServicesSearchSystem: React.FC = () => {
     try {
       const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=cgacela`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
       const data: Conductor[] = await response.json();
       // Filtrar conductores por la palabra de búsqueda
-      const filteredData = data.filter(conductor => 
-        conductor.apepate.toLowerCase().includes(palabra.toLowerCase()) ||
-        conductor.codigo.includes(palabra)
+      const filteredData = data.filter(
+        (conductor) =>
+          conductor.apepate.toLowerCase().includes(palabra.toLowerCase()) ||
+          conductor.codigo.includes(palabra),
       );
-      
+
       setConductorSuggestions(filteredData);
       setShowConductorSuggestions(true);
     } catch (err) {
@@ -253,18 +272,19 @@ const ServicesSearchSystem: React.FC = () => {
     try {
       const url = `https://velsat.pe:2096/api/Preplan/carros/cgacela`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
       const data: Unidad[] = await response.json();
       // Filtrar unidades por la palabra de búsqueda y solo las habilitadas
-      const filteredData = data.filter(unidad => 
-        unidad.habilitado === '1' &&
-        unidad.codunidad.toLowerCase().includes(palabra.toLowerCase())
+      const filteredData = data.filter(
+        (unidad) =>
+          unidad.habilitado === '1' &&
+          unidad.codunidad.toLowerCase().includes(palabra.toLowerCase()),
       );
-      
+
       setUnidadSuggestions(filteredData);
       setShowUnidadSuggestions(true);
     } catch (err) {
@@ -288,17 +308,17 @@ const ServicesSearchSystem: React.FC = () => {
 
     try {
       let data: ApiService[] = [];
-      
+
       // Si hay un pasajero seleccionado, usar la API específica del pasajero
       if (selectedPasajero && selectedPasajero.codlan) {
         const fechaFormatted = dateFrom.split('T')[0]; // Solo fecha YYYY-MM-DD
         const url = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=cgacela&fec=${fechaFormatted}&codcliente=${selectedPasajero.codlan}`;
-        
+
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
-        
+
         data = await response.json();
         toast.success(
           `Se cargaron ${data.length} servicios del pasajero ${selectedPasajero.apepate}`,
@@ -315,14 +335,11 @@ const ServicesSearchSystem: React.FC = () => {
         }
 
         data = await response.json();
-        toast.success(
-          `Se cargaron ${data.length} servicios correctamente`,
-        );
+        toast.success(`Se cargaron ${data.length} servicios correctamente`);
       }
 
       const transformedData = transformApiData(data);
       setServices(transformedData);
-      
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Error al cargar los servicios';
@@ -331,6 +348,12 @@ const ServicesSearchSystem: React.FC = () => {
       setServices([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshServices = () => {
+    if (dateFrom && dateTo) {
+      fetchServices();
     }
   };
 
@@ -372,13 +395,22 @@ const ServicesSearchSystem: React.FC = () => {
   // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pasajeroAutocompleteRef.current && !pasajeroAutocompleteRef.current.contains(event.target as Node)) {
+      if (
+        pasajeroAutocompleteRef.current &&
+        !pasajeroAutocompleteRef.current.contains(event.target as Node)
+      ) {
         setShowPasajeroSuggestions(false);
       }
-      if (conductorAutocompleteRef.current && !conductorAutocompleteRef.current.contains(event.target as Node)) {
+      if (
+        conductorAutocompleteRef.current &&
+        !conductorAutocompleteRef.current.contains(event.target as Node)
+      ) {
         setShowConductorSuggestions(false);
       }
-      if (unidadAutocompleteRef.current && !unidadAutocompleteRef.current.contains(event.target as Node)) {
+      if (
+        unidadAutocompleteRef.current &&
+        !unidadAutocompleteRef.current.contains(event.target as Node)
+      ) {
         setShowUnidadSuggestions(false);
       }
     };
@@ -397,11 +429,14 @@ const ServicesSearchSystem: React.FC = () => {
   };
 
   const handleSelectService = (id: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(id)
+    setSelectedServices((prev) => {
+      const newSelected = prev.includes(id)
         ? prev.filter((serviceId) => serviceId !== id)
-        : [...prev, id],
-    );
+        : [...prev, id];
+
+      console.log('Códigos de servicio seleccionados:', newSelected);
+      return newSelected;
+    });
   };
 
   const handleSelectAll = () => {
@@ -409,23 +444,97 @@ const ServicesSearchSystem: React.FC = () => {
   };
 
   // Handlers para pasajeros
-  const handlePasajeroInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePasajeroInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = e.target.value;
     setPasajeroInput(value);
-    
+
     if (selectedPasajero && value !== selectedPasajero.apepate) {
       setSelectedPasajero(null);
     }
   };
 
+  const asignarServicios = async () => {
+    if (
+      !selectedConductor ||
+      !selectedUnidad ||
+      selectedServices.length === 0
+    ) {
+      toast.error(
+        'Debe seleccionar al menos un servicio, un conductor y una unidad.',
+      );
+      return;
+    }
+
+    setLoadingAsignacion(true);
+
+    const payload = selectedServices.map((codservicio) => ({
+      codservicio,
+      conductor: {
+        codigo: selectedConductor.codigo,
+      },
+      unidad: {
+        codunidad: selectedUnidad.codunidad,
+      },
+    }));
+
+    try {
+      const response = await fetch(
+        'https://velsat.pe:2096/api/Preplan/AsignarServicio',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      console.log(JSON.stringify(payload));
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      // AGREGAR ESTE BLOQUE - Actualizar los servicios localmente
+      setServices((prevServices) =>
+        prevServices.map((service) => {
+          if (selectedServices.includes(service.id)) {
+            return {
+              ...service,
+              conductor: selectedConductor.apepate,
+              unidad: selectedUnidad.codunidad,
+            };
+          }
+          return service;
+        }),
+      );
+
+      toast.success('Asignación realizada con éxito.');
+      setSelectedServices([]);
+      clearConductorSelection();
+      clearUnidadSelection();
+    } catch (error) {
+      console.error('Error al asignar servicios:', error);
+      toast.error('Error al enviar la asignación.');
+    } finally {
+      setLoadingAsignacion(false);
+    }
+  };
   const handleSelectPasajero = (pasajero: Pasajero) => {
     setSelectedPasajero({
       codlan: pasajero.codigo,
-      apepate: pasajero.apepate
+      apepate: pasajero.apepate,
     });
     setPasajeroInput(pasajero.apepate);
     setShowPasajeroSuggestions(false);
-    console.log('Pasajero seleccionado - Codlan:', pasajero.codlan, 'Nombre:', pasajero.apepate);
+    console.log(
+      'Pasajero seleccionado - Codlan:',
+      pasajero.codlan,
+      'Nombre:',
+      pasajero.apepate,
+    );
   };
 
   const clearPasajeroSelection = () => {
@@ -436,10 +545,12 @@ const ServicesSearchSystem: React.FC = () => {
   };
 
   // Handlers para conductores
-  const handleConductorInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleConductorInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const value = e.target.value;
     setConductorInput(value);
-    
+
     if (selectedConductor && value !== selectedConductor.apepate) {
       setSelectedConductor(null);
     }
@@ -448,11 +559,16 @@ const ServicesSearchSystem: React.FC = () => {
   const handleSelectConductor = (conductor: Conductor) => {
     setSelectedConductor({
       codigo: conductor.codigo,
-      apepate: conductor.apepate
+      apepate: conductor.apepate,
     });
     setConductorInput(conductor.apepate);
     setShowConductorSuggestions(false);
-    console.log('Conductor seleccionado - Código:', conductor.codigo, 'Nombre:', conductor.apepate);
+    console.log(
+      'Conductor seleccionado - Código:',
+      conductor.codigo,
+      'Nombre:',
+      conductor.apepate,
+    );
   };
 
   const clearConductorSelection = () => {
@@ -466,7 +582,7 @@ const ServicesSearchSystem: React.FC = () => {
   const handleUnidadInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUnidadInput(value);
-    
+
     if (selectedUnidad && value !== selectedUnidad.codunidad) {
       setSelectedUnidad(null);
     }
@@ -474,7 +590,7 @@ const ServicesSearchSystem: React.FC = () => {
 
   const handleSelectUnidad = (unidad: Unidad) => {
     setSelectedUnidad({
-      codunidad: unidad.codunidad
+      codunidad: unidad.codunidad,
     });
     setUnidadInput(unidad.codunidad);
     setShowUnidadSuggestions(false);
@@ -489,27 +605,33 @@ const ServicesSearchSystem: React.FC = () => {
   };
 
   // Filtros (sin incluir los autocomplete de conductor y unidad)
-  const filteredServices = services.filter((service) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      service.conductor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.unidad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      service.numero.includes(searchTerm);
+  const filteredServices = services
+    .filter((service) => {
+      const matchesSearch =
+        searchTerm === '' ||
+        service.conductor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.unidad.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        service.numero.includes(searchTerm);
 
-    const matchesGrupo = grupo === '' || service.tierra === grupo;
-    const matchesTipo = tipo === '' || service.tipo === tipo;
-    const matchesAerolinea =
-      aerolinea === '' || service.aerolinea === aerolinea;
-    const matchesEstado = estado === '' || service.estado === estado;
+      const matchesGrupo = grupo === '' || service.tierra === grupo;
+      const matchesTipo = tipo === '' || service.tipo === tipo;
+      const matchesAerolinea =
+        aerolinea === '' || service.aerolinea === aerolinea;
+      const matchesEstado = estado === '' || service.estado === estado;
 
-    return (
-      matchesSearch &&
-      matchesGrupo &&
-      matchesTipo &&
-      matchesAerolinea &&
-      matchesEstado
-    );
-  });
+      return (
+        matchesSearch &&
+        matchesGrupo &&
+        matchesTipo &&
+        matchesAerolinea &&
+        matchesEstado
+      );
+    })
+    .sort((a, b) => {
+      const numA = parseInt(a.numero) || 0;
+      const numB = parseInt(b.numero) || 0;
+      return numA - numB;
+    });
 
   const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -626,18 +748,14 @@ const ServicesSearchSystem: React.FC = () => {
                 ) : (
                   <Search className="h-3 w-3" />
                 )}
-                {loading 
-                  ? 'Cargando...' 
-                  : selectedPasajero 
-                  ? 'Buscar por Pasajero' 
-                  : 'Buscar Servicios'
-                }
+                {loading
+                  ? 'Cargando...'
+                  : selectedPasajero
+                    ? 'Buscar por Pasajero'
+                    : 'Buscar Servicios'}
               </button>
 
-              <button className="flex flex-1 items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-green-700">
-                <Plus className="h-3 w-3" />
-                Nuevo Servicio
-              </button>
+              <ModalAddService onServiceAdded={refreshServices} />
             </div>
           </div>
         </div>
@@ -666,7 +784,9 @@ const ServicesSearchSystem: React.FC = () => {
                     }
                   }}
                   className={`w-full rounded-lg border py-[5px] pl-2 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedUnidad ? 'border-green-300 bg-green-50' : 'border-slate-300'
+                    selectedUnidad
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-slate-300'
                   }`}
                   placeholder="Buscar unidad..."
                 />
@@ -690,13 +810,14 @@ const ServicesSearchSystem: React.FC = () => {
                     <div
                       key={unidad.codunidad}
                       onClick={() => handleSelectUnidad(unidad)}
-                      className="cursor-pointer border-b border-slate-100 p-3 hover:bg-slate-50 last:border-b-0"
+                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
                     >
                       <div className="text-sm font-medium text-slate-900">
                         {unidad.codunidad}
                       </div>
                       <div className="text-xs text-slate-500">
-                        Tipo: {unidad.tipo} • Habilitado: {unidad.habilitado === '1' ? 'Sí' : 'No'}
+                        Tipo: {unidad.tipo} • Habilitado:{' '}
+                        {unidad.habilitado === '1' ? 'Sí' : 'No'}
                       </div>
                     </div>
                   ))}
@@ -721,7 +842,9 @@ const ServicesSearchSystem: React.FC = () => {
                     }
                   }}
                   className={`w-full rounded-lg border py-[5px] pl-2 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedConductor ? 'border-green-300 bg-green-50' : 'border-slate-300'
+                    selectedConductor
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-slate-300'
                   }`}
                   placeholder="Buscar conductor..."
                 />
@@ -745,7 +868,7 @@ const ServicesSearchSystem: React.FC = () => {
                     <div
                       key={conductor.codigo}
                       onClick={() => handleSelectConductor(conductor)}
-                      className="cursor-pointer border-b border-slate-100 p-3 hover:bg-slate-50 last:border-b-0"
+                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
                     >
                       <div className="text-sm font-medium text-slate-900">
                         {conductor.apepate}
@@ -765,8 +888,24 @@ const ServicesSearchSystem: React.FC = () => {
             </div>
 
             <div className="flex items-end">
-              <button className="w-full rounded-lg bg-blue-600 px-4 py-[6px] text-sm font-medium text-white transition-colors hover:bg-blue-700">
-                Asignar
+              <button
+                onClick={asignarServicios}
+                disabled={
+                  !selectedConductor ||
+                  !selectedUnidad ||
+                  selectedServices.length === 0 ||
+                  loadingAsignacion
+                }
+                className="w-full rounded-lg bg-blue-600 px-4 py-[6px] text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              >
+                {loadingAsignacion ? (
+                  <>
+                    <Loader2 className="mr-1 inline h-3 w-3 animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  'Asignar'
+                )}
               </button>
             </div>
           </div>
@@ -796,7 +935,9 @@ const ServicesSearchSystem: React.FC = () => {
                     }
                   }}
                   className={`w-full rounded-lg border py-[5px] pl-7 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedPasajero ? 'border-green-300 bg-green-50' : 'border-slate-300'
+                    selectedPasajero
+                      ? 'border-green-300 bg-green-50'
+                      : 'border-slate-300'
                   }`}
                   placeholder="Buscar Pasajero..."
                 />
@@ -820,7 +961,7 @@ const ServicesSearchSystem: React.FC = () => {
                     <div
                       key={pasajero.codlan}
                       onClick={() => handleSelectPasajero(pasajero)}
-                      className="cursor-pointer border-b border-slate-100 p-3 hover:bg-slate-50 last:border-b-0"
+                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
                     >
                       <div className="text-sm font-medium text-slate-900">
                         {pasajero.apepate}
@@ -835,7 +976,6 @@ const ServicesSearchSystem: React.FC = () => {
                   ))}
                 </div>
               )}
-         
             </div>
 
             <div>
@@ -849,24 +989,6 @@ const ServicesSearchSystem: React.FC = () => {
               >
                 <option value="">Todas</option>
                 {getUniqueOptions('aerolinea').map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Estado:
-              </label>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-[5px] text-sm transition-colors focus:border-blue-500 focus:outline-none"
-              >
-                <option value="">Todos</option>
-                {getUniqueOptions('estado').map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -903,7 +1025,7 @@ const ServicesSearchSystem: React.FC = () => {
         )}
 
         {/* Services List */}
-        <div className="overflow-hidden border border-slate-200 bg-white shadow-md mx-2">
+        <div className="mx-2 overflow-hidden border border-slate-200 bg-white shadow-md">
           <div className="border-b border-slate-200 p-3">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-[12px] font-semibold text-slate-800">
@@ -918,7 +1040,6 @@ const ServicesSearchSystem: React.FC = () => {
                   </span>
                 )}
               </h2>
-           
             </div>
           </div>
 
@@ -938,7 +1059,7 @@ const ServicesSearchSystem: React.FC = () => {
           </div>
 
           {/* Table Body */}
-          <div className="divide-y divide-slate-100 h-[calc(100vh-450px)] overflow-y-auto">
+          <div className="h-[calc(100vh-450px)] divide-y divide-slate-100 overflow-y-auto">
             {filteredServices.map((service) => (
               <div
                 key={service.id}
@@ -1006,13 +1127,16 @@ const ServicesSearchSystem: React.FC = () => {
                     <RotateCcw className="h-3 w-3" />
                     Reiniciar
                   </button>
-                  <button
-                    className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-[11px] text-white transition-colors hover:bg-emerald-700"
-                    title="Ver Pasajeros"
-                  >
-                    <Eye className="h-3 w-3" />
-                    Pasajero
-                  </button>
+<ModalPasajero
+  servicioData={{
+    codservicio: service.id,
+    numero: service.numero,
+    grupo: service.tierra,
+    tipo: service.tipo,
+    fechaAeropuerto: service.fechaAeropuerto,
+    aerolinea: service.aerolinea,
+  }}
+/>
                   <button
                     className="flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-[11px] text-white transition-colors hover:bg-red-700"
                     title="Cancelar"
@@ -1082,18 +1206,18 @@ const ServicesSearchSystem: React.FC = () => {
             <strong>Debug:</strong>
             {selectedPasajero && (
               <span className="ml-2">
-                Pasajero: {selectedPasajero.apepate} (Codlan: {selectedPasajero.codlan})
+                Pasajero: {selectedPasajero.apepate} (Codlan:{' '}
+                {selectedPasajero.codlan})
               </span>
             )}
             {selectedConductor && (
               <span className="ml-2">
-                Conductor: {selectedConductor.apepate} (Código: {selectedConductor.codigo})
+                Conductor: {selectedConductor.apepate} (Código:{' '}
+                {selectedConductor.codigo})
               </span>
             )}
             {selectedUnidad && (
-              <span className="ml-2">
-                Unidad: {selectedUnidad.codunidad}
-              </span>
+              <span className="ml-2">Unidad: {selectedUnidad.codunidad}</span>
             )}
           </div>
         )}

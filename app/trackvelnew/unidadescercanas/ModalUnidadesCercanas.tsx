@@ -7,7 +7,6 @@ import {
   ModalFooter,
   Button,
   Link,
-  Input,
 } from '@nextui-org/react';
 import Select from '@/app/components/selectUI/Select';
 import { Toaster, toast } from 'sonner';
