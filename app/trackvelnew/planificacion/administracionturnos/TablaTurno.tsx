@@ -28,6 +28,7 @@ import ModalTurnos from './ModalTurnos';
 import ModalTurnoEdit from './ModalTurnoEdit';
 import Swal from 'sweetalert2';
 import { MdDelete } from 'react-icons/md';
+import { useUsername } from '@/hooks/useUsername';
 
 const columns = [
   { name: 'N°', uid: 'n', sortable: true },
@@ -64,19 +65,14 @@ export default function App({
   onSaveSuccess,
   onEditSuccess,
 }: TablaTurnoProps) {
+  const { username, isReady } = useUsername();
+
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = useState<Selection>(
-    new Set(columns.map((c) => c.uid)),
-  );
+  const [visibleColumns, setVisibleColumns] = useState<Selection>( new Set(columns.map((c) => c.uid)),);
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
-
   const [rowsPerPage, setRowsPerPage] = useState(8);
-
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'n',
-    direction: 'ascending',
-  });
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({column: 'n',direction: 'ascending',});
   const [page, setPage] = useState(1);
   const [uniqueEmpresas, setUniqueEmpresas] = useState<string[]>([]);
 
@@ -99,15 +95,17 @@ export default function App({
   }, []);
 
   useEffect(() => {
+    if (!isReady) return;
+
     axios
-      .get('https://velsat.pe:2096/api/Turnos/empresa/movilbus')
+      .get(`https://velsat.pe:2096/api/Turnos/empresa/${username}`)
       .then((response) => {
         setUniqueEmpresas(response.data);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
       });
-  }, []);
+  }, [username, isReady]);
 
   const pages = Math.ceil(users.length / rowsPerPage);
 

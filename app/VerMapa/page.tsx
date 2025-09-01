@@ -15,9 +15,20 @@ function MomentoContent() {
   const lng = parseFloat(searchParams.get('lng') || '0');
   const dvc = searchParams.get('deviceId') || '';
   const dir = searchParams.get('dir') || '';
+  const fecha = searchParams.get('fecha') || '';
+  const hora = searchParams.get('hora') || '';
+  const speed = parseFloat(searchParams.get('speed') || '0');
   
   return (
-    <Momento latitude={lat} longitude={lng} deviceId={dvc} direccion={dir} />
+    <Momento 
+      latitude={lat} 
+      longitude={lng} 
+      deviceId={dvc} 
+      direccion={dir}
+      fecha={fecha}
+      hora={hora}
+      velocidad={speed}
+    />
   );
 }
 

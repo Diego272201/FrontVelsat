@@ -25,8 +25,11 @@ import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
 import ModalNuevoGrupo from './ModalNuevoGrupo';
 import { ArchiveRestore, Database, DatabaseZap, Funnel } from 'lucide-react';
+import { useUsername } from '@/hooks/useUsername';
 
 export default function TepContent() {
+  const { username, isReady } = useUsername();
+
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState<string>('');
   const [empresaConfirmada, setEmpresaConfirmada] = useState<string | null>(
     null,
@@ -323,6 +326,8 @@ export default function TepContent() {
   }, []);
 
   const handlePublicar = async () => {
+    if (!isReady) return;
+
     if (guardar) {
       await new Promise<void>((resolve) => {
         guardar(false);
@@ -397,7 +402,7 @@ export default function TepContent() {
 
       try {
         const response = await axios.post(
-          `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=movilbus`,
+          `${API_BASE_URL125}/api/preplan/servicios?fecha=${fecact}&empresa=${empresaSeleccionada}&usuario=${username}`,
         );
 
         if (response.data.data.length === 0) {
@@ -426,6 +431,8 @@ export default function TepContent() {
   }, [erroresCarga]);
 
   const handleDeleteCarga = async () => {
+    if (!isReady) return;
+    
     if (!selectedDate) {
       toast.error('Por favor selecciona una fecha.');
       return;
@@ -437,7 +444,7 @@ export default function TepContent() {
     }
 
     const fecact = formatFechaAMD(selectedDate);
-    const url = `${API_BASE_URL125}/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=movilbus`;
+    const url = `${API_BASE_URL125}/api/preplan/delete/?empresa=${encodeURIComponent(selectedEmpresa)}&fecha=${fecact}&usuario=${username}`;
 
     const toastId = toast.loading('Eliminando carga...');
 

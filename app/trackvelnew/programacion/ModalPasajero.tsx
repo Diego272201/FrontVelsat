@@ -23,7 +23,7 @@ import {
   GripVertical,
   Eye,
 } from 'lucide-react';
-import { DndContext, closestCenter } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -398,8 +398,7 @@ export default function App({ servicioData }: ModalPasajeroProps) {
 
       // Filtrar el registro con orden "0" para obtener coordenadas del aeropuerto
       const aeropuertoData = data.find((item) => item.orden === '0');
-      let coordsAeropuerto = null;
-
+      let coordsAeropuerto: { lat: number; lng: number } | null = null;
       if (
         aeropuertoData &&
         aeropuertoData.lugar.wy &&
@@ -570,7 +569,7 @@ export default function App({ servicioData }: ModalPasajeroProps) {
     });
   };
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (active.id !== over?.id) {

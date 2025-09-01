@@ -22,6 +22,7 @@ import { parseFechaHora } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
+import { useUsername } from '@/hooks/useUsername';
 
 const wrapperStyle: React.CSSProperties = {
   display: 'flex',
@@ -75,6 +76,8 @@ export default function App({
   setContadorGrupos,
   fechaSeleccionada,
 }: ServiciosProps) {
+  const { username, isReady } = useUsername();
+
   const [grupos, setGrupos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [shouldRefetch, setShouldRefetch] = useState(false);
@@ -115,8 +118,10 @@ export default function App({
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!isReady || !username) return;
+
       setLoading(true);
-      const groupedData = await obtenerDatosYAgrupar(empresa, dato);
+      const groupedData = await obtenerDatosYAgrupar(empresa, dato, username);
 
       const nuevosGrupos = groupedData.map((grupo) => ({
         ...grupo,
@@ -182,7 +187,7 @@ export default function App({
     };
 
     fetchData();
-  }, [empresa, shouldRefetch, shouldRefetchAddPasajero, dato]);
+  }, [empresa, shouldRefetch, shouldRefetchAddPasajero, dato, username]);
 
   const handleRefrescarDatos = () => {
     setShouldRefetchAddPasajero(true);
@@ -758,10 +763,11 @@ const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => 
   }, [eliminados]);
 
   const ejecutarGrupoCero = async () => {
+    if (!isReady) return;
     const toastId = toast.loading('Cargando ...');
     try {
       const response = await axios.put(
-        'https://velsat.pe:2096/api/Preplan/GrupoCero?usuario=movilbus',
+        `https://velsat.pe:2096/api/Preplan/GrupoCero?usuario=${username}`,
         {},
       );
 
@@ -794,6 +800,8 @@ const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => 
     unidadesActualizadas: any,
     esAutomatico: boolean = false,
   ) => {
+    if (!isReady) return;
+
     const dataToSend = [
       ...data.flatMap((grupo, grupoIndex) => {
         if (!grupo.personas || grupo.personas.length === 0) return [];
@@ -840,7 +848,7 @@ const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => 
       : null;
     try {
       const response = await axios.put(
-        `${API_BASE_URL125}/api/Preplan/save?usuario=movilbus`,
+        `${API_BASE_URL125}/api/Preplan/save?usuario=${username}`,
         dataToSend,
         { headers: { 'Content-Type': 'application/json' } },
       );

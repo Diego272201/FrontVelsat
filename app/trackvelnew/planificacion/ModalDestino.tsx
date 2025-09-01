@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import dynamic from 'next/dynamic';
 import type { Map as LeafletMap } from 'leaflet';
 import axios from 'axios';
+import { useUsername } from '@/hooks/useUsername';
 
 // Importar Leaflet dinámicamente para evitar problemas de SSR
 const MapContainer = dynamic(
@@ -84,11 +85,12 @@ export default function App({
 }: {
   onDestinoSeleccionado: (nombre: string, codigo: string) => void;
 }) {
+  const { username, isReady } = useUsername();
+
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [editable, setEditable] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const identificadorRef = useRef<HTMLInputElement>(null);
-
   const [codlan, setCodlan] = useState('');
   const [direccion, setDireccion] = useState('');
   const [distrito, setDistrito] = useState('');
@@ -410,6 +412,9 @@ export default function App({
   };
 
   const handleGuardarDestino = async () => {
+    if (!isReady) {
+    return;
+  }
     if (!editable) {
       toast.error(
         'Primero debes hacer clic en "Nuevo" para habilitar los campos.',
@@ -430,7 +435,7 @@ export default function App({
 
     try {
       const response = await fetch(
-        'https://velsat.pe:2096/api/Pasajero/NewDestino/movilbus',
+        `https://velsat.pe:2096/api/Pasajero/NewDestino/${username}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

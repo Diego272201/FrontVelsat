@@ -22,6 +22,7 @@ import { RiCheckboxMultipleFill } from 'react-icons/ri';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
+import { useUsername } from '@/hooks/useUsername';
 
 const empresas = [
   'ABNER MATOS',
@@ -81,56 +82,41 @@ const empresas = [
 ];
 
 export default function Page() {
+  const { username, isReady } = useUsername();
+
   const [isVisible, setIsVisible] = useState(true);
   const [isVisibleAsignar, setIsVisibleAsignar] = useState(false);
-
   const [selectedArea, setSelectedArea] = useState('');
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState('');
   const [empresaSelecRes, setEmpresaSelecRes] = useState('');
-
   const [tipoServicio, setTipoServicio] = React.useState('');
-
   const [pasajero, setPasajero] = useState('');
-  const [sugerencias, setSugerencias] = useState<
-    { apepate: string; codlan: string }[]
-  >([]);
+  const [sugerencias, setSugerencias] = useState<{ apepate: string; codlan: string }[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
-
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
-
   const [numeroServicio, setNumeroServicio] = useState('');
-
   const [unidadSeleccionada, setUnidadSeleccionada] = useState('');
-
-  const [unidadSeleccionadaAsignar, setUnidadSeleccionadaAsignar] =
-    useState('');
-
+  const [unidadSeleccionadaAsignar, setUnidadSeleccionadaAsignar] = useState('');
   const [apepateConductor, setApepateConductor] = useState('');
   const [codConductor, setCodConductor] = useState<number | null>(null);
-
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-
   const [searchDate, setSearchDate] = useState<string | null>(null);
-
   const [refreshFlag, setRefreshFlag] = useState(false);
-
   const [refreshFlagServicio, setRefreshFlagServicio] = useState(false);
-
   const [refreshSearch, setRefreshSearch] = useState(0);
 
   useEffect(() => {
     const fetchPasajeros = async () => {
-      if (pasajero.length < 1) {
+      if (!isReady || pasajero.length < 1) {
         setSugerencias([]);
         return;
       }
 
       try {
         const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=movilbus`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -149,7 +135,7 @@ export default function Page() {
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado]);
+  }, [pasajero, seleccionado, username, isReady]);
 
   const seleccionarPasajero = (nombre: string, codlan: string) => {
     setPasajero(nombre);
@@ -279,7 +265,7 @@ export default function Page() {
     const fecfin = encodeURIComponent(fecfinRaw);
     const aerolinea = empresaSelecRes;
 
-    const url = `${API_BASE_URL125}/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=movilbus`;
+    const url = `${API_BASE_URL125}/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=${username}`;
 
     const toastId = toast.loading('Generando resumen...');
 

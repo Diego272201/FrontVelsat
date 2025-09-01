@@ -59,11 +59,11 @@ interface Grupo {
   coordenadas: { wx: string; wy: string }[]
 }
 
-export const obtenerDatosYAgrupar = async (empresa: string, dato: string): Promise<Grupo[]> => {
+export const obtenerDatosYAgrupar = async (empresa: string, dato: string, username: string,): Promise<Grupo[]> => {
   try {
     const url = `${API_BASE_URL125}/api/preplan/get?dato=${encodeURIComponent(
       dato,
-    )}&empresa=${encodeURIComponent(empresa)}&usuario=movilbus`
+    )}&empresa=${encodeURIComponent(empresa)}&usuario=${username}`
     const response = await axios.get(url)
     const datos: DataItem[] = response.data
 

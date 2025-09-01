@@ -13,6 +13,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { MdLibraryAdd, MdDelete } from 'react-icons/md';
 import { toast } from 'sonner';
+import { useUsername } from '@/hooks/useUsername';
 
 interface Grupo {
   id: number;
@@ -40,6 +41,7 @@ export default function App({
   grupo,
   onRefrescarDatos,
 }: ModalAgregarPasajeroProps) {
+  const { username, isReady } = useUsername();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState<Pasajero | null>(null);
   const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Pasajero[]>([]);
@@ -71,6 +73,10 @@ export default function App({
   };
 
   const handleAgregarTodos = async () => {
+    if (!isReady) {
+    return;
+  }
+
     if (pasajerosSeleccionados.length === 0) {
       toast.warning('No hay pasajeros para agregar');
       return;
@@ -102,7 +108,7 @@ export default function App({
 
         try {
           const response = await fetch(
-            `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=movilbus`,
+            `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`,
             {
               method: 'POST',
               headers: {

@@ -32,6 +32,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/app/components/ui/alert-dialog";
+import { useUsername } from '@/hooks/useUsername';
 
 interface UnidadAPI {
   codunidad: string;
@@ -50,23 +51,17 @@ interface Notification {
 }
 
 export default function Page() {
+  const { username, isReady } = useUsername();
+
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [unidades, setUnidades] = useState<
-    { codunidad: string; habilitado: string }[]
-  >([]);
+  const [unidades, setUnidades] = useState<{ codunidad: string; habilitado: string }[]>([]);
   const [selectedUnidad, setSelectedUnidad] = useState<string | null>(null);
-  const [accion, setAccion] = useState<"habilitar" | "deshabilitar" | null>(
-    null
-  );
+  const [accion, setAccion] = useState<"habilitar" | "deshabilitar" | null>(null);
   const [loading, setLoading] = useState(false);
-
   const tableRef = useRef(null);
-
-  const [selectedUnidadLiberar, setSelectedUnidadLiberar] = useState<
-    string | null
-  >(null);
+  const [selectedUnidadLiberar, setSelectedUnidadLiberar] = useState<string | null>(null);
   const [showLiberarDialog, setShowLiberarDialog] = useState(false);
   const [loadingLiberar, setLoadingLiberar] = useState(false);
   
@@ -115,11 +110,13 @@ export default function Page() {
 
   useEffect(() => {
     fetchUnidades();
-  }, []);
+  }, [username, isReady]);
 
   const fetchUnidades = async () => {
+    if (!isReady) return;
+    
     const res = await fetch(
-      "https://velsat.pe:2096/api/Preplan/carros/movilbus"
+      `https://velsat.pe:2096/api/Preplan/carros/${username}`
     );
     const data = await res.json();
     setUnidades(

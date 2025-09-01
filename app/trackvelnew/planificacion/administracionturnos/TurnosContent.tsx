@@ -5,17 +5,19 @@ import TablaTurno from './TablaTurno';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
 import { Toaster } from 'sonner';
+import { useUsername } from '@/hooks/useUsername'; 
 
 export default function TurnosContent() {
+  const { username, isReady } = useUsername();
   const [ingresoData, setIngresoData] = useState<any[]>([]);
   const [salidaData, setSalidaData] = useState<any[]>([]);
   const { baseUrl } = useApi();
 
   const fetchData = async () => {
-    if (!baseUrl) return;
+    if (!baseUrl || !isReady) return;
 
     try {
-      const response = await axios.get(`${baseUrl}/api/Turnos/movilbus`);
+      const response = await axios.get(`${baseUrl}/api/Turnos/${username}`);
 
       const data = response.data.map((item: any) => ({
         codigo: item.codigo,
@@ -63,7 +65,7 @@ export default function TurnosContent() {
 
   useEffect(() => {
     fetchData();
-  }, [baseUrl]);
+  }, [baseUrl, username, isReady]);
 
   const handleSaveSuccess = () => {
     fetchData();

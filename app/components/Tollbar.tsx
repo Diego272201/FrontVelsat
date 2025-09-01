@@ -182,8 +182,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         icon: 'calendar',
         submenu: [
           { id: 'asignar', title: 'Asignar Conductor/Unidad' },
-          { id: 'archivo', title: 'Carga de Archivo' },
-          { id: 'servicios', title: 'Carga de Servicios' },
+          { id: 'archivo', title: 'Carga LATAM' }
         ],
       },
       {
@@ -198,8 +197,6 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         icon: 'document',
         modalType: 'detalleServicios',
       },
-      { id: 'latam', title: 'Control LATAM', icon: 'location' },
-
       {
         id: 'duracion',
         title: 'Duración de Servicios',
@@ -224,12 +221,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Planificación Servicios',
         href: '/trackvelnew/planificacion/planificacionTep',
         icon: 'document',
-      },
-      {
-        id: 'replan-servicios',
-        title: 'Re-Planificación Servicios',
-        icon: 'document',
-      },
+      }
     ],
   },
 
@@ -243,13 +235,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Unidades Cercanas',
         icon: 'location',
         modalType: 'unidadesCercanas', // Necesitarás crear este modal
-      },
-      {
-        id: 'autos-parados',
-        title: 'Autos Parados',
-        icon: 'stop',
-        modalType: 'autosParados', // Necesitarás crear este modal
-      },
+      }
     ],
   },
 };
