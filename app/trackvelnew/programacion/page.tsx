@@ -525,80 +525,78 @@ const ServicesSearchSystem: React.FC = () => {
   };
 
   const reiniciarServicio = async (codservicio: string, numero: string) => {
-  const toastId = toast.loading(`Reiniciando servicio ${numero}...`);
-  
-  try {
-    const response = await fetch(
-      `https://velsat.pe:2096/api/Gacela/ReiniciarServicio/${codservicio}`,
-      {
-        method: 'PUT',
-      }
-    );
+    const toastId = toast.loading(`Reiniciando servicio ${numero}...`);
 
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
-    }
-
-    toast.success(`Servicio ${numero} reiniciado exitosamente`, { id: toastId });
-    
-  } catch (error) {
-    console.error('Error al reiniciar servicio:', error);
-    toast.error('Error al reiniciar el servicio', { id: toastId });
-  }
-};
-
-
-const cancelarServicio = async (codservicio: string, numero: string) => {
-  const result = await Swal.fire({
-    title: '¿Estás seguro?',
-    text: `¿Deseas cancelar el servicio ${numero}?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Sí, cancelar',
-    cancelButtonText: 'No, mantener'
-  });
-
-  if (result.isConfirmed) {
-    const toastId = toast.loading(`Cancelando servicio ${numero}...`);
-    
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/cancelar/${codservicio}`,
+        `https://velsat.pe:2096/api/Gacela/ReiniciarServicio/${codservicio}`,
         {
-          method: 'DELETE',
-        }
+          method: 'PUT',
+        },
       );
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
-      // Actualizar la lista de servicios localmente
-      setServices(prevServices => 
-        prevServices.filter(service => service.id !== codservicio)
-      );
-
-      toast.success(`Servicio ${numero} cancelado exitosamente`, { id: toastId });
-      
-      Swal.fire(
-        'Cancelado!',
-        `El servicio ${numero} ha sido cancelado.`,
-        'success'
-      );
+      toast.success(`Servicio ${numero} reiniciado exitosamente`, {
+        id: toastId,
+      });
     } catch (error) {
-      console.error('Error al cancelar servicio:', error);
-      toast.error('Error al cancelar el servicio', { id: toastId });
-      
-      Swal.fire(
-        'Error!',
-        'No se pudo cancelar el servicio.',
-        'error'
-      );
+      console.error('Error al reiniciar servicio:', error);
+      toast.error('Error al reiniciar el servicio', { id: toastId });
     }
-  }
-};
+  };
+
+  const cancelarServicio = async (codservicio: string, numero: string) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: `¿Deseas cancelar el servicio ${numero}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'No, mantener',
+    });
+
+    if (result.isConfirmed) {
+      const toastId = toast.loading(`Cancelando servicio ${numero}...`);
+
+      try {
+        const response = await fetch(
+          `https://velsat.pe:2096/api/Preplan/cancelar/${codservicio}`,
+          {
+            method: 'DELETE',
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        // Actualizar la lista de servicios localmente
+        setServices((prevServices) =>
+          prevServices.filter((service) => service.id !== codservicio),
+        );
+
+        toast.success(`Servicio ${numero} cancelado exitosamente`, {
+          id: toastId,
+        });
+
+        Swal.fire(
+          'Cancelado!',
+          `El servicio ${numero} ha sido cancelado.`,
+          'success',
+        );
+      } catch (error) {
+        console.error('Error al cancelar servicio:', error);
+        toast.error('Error al cancelar el servicio', { id: toastId });
+
+        Swal.fire('Error!', 'No se pudo cancelar el servicio.', 'error');
+      }
+    }
+  };
 
   const handleSelectPasajero = (pasajero: Pasajero) => {
     setSelectedPasajero({
@@ -1198,15 +1196,16 @@ const cancelarServicio = async (codservicio: string, numero: string) => {
                   </span>
                 </div>
                 <div className="col-span-2 flex items-center gap-1">
-
-            <button
-  onClick={() => reiniciarServicio(service.id, service.numero)}
-  className="flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-[11px] text-white transition-colors hover:bg-red-700"
-  title="Reiniciar"
->
-  <RotateCcw className="h-3 w-3" />
-  Reiniciar
-</button>
+                  <button
+                    onClick={() =>
+                      reiniciarServicio(service.id, service.numero)
+                    }
+                    className="flex items-center gap-1 rounded bg-red-600 px-2 py-1 text-[11px] text-white transition-colors hover:bg-red-700"
+                    title="Reiniciar"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reiniciar
+                  </button>
 
                   <ModalPasajero
                     servicioData={{

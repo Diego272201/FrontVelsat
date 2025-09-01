@@ -32,6 +32,7 @@ import { Dot, SquareCheck } from 'lucide-react';
 import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
 import AppModalUnidadesCercanas from '../trackvelnew/unidadescercanas/ModalUnidadesCercanas';
+import AppModalCargaDatos from '../trackvelnew/programacion/cargalatam/ModalCargaLatam';
 
 // Tipos TypeScript
 type IconType =
@@ -55,7 +56,8 @@ type ModalType =
   | 'detalleServicios'
   | 'duracionservicios'
   | 'unidadesCercanas' // ← Nuevo
-  | 'autosParados'; // ← Nuevo
+  | 'autosParados' // ← Nuevo
+  | 'cargaLatam';
 
 type MenuType =
   | 'services'
@@ -68,6 +70,8 @@ type MenuType =
 interface SubMenuItem {
   id: string;
   title: string;
+  modalType?: ModalType;
+  href?: string;
 }
 
 interface MenuItem {
@@ -108,6 +112,7 @@ interface ModalState {
   duracionservicios: boolean;
   unidadesCercanas: boolean; // ← Nuevo
   autosParados: boolean; // ← Nuevo
+  cargaLatam: boolean;
 }
 
 interface IconSVGProps {
@@ -176,15 +181,21 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         href: '/trackvelnew/gestionunidades',
         icon: 'truck',
       },
+
       {
         id: 'programacion',
         title: 'Programación',
         icon: 'calendar',
         submenu: [
-          { id: 'asignar', title: 'Asignar Conductor/Unidad' },
-          { id: 'archivo', title: 'Carga LATAM' }
+          {
+            id: 'asignar',
+            title: 'Asignar Conductor/Unidad',
+            href: '/trackvelnew/programacion', // ← Agregar esta línea
+          },
+          { id: 'archivo', title: 'Carga LATAM', modalType: 'cargaLatam' }, // ← Agregar modalType
         ],
       },
+
       {
         id: 'control',
         title: 'Control de Servicios',
@@ -221,7 +232,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Planificación Servicios',
         href: '/trackvelnew/planificacion/planificacionTep',
         icon: 'document',
-      }
+      },
     ],
   },
 
@@ -235,7 +246,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Unidades Cercanas',
         icon: 'location',
         modalType: 'unidadesCercanas', // Necesitarás crear este modal
-      }
+      },
     ],
   },
 };
@@ -284,6 +295,7 @@ const useModalState = () => {
     duracionservicios: false,
     unidadesCercanas: false, // ← Nuevo
     autosParados: false, // ← Nuevo
+    cargaLatam: false, // ← Agregar esta línea
   });
 
   const openModal = useCallback((modalType: ModalType) => {
@@ -619,21 +631,40 @@ const Tollbar: React.FC = () => {
                       }`}
                     >
                       <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
-                        {item.submenu.map((subItem) => (
-                          <li key={subItem.id} className="group/subitem">
-                            <a
-                              href="#"
-                              title={subItem.title}
-                              className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
-                            >
-                              <IconSVG
-                                type="document"
-                                className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
-                              />
-                              {subItem.title}
-                            </a>
-                          </li>
-                        ))}
+
+         {item.submenu.map((subItem) => (
+  <li key={subItem.id} className="group/subitem">
+    {subItem.href ? (
+      <Link
+        href={subItem.href}
+        title={subItem.title}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+      >
+        <IconSVG
+          type="document"
+          className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+        />
+        {subItem.title}
+      </Link>
+    ) : (
+      <a
+        href="#"
+        title={subItem.title}
+        className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+        onClick={() => subItem.modalType && handleModalAction(subItem.modalType)}
+      >
+        <IconSVG
+          type="document"
+          className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+        />
+        {subItem.title}
+      </a>
+    )}
+  </li>
+))}
+
                       </ul>
                     </div>
                   </li>
@@ -1068,6 +1099,14 @@ const Tollbar: React.FC = () => {
         titulo="UNIDADES CERCANAS"
         useSelectAll={true}
         icono={<RiGpsFill size={25} />}
+      />
+
+      <AppModalCargaDatos
+        isOpen={modals.cargaLatam}
+        onClose={() => closeModal('cargaLatam')}
+        titulo="CARGA DATOS LATAM"
+        useSelectAll={true}
+        icono={<SiGoogledocs size={25} />}
       />
 
       {/* Sidebar */}
