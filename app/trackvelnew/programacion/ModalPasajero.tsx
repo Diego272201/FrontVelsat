@@ -31,6 +31,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 import ModalAddPasajeros from './ModalAddPasajeros';
 
 interface PasajeroData {
@@ -79,10 +81,12 @@ const SortablePasajeroRow = ({
   pasajero,
   onEliminar,
   onUpdateHora,
+  eliminandoPasajero,
 }: {
   pasajero: PasajeroData;
-  onEliminar: (id: string) => void;
+  onEliminar: (pasajero: PasajeroData) => void;
   onUpdateHora: (id: string, nuevaHora: string) => void;
+  eliminandoPasajero: string | null;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: pasajero.id });
@@ -96,11 +100,15 @@ const SortablePasajeroRow = ({
     onUpdateHora(pasajero.id, value);
   };
 
+  const isEliminando = eliminandoPasajero === pasajero.id;
+
   return (
     <tr
       ref={setNodeRef}
       style={style}
-      className="cursor-grab border bg-white hover:bg-gray-50 active:cursor-grabbing"
+      className={`cursor-grab border bg-white hover:bg-gray-50 active:cursor-grabbing ${
+        isEliminando ? 'opacity-50' : ''
+      }`}
     >
       <td className="border p-2 text-center">
         <div className="flex items-center justify-center gap-2">
@@ -128,6 +136,7 @@ const SortablePasajeroRow = ({
             input: 'text-xs',
             inputWrapper: 'min-h-unit-8 h-8',
           }}
+          isDisabled={isEliminando}
         />
       </td>
       <td className="border p-2 text-center">
@@ -136,10 +145,12 @@ const SortablePasajeroRow = ({
           color="danger"
           variant="light"
           size="sm"
-          onPress={() => onEliminar(pasajero.id)}
+          onPress={() => onEliminar(pasajero)}
           className="h-8 min-w-8"
+          isDisabled={isEliminando}
+          isLoading={isEliminando}
         >
-          <Trash2 className="h-4 w-4" />
+          {!isEliminando && <Trash2 className="h-4 w-4" />}
         </Button>
       </td>
     </tr>
@@ -158,10 +169,117 @@ export default function App({ servicioData }: ModalPasajeroProps) {
   // Estados
   const [pasajeros, setPasajeros] = useState<PasajeroData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [guardandoServicio, setGuardandoServicio] = useState(false);
+  const [eliminandoPasajero, setEliminandoPasajero] = useState<string | null>(null);
   const [aeropuertoCoords, setAeropuertoCoords] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+
+  // Función para formatear fecha actual a DD/MM/YYYY HH:mm
+  const formatearFechaActual = (): string => {
+    const now = new Date();
+    const dia = String(now.getDate()).padStart(2, '0');
+    const mes = String(now.getMonth() + 1).padStart(2, '0');
+    const año = now.getFullYear();
+    const horas = String(now.getHours()).padStart(2, '0');
+    const minutos = String(now.getMinutes()).padStart(2, '0');
+    
+    return `${dia}/${mes}/${año} ${horas}:${minutos}`;
+  };
+
+  // Función para eliminar pasajero con confirmación
+  const eliminarPasajeroConConfirmacion = async (pasajero: PasajeroData) => {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: `¿Desea eliminar al pasajero "${pasajero.nombre}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+    });
+
+    if (result.isConfirmed) {
+      await eliminarPasajero(pasajero);
+    }
+  };
+
+  // Función para eliminar pasajero mediante API
+  const eliminarPasajero = async (pasajero: PasajeroData) => {
+    setEliminandoPasajero(pasajero.id);
+
+    try {
+      const datosEliminacion = {
+        codigo: parseInt(pasajero.codigo),
+        feccancelpas: formatearFechaActual()
+      };
+
+      console.log('Eliminando pasajero:', datosEliminacion);
+
+      const response = await fetch('https://velsat.pe:2096/api/Gacela/UpdateEstado', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosEliminacion)
+      });
+
+      if (response.ok) {
+        const resultado = await response.json();
+        console.log('Pasajero eliminado exitosamente:', resultado);
+        
+        // Remover el pasajero de la lista local y reordenar
+        setPasajeros((prev) => {
+          const filtrados = prev.filter((p) => p.id !== pasajero.id);
+          // Reordenar después de eliminar
+          const reordenados = filtrados.map((p, index) => ({
+            ...p,
+            orden: index + 1,
+          }));
+          
+          console.log('Pasajero eliminado. Lista actualizada:', reordenados);
+          return reordenados;
+        });
+
+        toast.success(`Pasajero "${pasajero.nombre}" eliminado exitosamente`);
+        
+        // Mostrar confirmación con SweetAlert2
+        Swal.fire({
+          title: 'Eliminado',
+          text: `El pasajero "${pasajero.nombre}" ha sido eliminado correctamente.`,
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+      } else {
+        const errorData = await response.text();
+        console.error('Error del servidor al eliminar:', errorData);
+        toast.error(`Error del servidor: ${response.status}`);
+        
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo eliminar el pasajero. Intente nuevamente.',
+          icon: 'error',
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error al eliminar pasajero:', error);
+      toast.error('Error de conexión al eliminar el pasajero');
+      
+      Swal.fire({
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor. Verifique su conexión a internet.',
+        icon: 'error',
+      });
+    } finally {
+      setEliminandoPasajero(null);
+    }
+  };
 
   // Función para formatear fecha a datetime-local
   const formatToDatetimeLocal = (dateString: string) => {
@@ -196,6 +314,25 @@ export default function App({ servicioData }: ModalPasajeroProps) {
     }
 
     return '';
+  };
+
+  // Función para formatear fecha de datetime-local a DD/MM/YYYY HH:mm
+  const formatToApiDate = (datetimeLocal: string) => {
+    if (!datetimeLocal) return '';
+
+    try {
+      // Si está en formato datetime-local (YYYY-MM-DDTHH:mm)
+      if (datetimeLocal.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+        const [datePart, timePart] = datetimeLocal.split('T');
+        const [year, month, day] = datePart.split('-');
+        return `${day}/${month}/${year} ${timePart}`;
+      }
+      
+      return datetimeLocal;
+    } catch (error) {
+      console.error('Error al formatear fecha para API:', error);
+      return '';
+    }
   };
 
   // Función para calcular distancia usando OSRM
@@ -256,6 +393,8 @@ export default function App({ servicioData }: ModalPasajeroProps) {
         `https://velsat.pe:2096/api/Gacela/PasajeroList?codservicio=${servicioData.codservicio}`,
       );
       const data: ApiPasajero[] = await response.json();
+
+      console.log(response)
 
       // Filtrar el registro con orden "0" para obtener coordenadas del aeropuerto
       const aeropuertoData = data.find((item) => item.orden === '0');
@@ -322,8 +461,75 @@ export default function App({ servicioData }: ModalPasajeroProps) {
 
     } catch (error) {
       console.error('Error al cargar pasajeros:', error);
+      toast.error('Error al cargar los pasajeros');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Función para extraer solo el número de la distancia
+  const extraerNumeroDistancia = (distanciaString: string): number | null => {
+    if (!distanciaString) return null;
+    
+    // Extraer solo el número de strings como "22.61 km" o "22.61 km (aprox.)"
+    const match = distanciaString.match(/(\d+\.?\d*)/);
+    if (match) {
+      return parseFloat(match[1]);
+    }
+    
+    return null;
+  };
+
+  // Función para guardar servicio mediante API
+  const guardarServicio = async () => {
+    if (pasajeros.length === 0) {
+      toast.warning('No hay pasajeros para guardar');
+      return;
+    }
+
+    setGuardandoServicio(true);
+    
+    try {
+      // Preparar datos para la API según la estructura requerida
+      const datosParaApi = pasajeros.map((pasajero) => ({
+        codigo: pasajero.codigo.toString(), // Enviar código como string
+        fecha: formatToApiDate(pasajero.horaAprox), // Convierte datetime-local a DD/MM/YYYY HH:mm
+        distancia: extraerNumeroDistancia(pasajero.distanciaAeropuerto), // Solo el número
+        orden: pasajero.orden.toString()
+      }));
+
+      console.log('=== GUARDANDO SERVICIO ===');
+      console.log('Datos del servicio:', servicioData);
+      console.log('Lista final de pasajeros para guardar:', pasajeros);
+      console.log('Datos formateados para API:', datosParaApi);
+      console.log('Cantidad de pasajeros:', pasajeros.length);
+
+      const response = await fetch('https://velsat.pe:2096/api/Gacela/GuardarServicio', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosParaApi)
+      });
+
+      if (response.ok) {
+        const resultado = await response.json();
+        console.log('Servicio guardado exitosamente:', resultado);
+        toast.success('Servicio guardado exitosamente');
+        return true;
+      } else {
+        const errorData = await response.text();
+        console.error('Error del servidor:', errorData);
+        toast.error(`Error del servidor: ${response.status}`);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error('Error al guardar servicio:', error);
+      toast.error('Error de conexión al guardar el servicio');
+      return false;
+    } finally {
+      setGuardandoServicio(false);
     }
   };
 
@@ -351,20 +557,6 @@ export default function App({ servicioData }: ModalPasajeroProps) {
     { key: 'salida', label: 'Salida' },
     { key: 'llegada', label: 'Llegada' },
   ];
-
-  const eliminarPasajero = (id: string) => {
-    setPasajeros((prev) => {
-      const filtrados = prev.filter((p) => p.id !== id);
-      // Reordenar después de eliminar
-      const reordenados = filtrados.map((p, index) => ({
-        ...p,
-        orden: index + 1,
-      }));
-      
-      console.log('Pasajero eliminado. Lista actualizada:', reordenados);
-      return reordenados;
-    });
-  };
 
   const actualizarHoraPasajero = (id: string, nuevaHora: string) => {
     setPasajeros((prev) => {
@@ -400,17 +592,11 @@ export default function App({ servicioData }: ModalPasajeroProps) {
     }
   };
 
-  const handleGuardar = (onClose: () => void) => {
-    console.log('=== GUARDANDO SERVICIO ===');
-    console.log('Datos del servicio:', servicioData);
-    console.log('Lista final de pasajeros para guardar:', pasajeros);
-    console.log('Cantidad de pasajeros:', pasajeros.length);
-    
-    // Aquí puedes agregar la lógica para enviar los datos al servidor
-    // Por ejemplo:
-    // await enviarDatosAlServidor(servicioData, pasajeros);
-    
-    onClose();
+  const handleGuardar = async (onClose: () => void) => {
+    const success = await guardarServicio();
+    if (success) {
+      onClose();
+    }
   };
 
   return (
@@ -460,7 +646,6 @@ export default function App({ servicioData }: ModalPasajeroProps) {
                       Datos Servicio
                     </h3>
                     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                      <p>{servicioData.aerolinea}</p>
                       <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700">
                           Número
@@ -594,8 +779,9 @@ export default function App({ servicioData }: ModalPasajeroProps) {
                                     <SortablePasajeroRow
                                       key={pasajero.id}
                                       pasajero={pasajero}
-                                      onEliminar={eliminarPasajero}
+                                      onEliminar={eliminarPasajeroConConfirmacion}
                                       onUpdateHora={actualizarHoraPasajero}
+                                      eliminandoPasajero={eliminandoPasajero}
                                     />
                                   ))
                                 )}
@@ -617,9 +803,10 @@ export default function App({ servicioData }: ModalPasajeroProps) {
                   color="success"
                   onPress={() => handleGuardar(onClose)}
                   startContent={<Save className="h-4 w-4" />}
-                  isDisabled={loading}
+                  isDisabled={loading || guardandoServicio}
+                  isLoading={guardandoServicio}
                 >
-                  Guardar Servicio
+                  {guardandoServicio ? 'Guardando...' : 'Guardar Servicio'}
                 </Button>
               </ModalFooter>
             </>
