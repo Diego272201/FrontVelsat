@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form';
-import React, {  useState } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -8,7 +8,6 @@ import {
   ModalFooter,
   Button,
   useDisclosure,
-  
 } from '@nextui-org/react';
 import { Input } from '@nextui-org/react';
 import { Select, SelectItem } from '@nextui-org/react';
@@ -75,7 +74,6 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
       parseInt(user.hora.slice(3, 5), 10),
     ),
   );
-  
 
   const onSubmit = async (data: any, onClose: () => void) => {
     if (Object.keys(errors).length === 0) {
@@ -96,7 +94,13 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
           data.programacion = '1';
       }
 
-      const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
+      const tipo =
+        titleM.toLowerCase() === 'ingreso'
+          ? 'I'
+          : titleM.toLowerCase() === 'salida'
+            ? 'S'
+            : 'I';
+            
       const putData = {
         codrl: data.rol,
         hora: data.hora,
@@ -113,14 +117,15 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
           `https://velsat.pe:2096/api/Turnos/${user.codigo}`,
           putData,
         );
+        console.log('Datos actualizados correctamente', putData);
         onEditSuccess();
         toast.success('Turno actualizado exitosamente');
-        console.log('Datos actualizados correctamente', putData);
+        onClose();
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
       } finally {
         setIsSubmitting(false);
-        onClose();
+
       }
     } else {
       console.log('Errores de validación:', errors);

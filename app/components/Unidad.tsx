@@ -9,15 +9,23 @@ interface UnidadProps {
   velocidad: number;
   latitud: number;
   longitud: number;
-  onSelectUnit: (coords: { latitud: number, longitud: number }) => void;
+  onSelectUnit: (coords: { latitud: number; longitud: number }) => void;
   lastCheckedId: string | null;
   onCheckboxChange: (id: string) => void;
   username: string;
-
 }
 
-const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longitud, onSelectUnit, lastCheckedId, onCheckboxChange,username }) => {
-  const [isChecked, setIsChecked] = useState(false); 
+const Unidad: React.FC<UnidadProps> = ({
+  codigoUnidad,
+  velocidad,
+  latitud,
+  longitud,
+  onSelectUnit,
+  lastCheckedId,
+  onCheckboxChange,
+  username,
+}) => {
+  const [isChecked, setIsChecked] = useState(false);
 
   useEffect(() => {
     if (codigoUnidad === lastCheckedId) {
@@ -30,9 +38,11 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
   const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { checked } = event.target;
 
-    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
-      checkbox.checked = false;
-    });
+    document
+      .querySelectorAll<HTMLInputElement>('input[type="checkbox"]')
+      .forEach((checkbox) => {
+        checkbox.checked = false;
+      });
 
     event.target.checked = checked;
 
@@ -40,6 +50,19 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
     if (checked) {
       onCheckboxChange(codigoUnidad);
       onSelectUnit({ latitud, longitud });
+    }
+  };
+
+  // Función para determinar el color basado en la velocidad
+  const getColorBySpeed = (speed: number): string => {
+    if (speed >= 0 && speed < 1) {
+      return '#FF0000'; // Rojo
+    } else if (speed >= 1 && speed <= 20) {
+      return '#FFD700'; // Amarillo
+    } else if (speed > 20 && speed <= 45) {
+      return '#00FF00'; // Verde
+    } else {
+      return '#0066FF'; // Azul
     }
   };
 
@@ -57,8 +80,12 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
       </div>
 
       <div className="img-listacarro">
-        <Image   src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
- alt="carrito" width={'1000'} height={'1000'}/>
+        <Image
+          src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
+          alt="carrito"
+          width={'1000'}
+          height={'1000'}
+        />
       </div>
 
       <div className="codigo-carro">
@@ -70,7 +97,7 @@ const Unidad: React.FC<UnidadProps> = ({ codigoUnidad, velocidad, latitud, longi
       </div>
 
       <div className="luz-carro">
-        <TbPointFilled />
+        <TbPointFilled style={{ color: getColorBySpeed(velocidad) }} />
       </div>
 
       <div className="detalles-carro">
