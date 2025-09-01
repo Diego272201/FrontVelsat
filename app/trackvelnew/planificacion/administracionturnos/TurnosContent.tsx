@@ -5,12 +5,14 @@ import TablaTurno from './TablaTurno';
 import axios from 'axios';
 import { useApi } from '@/context/ApiContext';
 import { Toaster } from 'sonner';
-import { useUsername } from '@/hooks/useUsername'; 
+import { useUsername } from '@/hooks/useUsername';
 
 export default function TurnosContent() {
   const { username, isReady } = useUsername();
   const [ingresoData, setIngresoData] = useState<any[]>([]);
   const [salidaData, setSalidaData] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0); // Nuevo estado
+
   const { baseUrl } = useApi();
 
   const fetchData = async () => {
@@ -63,13 +65,16 @@ export default function TurnosContent() {
     }
   };
 
+  const handleSaveSuccess = () => {
+    setRefreshKey((prev) => prev + 1); // Forzar re-render
+    setTimeout(() => {
+      fetchData();
+    }, 100);
+  };
+
   useEffect(() => {
     fetchData();
-  }, [baseUrl, username, isReady]);
-
-  const handleSaveSuccess = () => {
-    fetchData();
-  };
+  }, [baseUrl, username, isReady, refreshKey]);
 
   return (
     <div className="contenetTurnos">

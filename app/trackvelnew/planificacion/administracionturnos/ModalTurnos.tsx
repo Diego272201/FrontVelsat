@@ -58,7 +58,8 @@ export default function App({ titleM, onSaveSuccess }: Props) {
   }, [username, isReady]);
 
   useEffect(() => {
-    if (isOpen || !isOpen) {
+    if (!isOpen) {
+      // Solo cuando se cierra el modal
       reset();
       clearErrors();
     }
@@ -66,8 +67,8 @@ export default function App({ titleM, onSaveSuccess }: Props) {
 
   const onSubmit = async (data: any, onClose: () => void) => {
     if (!isReady) {
-    return;
-  }
+      return;
+    }
     if (Object.keys(errors).length === 0) {
       const formattedHora = hora.toString().slice(0, 5);
       data.hora = formattedHora;
@@ -86,7 +87,13 @@ export default function App({ titleM, onSaveSuccess }: Props) {
           data.programacion = '1';
       }
 
-      const tipo = titleM === 'Ingreso' ? 'I' : titleM === 'Salida' ? 'S' : 'I';
+      const tipo =
+        titleM.toUpperCase() === 'INGRESO'
+          ? 'I'
+          : titleM.toUpperCase() === 'SALIDA'
+            ? 'S'
+            : 'I';
+
       const postData = {
         codrl: data.rol,
         hora: data.hora,
@@ -121,13 +128,11 @@ export default function App({ titleM, onSaveSuccess }: Props) {
 
   return (
     <>
-      <Toaster richColors />
-
       <Button
         onPress={onOpen}
-        style={{ background: '#F7931E', color:"#212529" }}
+        style={{ background: '#F7931E', color: '#212529' }}
         className="text-background"
-        endContent={<IoMdAdd  />}
+        endContent={<IoMdAdd />}
         size="sm"
       >
         Nuevo Turno
@@ -260,7 +265,6 @@ export default function App({ titleM, onSaveSuccess }: Props) {
                         )}
                       </div>
                     </div>
-           
                   </div>
                 </ModalBody>
                 <ModalFooter>
