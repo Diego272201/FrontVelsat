@@ -170,6 +170,10 @@ const ServicesSearchSystem: React.FC = () => {
 
   const [loadingAsignacion, setLoadingAsignacion] = useState(false);
 
+
+  const [isFirstTimeFromDate, setIsFirstTimeFromDate] = useState(true);
+const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
+
   // Función para transformar datos de la API
   const transformApiData = (apiData: ApiService[]): Service[] => {
     return apiData.map((item) => ({
@@ -709,26 +713,27 @@ const ServicesSearchSystem: React.FC = () => {
       return numA - numB;
     });
 
-  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value) {
-      const selectedDate = value.split('T')[0];
-      setDateFrom(selectedDate + 'T00:00');
-    } else {
-      setDateFrom('');
-    }
-  };
+const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  if (value && isFirstTimeFromDate) {
+    const selectedDate = value.split('T')[0];
+    setDateFrom(selectedDate + 'T00:00');
+    setIsFirstTimeFromDate(false);
+  } else {
+    setDateFrom(value);
+  }
+};
 
-  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value) {
-      const selectedDate = value.split('T')[0];
-      setDateTo(selectedDate + 'T23:59');
-    } else {
-      setDateTo('');
-    }
-  };
-
+const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  if (value && isFirstTimeToDate) {
+    const selectedDate = value.split('T')[0];
+    setDateTo(selectedDate + 'T23:59');
+    setIsFirstTimeToDate(false);
+  } else {
+    setDateTo(value);
+  }
+};
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Toaster richColors />

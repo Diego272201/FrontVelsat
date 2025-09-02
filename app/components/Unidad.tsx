@@ -58,9 +58,9 @@ const Unidad: React.FC<UnidadProps> = ({
     if (speed >= 0 && speed < 1) {
       return '#FF0000'; // Rojo
     } else if (speed >= 1 && speed <= 20) {
-      return '#FFD700'; // Amarillo
+      return '#ffb703'; // Amarillo
     } else if (speed > 20 && speed <= 45) {
-      return '#00FF00'; // Verde
+      return '#38b000'; // Verde
     } else {
       return '#0066FF'; // Azul
     }
