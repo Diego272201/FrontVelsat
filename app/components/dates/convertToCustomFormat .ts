@@ -18,7 +18,7 @@ export const formatDate = (dateString: any) => {
   };
   
 
-export function validateDateRange(startDate: string, endDate: string, maxDays: number = 5): string | null {
+export function validateDateRange(startDate: string, endDate: string, maxDays: number = 11): string | null {
   if (!startDate || !endDate) return 'Fechas incompletas';
   
   const start = new Date(startDate);
