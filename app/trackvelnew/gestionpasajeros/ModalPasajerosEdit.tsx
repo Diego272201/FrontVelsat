@@ -45,25 +45,16 @@ interface Props {
   codCliente: number | null;
 }
 
-interface Pasajero {
-  codlan: string;
-  apellidos: string;
-  telefono: string | null;
-  sexo: string | null;
-  empresa: string;
-  zona: string | null;
-  direccion: string;
-  distrito: string;
-  wy: string;
-  wx: string;
-  codusuario: string;
-}
-
 interface SearchResult {
   lat: string;
   lon: string;
   display_name: string;
   place_id: string;
+}
+
+interface Tarifa {
+  codigo: number;
+  zona: string;
 }
 
 function MapClickHandler({
@@ -86,14 +77,22 @@ function StaticMarker({ position }: { position: [number, number] }) {
 // Hook personalizado para Google Places Autocomplete
 const useGooglePlacesAutocomplete = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
-  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const [autocompleteService, setAutocompleteService] =
+    useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] =
+    useState<google.maps.places.PlacesService | null>(null);
 
   useEffect(() => {
     const checkGoogleMaps = () => {
       if (window.google && window.google.maps && window.google.maps.places) {
-        setAutocompleteService(new window.google.maps.places.AutocompleteService());
-        setPlacesService(new window.google.maps.places.PlacesService(document.createElement('div')));
+        setAutocompleteService(
+          new window.google.maps.places.AutocompleteService(),
+        );
+        setPlacesService(
+          new window.google.maps.places.PlacesService(
+            document.createElement('div'),
+          ),
+        );
         setIsLoaded(true);
       } else {
         // Intentar de nuevo en 100ms si no está cargado
@@ -119,7 +118,6 @@ export default function App({ title, codCliente }: Props) {
     handleSubmit,
     formState: { errors },
     reset,
-    clearErrors,
     watch,
     setValue, // ✅ Agregado setValue
   } = useForm({
@@ -129,7 +127,7 @@ export default function App({ title, codCliente }: Props) {
       telefono: '',
       sexo: '',
       empresa: '',
-      zona: '',
+      codigo: '',
       direccion: '',
       distrito: '',
       wy: '',
@@ -139,7 +137,7 @@ export default function App({ title, codCliente }: Props) {
   });
 
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
-  const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
+  const [tarifa, setTarifa] = useState<Tarifa[]>([]);
   const [isTarifaLoaded, setIsTarifaLoaded] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -153,7 +151,7 @@ export default function App({ title, codCliente }: Props) {
   const username = session?.user.username;
 
   const mapRef = useRef<LeafletMap | null>(null);
-  const zonaValue = watch('zona');
+  const codigoValue = watch('codigo');
 
   const wy = watch('wy');
   const wx = watch('wx');
@@ -172,7 +170,8 @@ export default function App({ title, codCliente }: Props) {
   ]);
 
   // Hook de Google Places
-  const { isLoaded, autocompleteService, placesService } = useGooglePlacesAutocomplete();
+  const { isLoaded, autocompleteService, placesService } =
+    useGooglePlacesAutocomplete();
 
   useEffect(() => {
     setIsClient(true);
@@ -226,53 +225,72 @@ export default function App({ title, codCliente }: Props) {
         const request: google.maps.places.AutocompletionRequest = {
           input: query,
           componentRestrictions: { country: 'pe' },
-          types: ['address']
+          types: ['address'],
         };
 
-        autocompleteService.getPlacePredictions(request, (predictions, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-            // Obtener detalles de cada predicción
-            const processedResults: SearchResult[] = [];
-            let processedCount = 0;
-            const totalPredictions = Math.min(5, predictions.length);
+        autocompleteService.getPlacePredictions(
+          request,
+          (predictions, status) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              predictions
+            ) {
+              // Obtener detalles de cada predicción
+              const processedResults: SearchResult[] = [];
+              let processedCount = 0;
+              const totalPredictions = Math.min(5, predictions.length);
 
-            if (totalPredictions === 0) {
-              fallbackToNominatim(query);
-              return;
-            }
+              if (totalPredictions === 0) {
+                fallbackToNominatim(query);
+                return;
+              }
 
-            predictions.slice(0, 5).forEach((prediction) => {
-              const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                placeId: prediction.place_id,
-                fields: ['geometry', 'formatted_address', 'address_components']
-              };
+              predictions.slice(0, 5).forEach((prediction) => {
+                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+                  placeId: prediction.place_id,
+                  fields: [
+                    'geometry',
+                    'formatted_address',
+                    'address_components',
+                  ],
+                };
 
-              placesService.getDetails(detailsRequest, (place, detailsStatus) => {
-                if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
-                  processedResults.push({
-                    lat: place.geometry.location!.lat().toString(),
-                    lon: place.geometry.location!.lng().toString(),
-                    display_name: place.formatted_address || prediction.description,
-                    place_id: prediction.place_id
-                  });
-                }
-                
-                processedCount++;
-                if (processedCount === totalPredictions) {
-                  if (processedResults.length > 0) {
-                    setSearchResults(processedResults);
-                    setShowSearchResults(true);
-                  } else {
-                    fallbackToNominatim(query);
-                  }
-                }
+                placesService.getDetails(
+                  detailsRequest,
+                  (place, detailsStatus) => {
+                    if (
+                      detailsStatus ===
+                        google.maps.places.PlacesServiceStatus.OK &&
+                      place &&
+                      place.geometry
+                    ) {
+                      processedResults.push({
+                        lat: place.geometry.location!.lat().toString(),
+                        lon: place.geometry.location!.lng().toString(),
+                        display_name:
+                          place.formatted_address || prediction.description,
+                        place_id: prediction.place_id,
+                      });
+                    }
+
+                    processedCount++;
+                    if (processedCount === totalPredictions) {
+                      if (processedResults.length > 0) {
+                        setSearchResults(processedResults);
+                        setShowSearchResults(true);
+                      } else {
+                        fallbackToNominatim(query);
+                      }
+                    }
+                  },
+                );
               });
-            });
-          } else {
-            // Fallback a Nominatim si Google Places falla
-            fallbackToNominatim(query);
-          }
-        });
+            } else {
+              // Fallback a Nominatim si Google Places falla
+              fallbackToNominatim(query);
+            }
+          },
+        );
       } catch (error) {
         console.error('Error with Google Places:', error);
         fallbackToNominatim(query);
@@ -309,26 +327,35 @@ export default function App({ title, codCliente }: Props) {
   };
 
   // Función de geocodificación inversa con Google
-  const reverseGeocodeGoogle = async (lat: number, lng: number): Promise<{ address: string; district: string } | null> => {
+  const reverseGeocodeGoogle = async (
+    lat: number,
+    lng: number,
+  ): Promise<{ address: string; district: string } | null> => {
     return new Promise((resolve) => {
       if (isLoaded && window.google && window.google.maps) {
         const geocoder = new google.maps.Geocoder();
         const latlng = new google.maps.LatLng(lat, lng);
 
         geocoder.geocode({ location: latlng }, (results, status) => {
-          if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          if (
+            status === google.maps.GeocoderStatus.OK &&
+            results &&
+            results[0]
+          ) {
             const result = results[0];
             const address = result.formatted_address;
-            
+
             // Extraer distrito
             const districtComponent = result.address_components.find(
-              (component) => 
-                component.types.includes('sublocality') || 
+              (component) =>
+                component.types.includes('sublocality') ||
                 component.types.includes('locality') ||
-                component.types.includes('administrative_area_level_2')
+                component.types.includes('administrative_area_level_2'),
             );
-            
-            const district = districtComponent ? districtComponent.long_name : '';
+
+            const district = districtComponent
+              ? districtComponent.long_name
+              : '';
             resolve({ address, district });
           } else {
             // Fallback a Nominatim
@@ -343,41 +370,44 @@ export default function App({ title, codCliente }: Props) {
   };
 
   const fetchPasajeroDetail = async () => {
-  if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
+    if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
 
-  try {
-    const response = await axios.get(
-      `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
-    );
-    const pasajeroData = response.data[0];
+    try {
+      const response = await axios.get(
+        `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
+      );
+      const pasajeroData = response.data[0];
 
-    console.log('Datos del pasajero:', pasajeroData);
+      console.log('Datos del pasajero:', pasajeroData);
 
-    const lat = parseFloat(pasajeroData.wy) || 0;
-    const lng = parseFloat(pasajeroData.wx) || 0;
+      const lat = parseFloat(pasajeroData.wy) || 0;
+      const lng = parseFloat(pasajeroData.wx) || 0;
 
-    reset({
-      codlan: pasajeroData.codlan || '',
-      apellidos: pasajeroData.apellidos || '',
-      telefono: pasajeroData.telefono || '',
-      sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
-      empresa: pasajeroData.empresa || '',
-      zona: pasajeroData.zona || '',
-      direccion: pasajeroData.direccion || '',
-      distrito: pasajeroData.distrito || '',
-      wy: pasajeroData.wy || '',
-      wx: pasajeroData.wx || '',
-      codusuario: pasajeroData.codusuario || '',
-    });
+      const tarifaItem = tarifa.find((item) => item.zona === pasajeroData.zona);
+      const codigoZona = tarifaItem ? tarifaItem.codigo.toString() : '';
 
-    setMarkerPosition([lat, lng]);
-    setOriginalPosition([lat, lng]);
-    setMapCenter([lat, lng]);
-    setSearchInput(pasajeroData.direccion || '');
-  } catch (error) {
-    console.error('Error fetching pasajero detail:', error);
-  }
-};
+      reset({
+        codlan: pasajeroData.codlan || '',
+        apellidos: pasajeroData.apellidos || '',
+        telefono: pasajeroData.telefono || '',
+        sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
+        empresa: pasajeroData.empresa || '',
+        codigo: codigoZona,
+        direccion: pasajeroData.direccion || '',
+        distrito: pasajeroData.distrito || '',
+        wy: pasajeroData.wy || '',
+        wx: pasajeroData.wx || '',
+        codusuario: pasajeroData.codusuario || '',
+      });
+
+      setMarkerPosition([lat, lng]);
+      setOriginalPosition([lat, lng]);
+      setMapCenter([lat, lng]);
+      setSearchInput(pasajeroData.direccion || '');
+    } catch (error) {
+      console.error('Error fetching pasajero detail:', error);
+    }
+  };
 
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
@@ -507,55 +537,17 @@ export default function App({ title, codCliente }: Props) {
 
   useEffect(() => {
     if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
-
-    const fetchPasajeroDetail = async () => {
-      try {
-        const response = await axios.get(
-          `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
-        );
-        const pasajeroData = response.data[0];
-
-        console.log('Datos del pasajero:', pasajeroData);
-
-        //mapa
-        const lat = parseFloat(pasajeroData.wy) || 0;
-        const lng = parseFloat(pasajeroData.wx) || 0;
-        //
-
-        reset({
-          codlan: pasajeroData.codlan || '',
-          apellidos: pasajeroData.apellidos || '',
-          telefono: pasajeroData.telefono || '',
-          sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
-          empresa: pasajeroData.empresa || '',
-          zona: pasajeroData.zona || '',
-          direccion: pasajeroData.direccion || '',
-          distrito: pasajeroData.distrito || '',
-          wy: pasajeroData.wy || '',
-          wx: pasajeroData.wx || '',
-          codusuario: pasajeroData.codusuario || '',
-        });
-
-        setMarkerPosition([lat, lng]);
-        setOriginalPosition([lat, lng]);
-        setMapCenter([lat, lng]);
-        setSearchInput(pasajeroData.direccion || '');
-      } catch (error) {
-        console.error('Error fetching pasajero detail:', error);
-      }
-    };
-
-    fetchPasajeroDetail();
+    fetchPasajeroDetail(); // Llamar a la función principal que ya corregiste
   }, [isBaseUrlReady, baseUrl, codCliente, isTarifaLoaded, reset]);
 
   const onSubmit = handleSubmit(async (data) => {
     if (!baseUrl || codCliente === null || username === null) return;
 
-    setIsLoading(true); 
+    setIsLoading(true);
 
     try {
       const codlan = data.codlan;
-      const zonaValue = data.zona && data.zona.trim() !== '' ? data.zona : null;
+      const codigoValue = data.codigo && data.codigo.trim() !== '' ? data.codigo : null;
 
       console.log('Datos enviados:', {
         codlan: data.codlan,
@@ -563,7 +555,7 @@ export default function App({ title, codCliente }: Props) {
         telefono: data.telefono,
         sexo: data.sexo,
         empresa: data.empresa,
-        // zona: zonaValue,
+        codigo: codigoValue,
         direccion: data.direccion,
         distrito: data.distrito,
         wy: data.wy,
@@ -579,7 +571,7 @@ export default function App({ title, codCliente }: Props) {
           telefono: data.telefono,
           sexo: data.sexo,
           empresa: data.empresa,
-          // zona: zonaValue,
+          zona: codigoValue,
           direccion: data.direccion,
           distrito: data.distrito,
           wy: data.wy,
@@ -595,7 +587,7 @@ export default function App({ title, codCliente }: Props) {
       console.error('Error al actualizar el pasajero:', error);
       toast.error('Error al actualizar el pasajero');
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   });
 
@@ -754,17 +746,15 @@ export default function App({ title, codCliente }: Props) {
                           className="max-w-xs"
                           disableSelectorIconRotation
                           selectorIcon={<SelectorIcon />}
-                          selectedKeys={zonaValue ? [zonaValue] : []}
+                          selectedKeys={codigoValue ? [codigoValue] : []} // Usar codigoValue
                           onSelectionChange={(keys) => {
                             const selectedValue = Array.from(keys)[0] as string;
-                            setValue('zona', selectedValue);
+                            setValue('codigo', selectedValue);
                           }}
                           isDisabled={!isTarifaLoaded}
                         >
                           {tarifa.map((item) => (
-                            <SelectItem key={item.zona}>
-                              {item.zona}
-                            </SelectItem>
+                            <SelectItem key={item.codigo.toString()}>{item.zona}</SelectItem>  // ✅ Correcto
                           ))}
                         </Select>
                       </div>
