@@ -234,8 +234,10 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
         });
       }
 
-      // Solo limpiar el formulario, NO cerrar el modal
       handleReset();
+      setTimeout(() => {
+        handleModalClose();
+      }, 1500);
     } catch (error) {
       console.error('Error al procesar datos:', error);
 
@@ -281,16 +283,15 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
       <ModalContent className="border-0 bg-white shadow-2xl">
         {() => (
           <>
-            <ModalHeader className="flex flex-col gap-0 rounded-t-lg bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+            <ModalHeader className="flex flex-col gap-0 rounded-t-lg text-black">
               <div className="flex items-center justify-center gap-2">
-                <h2 className="text-[14px] font-semibold uppercase tracking-wide">
+                <h2 className="text-[13px] font-semibold uppercase tracking-wide">
                   Carga de Datos Latam
                 </h2>
-                {icono && <span className="text-2xl opacity-90">{icono}</span>}
               </div>
             </ModalHeader>
 
-            <ModalBody className="space-y-4 p-8">
+            <ModalBody className="space-y-0  px-8 py-4">
               {/* Selector de Proveedor */}
               <div className="space-y-2">
                 <div className="relative">
@@ -298,7 +299,7 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
                     value={selectedProveedor}
                     onChange={handleProveedorChange}
                     disabled={isProcessing}
-                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-2 pr-10 font-medium text-gray-800 shadow-sm transition-all duration-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-500"
+                    className="w-full appearance-none rounded border border-gray-300 bg-white px-4 py-2 pr-10 text-[12px] font-medium text-gray-800 shadow-sm transition-all duration-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-500"
                   >
                     <option value="">Seleccionar proveedor</option>
                     {proveedores.map((proveedor) => (
@@ -318,7 +319,7 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
                     value={tipoTransporte}
                     onChange={handleTipoTransporteChange}
                     disabled={isProcessing}
-                    className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-2 pr-10 font-medium text-gray-800 shadow-sm transition-all duration-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-500"
+                    className="w-full appearance-none rounded border border-gray-300 bg-white px-4 py-2 pr-10 text-[12px] font-medium text-gray-800 shadow-sm transition-all duration-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:bg-gray-100 disabled:text-gray-500"
                   >
                     <option value="">Seleccionar tipo</option>
                     <option value="tierra">Tierra</option>
@@ -331,7 +332,7 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
               {/* Carga de Archivo Excel */}
               <div className="space-y-2">
                 <div
-                  className={`group relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all duration-300 ${
+                  className={`group relative cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all duration-300 ${
                     isProcessing
                       ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50'
                       : isDragOver
@@ -373,10 +374,10 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
                     <div className="flex flex-col items-center gap-4">
                       <DocumentArrowUpIcon className="h-16 w-16 text-gray-400 transition-colors group-hover:text-gray-500" />
                       <div>
-                        <p className="mb-1 text-lg font-semibold text-gray-700">
+                        <p className="mb-1 text-[14px] font-semibold text-gray-700">
                           Arrastra tu archivo Excel aquí
                         </p>
-                        <p className="mb-3 text-sm text-gray-500">
+                        <p className="mb-3 text-[12px] text-gray-500">
                           o haz clic para seleccionar
                         </p>
                         <div className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
@@ -388,7 +389,7 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
                 </div>
 
                 <p className="text-center text-xs text-gray-500">
-                  Formatos soportados: .xlsx, .xls (máximo 10MB)
+                  Formatos soportados: .xlsx, .xls
                 </p>
               </div>
 
@@ -403,25 +404,23 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
               )}
             </ModalBody>
 
-            <ModalFooter className="rounded-b-lg bg-gray-50 p-6">
+            <ModalFooter className="rounded-b-lg bg-gray-50 px-8">
               <div className="flex w-full gap-3">
-                <Button
-                  color="default"
-                  variant="bordered"
-                  onPress={handleModalClose}
+                <button
+                  onClick={handleModalClose}
                   disabled={isProcessing}
-                  className="flex-1 border-2 py-3 font-semibold transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-md bg-red-600 py-2 font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancelar
-                </Button>
-                <Button
-                  color="primary"
-                  onPress={handleCargarDatos}
+                </button>
+
+                <button
+                  onClick={handleCargarDatos}
                   disabled={isProcessing}
-                  className="flex-1 bg-blue-600 py-3 font-semibold shadow-lg transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-md bg-green-600 py-2 font-semibold text-white shadow-lg transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isProcessing ? 'Procesando...' : 'Procesar Datos'}
-                </Button>
+                </button>
               </div>
             </ModalFooter>
           </>
