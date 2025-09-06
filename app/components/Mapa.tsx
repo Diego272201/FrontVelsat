@@ -290,6 +290,7 @@ const Mapa = ({ recorrido, marcadores, centro, resetMap }: MapaProps) => {
           <MapContainer
             key={mapKey}
             center={initialCenter}
+            attributionControl={false}
             zoom={initialZoom}
             style={{ width: '100%', height: '100%' }}
           >

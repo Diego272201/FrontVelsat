@@ -916,6 +916,7 @@ export default function RequestPage() {
               style={{ height: '100%', width: '100%' }}
               className="z-10"
               zoomControl={false} // Quitamos los controles de zoom por defecto
+              attributionControl={false}
               maxZoom={19}
               minZoom={1}
               closePopupOnClick={false} // ← Esta es la configuración clave
