@@ -364,7 +364,7 @@ export default function Page() {
       </div>
 
       {/* Contenido principal */}
-      <div className=" mx-auto px-4 py-2">
+      <div className="mx-auto px-4 py-2">
         {/* Barra de búsqueda y acciones */}
         <div className="shadow-sm border border-gray-200 p-0 mb-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -447,7 +447,7 @@ export default function Page() {
                           )}
                         </td>
                         <td className="px-6 py-2 whitespace-nowrap">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex gap-1 overflow-x-auto min-w-max">
                             <ConductorDialogModificar
                               conductorData={getConductorData(conductor.id)}
                               onConductorModified={handleConductorModified}

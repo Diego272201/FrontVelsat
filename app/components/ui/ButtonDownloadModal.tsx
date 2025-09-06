@@ -52,8 +52,8 @@ export default function ButtonDownload({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 3) {
-      toast.error('El límite de fechas es de 3 días', {
+    if (diffDays > 11) {
+      toast.error('El límite de fechas es de 11 días', {
         id: toastId,
         className: 'toast-slide-in',
         richColors: true,
