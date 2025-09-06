@@ -122,8 +122,7 @@ export default function RequestPage() {
     string[] | null
   >(null);
 
-  const [currentLayer, setCurrentLayer] =
-    useState<keyof typeof mapLayers>('openstreetmap');
+  const [currentLayer, setCurrentLayer] = useState<keyof typeof mapLayers>('openstreetmap');
   const [showLayerSelector, setShowLayerSelector] = useState(false);
 
   const iconCache = useRef<{ [key: string]: L.Icon }>({});
