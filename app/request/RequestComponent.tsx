@@ -82,6 +82,7 @@ export default function RequestPage() {
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAlertTime = useRef<{ [key: string]: number }>({});
+const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     if (isClient) {
@@ -211,51 +212,54 @@ export default function RequestPage() {
           setMarkersLoaded(true);
           setDeviceList(datos.datosDevice);
 
-          datos.datosDevice.forEach((device: DeviceList) => {
-            const deviceKey = device.deviceId;
-            const now = Date.now();
+  datos.datosDevice.forEach((device: DeviceList) => {
+  const deviceKey = device.deviceId;
 
-            if (device.lastValidSpeed >= 60) {
-              const isInCooldown =
-                alertCooldowns.current[deviceKey] &&
-                now - alertCooldowns.current[deviceKey] < 60000;
+  if (device.lastValidSpeed >= 91) {
+    // Solo activar si no hay alerta activa Y no hay timeout pendiente
+    if (!activeAlerts.current[deviceKey] && !alertTimeouts.current[deviceKey]) {
+      activeAlerts.current[deviceKey] = true;
+      playSpeedAlert();
 
-          
-              if (!activeAlerts.current[deviceKey] && !isInCooldown) {
-                activeAlerts.current[deviceKey] = true;
-
-                playSpeedAlert();
-
-                toast.error(
-                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
-                  {
-                    duration: Infinity,
-                    action: {
-                      label: 'OK',
-                      onClick: () => {
-                        activeAlerts.current[deviceKey] = false;
-                        alertCooldowns.current[deviceKey] = Date.now(); 
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                        }
-                      },
-                    },
-                  },
-                );
+      toast.error(
+        `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
+        {
+          duration: Infinity,
+          action: {
+            label: 'OK',
+            onClick: () => {
+              activeAlerts.current[deviceKey] = false;
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
               }
-            } else {
-     
-              if (activeAlerts.current[deviceKey]) {
-                activeAlerts.current[deviceKey] = false;
-                delete alertCooldowns.current[deviceKey];
-                if (audioRef.current) {
-                  audioRef.current.pause();
-                  audioRef.current.currentTime = 0;
-                }
-              }
-            }
-          });
+              
+              alertTimeouts.current[deviceKey] = setTimeout(() => {
+                delete alertTimeouts.current[deviceKey];
+              }, 300000);
+            },
+          },
+        },
+      );
+    }
+  } else {
+    // Si la velocidad baja, limpiar todo
+    if (activeAlerts.current[deviceKey]) {
+      activeAlerts.current[deviceKey] = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+    
+    // Limpiar timeout si existe
+    if (alertTimeouts.current[deviceKey]) {
+      clearTimeout(alertTimeouts.current[deviceKey]);
+      delete alertTimeouts.current[deviceKey];
+    }
+  }
+});
+
         });
 
         connection.on('Error', (error) => {
@@ -299,6 +303,12 @@ export default function RequestPage() {
 
       activeAlerts.current = {};
       alertCooldowns.current = {};
+
+
+      Object.values(alertTimeouts.current).forEach(timeout => {
+    clearTimeout(timeout);
+  });
+  alertTimeouts.current = {};
 
       if (audioRef.current) {
         audioRef.current.pause();
