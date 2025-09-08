@@ -878,6 +878,25 @@ const Tollbar: React.FC = () => {
             </li>
           ) : isTalmav ? (
             <>
+              {/* Agregar menú de Gestión de Servicios con opciones limitadas */}
+              {renderDropdownMenu(
+                {
+                  ...MENU_CONFIG.SERVICIOS,
+                  items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
+                    ['unidades'].includes(item.id),
+                  ),
+                },
+                openMenus.services,
+                () => toggleMenu('services'),
+              )}
+
+              {/* Agregar menú de Operaciones */}
+              {renderDropdownMenu(
+                MENU_CONFIG.OPERACIONES,
+                openMenus.operaciones,
+                () => toggleMenu('operaciones'),
+              )}
+
               <li
                 onClick={() => openModal('servicios')}
                 className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
@@ -885,6 +904,14 @@ const Tollbar: React.FC = () => {
               >
                 <div className="p-1 text-[12px]">Recorrido Servicios</div>
               </li>
+
+              {/* Agregar menú de Reportes */}
+              {renderDropdownMenu(
+                MENU_CONFIG.REPORTES,
+                openMenus.reportes,
+                () => toggleMenu('reportes'),
+              )}
+
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
                 <div className="flex w-[50px] items-center justify-center p-0">
                   <Profile toggleFullScreen={toggleFullScreen} />
@@ -1128,36 +1155,62 @@ const Tollbar: React.FC = () => {
         </div>
 
         {isTalmav ? (
-          <div
-            className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80  p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50  hover:shadow-lg"
-            onClick={() => openModal('servicios')}
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-              <MdOutlineMiscellaneousServices className="text-lg text-white" />
+          <div className="mb-0 space-y-0">
+            {/* Agregar menú de Gestión de Servicios en sidebar con opciones limitadas */}
+            {renderSidebarMenu(
+              {
+                ...MENU_CONFIG.SERVICIOS,
+                items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
+                  ['unidades'].includes(item.id),
+                ),
+              },
+              openMenus.services,
+              () => toggleMenu('services'),
+            )}
+
+            {/* Agregar menú de Operaciones en sidebar */}
+            {renderSidebarMenu(
+              MENU_CONFIG.OPERACIONES,
+              openMenus.operaciones,
+              () => toggleMenu('operaciones'),
+            )}
+
+            <div
+              className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80  p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50  hover:shadow-lg"
+              onClick={() => openModal('servicios')}
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                <MdOutlineMiscellaneousServices className="text-lg text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
+                  Recorrido Servicios
+                </span>
+                <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
+                  Explora nuestros servicios
+                </span>
+              </div>
+              <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                <svg
+                  className="h-4 w-4 text-blue-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
-                Recorrido Servicios
-              </span>
-              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
-                Explora nuestros servicios
-              </span>
-            </div>
-            <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-              <svg
-                className="h-4 w-4 text-blue-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </div>
+
+            {/* Agregar menú de Reportes en sidebar */}
+            {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
+              toggleMenu('reportes'),
+            )}
           </div>
         ) : isMovilbus ? (
           <div className="mb-0 space-y-0">
