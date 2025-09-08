@@ -92,7 +92,7 @@ export default function RequestPage() {
 
   const playSpeedAlert = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.loop = true; // Hacer que se repita
+      audioRef.current.loop = true; 
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(console.error);
     }
@@ -139,7 +139,6 @@ export default function RequestPage() {
 
       try {
         const username = session.user.username;
-        // ✅ NUEVA URL CON PARÁMETRO DE RUTA
         const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
 
         console.log('🚀 Iniciando nueva conexión SignalR...');
@@ -157,7 +156,6 @@ export default function RequestPage() {
           .withAutomaticReconnect([0, 1000, 5000, 10000])
           .build();
 
-        // Configurar timeouts EXACTOS del HTML
         connection.keepAliveIntervalInMilliseconds = 15000; // 15 segundos
         connection.serverTimeoutInMilliseconds = 30000; // 30 segundos
 
@@ -217,7 +215,7 @@ export default function RequestPage() {
             const deviceKey = device.deviceId;
             const now = Date.now();
 
-            if (device.lastValidSpeed >= 91) {
+            if (device.lastValidSpeed >= 60) {
               const isInCooldown =
                 alertCooldowns.current[deviceKey] &&
                 now - alertCooldowns.current[deviceKey] < 60000;
