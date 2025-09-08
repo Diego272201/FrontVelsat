@@ -44,6 +44,53 @@ interface MarkerData {
   intervalId?: NodeJS.Timeout;
 }
 
+const mapLayers = {
+  openstreetmap: {
+    name: 'Calles',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    icon: '🗺️',
+  },
+  hybrid: {
+    name: 'Híbrido',
+    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
+    icon: '🌍',
+  },
+  satellite_google: {
+    name: 'Satelital',
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
+    icon: '🛰️',
+  },
+};
+
+const LayerController = ({
+  currentLayer,
+}: {
+  currentLayer: keyof typeof mapLayers;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    map.eachLayer((layer) => {
+      if (layer instanceof L.TileLayer) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const newLayer = L.tileLayer(mapLayers[currentLayer].url, {
+      attribution: mapLayers[currentLayer].attribution,
+      maxZoom: 19,
+    });
+
+    newLayer.addTo(map);
+  }, [map, currentLayer]);
+
+  return null;
+};
+
 // ✅ Componente simplificado para marcadores estáticos - solo Street View al hacer clic
 const AdditionalMarkers = ({
   marcadores,
@@ -182,6 +229,9 @@ export default function SeguirUnidadPage({
 
   const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
+  const [currentLayer, setCurrentLayer] =
+    useState<keyof typeof mapLayers>('openstreetmap');
+  const [showLayerSelector, setShowLayerSelector] = useState(false);
 
   const servidorUrl = localStorage.getItem('servidorUrl');
 
@@ -747,6 +797,11 @@ export default function SeguirUnidadPage({
         }
       : null);
 
+  const handleLayerChange = useCallback((layerKey: keyof typeof mapLayers) => {
+    setCurrentLayer(layerKey);
+    setShowLayerSelector(false);
+  }, []);
+
   return (
     <div
       id="map-container"
@@ -805,16 +860,12 @@ export default function SeguirUnidadPage({
         zoom={14}
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
-        zoomControl={true}
+        zoomControl={false}
         maxZoom={19}
         minZoom={1}
         closePopupOnClick={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
-        />
+        <LayerController currentLayer={currentLayer} />
 
         <MapController
           onMapReady={onMapReady}
@@ -931,6 +982,62 @@ export default function SeguirUnidadPage({
           </div>
         </div>
       )}
+
+      {/* Controles de zoom y selector de capas en la esquina inferior derecha */}
+      <div className="absolute bottom-4 right-4 z-[1001] flex flex-col gap-2">
+        {/* Selector de capas */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLayerSelector(!showLayerSelector)}
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white shadow-lg transition-colors hover:bg-gray-50"
+            title="Cambiar vista del mapa"
+          >
+            <span className="text-lg">{mapLayers[currentLayer].icon}</span>
+          </button>
+
+          {showLayerSelector && (
+            <div className="absolute bottom-12 right-0 z-[1002] w-48 rounded-lg border border-gray-200 bg-white shadow-xl">
+              <div className="p-2">
+                <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Vista del Mapa
+                </div>
+                {Object.entries(mapLayers).map(([key, layer]) => (
+                  <button
+                    key={key}
+                    onClick={() =>
+                      handleLayerChange(key as keyof typeof mapLayers)
+                    }
+                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors ${
+                      currentLayer === key
+                        ? 'bg-blue-50 font-medium text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="mr-3 text-base">{layer.icon}</span>
+                    {layer.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Controles de zoom */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => mapRef.current?.zoomIn()}
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
+          >
+            +
+          </button>
+          <button
+            onClick={() => mapRef.current?.zoomOut()}
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
+          >
+            -
+          </button>
+        </div>
+      </div>
 
       {/* CSS Styles */}
       <style jsx global>{`

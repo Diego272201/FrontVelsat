@@ -122,8 +122,7 @@ export default function RequestPage() {
     string[] | null
   >(null);
 
-  const [currentLayer, setCurrentLayer] =
-    useState<keyof typeof mapLayers>('openstreetmap');
+  const [currentLayer, setCurrentLayer] = useState<keyof typeof mapLayers>('openstreetmap');
   const [showLayerSelector, setShowLayerSelector] = useState(false);
 
   const iconCache = useRef<{ [key: string]: L.Icon }>({});
@@ -917,6 +916,7 @@ export default function RequestPage() {
               style={{ height: '100%', width: '100%' }}
               className="z-10"
               zoomControl={false} // Quitamos los controles de zoom por defecto
+              attributionControl={false}
               maxZoom={19}
               minZoom={1}
               closePopupOnClick={false} // ← Esta es la configuración clave
