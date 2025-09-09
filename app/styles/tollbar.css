@@ -21,7 +21,7 @@
 
 .tollbar-bg{
   background: #113EB9;
-  clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 70%, 68% 28%, 19% 28%, 17% 75%, 0 75%);
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 69% 70%, 68% 28%, 19% 28%, 17% 75%, 0 75%);
   position: absolute;
   top: 0;
   left: 0;
@@ -64,7 +64,7 @@
 
 @media (max-width: 1412px) {
   .tollbar-bg {
-    clip-path: polygon(0 0, 100% 0, 100% 70%, 52% 70%, 50% 28%, 28% 28%, 27% 75%, 0 75%);
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 70%, 48% 28%, 28% 28%, 27% 75%, 0 75%);
   }
 }
 
@@ -685,4 +685,23 @@ font-size: 0.88rem;
   .sidebar {
     width: 65%;
   }
+}
+
+
+.navigation > li > a {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: -10px;
+  padding: 9.5px 5px;
+
+}
+
+.navigation svg {
+  margin-top: 0 !important;
+  vertical-align: middle;
+}
+
+.navigation > li {
+  align-items: center;
 }
