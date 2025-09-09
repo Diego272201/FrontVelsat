@@ -14,7 +14,6 @@ interface Leyenda {
 
 export default function Leyenda({ unidad, fechaIni, fechaFin }: Leyenda) {
   const [showDropdown, setShowDropdown] = useState(true);
-
   const fechaIniHora = parseFecha(fechaIni);
   const fechaFinHora = parseFecha(fechaFin);
 
