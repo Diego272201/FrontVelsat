@@ -82,7 +82,7 @@ export default function RequestPage() {
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAlertTime = useRef<{ [key: string]: number }>({});
-const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     if (isClient) {
@@ -93,7 +93,7 @@ const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const playSpeedAlert = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.loop = true; 
+      audioRef.current.loop = true;
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(console.error);
     }
@@ -212,54 +212,56 @@ const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
           setMarkersLoaded(true);
           setDeviceList(datos.datosDevice);
 
-  datos.datosDevice.forEach((device: DeviceList) => {
-  const deviceKey = device.deviceId;
+          datos.datosDevice.forEach((device: DeviceList) => {
+            const deviceKey = device.deviceId;
 
-  if (device.lastValidSpeed >= 91) {
-    // Solo activar si no hay alerta activa Y no hay timeout pendiente
-    if (!activeAlerts.current[deviceKey] && !alertTimeouts.current[deviceKey]) {
-      activeAlerts.current[deviceKey] = true;
-      playSpeedAlert();
+            if (device.lastValidSpeed >= 91) {
+              // Solo activar si no hay alerta activa Y no hay timeout pendiente
+              if (
+                !activeAlerts.current[deviceKey] &&
+                !alertTimeouts.current[deviceKey]
+              ) {
+                activeAlerts.current[deviceKey] = true;
+                playSpeedAlert();
 
-      toast.error(
-        `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
-        {
-          duration: Infinity,
-          action: {
-            label: 'OK',
-            onClick: () => {
-              activeAlerts.current[deviceKey] = false;
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+                toast.error(
+                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
+                  {
+                    duration: Infinity,
+                    action: {
+                      label: 'OK',
+                      onClick: () => {
+                        activeAlerts.current[deviceKey] = false;
+                        if (audioRef.current) {
+                          audioRef.current.pause();
+                          audioRef.current.currentTime = 0;
+                        }
+
+                        alertTimeouts.current[deviceKey] = setTimeout(() => {
+                          delete alertTimeouts.current[deviceKey];
+                        }, 300000);
+                      },
+                    },
+                  },
+                );
               }
-              
-              alertTimeouts.current[deviceKey] = setTimeout(() => {
-                delete alertTimeouts.current[deviceKey];
-              }, 300000);
-            },
-          },
-        },
-      );
-    }
-  } else {
-    // Si la velocidad baja, limpiar todo
-    if (activeAlerts.current[deviceKey]) {
-      activeAlerts.current[deviceKey] = false;
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-    
-    // Limpiar timeout si existe
-    if (alertTimeouts.current[deviceKey]) {
-      clearTimeout(alertTimeouts.current[deviceKey]);
-      delete alertTimeouts.current[deviceKey];
-    }
-  }
-});
+            } else {
+              // Si la velocidad baja, limpiar todo
+              if (activeAlerts.current[deviceKey]) {
+                activeAlerts.current[deviceKey] = false;
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  audioRef.current.currentTime = 0;
+                }
+              }
 
+              // Limpiar timeout si existe
+              if (alertTimeouts.current[deviceKey]) {
+                clearTimeout(alertTimeouts.current[deviceKey]);
+                delete alertTimeouts.current[deviceKey];
+              }
+            }
+          });
         });
 
         connection.on('Error', (error) => {
@@ -293,6 +295,34 @@ const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
       }
     };
 
+    const handleVisibilityChange = async () => {
+      if (!isComponentMounted) return;
+
+      if (document.visibilityState === 'visible') {
+        console.log('🔍 Pestaña activa - Verificando conexión SignalR...');
+
+        // Verificar si la conexión está desconectada
+        if (
+          !connection ||
+          connection.state === signalR.HubConnectionState.Disconnected
+        ) {
+          console.log('🔄 Reconectando SignalR al activar pestaña...');
+          try {
+            await connectSignalR();
+          } catch (error) {
+            console.error('❌ Error reconectando:', error);
+          }
+        } else {
+          console.log('✅ Conexión SignalR ya está activa');
+        }
+      } else {
+        console.log('😴 Pestaña inactiva');
+      }
+    };
+
+    // Agregar event listener para visibilidad
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Delay inicial más corto
     const timeoutId = setTimeout(connectSignalR, 50);
 
@@ -301,14 +331,15 @@ const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
       isComponentMounted = false;
       clearTimeout(timeoutId);
 
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
       activeAlerts.current = {};
       alertCooldowns.current = {};
 
-
-      Object.values(alertTimeouts.current).forEach(timeout => {
-    clearTimeout(timeout);
-  });
-  alertTimeouts.current = {};
+      Object.values(alertTimeouts.current).forEach((timeout) => {
+        clearTimeout(timeout);
+      });
+      alertTimeouts.current = {};
 
       if (audioRef.current) {
         audioRef.current.pause();
