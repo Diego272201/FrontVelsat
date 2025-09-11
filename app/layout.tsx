@@ -2,7 +2,7 @@ import SessionAuthProvider from '@/context/SessionAuthProvider';
 import './globals.css';
 import { ApiProvider } from '@/context/ApiContext';
 import { Analytics } from '@vercel/analytics/next';
-import MapsWrapper from '@/app/components/MapsWrapper';
+import ConditionalMapsWrapper from '@/app/components/ConditionalMapsWrapper';
 
 export default function RootLayout({
   children,
@@ -22,9 +22,9 @@ export default function RootLayout({
       <body>
         <SessionAuthProvider>
           <ApiProvider>
-            <MapsWrapper>
+            <ConditionalMapsWrapper>
               {children}
-            </MapsWrapper>
+            </ConditionalMapsWrapper>
             <Analytics />
           </ApiProvider>
         </SessionAuthProvider>

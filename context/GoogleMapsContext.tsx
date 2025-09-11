@@ -13,128 +13,176 @@ const GoogleMapsContext = createContext<GoogleMapsContextType | undefined>(undef
 interface GoogleMapsProviderProps {
   children: ReactNode;
   apiKey: string;
+  servidorUrl?: string;
+  disabled?: boolean;
 }
 
-// Función para limpiar scripts previos de Google Maps
-function cleanupGoogleMapsScript() {
-  // console.log('🧹 Limpiando scripts de Google Maps...');
-  
-  // Remover scripts existentes
-  const scripts = document.querySelectorAll('script[src*="maps.googleapis.com"]') as NodeListOf<HTMLScriptElement>;
-  scripts.forEach(script => {
-    // console.log('🗑️ Removiendo script:', script.src);
-    script.remove();
-  });
-  
-  // Limpiar el objeto global de Google Maps
-  if (typeof window !== 'undefined' && (window as any).google) {
-    // console.log('🌐 Limpiando objeto global google');
-    delete (window as any).google;
-  }
-  
-  // Limpiar cualquier callback global
-  if (typeof window !== 'undefined' && (window as any).initMap) {
-    delete (window as any).initMap;
-  }
-}
+// Variables globales para controlar el estado de carga
+let isGoogleMapsGloballyLoaded = false;
+let isGoogleMapsGloballyLoading = false;
+let currentLoadedApiKey = '';
+let loadPromise: Promise<void> | null = null;
 
-// Función para cargar Google Maps manualmente
+// Función para cargar Google Maps manualmente (optimizada)
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // console.log('📦 Cargando Google Maps con API key:', apiKey.substring(0, 20) + '...');
+  // Si ya está cargado con la MISMA API key, resolver inmediatamente
+  if (isGoogleMapsGloballyLoaded && 
+      currentLoadedApiKey === apiKey && 
+      typeof window !== 'undefined' && 
+      (window as any).google?.maps) {
+    // console.log('✅ Google Maps ya está cargado con la misma API key - reutilizando');
+    return Promise.resolve();
+  }
+
+  // Si ya se está cargando con la MISMA API key, retornar la promesa existente
+  if (isGoogleMapsGloballyLoading && currentLoadedApiKey === apiKey && loadPromise) {
+    // console.log('⏳ Google Maps ya se está cargando con la misma API key - esperando...');
+    return loadPromise;
+  }
+
+  // Si hay una API key diferente cargada, limpiar y recargar
+  if (currentLoadedApiKey && currentLoadedApiKey !== apiKey) {
+    // console.log('🔄 API key diferente detectada, limpiando y recargando...');
+    // console.log('🔑 API key anterior:', currentLoadedApiKey.substring(0, 20) + '...');
+    // console.log('🔑 API key nueva:', apiKey.substring(0, 20) + '...');
     
-    // Verificar si ya está cargado con la misma API key
-    if (typeof window !== 'undefined' && (window as any).google && (window as any).google.maps) {
-      // console.log('✅ Google Maps ya está cargado');
-      resolve();
-      return;
+    // Limpiar script anterior
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]') as HTMLScriptElement;
+    if (existingScript) {
+      existingScript.remove();
     }
     
-    // Limpiar scripts previos si existen
-    cleanupGoogleMapsScript();
+    // Limpiar objeto global
+    if (typeof window !== 'undefined' && (window as any).google) {
+      delete (window as any).google;
+    }
+    
+    isGoogleMapsGloballyLoaded = false;
+    loadPromise = null;
+  }
+
+  // Crear nueva promesa de carga
+  loadPromise = new Promise((resolve, reject) => {
+    // console.log('📦 Cargando Google Maps con API key:', apiKey.substring(0, 20) + '...');
+    
+    isGoogleMapsGloballyLoading = true;
+    currentLoadedApiKey = apiKey;
     
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libraries.join(',')}&language=es&region=PE`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${libraries.join(',')}&language=es&region=PE&loading=async`;
     script.async = true;
     script.defer = true;
     
     script.onload = () => {
-      // console.log('✅ Google Maps cargado exitosamente');
+      // console.log('✅ Google Maps cargado exitosamente para:', apiKey.substring(0, 20) + '...');
+      isGoogleMapsGloballyLoaded = true;
+      isGoogleMapsGloballyLoading = false;
       resolve();
     };
     
     script.onerror = (error) => {
       // console.error('❌ Error cargando Google Maps:', error);
+      isGoogleMapsGloballyLoading = false;
+      currentLoadedApiKey = '';
+      loadPromise = null;
       reject(new Error('Error loading Google Maps'));
     };
     
     document.head.appendChild(script);
   });
+
+  return loadPromise;
 }
 
-export function GoogleMapsProvider({ children, apiKey }: GoogleMapsProviderProps) {
+export function GoogleMapsProvider({ children, apiKey, servidorUrl, disabled = false }: GoogleMapsProviderProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError, setLoadError] = useState<Error | undefined>(undefined);
   const currentApiKeyRef = useRef<string>('');
-  const loadingRef = useRef<boolean>(false);
-  const isInitializedRef = useRef<boolean>(false);
+  const hasInitializedRef = useRef<boolean>(false);
+
+  // Verificar si el servidor usa OSM (contiene "sub") - FUERA del useEffect
+  const usesOSM = servidorUrl ? servidorUrl.includes('sub') : false;
+  
+  // Si está deshabilitado o usa OSM, no cargar Google Maps
+  const shouldSkipGoogleMaps = disabled || usesOSM;
 
   useEffect(() => {
-    // Solo cargar si la API key cambió y no estamos ya cargando
-    if (apiKey && apiKey !== currentApiKeyRef.current && !loadingRef.current) {
-      
-      // Solo hacer logs si es la primera vez o si realmente cambió
-      const isRealChange = currentApiKeyRef.current !== '' && currentApiKeyRef.current !== apiKey;
-      const isInitialLoad = !isInitializedRef.current;
-      
-      // if (isRealChange) {
-      //   console.log('🔄 API key cambió, recargando Google Maps...');
-      //   console.log('🔑 API key anterior:', currentApiKeyRef.current.substring(0, 20) + '...');
-      //   console.log('🔑 API key nueva:', apiKey.substring(0, 20) + '...');
-      // } else if (isInitialLoad) {
-      //   console.log('📦 Cargando Google Maps inicial con API key:', apiKey.substring(0, 20) + '...');
+    // EARLY RETURN: Si está deshabilitado o usa OSM, no hacer nada más
+    if (shouldSkipGoogleMaps) {
+      // if (disabled) {
+      //   console.log('⏸️ Google Maps deshabilitado por configuración');
+      // } else if (usesOSM) {
+      //   console.log('🗺️ Servidor OSM detectado:', servidorUrl, '- Saltando carga de Google Maps');
       // }
-      
-      loadingRef.current = true;
       setIsLoaded(false);
       setLoadError(undefined);
+      return;
+    }
+
+    // Solo ejecutar si tenemos una API key válida
+    if (!apiKey || apiKey === 'dummy-key') {
+      console.warn('⚠️ No se proporcionó API key válida para Google Maps');
+      return;
+    }
+
+    // Cargar si es la primera vez O si cambió la API key (diferente usuario)
+    const needsLoading = !hasInitializedRef.current || apiKey !== currentApiKeyRef.current;
+    
+    if (needsLoading) {
+      // if (apiKey !== currentApiKeyRef.current && currentApiKeyRef.current !== '') {
+      //   console.log('🔄 Cambio de usuario detectado - cambiando API key');
+      //   console.log('👤 Usuario anterior:', currentApiKeyRef.current.substring(0, 20) + '...');
+      //   console.log('👤 Usuario nuevo:', apiKey.substring(0, 20) + '...');
+      // } else {
+      //   console.log('🚀 Iniciando carga inicial de Google Maps...');
+      // }
+      
+      setLoadError(undefined);
+      setIsLoaded(false);
       
       loadGoogleMapsScript(apiKey)
         .then(() => {
-          setIsLoaded(true);
-          currentApiKeyRef.current = apiKey;
-          loadingRef.current = false;
-          isInitializedRef.current = true;
+          // Verificación adicional de que Google Maps esté realmente disponible
+          const checkGoogleMaps = () => {
+            if (typeof window !== 'undefined' && 
+                (window as any).google?.maps?.Map && 
+                (window as any).google?.maps?.places) {
+              setIsLoaded(true);
+              currentApiKeyRef.current = apiKey;
+              hasInitializedRef.current = true;
+              // console.log('🎉 Google Maps listo para el usuario:', apiKey.substring(0, 20) + '...');
+            } else {
+              // Reintentar después de un breve delay
+              setTimeout(checkGoogleMaps, 100);
+            }
+          };
           
-          // if (isRealChange || isInitialLoad) {
-          //   console.log('🎉 Google Maps cargado y listo');
-          // }
+          checkGoogleMaps();
         })
         .catch((error) => {
           setLoadError(error);
-          loadingRef.current = false;
-          // console.error('💥 Error al cargar Google Maps:', error);
+          setIsLoaded(false);
+          // console.error('💥 Error al cargar Google Maps para usuario:', apiKey.substring(0, 20) + '...', error);
         });
-    } else if (apiKey === currentApiKeyRef.current && (window as any).google?.maps) {
-      // Si es la misma API key y Google Maps ya está disponible
-      if (!isLoaded) {
+    } else if (currentLoadedApiKey === apiKey && isGoogleMapsGloballyLoaded && !isLoaded) {
+      // Verificar que Google Maps esté realmente disponible antes de marcar como cargado
+      if (typeof window !== 'undefined' && 
+          (window as any).google?.maps?.Map && 
+          (window as any).google?.maps?.places) {
+        // console.log('🔄 Sincronizando estado local con Google Maps ya cargado');
         setIsLoaded(true);
       }
     }
-  }, [apiKey, isLoaded]);
+  }, [apiKey, shouldSkipGoogleMaps]);
 
-  // Limpiar al desmontar
-  useEffect(() => {
-    return () => {
-      if (isInitializedRef.current) {
-        // console.log('🧹 Limpiando al desmontar GoogleMapsProvider');
-        cleanupGoogleMapsScript();
-      }
-    };
-  }, []);
+  const contextValue = {
+    isLoaded: !shouldSkipGoogleMaps && isLoaded && isGoogleMapsGloballyLoaded && currentLoadedApiKey === apiKey && 
+              typeof window !== 'undefined' && !!(window as any).google?.maps?.Map,
+    loadError: shouldSkipGoogleMaps ? undefined : loadError
+  };
 
   return (
-    <GoogleMapsContext.Provider value={{ isLoaded, loadError }}>
+    <GoogleMapsContext.Provider value={contextValue}>
       {children}
     </GoogleMapsContext.Provider>
   );
@@ -146,4 +194,14 @@ export function useGoogleMaps() {
     throw new Error('useGoogleMaps must be used within a GoogleMapsProvider');
   }
   return context;
+}
+
+// Función de utilidad para verificar manualmente si Google Maps está disponible
+export function isGoogleMapsAvailable(): boolean {
+  return isGoogleMapsGloballyLoaded && typeof window !== 'undefined' && !!(window as any).google?.maps;
+}
+
+// Función de utilidad para obtener la API key actualmente cargada
+export function getCurrentLoadedApiKey(): string {
+  return currentLoadedApiKey;
 }
