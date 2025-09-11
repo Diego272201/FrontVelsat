@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { GoogleMap, InfoWindow, Marker } from '@react-google-maps/api';
+import { useGoogleMaps } from '@/context/GoogleMapsContext';
 
 interface Coordenada {
   wx: string;
@@ -16,7 +17,6 @@ interface ModalMapaProps {
   coordenadas?: Coordenada[];
   selectedMarker: Coordenada | null;
   setSelectedMarker: (marker: Coordenada | null) => void;
-  isLoaded: boolean;
   getMarkerSVG: (index: number) => string;
 }
 
@@ -27,9 +27,11 @@ export default function ModalMapa({
   coordenadas,
   selectedMarker,
   setSelectedMarker,
-  isLoaded,
   getMarkerSVG,
 }: ModalMapaProps) {
+  // Usar el contexto de Google Maps en lugar del prop isLoaded
+  const { isLoaded, loadError } = useGoogleMaps();
+  
   // Estado para mantener el centro del mapa fijo
   const [mapCenter] = useState({
     lat: -12.061171148647077,
@@ -50,6 +52,40 @@ export default function ModalMapa({
   }, [isOpen, setSelectedMarker]);
 
   if (!isOpen) return null;
+
+  // Manejar error de carga
+  if (loadError) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        onClick={() => setIsOpen(false)}
+      >
+        <div
+          className="z-60 relative w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute right-4 top-4 text-3xl font-bold text-gray-500 hover:text-gray-700"
+          >
+            &times;
+          </button>
+          <h2 className="mb-4 text-lg font-semibold">Error</h2>
+          <p className="text-red-600">
+            Error cargando Google Maps: {loadError.message}
+          </p>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="rounded-lg bg-[#d62828] px-4 py-2 text-white hover:bg-red-500"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -83,7 +119,9 @@ export default function ModalMapa({
               onClick={() => setSelectedMarker(null)}
               options={{
                 gestureHandling: 'cooperative',
-                disableDefaultUI: false,
+                disableDefaultUI: true,
+                streetViewControl: true,
+                fullscreenControl: true,
                 zoomControl: true,
               }}
               onCenterChanged={() => {}} // Prevenir cambios de centro automáticos
@@ -166,7 +204,9 @@ export default function ModalMapa({
             </GoogleMap>
           </div>
         ) : (
-          <p>Cargando mapa...</p>
+          <div className="flex h-[500px] items-center justify-center">
+            <p>Cargando mapa...</p>
+          </div>
         )}
 
         <div className="mt-4 flex justify-end">

@@ -6,29 +6,18 @@ import React, {
   useRef,
   useMemo,
 } from 'react';
-import { useJsApiLoader } from '@react-google-maps/api';
 import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
-import dynamic from 'next/dynamic';
 import { toast, Toaster } from 'sonner';
 const blinkingIntervals: { [key: string]: NodeJS.Timeout } = {};
 const blinkingStates: { [key: string]: boolean } = {};
-
-const DynamicGoogleMap = dynamic(
-  () => import('@react-google-maps/api').then((mod) => mod.GoogleMap),
-  { ssr: false },
-);
-
-const libraries: 'places'[] = ['places'];
-
-const containerStyle = {
-  width: '100%',
-  height: '100vh',
-};
+import GoogleMapComponent from '../components/GoogleMapComponent';
+import { useMapInstance } from '@/hooks/useMapInstance';
+import { useGoogleMaps } from '@/context/GoogleMapsContext';
 
 const center = {
   lat: -9.22812,
@@ -65,7 +54,6 @@ interface MarkerData {
 }
 
 export default function RequestPage() {
-  const isClient = typeof window !== 'undefined';
 
   const openStreetView = useCallback((lat: number, lng: number) => {
     // URL que abre directamente en Street View (vista de calles)
@@ -76,20 +64,21 @@ export default function RequestPage() {
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
-  const mapRef = useRef<google.maps.Map | null>(null);
   const markersDataRef = useRef<{ [key: string]: MarkerData }>({});
+  const { isLoaded } = useGoogleMaps(); 
+  const { mapRef, mapLoaded, onLoad: mapOnLoad, onUnmount: mapOnUnmount } = useMapInstance();
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAlertTime = useRef<{ [key: string]: number }>({});
   const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
-  useEffect(() => {
-    if (isClient) {
-      audioRef.current = new Audio('/alert.mp3');
-      audioRef.current.preload = 'auto';
-    }
-  }, [isClient]);
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    audioRef.current = new Audio('/alert.mp3');
+    audioRef.current.preload = 'auto';
+  }
+}, []);
 
   const playSpeedAlert = useCallback(() => {
     if (audioRef.current) {
@@ -101,7 +90,6 @@ export default function RequestPage() {
 
   const { baseUrl } = useApi();
 
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
   const [filteredIdsFromSidebar, setFilteredIdsFromSidebar] = useState<
     string[] | null
   >(null);
@@ -110,6 +98,14 @@ export default function RequestPage() {
   const alertCooldowns = useRef<{ [key: string]: number }>({});
 
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
+
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+  // Llamar al onLoad del hook
+  mapOnLoad(map);
+  
+  // Tu lógica personalizada
+  setMarkersLoaded(false);
+}, [mapOnLoad]);
 
   useEffect(() => {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
@@ -354,20 +350,6 @@ export default function RequestPage() {
     };
   }, [session?.user?.username, baseUrl]);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries,
-  });
-
-  useEffect(() => {
-    if (!isClient) return;
-
-    if (isLoaded) {
-      setMapLoaded(true);
-    }
-  }, [isLoaded, isClient]);
-
   // Funciones optimizadas con memoización
   const getDireccion = useCallback((heading: number): string => {
     const directions = [
@@ -390,7 +372,7 @@ export default function RequestPage() {
 
   const getMarkerIcon = useCallback(
     (heading: number) => {
-      if (!isClient) return null;
+      if (typeof window === 'undefined') return null;
 
       const cacheKey = Math.floor(heading / 45) * 45;
 
@@ -426,7 +408,7 @@ export default function RequestPage() {
       iconCache.current[cacheKey] = icon;
       return icon;
     },
-    [isClient],
+    [],
   );
 
   const getEstado = useCallback(
@@ -512,7 +494,7 @@ export default function RequestPage() {
 
   const updateMarkersAndPopups = useCallback(
     (map: google.maps.Map) => {
-      if (!map || !isClient) return;
+      if (!map) return;
 
       const filteredDeviceList = filteredIdsFromSidebar
         ? deviceList.filter((device) =>
@@ -579,7 +561,6 @@ export default function RequestPage() {
       getMarkerIcon,
       getEstado,
       getDireccion,
-      isClient,
     ],
   );
 
@@ -1165,7 +1146,7 @@ export default function RequestPage() {
 
   const handleStreetViewClick = useCallback(
     (e: MouseEvent) => {
-      if (!isClient) return;
+  if (typeof window === 'undefined') return;
 
       const target = e.target as HTMLElement;
       const streetViewLink = target.closest('.street-view-link');
@@ -1177,12 +1158,12 @@ export default function RequestPage() {
         openStreetView(lat, lng);
       }
     },
-    [isClient, openStreetView],
+    [openStreetView],
   );
 
   const handleFollowLinkClick = useCallback(
     (e: MouseEvent) => {
-      if (!isClient) return;
+    if (typeof window === 'undefined') return;
 
       const target = e.target as HTMLElement;
       const followLink = target.closest('.follow-link');
@@ -1194,12 +1175,12 @@ export default function RequestPage() {
         window.open(url, '_blank');
       }
     },
-    [isClient],
+    [],
   );
 
   // ✅ REEMPLAZA tu useEffect actual con esto:
   useEffect(() => {
-    if (!isClient) return;
+    if (typeof window === 'undefined') return;
 
     if (!clickListenerAttached.current) {
       // ✅ Especificar opciones de event listener para evitar warnings
@@ -1234,7 +1215,7 @@ export default function RequestPage() {
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, handleStreetViewClick, isClient]);
+  }, [handleFollowLinkClick, handleStreetViewClick]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -1264,20 +1245,12 @@ export default function RequestPage() {
     [deviceList],
   );
 
-  useEffect(() => {
-    if (mapRef.current && isClient && deviceList.length > 0) {
-      updateMarkersAndPopups(mapRef.current);
-    }
-  }, [updateMarkersAndPopups, isClient, deviceList]);
+useEffect(() => {
+  if (mapRef.current && mapLoaded && deviceList.length > 0) {
+    updateMarkersAndPopups(mapRef.current);
+  }
+}, [updateMarkersAndPopups, mapLoaded, deviceList]);
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-    setMarkersLoaded(false);
-
-    //Tráfico
-    const trafficLayer = new google.maps.TrafficLayer();
-    trafficLayer.setMap(map);
-  }, []);
 
   function startBlinkingAnimation(
     element: HTMLElement,
@@ -1356,77 +1329,44 @@ export default function RequestPage() {
     };
   }, []);
 
-  const onUnmount = useCallback(() => {
-    if (!isClient) return;
-
-    Object.values(markersDataRef.current).forEach((markerData) => {
-      markerData.marker.setMap(null);
-      markerData.popup1.setMap(null);
-      markerData.popup2.setMap(null);
-      if (markerData.intervalId) {
-        clearInterval(markerData.intervalId);
-      }
-    });
-    markersDataRef.current = {};
-
-    // Limpiar cache de iconos
-    iconCache.current = {};
-  }, [isClient]);
-
-  const memoizedMapOptions = useMemo(() => {
-    let isMobile = false;
-
-    if (typeof window !== 'undefined') {
-      const isTouchDevice = () => {
-        return (
-          'ontouchstart' in window ||
-          navigator.maxTouchPoints > 0 ||
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent,
-          )
-        );
-      };
-      isMobile = isTouchDevice();
+  const handleMapUnmount = useCallback(() => {
+  // Tu limpieza personalizada
+  Object.values(markersDataRef.current).forEach((markerData) => {
+    markerData.marker.setMap(null);
+    markerData.popup1.setMap(null);
+    markerData.popup2.setMap(null);
+    if (markerData.intervalId) {
+      clearInterval(markerData.intervalId);
     }
+  });
+  markersDataRef.current = {};
+  iconCache.current = {};
+  
+  // Llamar al onUnmount del hook
+  mapOnUnmount();
+}, [mapOnUnmount]);
 
-    return {
-      mapTypeControl: false,
-      fullscreenControl: true,
-      fullscreenControlOptions: {
-        position: 9,
-      },
-      gestureHandling: isMobile ? 'greedy' : 'auto',
-    };
-  }, []);
-
-  if (!isClient) {
-    return <Loader />;
-  }
+if (!isLoaded) {
+  return <Loader />;
+}
 
   return (
     <>
       <Toaster richColors />
 
-      {isLoaded && mapLoaded ? (
-        <div className="relative">
-          {!markersLoaded && (
-            <div className="absolute left-0 top-0 z-[9999] flex h-full w-full items-center justify-center bg-white/25">
-              <Loader></Loader>
-            </div>
-          )}
-
-          <DynamicGoogleMap
-            mapContainerStyle={containerStyle}
-            center={center}
-            zoom={6}
-            onLoad={onLoad}
-            onUnmount={onUnmount}
-            options={memoizedMapOptions}
-          ></DynamicGoogleMap>
+      <div className="relative">
+      {!markersLoaded && (
+        <div className="absolute left-0 top-0 z-[9999] flex h-full w-full items-center justify-center bg-white/25">
+          <Loader />
         </div>
-      ) : (
-        <></>
       )}
+      <GoogleMapComponent
+        onLoad={handleMapLoad}
+        onUnmount={handleMapUnmount}
+        center={center}
+        zoom={6}
+      />
+    </div>
 
       <Sidebar
         centerMap={centerMap}
