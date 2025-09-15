@@ -81,6 +81,8 @@ const empresas = [
   'ZUSANE',
 ];
 
+const empresasG = ['ATSA', 'AVIANCA', 'DHL', 'LATAM', 'TALMA', 'TERPEL'];
+
 export default function Page() {
   const { username, isReady } = useUsername();
 
@@ -91,13 +93,16 @@ export default function Page() {
   const [empresaSelecRes, setEmpresaSelecRes] = useState('');
   const [tipoServicio, setTipoServicio] = React.useState('');
   const [pasajero, setPasajero] = useState('');
-  const [sugerencias, setSugerencias] = useState<{ apepate: string; codlan: string }[]>([]);
+  const [sugerencias, setSugerencias] = useState<
+    { apepate: string; codlan: string }[]
+  >([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
   const [numeroServicio, setNumeroServicio] = useState('');
   const [unidadSeleccionada, setUnidadSeleccionada] = useState('');
-  const [unidadSeleccionadaAsignar, setUnidadSeleccionadaAsignar] = useState('');
+  const [unidadSeleccionadaAsignar, setUnidadSeleccionadaAsignar] =
+    useState('');
   const [apepateConductor, setApepateConductor] = useState('');
   const [codConductor, setCodConductor] = useState<number | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -188,7 +193,6 @@ export default function Page() {
     }
 
     const payload = selectedServices.map((codservicio) => ({
-      
       codservicio,
       conductor: {
         codigo: codConductor.toString(),
@@ -383,7 +387,7 @@ export default function Page() {
                       onClick={() => {
                         setSelectedDate(null);
                         setSearchDate(null);
-                        setRefreshSearch((prev) => prev + 1); 
+                        setRefreshSearch((prev) => prev + 1);
                       }}
                     >
                       Actual
@@ -393,12 +397,16 @@ export default function Page() {
                   <div className="w-[250px]">
                     <select
                       id="empresas"
-                      className="w-full  border border-gray-300 bg-gray-200 p-[8px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[8px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSelecRes}
                       onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
                       <option value="">Seleccione Empresa</option>
-                      {empresas.map((empresa, index) => (
+                      {(username  &&
+                      username .toLowerCase() !== 'movilbus'
+                        ? empresasG
+                        : empresas
+                      ).map((empresa, index) => (
                         <option key={index} value={empresa}>
                           {empresa}
                         </option>
@@ -447,14 +455,18 @@ export default function Page() {
                   <div className="max-w-lg">
                     <select
                       id="countries"
-                      className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={(e) => setEmpresaSeleccionada(e.target.value)}
                     >
                       <option value="" disabled>
                         Seleccione Cliente
                       </option>
-                      {empresas.map((empresa, index) => (
+                      {(username  &&
+                      username.toLowerCase() !== 'movilbus'
+                        ? empresasG
+                        : empresas
+                      ).map((empresa, index) => (
                         <option key={index} value={empresa}>
                           {empresa}
                         </option>
@@ -638,7 +650,7 @@ export default function Page() {
           selectedDate={searchDate}
           refreshFlag={refreshFlag}
           refreshFlagServicio={refreshFlagServicio}
-          refreshSearch={refreshSearch} 
+          refreshSearch={refreshSearch}
         ></TableServicios>
       </div>
     </div>

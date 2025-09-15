@@ -22,49 +22,55 @@ export const getEstadoYColorVerifica = (item: any) => {
   };
   
   export const getEstadoYColor = (item: any) => {
-    const fechaActual = new Date().getTime();
-    const fechaProg = parseFecha(item.fecplan);
-    const fechaInicio = parseFecha(item.newfechaini);
-    const fechaFin = parseFecha(item.newfechafni);
-    const fechaATO = parseFecha(item.fecha);
+  const fechaActual = new Date().getTime();
   
-    if (!fechaProg) return { estado: 'ERROR', color: '#C9CECD' };
+  // Usar fechaCompleta como fallback si fecplan no existe
+  const fechaPlanOriginal = parseFecha(item.fecplan);
+  const fechaPlanFallback = fechaPlanOriginal || parseFecha(item.fecha);
   
-    if (item.estado === 'C') return { estado: 'CN', color: '#E5AFEF' };
-  
-    let estado = 'AS';
-    let color = '#AFD5EF';
-  
-    if (!item.unidad?.codunidad) {
-      estado = 'NA';
-      color = '#FDBDAA';
-    } else {
-      if (fechaActual > fechaProg && !fechaInicio) {
-        estado = 'NI';
-        color = '#868887';
+  const fechaInicio = parseFecha(item.newfechaini);
+  const fechaFin = parseFecha(item.newfechafni);
+  const fechaATO = parseFecha(item.fecha);
+
+  // Cambiar la validación para usar el fallback
+  if (!fechaPlanFallback) return { estado: 'ERROR', color: '#C9CECD' };
+
+  if (item.estado === 'C') return { estado: 'CN', color: '#E5AFEF' };
+
+  let estado = 'AS';
+  let color = '#AFD5EF';
+
+  if (!item.unidad?.codunidad) {
+    estado = 'NA';
+    color = '#FDBDAA';
+  } else {
+    // Usar fechaPlanFallback en lugar de fechaProg
+    if (fechaActual > fechaPlanFallback && !fechaInicio) {
+      estado = 'NI';
+      color = '#868887';
+    }
+
+    if (fechaFin && fechaATO) {
+      const diferenciaFin = fechaFin - fechaATO;
+      if (item.tipo === 'I') {
+        estado = diferenciaFin > 60000 ? 'FT' : 'FA';
+        color = diferenciaFin > 60000 ? '#FAFAAD' : '#CFFBAC';
+      } else {
+        estado = 'FA';
+        color = '#CFFBAC';
       }
-  
-      if (fechaFin && fechaATO) {
-        const diferenciaFin = fechaFin - fechaATO;
-        if (item.tipo === 'I') {
-          estado = diferenciaFin > 60000 ? 'FT' : 'FA';
-          color = diferenciaFin > 60000 ? '#FAFAAD' : '#CFFBAC';
-        } else {
-          estado = 'FA';
-          color = '#CFFBAC';
-        }
-      }
-  
-      if (fechaInicio && !fechaFin) {
-        if (fechaATO) {
-          const diferencia = fechaActual - fechaATO;
-          if (item.tipo === 'I' || item.tipo === 'S') {
-            estado = diferencia < 7200000 ? 'PR' : 'PR';
-            color = '#EBF9F8';
-          }
+    }
+
+    if (fechaInicio && !fechaFin) {
+      if (fechaATO) {
+        const diferencia = fechaActual - fechaATO;
+        if (item.tipo === 'I' || item.tipo === 'S') {
+          estado = diferencia < 7200000 ? 'PR' : 'PR';
+          color = '#EBF9F8';
         }
       }
     }
-  
-    return { estado, color };
-  };
+  }
+
+  return { estado, color };
+};
