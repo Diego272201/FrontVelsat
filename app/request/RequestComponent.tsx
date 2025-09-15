@@ -220,44 +220,52 @@ useEffect(() => {
                 activeAlerts.current[deviceKey] = true;
                 playSpeedAlert();
 
-                toast.error(
-                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
-                  {
-                    duration: Infinity,
-                    action: {
-                      label: 'OK',
-                      onClick: () => {
-                        activeAlerts.current[deviceKey] = false;
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                        }
+      const alertTime = new Date().toLocaleTimeString('es-PE', { 
+  hour: '2-digit', 
+  minute: '2-digit', 
+  second: '2-digit' 
+});
 
-                        alertTimeouts.current[deviceKey] = setTimeout(() => {
-                          delete alertTimeouts.current[deviceKey];
-                        }, 300000);
-                      },
-                    },
-                  },
-                );
-              }
-            } else {
-              // Si la velocidad baja, limpiar todo
-              if (activeAlerts.current[deviceKey]) {
-                activeAlerts.current[deviceKey] = false;
-                if (audioRef.current) {
-                  audioRef.current.pause();
-                  audioRef.current.currentTime = 0;
-                }
-              }
 
-              // Limpiar timeout si existe
-              if (alertTimeouts.current[deviceKey]) {
-                clearTimeout(alertTimeouts.current[deviceKey]);
+      toast.error(
+        `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
+        {
+          duration: Infinity,
+          action: {
+            label: 'OK',
+            onClick: () => {
+              activeAlerts.current[deviceKey] = false;
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+              }
+              
+              alertTimeouts.current[deviceKey] = setTimeout(() => {
                 delete alertTimeouts.current[deviceKey];
-              }
-            }
-          });
+              }, 300000);
+            },
+          },
+        },
+      );
+    }
+  } else {
+    // Si la velocidad baja, limpiar todo
+    if (activeAlerts.current[deviceKey]) {
+      activeAlerts.current[deviceKey] = false;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+    
+    // Limpiar timeout si existe
+    if (alertTimeouts.current[deviceKey]) {
+      clearTimeout(alertTimeouts.current[deviceKey]);
+      delete alertTimeouts.current[deviceKey];
+    }
+  }
+});
+
         });
 
         connection.on('Error', (error) => {
