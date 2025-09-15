@@ -3,12 +3,17 @@ import { useSession } from 'next-auth/react';
 import { GoogleMapsProvider } from '@/context/GoogleMapsContext';
 import { ReactNode, useMemo } from 'react';
 
+// Define users that should use TALMA API key
+const TALMA_USERS = ['talmav', 'agfajardo', 'fjbarboza', 'rccoaguila', 'rmlozano', 'talma']; // Add your additional usernames here
+
 // Mapeo de usuarios a sus respectivas API keys
 const API_KEY_MAP: Record<string, string> = {
   movilbus: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_MOVILBUS as string,
   cgacela: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_GACELA as string,
-  talmav: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_TALMA as string,
 };
+
+// API key for TALMA users
+const TALMA_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_TALMA as string;
 
 const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_125 as string;
 
@@ -40,7 +45,15 @@ export default function MapsWrapper({ children, servidorUrl, disableGoogleMaps =
     }
     
     const userIdentifier = getUserIdentifier(session.user);
-    const selectedKey = API_KEY_MAP[userIdentifier.toLowerCase()] || DEFAULT_API_KEY;
+    const usernameLower = userIdentifier.toLowerCase();
+    
+    // Check if user should use TALMA API key
+    if (TALMA_USERS.includes(usernameLower)) {
+      return TALMA_API_KEY;
+    }
+    
+    // Check specific API keys for other users
+    const selectedKey = API_KEY_MAP[usernameLower] || DEFAULT_API_KEY;
     
     // console.log('🔑 MapsWrapper - Usuario:', userIdentifier, 'API Key:', selectedKey?.substring(0, 20) + '...');
     

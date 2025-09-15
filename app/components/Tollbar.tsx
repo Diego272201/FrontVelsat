@@ -487,7 +487,8 @@ const Tollbar: React.FC = () => {
     [baseUrl],
   );
 
-  const isTalmav = useMemo(() => username === 'talmav', [username]);
+  const TALMAV_LIKE_USERS = ['talmav', 'agfajardo', 'aplinares', 'fjbarboza', 'rccoaguila', 'rmlozano', 'talma'];
+  const isTalmav = useMemo(() => TALMAV_LIKE_USERS.includes(username), [username]);
   const isMovilbus = useMemo(() => username === 'movilbus', [username]);
 
   useEffect(() => {
