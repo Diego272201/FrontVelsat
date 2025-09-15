@@ -54,7 +54,6 @@ interface MarkerData {
 }
 
 export default function RequestPage() {
-
   const openStreetView = useCallback((lat: number, lng: number) => {
     // URL que abre directamente en Street View (vista de calles)
     const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
@@ -65,20 +64,25 @@ export default function RequestPage() {
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
   const markersDataRef = useRef<{ [key: string]: MarkerData }>({});
-  const { isLoaded } = useGoogleMaps(); 
-  const { mapRef, mapLoaded, onLoad: mapOnLoad, onUnmount: mapOnUnmount } = useMapInstance();
+  const { isLoaded } = useGoogleMaps();
+  const {
+    mapRef,
+    mapLoaded,
+    onLoad: mapOnLoad,
+    onUnmount: mapOnUnmount,
+  } = useMapInstance();
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAlertTime = useRef<{ [key: string]: number }>({});
   const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
-useEffect(() => {
-  if (typeof window !== 'undefined') {
-    audioRef.current = new Audio('/alert.mp3');
-    audioRef.current.preload = 'auto';
-  }
-}, []);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      audioRef.current = new Audio('/alert.mp3');
+      audioRef.current.preload = 'auto';
+    }
+  }, []);
 
   const playSpeedAlert = useCallback(() => {
     if (audioRef.current) {
@@ -99,13 +103,16 @@ useEffect(() => {
 
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-  // Llamar al onLoad del hook
-  mapOnLoad(map);
-  
-  // Tu lógica personalizada
-  setMarkersLoaded(false);
-}, [mapOnLoad]);
+  const handleMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      // Llamar al onLoad del hook
+      mapOnLoad(map);
+
+      // Tu lógica personalizada
+      setMarkersLoaded(false);
+    },
+    [mapOnLoad],
+  );
 
   useEffect(() => {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
@@ -220,52 +227,50 @@ useEffect(() => {
                 activeAlerts.current[deviceKey] = true;
                 playSpeedAlert();
 
-      const alertTime = new Date().toLocaleTimeString('es-PE', { 
-  hour: '2-digit', 
-  minute: '2-digit', 
-  second: '2-digit' 
-});
+                const alertTime = new Date().toLocaleTimeString('es-PE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                });
 
+                toast.error(
+                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${alertTime})`,
+                  {
+                    duration: Infinity,
+                    action: {
+                      label: 'OK',
+                      onClick: () => {
+                        activeAlerts.current[deviceKey] = false;
+                        if (audioRef.current) {
+                          audioRef.current.pause();
+                          audioRef.current.currentTime = 0;
+                        }
 
-      toast.error(
-        `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
-        {
-          duration: Infinity,
-          action: {
-            label: 'OK',
-            onClick: () => {
-              activeAlerts.current[deviceKey] = false;
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
+                        alertTimeouts.current[deviceKey] = setTimeout(() => {
+                          delete alertTimeouts.current[deviceKey];
+                        }, 300000);
+                      },
+                    },
+                  },
+                );
               }
-              
-              alertTimeouts.current[deviceKey] = setTimeout(() => {
-                delete alertTimeouts.current[deviceKey];
-              }, 300000);
-            },
-          },
-        },
-      );
-    }
-  } else {
-    // Si la velocidad baja, limpiar todo
-    if (activeAlerts.current[deviceKey]) {
-      activeAlerts.current[deviceKey] = false;
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-    }
-    
-    // Limpiar timeout si existe
-    if (alertTimeouts.current[deviceKey]) {
-      clearTimeout(alertTimeouts.current[deviceKey]);
-      delete alertTimeouts.current[deviceKey];
-    }
-  }
-});
+            } else {
+              // Si la velocidad baja, limpiar todo
+              if (activeAlerts.current[deviceKey]) {
+                activeAlerts.current[deviceKey] = false;
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  audioRef.current.currentTime = 0;
+                }
+              }
 
+              // Limpiar timeout si existe
+              if (alertTimeouts.current[deviceKey]) {
+                clearTimeout(alertTimeouts.current[deviceKey]);
+                delete alertTimeouts.current[deviceKey];
+              }
+            }
+          });
         });
 
         connection.on('Error', (error) => {
@@ -378,46 +383,43 @@ useEffect(() => {
     return direction ? direction[2] : 'Desconocido';
   }, []);
 
-  const getMarkerIcon = useCallback(
-    (heading: number) => {
-      if (typeof window === 'undefined') return null;
+  const getMarkerIcon = useCallback((heading: number) => {
+    if (typeof window === 'undefined') return null;
 
-      const cacheKey = Math.floor(heading / 45) * 45;
+    const cacheKey = Math.floor(heading / 45) * 45;
 
-      if (iconCache.current[cacheKey]) {
-        return iconCache.current[cacheKey];
-      }
+    if (iconCache.current[cacheKey]) {
+      return iconCache.current[cacheKey];
+    }
 
-      const directions = [
-        { range: [0, 22.5], url: '/up.webp', size: [25, 35] },
-        { range: [22.51, 67.5], url: '/topright.webp', size: [42, 25] },
-        { range: [67.51, 112.5], url: '/right.webp', size: [42, 25] },
-        { range: [112.51, 157.5], url: '/downright.webp', size: [42, 25] },
-        { range: [157.51, 202.5], url: '/down.webp', size: [25, 35] },
-        { range: [202.51, 247.5], url: '/downleft.webp', size: [42, 25] },
-        { range: [247.51, 292.5], url: '/left.webp', size: [42, 25] },
-        { range: [292.51, 337.5], url: '/topleft.webp', size: [42, 25] },
-        { range: [337.51, 360.0], url: '/up.webp', size: [25, 35] },
-      ];
+    const directions = [
+      { range: [0, 22.5], url: '/up.webp', size: [25, 35] },
+      { range: [22.51, 67.5], url: '/topright.webp', size: [42, 25] },
+      { range: [67.51, 112.5], url: '/right.webp', size: [42, 25] },
+      { range: [112.51, 157.5], url: '/downright.webp', size: [42, 25] },
+      { range: [157.51, 202.5], url: '/down.webp', size: [25, 35] },
+      { range: [202.51, 247.5], url: '/downleft.webp', size: [42, 25] },
+      { range: [247.51, 292.5], url: '/left.webp', size: [42, 25] },
+      { range: [292.51, 337.5], url: '/topleft.webp', size: [42, 25] },
+      { range: [337.51, 360.0], url: '/up.webp', size: [25, 35] },
+    ];
 
-      const direction = directions.find(
-        (d) => heading >= d.range[0] && heading <= d.range[1],
-      );
-      const icon = direction
-        ? {
-            url: direction.url,
-            scaledSize: new google.maps.Size(
-              direction.size[0],
-              direction.size[1],
-            ),
-          }
-        : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
+    const direction = directions.find(
+      (d) => heading >= d.range[0] && heading <= d.range[1],
+    );
+    const icon = direction
+      ? {
+          url: direction.url,
+          scaledSize: new google.maps.Size(
+            direction.size[0],
+            direction.size[1],
+          ),
+        }
+      : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
 
-      iconCache.current[cacheKey] = icon;
-      return icon;
-    },
-    [],
-  );
+    iconCache.current[cacheKey] = icon;
+    return icon;
+  }, []);
 
   const getEstado = useCallback(
     (speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'),
@@ -1154,7 +1156,7 @@ useEffect(() => {
 
   const handleStreetViewClick = useCallback(
     (e: MouseEvent) => {
-  if (typeof window === 'undefined') return;
+      if (typeof window === 'undefined') return;
 
       const target = e.target as HTMLElement;
       const streetViewLink = target.closest('.street-view-link');
@@ -1169,22 +1171,19 @@ useEffect(() => {
     [openStreetView],
   );
 
-  const handleFollowLinkClick = useCallback(
-    (e: MouseEvent) => {
+  const handleFollowLinkClick = useCallback((e: MouseEvent) => {
     if (typeof window === 'undefined') return;
 
-      const target = e.target as HTMLElement;
-      const followLink = target.closest('.follow-link');
+    const target = e.target as HTMLElement;
+    const followLink = target.closest('.follow-link');
 
-      if (followLink) {
-        e.preventDefault();
-        const deviceID = followLink.getAttribute('data-device-id');
-        const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
-        window.open(url, '_blank');
-      }
-    },
-    [],
-  );
+    if (followLink) {
+      e.preventDefault();
+      const deviceID = followLink.getAttribute('data-device-id');
+      const url = `/trackvelnew/seguirUnidad?deviceId=${deviceID}`;
+      window.open(url, '_blank');
+    }
+  }, []);
 
   // ✅ REEMPLAZA tu useEffect actual con esto:
   useEffect(() => {
@@ -1253,12 +1252,11 @@ useEffect(() => {
     [deviceList],
   );
 
-useEffect(() => {
-  if (mapRef.current && mapLoaded && deviceList.length > 0) {
-    updateMarkersAndPopups(mapRef.current);
-  }
-}, [updateMarkersAndPopups, mapLoaded, deviceList]);
-
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && deviceList.length > 0) {
+      updateMarkersAndPopups(mapRef.current);
+    }
+  }, [updateMarkersAndPopups, mapLoaded, deviceList]);
 
   function startBlinkingAnimation(
     element: HTMLElement,
@@ -1338,43 +1336,43 @@ useEffect(() => {
   }, []);
 
   const handleMapUnmount = useCallback(() => {
-  // Tu limpieza personalizada
-  Object.values(markersDataRef.current).forEach((markerData) => {
-    markerData.marker.setMap(null);
-    markerData.popup1.setMap(null);
-    markerData.popup2.setMap(null);
-    if (markerData.intervalId) {
-      clearInterval(markerData.intervalId);
-    }
-  });
-  markersDataRef.current = {};
-  iconCache.current = {};
-  
-  // Llamar al onUnmount del hook
-  mapOnUnmount();
-}, [mapOnUnmount]);
+    // Tu limpieza personalizada
+    Object.values(markersDataRef.current).forEach((markerData) => {
+      markerData.marker.setMap(null);
+      markerData.popup1.setMap(null);
+      markerData.popup2.setMap(null);
+      if (markerData.intervalId) {
+        clearInterval(markerData.intervalId);
+      }
+    });
+    markersDataRef.current = {};
+    iconCache.current = {};
 
-if (!isLoaded) {
-  return <Loader />;
-}
+    // Llamar al onUnmount del hook
+    mapOnUnmount();
+  }, [mapOnUnmount]);
+
+  if (!isLoaded) {
+    return <Loader />;
+  }
 
   return (
     <>
       <Toaster richColors />
 
       <div className="relative">
-      {!markersLoaded && (
-        <div className="absolute left-0 top-0 z-[9999] flex h-full w-full items-center justify-center bg-white/25">
-          <Loader />
-        </div>
-      )}
-      <GoogleMapComponent
-        onLoad={handleMapLoad}
-        onUnmount={handleMapUnmount}
-        center={center}
-        zoom={6}
-      />
-    </div>
+        {!markersLoaded && (
+          <div className="absolute left-0 top-0 z-[9999] flex h-full w-full items-center justify-center bg-white/25">
+            <Loader />
+          </div>
+        )}
+        <GoogleMapComponent
+          onLoad={handleMapLoad}
+          onUnmount={handleMapUnmount}
+          center={center}
+          zoom={6}
+        />
+      </div>
 
       <Sidebar
         centerMap={centerMap}
