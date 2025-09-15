@@ -221,8 +221,15 @@ const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
       activeAlerts.current[deviceKey] = true;
       playSpeedAlert();
 
-      toast.error(
-        `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h`,
+      const alertTime = new Date().toLocaleTimeString('es-PE', { 
+  hour: '2-digit', 
+  minute: '2-digit', 
+  second: '2-digit' 
+});
+
+
+toast.error(
+  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${alertTime})`,
         {
           duration: Infinity,
           action: {
