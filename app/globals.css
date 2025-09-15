@@ -255,4 +255,30 @@ body {
   background-color: #f4f4f4 !important;
 }
 
+/* Versión simplificada que respeta la posición original */
+.gm-svpc {
+  background-color: white !important;
+  border: 1px solid #dadce0 !important;
+  border-radius: 2px !important;
+  z-index: 1000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  
+  /* NO forzar posición, dejar que Google Maps maneje esto */
+  /* position: relative !important; */
+  /* right: auto !important; */
+  /* bottom: auto !important; */
+}
 
+.gm-style .gm-svpc img {
+  border: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  padding: 0 !important;
+  width: 26px !important;
+  height: 26px !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}

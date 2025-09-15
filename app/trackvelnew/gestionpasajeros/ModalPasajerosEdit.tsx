@@ -144,6 +144,7 @@ export default function App({ title, codCliente }: Props) {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
@@ -168,6 +169,40 @@ export default function App({ title, codCliente }: Props) {
   const [mapCenter, setMapCenter] = useState<[number, number]>([
     -12.0464, -77.0428,
   ]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsMapFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const mapContainer = document.getElementById('edit-leaflet-map-container');
+    if (!mapContainer) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await mapContainer.requestFullscreen();
+        setIsMapFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsMapFullscreen(false);
+      }
+
+      // Invalidar el tamaño del mapa después del cambio
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error al cambiar modo fullscreen:', error);
+    }
+  };
 
   // Hook de Google Places
   const { isLoaded, autocompleteService, placesService } =
@@ -547,7 +582,8 @@ export default function App({ title, codCliente }: Props) {
 
     try {
       const codlan = data.codlan;
-      const codigoValue = data.codigo && data.codigo.trim() !== '' ? data.codigo : null;
+      const codigoValue =
+        data.codigo && data.codigo.trim() !== '' ? data.codigo : null;
 
       console.log('Datos enviados:', {
         codlan: data.codlan,
@@ -754,7 +790,9 @@ export default function App({ title, codCliente }: Props) {
                           isDisabled={!isTarifaLoaded}
                         >
                           {tarifa.map((item) => (
-                            <SelectItem key={item.codigo.toString()}>{item.zona}</SelectItem>  // ✅ Correcto
+                            <SelectItem key={item.codigo.toString()}>
+                              {item.zona}
+                            </SelectItem> // ✅ Correcto
                           ))}
                         </Select>
                       </div>
@@ -883,13 +921,93 @@ export default function App({ title, codCliente }: Props) {
                       </div>
                     </div>
 
-                    <div style={{ zIndex: 1 }}>
+                    <div
+                      id="edit-leaflet-map-container"
+                      className={`relative ${
+                        isMapFullscreen
+                          ? 'fixed inset-0 z-[9999] h-screen w-screen bg-white'
+                          : ''
+                      }`}
+                      style={{
+                        zIndex: isMapFullscreen ? 9999 : 1,
+                        ...(isMapFullscreen && {
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          width: '100vw',
+                          height: '100vh',
+                          backgroundColor: 'white',
+                          margin: 0,
+                          padding: 0,
+                        }),
+                      }}
+                    >
+                      {/* Botón de fullscreen */}
+                      <button
+                        type="button"
+                        onClick={toggleFullscreen}
+                        className="absolute right-4 top-4 z-[10001] rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
+                        title={
+                          isMapFullscreen
+                            ? 'Salir de pantalla completa'
+                            : 'Pantalla completa'
+                        }
+                        style={{ zIndex: 10001 }}
+                      >
+                        {isMapFullscreen ? (
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
+                          </svg>
+                        ) : (
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                          </svg>
+                        )}
+                      </button>
+
                       {isClient &&
                         !isNaN(lat) &&
                         !isNaN(lng) &&
                         markerPosition[0] !== 0 &&
                         markerPosition[1] !== 0 && (
-                          <div className="h-[400px] w-full overflow-hidden rounded-lg">
+                          <div
+                            className={`${
+                              isMapFullscreen
+                                ? 'h-full w-full'
+                                : 'h-[400px] w-full'
+                            } overflow-hidden rounded-lg`}
+                            style={
+                              isMapFullscreen
+                                ? {
+                                    width: '100%',
+                                    height: '100%',
+                                    margin: 0,
+                                    padding: 0,
+                                  }
+                                : {}
+                            }
+                          >
+                            {' '}
                             <MapContainer
                               center={mapCenter}
                               zoom={18}
@@ -941,6 +1059,67 @@ export default function App({ title, codCliente }: Props) {
 
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+
+        /* Estilos para el modo fullscreen del modal de edición */
+        #edit-leaflet-map-container:fullscreen {
+          background: white !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+
+        #edit-leaflet-map-container:fullscreen .leaflet-container {
+          background: #fff !important;
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Remover cualquier padding/margin del body cuando está en fullscreen */
+        body:has(#edit-leaflet-map-container:fullscreen) {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden;
+        }
+
+        /* Asegurar que el mapa en fullscreen tenga el tamaño correcto */
+        #edit-leaflet-map-container.fixed {
+          z-index: 9999 !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Mejorar la visibilidad del botón en fullscreen */
+        #edit-leaflet-map-container button {
+          backdrop-filter: blur(5px);
+          background: rgba(255, 255, 255, 0.95) !important;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Forzar el tamaño del contenedor del mapa en fullscreen */
+        #edit-leaflet-map-container:fullscreen > div,
+        #edit-leaflet-map-container.fixed > div {
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Animación suave para la transición */
+        #edit-leaflet-map-container {
+          transition: all 0.2s ease-in-out;
+        }
       `}</style>
     </>
   );

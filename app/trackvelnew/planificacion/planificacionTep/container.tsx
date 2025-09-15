@@ -5,7 +5,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import SortableItem from './sortable_item';
-import { useJsApiLoader } from '@react-google-maps/api';
 import {
   formatDate,
   formatDateToISO,
@@ -20,8 +19,7 @@ import { GoAlertFill } from 'react-icons/go';
 import ModalDestino from '../ModalDestino';
 import { IoTime } from 'react-icons/io5';
 import { DateTimePicker } from '@/app/dashboard/DateTimePicker';
-
-const libraries: 'places'[] = ['places'];
+import { useGoogleMaps } from '@/context/GoogleMapsContext';
 
 interface ItemData {
   id: string;
@@ -85,17 +83,14 @@ export default function Container({
   onRefrescarDatos,
   onUpdateDestino,
 }: ContainerProps) {
+  // console.log(`=== CONTAINER GRUPO ${grupo.id} ===`);
+  // console.log("grupo.tipo:", grupo.tipo);
+  // console.log("grupo.horaprog:", grupo.horaprog);
+  // console.log("grupo.fecha:", grupo.fecha);
 
-
-
-// console.log(`=== CONTAINER GRUPO ${grupo.id} ===`);
-// console.log("grupo.tipo:", grupo.tipo);
-// console.log("grupo.horaprog:", grupo.horaprog);
-// console.log("grupo.fecha:", grupo.fecha);
-
-// console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
-// console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
-
+  // console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
+  // console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
+  const { isLoaded } = useGoogleMaps();
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
 
@@ -112,24 +107,18 @@ export default function Container({
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
 
-
-  
-
-useEffect(() => {
-  const fechaInicio =
-    grupo.tipo === 'I'
-      ? formatDateToISO(grupo.horaprog)
-      : formatDateToISO(grupo.fecha);
-  const fechaFin =
-    grupo.tipo === 'S'
-      ? formatDateToISO(grupo.horaprog)
-      : formatDateToISO(grupo.fecha);
-  setFechaInicio(fechaInicio ? new Date(fechaInicio) : null);
-  setFechaFin(fechaFin ? new Date(fechaFin) : null);
-}, [grupo]);
-
-
-
+  useEffect(() => {
+    const fechaInicio =
+      grupo.tipo === 'I'
+        ? formatDateToISO(grupo.horaprog)
+        : formatDateToISO(grupo.fecha);
+    const fechaFin =
+      grupo.tipo === 'S'
+        ? formatDateToISO(grupo.horaprog)
+        : formatDateToISO(grupo.fecha);
+    setFechaInicio(fechaInicio ? new Date(fechaInicio) : null);
+    setFechaFin(fechaFin ? new Date(fechaFin) : null);
+  }, [grupo]);
 
   useEffect(() => {
     const fechaInicioValida =
@@ -151,12 +140,6 @@ useEffect(() => {
       setDiferencia(null);
     }
   }, [fechaInicio, fechaFin]);
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries,
-  });
 
   const handleStartDateSelect = (date: string) => {
     if (grupo.tipo !== 'I') {
@@ -212,17 +195,13 @@ useEffect(() => {
       .join(' ');
   };
 
+  useEffect(() => {
+    setStartDate(grupo?.fecha || '');
+  }, [grupo]);
 
-
-useEffect(() => {
-  setStartDate(grupo?.fecha || '');
-}, [grupo]);
-
-useEffect(() => {
-  setEndDate(grupo?.horaprog || ''); 
-}, [grupo]);
-
-
+  useEffect(() => {
+    setEndDate(grupo?.horaprog || '');
+  }, [grupo]);
 
   const { setNodeRef } = useDroppable({
     id,
@@ -376,7 +355,7 @@ useEffect(() => {
                 />
               </div>
 
-              <div className="border  border-gray-200 bg-white px-2 py-[7px] shadow-sm w-[230px]">
+              <div className="w-[230px]  border border-gray-200 bg-white px-2 py-[7px] shadow-sm">
                 {diferencia ? (
                   <div className="flex items-center space-x-1">
                     <div className="rounded-full bg-blue-100 p-1">
@@ -422,7 +401,6 @@ useEffect(() => {
                   coordenadas={coordenadas}
                   selectedMarker={selectedMarker}
                   setSelectedMarker={setSelectedMarker}
-                  isLoaded={isLoaded}
                   getMarkerSVG={getMarkerSVG}
                 />
               </div>

@@ -12,7 +12,7 @@ import {
   useDisclosure,
   Input,
   Select,
-  SelectItem
+  SelectItem,
 } from '@nextui-org/react';
 import { SelectorIcon } from '../planificacion/administracionturnos/SelectorIcon';
 import { useForm } from 'react-hook-form';
@@ -25,9 +25,18 @@ import dynamic from 'next/dynamic';
 import type { Map as LeafletMap } from 'leaflet';
 
 // Importar Leaflet dinámicamente para evitar problemas de SSR
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false },
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false },
+);
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false },
+);
 
 // Importar useMapEvents de manera estática para evitar problemas de tipos
 import { useMapEvents } from 'react-leaflet';
@@ -46,7 +55,11 @@ interface SearchResult {
 }
 
 // Componente para manejar clics en el mapa
-function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+function MapClickHandler({
+  onMapClick,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+}) {
   useMapEvents({
     click: (e) => {
       onMapClick(e.latlng.lat, e.latlng.lng);
@@ -56,30 +69,29 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
 }
 
 // Componente para el marcador fijo (no draggable)
-function StaticMarker({ 
-  position
-}: { 
-  position: [number, number]
-}) {
-  return (
-    <Marker
-      draggable={false}
-      position={position}
-    />
-  );
+function StaticMarker({ position }: { position: [number, number] }) {
+  return <Marker draggable={false} position={position} />;
 }
 
 // Hook personalizado para Google Places Autocomplete
 const useGooglePlacesAutocomplete = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
-  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const [autocompleteService, setAutocompleteService] =
+    useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] =
+    useState<google.maps.places.PlacesService | null>(null);
 
   useEffect(() => {
     const checkGoogleMaps = () => {
       if (window.google && window.google.maps && window.google.maps.places) {
-        setAutocompleteService(new window.google.maps.places.AutocompleteService());
-        setPlacesService(new window.google.maps.places.PlacesService(document.createElement('div')));
+        setAutocompleteService(
+          new window.google.maps.places.AutocompleteService(),
+        );
+        setPlacesService(
+          new window.google.maps.places.PlacesService(
+            document.createElement('div'),
+          ),
+        );
         setIsLoaded(true);
       } else {
         // Intentar de nuevo en 100ms si no está cargado
@@ -109,6 +121,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
@@ -117,25 +130,71 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   const mapRef = useRef<LeafletMap | null>(null);
 
-  const [markerPosition, setMarkerPosition] = useState<[number, number]>([0, 0]);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-12.0464, -77.0428]); 
+  const [markerPosition, setMarkerPosition] = useState<[number, number]>([
+    0, 0,
+  ]);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([
+    -12.0464, -77.0428,
+  ]);
 
   // Hook de Google Places
-  const { isLoaded, autocompleteService, placesService } = useGooglePlacesAutocomplete();
+  const { isLoaded, autocompleteService, placesService } =
+    useGooglePlacesAutocomplete();
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsMapFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const mapContainer = document.getElementById('leaflet-map-container');
+    if (!mapContainer) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await mapContainer.requestFullscreen();
+        // Forzar el estado inmediatamente
+        setIsMapFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        // Forzar el estado inmediatamente
+        setIsMapFullscreen(false);
+      }
+
+      // Invalidar el tamaño del mapa después del cambio
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.invalidateSize();
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error al cambiar modo fullscreen:', error);
+    }
+  };
 
   useEffect(() => {
     setIsClient(true);
-    
+
     if (typeof window !== 'undefined') {
       import('leaflet').then((L) => {
         const DefaultIcon = L.Icon.Default;
-        const iconPrototype = DefaultIcon.prototype as { _getIconUrl?: () => void };
+        const iconPrototype = DefaultIcon.prototype as {
+          _getIconUrl?: () => void;
+        };
         delete iconPrototype._getIconUrl;
-        
+
         L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+          iconRetinaUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+          iconUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+          shadowUrl:
+            'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
         });
       });
     }
@@ -145,7 +204,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const fallbackToNominatim = async (query: string) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
       );
       setSearchResults(response.data);
       setShowSearchResults(true);
@@ -170,53 +229,72 @@ export default function App({ title, onPasajeroAgregado }: Props) {
         const request: google.maps.places.AutocompletionRequest = {
           input: query,
           componentRestrictions: { country: 'pe' },
-          types: ['address']
+          types: ['address'],
         };
 
-        autocompleteService.getPlacePredictions(request, (predictions, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-            // Obtener detalles de cada predicción
-            const processedResults: SearchResult[] = [];
-            let processedCount = 0;
-            const totalPredictions = Math.min(5, predictions.length);
+        autocompleteService.getPlacePredictions(
+          request,
+          (predictions, status) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              predictions
+            ) {
+              // Obtener detalles de cada predicción
+              const processedResults: SearchResult[] = [];
+              let processedCount = 0;
+              const totalPredictions = Math.min(5, predictions.length);
 
-            if (totalPredictions === 0) {
-              fallbackToNominatim(query);
-              return;
-            }
+              if (totalPredictions === 0) {
+                fallbackToNominatim(query);
+                return;
+              }
 
-            predictions.slice(0, 5).forEach((prediction) => {
-              const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                placeId: prediction.place_id,
-                fields: ['geometry', 'formatted_address', 'address_components']
-              };
+              predictions.slice(0, 5).forEach((prediction) => {
+                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+                  placeId: prediction.place_id,
+                  fields: [
+                    'geometry',
+                    'formatted_address',
+                    'address_components',
+                  ],
+                };
 
-              placesService.getDetails(detailsRequest, (place, detailsStatus) => {
-                if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
-                  processedResults.push({
-                    lat: place.geometry.location!.lat().toString(),
-                    lon: place.geometry.location!.lng().toString(),
-                    display_name: place.formatted_address || prediction.description,
-                    place_id: prediction.place_id
-                  });
-                }
-                
-                processedCount++;
-                if (processedCount === totalPredictions) {
-                  if (processedResults.length > 0) {
-                    setSearchResults(processedResults);
-                    setShowSearchResults(true);
-                  } else {
-                    fallbackToNominatim(query);
-                  }
-                }
+                placesService.getDetails(
+                  detailsRequest,
+                  (place, detailsStatus) => {
+                    if (
+                      detailsStatus ===
+                        google.maps.places.PlacesServiceStatus.OK &&
+                      place &&
+                      place.geometry
+                    ) {
+                      processedResults.push({
+                        lat: place.geometry.location!.lat().toString(),
+                        lon: place.geometry.location!.lng().toString(),
+                        display_name:
+                          place.formatted_address || prediction.description,
+                        place_id: prediction.place_id,
+                      });
+                    }
+
+                    processedCount++;
+                    if (processedCount === totalPredictions) {
+                      if (processedResults.length > 0) {
+                        setSearchResults(processedResults);
+                        setShowSearchResults(true);
+                      } else {
+                        fallbackToNominatim(query);
+                      }
+                    }
+                  },
+                );
               });
-            });
-          } else {
-            // Fallback a Nominatim si Google Places falla
-            fallbackToNominatim(query);
-          }
-        });
+            } else {
+              // Fallback a Nominatim si Google Places falla
+              fallbackToNominatim(query);
+            }
+          },
+        );
       } catch (error) {
         console.error('Error with Google Places:', error);
         fallbackToNominatim(query);
@@ -231,16 +309,18 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const fallbackReverseGeocode = async (lat: number, lng: number) => {
     try {
       const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
       );
-      
+
       if (response.data && response.data.display_name) {
         const address = response.data.display_name;
-        const district = response.data.address?.suburb || 
-                        response.data.address?.city_district || 
-                        response.data.address?.county || 
-                        response.data.address?.city || '';
-                        
+        const district =
+          response.data.address?.suburb ||
+          response.data.address?.city_district ||
+          response.data.address?.county ||
+          response.data.address?.city ||
+          '';
+
         return { address, district };
       }
       return null;
@@ -251,26 +331,35 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   };
 
   // Función de geocodificación inversa con Google
-  const reverseGeocodeGoogle = async (lat: number, lng: number): Promise<{ address: string; district: string } | null> => {
+  const reverseGeocodeGoogle = async (
+    lat: number,
+    lng: number,
+  ): Promise<{ address: string; district: string } | null> => {
     return new Promise((resolve) => {
       if (isLoaded && window.google && window.google.maps) {
         const geocoder = new google.maps.Geocoder();
         const latlng = new google.maps.LatLng(lat, lng);
 
         geocoder.geocode({ location: latlng }, (results, status) => {
-          if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          if (
+            status === google.maps.GeocoderStatus.OK &&
+            results &&
+            results[0]
+          ) {
             const result = results[0];
             const address = result.formatted_address;
-            
+
             // Extraer distrito
             const districtComponent = result.address_components.find(
-              (component) => 
-                component.types.includes('sublocality') || 
+              (component) =>
+                component.types.includes('sublocality') ||
                 component.types.includes('locality') ||
-                component.types.includes('administrative_area_level_2')
+                component.types.includes('administrative_area_level_2'),
             );
-            
-            const district = districtComponent ? districtComponent.long_name : '';
+
+            const district = districtComponent
+              ? districtComponent.long_name
+              : '';
             resolve({ address, district });
           } else {
             // Fallback a Nominatim
@@ -287,19 +376,21 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    
+
     setMarkerPosition([lat, lng]);
     setMapCenter([lat, lng]);
     setSearchInput(result.display_name);
     setShowSearchResults(false);
 
     const addressParts = result.display_name.split(', ');
-    const possibleDistrict = addressParts.find(part => 
-      part.includes('Lima') || 
-      part.includes('Distrito') || 
-      addressParts.indexOf(part) === 1 || 
-      addressParts.indexOf(part) === 2
-    ) || '';
+    const possibleDistrict =
+      addressParts.find(
+        (part) =>
+          part.includes('Lima') ||
+          part.includes('Distrito') ||
+          addressParts.indexOf(part) === 1 ||
+          addressParts.indexOf(part) === 2,
+      ) || '';
 
     reset((prev) => ({
       ...prev,
@@ -319,11 +410,11 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
-    
+
     if (debounceSearchRef.current) {
       clearTimeout(debounceSearchRef.current);
     }
-    
+
     debounceSearchRef.current = setTimeout(() => {
       searchAddress(value);
     }, 300);
@@ -331,7 +422,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   const handleMapClick = async (lat: number, lng: number) => {
     setMarkerPosition([lat, lng]);
-    
+
     reset((prev) => ({
       ...prev,
       latitud: lat.toString(),
@@ -444,7 +535,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
         <button
           onClick={onOpen}
-          className="inline-flex items-center h-[40px] gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-700"
+          className="inline-flex h-[40px] items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-700"
         >
           <IoIosAddCircle className="text-white" size={18} />
           Nuevo
@@ -452,7 +543,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       </span>
 
       <Modal
-        className="w-[70%] max-w-none z-[1000] h-[85vh] overflow-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+        className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         isDismissable={false}
@@ -463,7 +554,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
             {(onClose) => (
               <>
                 <ModalHeader className="flex items-center justify-center gap-1 text-[15px]">
-                  <MdAddBox size={20}  />
+                  <MdAddBox size={20} />
                   {title}
                 </ModalHeader>
                 <ModalBody>
@@ -676,33 +767,39 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                       </div>
 
                       {/* Sección de búsqueda de direcciones con z-index corregido */}
-                      <div className="w-full -mt-1 relative" style={{ zIndex: 1050 }}>
+                      <div
+                        className="relative -mt-1 w-full"
+                        style={{ zIndex: 1050 }}
+                      >
                         <label className="mb-2 block text-sm text-black">
                           Buscar dirección
                         </label>
                         <input
                           type="text"
                           placeholder="Escribe una dirección..."
-                          className="w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none relative z-10"
+                          className="relative z-10 w-full rounded-xl bg-gray-100 px-4 py-2.5 text-sm focus:outline-none"
                           value={searchInput}
                           onChange={handleSearchInputChange}
-                          onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                          onFocus={() =>
+                            searchResults.length > 0 &&
+                            setShowSearchResults(true)
+                          }
                           onBlur={() => {
                             // Delay para permitir clic en resultados
                             setTimeout(() => setShowSearchResults(false), 200);
                           }}
                         />
-                        
+
                         {/* Resultados de búsqueda con z-index alto */}
                         {showSearchResults && searchResults.length > 0 && (
-                          <div 
-                            className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                          <div
+                            className="absolute left-0 right-0 top-full max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg"
                             style={{ zIndex: 1060 }}
                           >
                             {searchResults.map((result, index) => (
                               <div
                                 key={index}
-                                className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                className="cursor-pointer border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-100"
                                 onClick={() => handleAddressSelect(result)}
                                 onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes del clic
                               >
@@ -716,28 +813,116 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                       </div>
                     </div>
 
-                    {/* Contenedor del mapa con z-index más bajo */}
-                    <div style={{ zIndex: 1 }}>
+                    <div
+                      id="leaflet-map-container"
+                      className={`relative ${
+                        isMapFullscreen
+                          ? 'fixed inset-0 z-[9999] h-screen w-screen bg-white'
+                          : ''
+                      }`}
+                      style={{
+                        zIndex: isMapFullscreen ? 9999 : 1,
+                        ...(isMapFullscreen && {
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          width: '100vw',
+                          height: '100vh',
+                          backgroundColor: 'white',
+                          margin: 0,
+                          padding: 0,
+                        }),
+                      }}
+                    >
+                      {/* Botón de fullscreen */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className="absolute right-4 top-4 z-[10001] rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
+                        title={
+                          isMapFullscreen
+                            ? 'Salir de pantalla completa'
+                            : 'Pantalla completa'
+                        }
+                        style={{ zIndex: 10001 }}
+                      >
+                        {isMapFullscreen ? (
+                          // Icono para salir de fullscreen
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
+                          </svg>
+                        ) : (
+                          // Icono para entrar en fullscreen
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                          </svg>
+                        )}
+                      </button>
                       {isClient && (
-                        <div className="w-full h-[400px] rounded-lg overflow-hidden">
+                        <div
+                          className={`${
+                            isMapFullscreen
+                              ? 'h-full w-full'
+                              : 'h-[400px] w-full'
+                          } overflow-hidden rounded-lg`}
+                          style={
+                            isMapFullscreen
+                              ? {
+                                  width: '100%',
+                                  height: '100%',
+                                  margin: 0,
+                                  padding: 0,
+                                }
+                              : {}
+                          }
+                        >
                           <MapContainer
                             center={mapCenter}
-                            zoom={markerPosition[0] !== 0 && markerPosition[1] !== 0 ? 13 : 6}
-                            style={{ height: '100%', width: '100%' }}
+                            zoom={
+                              markerPosition[0] !== 0 && markerPosition[1] !== 0
+                                ? 13
+                                : 6
+                            }
+                            style={{
+                              height: '100%',
+                              width: '100%',
+                              ...(isMapFullscreen && {
+                                margin: 0,
+                                padding: 0,
+                              }),
+                            }}
                             ref={mapRef}
                           >
                             <TileLayer
                               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            
+
                             <MapClickHandler onMapClick={handleMapClick} />
-                            
-                            {markerPosition[0] !== 0 && markerPosition[1] !== 0 && (
-                              <StaticMarker 
-                                position={markerPosition}
-                              />
-                            )}
+
+                            {markerPosition[0] !== 0 &&
+                              markerPosition[1] !== 0 && (
+                                <StaticMarker position={markerPosition} />
+                              )}
                           </MapContainer>
                         </div>
                       )}
@@ -759,10 +944,71 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           </ModalContent>
         </form>
       </Modal>
-      
+
       {/* Estilos para importar Leaflet CSS */}
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');
+
+        /* Estilos para el modo fullscreen del modal */
+        #leaflet-map-container:fullscreen {
+          background: white !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+
+        #leaflet-map-container:fullscreen .leaflet-container {
+          background: #fff !important;
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Remover cualquier padding/margin del body cuando está en fullscreen */
+        body:has(#leaflet-map-container:fullscreen) {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden;
+        }
+
+        /* Asegurar que el mapa en fullscreen tenga el tamaño correcto */
+        #leaflet-map-container.fixed {
+          z-index: 9999 !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Mejorar la visibilidad del botón en fullscreen */
+        #leaflet-map-container button {
+          backdrop-filter: blur(5px);
+          background: rgba(255, 255, 255, 0.95) !important;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Forzar el tamaño del contenedor del mapa en fullscreen */
+        #leaflet-map-container:fullscreen > div,
+        #leaflet-map-container.fixed > div {
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        /* Animación suave para la transición */
+        #leaflet-map-container {
+          transition: all 0.2s ease-in-out;
+        }
       `}</style>
     </>
   );
