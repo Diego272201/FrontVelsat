@@ -381,7 +381,7 @@ export default function App({
     const fetchUnidades = async () => {
       try {
         const response = await axios.get(
-          'https://velsat.pe:2096/api/Preplan/unidades',
+          `https://velsat.pe:2096/api/Preplan/unidades?usuario=${username}`,
         );
         setUnidadesA(response.data);
       } catch (error) {
