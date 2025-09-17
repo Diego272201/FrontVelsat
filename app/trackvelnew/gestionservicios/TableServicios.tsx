@@ -390,7 +390,7 @@ export default function App({
     };
 
     fetchUnidades();
-  }, [username]);
+  }, []);
 
   const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUnidadA(e.target.value);
