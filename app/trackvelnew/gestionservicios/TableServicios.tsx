@@ -377,20 +377,38 @@ export default function App({
   fetchConductores();
 }, [username, isReady]);
 
-  useEffect(() => {
-    const fetchUnidades = async () => {
-      try {
-        const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/unidades?usuario=${username}`,
-        );
-        setUnidadesA(response.data);
-      } catch (error) {
-        console.error('Error al obtener unidades:', error);
-      }
-    };
+  // Reemplaza el useEffect actual que obtiene las unidades con este código corregido:
 
-    fetchUnidades();
-  }, []);
+useEffect(() => {
+  const fetchUnidades = async () => {
+    // Verificar que el hook esté listo y que username no esté vacío
+    if (!isReady) {
+      console.log('useUsername hook not ready yet');
+      return;
+    }
+
+    if (!username || username.trim() === '') {
+      console.error('Username is empty or invalid:', username);
+      return;
+    }
+
+    try {
+      // Codificar el username para evitar problemas con caracteres especiales
+      const encodedUsername = encodeURIComponent(username);
+      const url = `https://velsat.pe:2096/api/Preplan/unidades?usuario=${encodedUsername}`;
+      console.log('Making request to:', url);
+      
+      const response = await axios.get(url);
+      setUnidadesA(response.data);
+    } catch (error) {
+      console.error('Error al obtener unidades:', error);
+      // Opcional: mostrar un toast de error
+      // toast.error('Error al cargar las unidades');
+    }
+  };
+
+  fetchUnidades();
+}, [username, isReady]); // Agregar isReady como dependencia
 
   const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUnidadA(e.target.value);
