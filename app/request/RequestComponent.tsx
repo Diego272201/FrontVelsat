@@ -215,6 +215,7 @@ export default function RequestPage() {
           setMarkersLoaded(true);
           setDeviceList(datos.datosDevice);
 
+          // DEBUG: Imprimir datos de la unidad específica
           datos.datosDevice.forEach((device: DeviceList) => {
             const deviceKey = device.deviceId;
 
@@ -429,6 +430,89 @@ export default function RequestPage() {
   const getColorScheme = useCallback(
     (device: DeviceList) => {
       const isMovilbusUser = session?.user?.username === 'movilbus';
+      const isCgacelaUser = session?.user?.username === 'cgacela';
+
+      // Lógica específica para usuario cgacela
+      if (isCgacelaUser) {
+        const hasUltimoServicio = device.ultimoServicio !== null;
+
+        if (hasUltimoServicio) {
+          const empresa = device.ultimoServicio?.empresa?.toUpperCase() || '';
+          let bgColor, borderColor, triangleColor;
+
+          switch (empresa) {
+            case 'TALMA':
+              bgColor = 'bg-[#8DBB37]';
+              borderColor = 'border-[#8DBB37]';
+              triangleColor = 'border-t-[#8DBB37]';
+              break;
+            case 'LATAM':
+              bgColor = 'bg-[#3d048c]';
+              borderColor = 'border-[#3d048c]';
+              triangleColor = 'border-t-[#3d048c]';
+              break;
+            case 'DHL':
+              bgColor = 'bg-[#FFCC00]';
+              borderColor = 'border-[#FFCC00]';
+              triangleColor = 'border-t-[#FFCC00]';
+              break;
+            case 'TERPEL':
+              bgColor = 'bg-[#ED1C24]';
+              borderColor = 'border-[#ED1C24]';
+              triangleColor = 'border-t-[#ED1C24]';
+              break;
+            default:
+              // Color naranja para empresa desconocida
+              bgColor = 'bg-[#ff6600]';
+              borderColor = 'border-[#ff6600]';
+              triangleColor = 'border-t-[#ff6600]';
+          }
+
+          // Determinar color de texto basado en el fondo
+          const textColor = empresa === 'DHL' ? 'text-black' : 'text-white';
+          const closeButtonColor =
+            empresa === 'DHL'
+              ? 'text-black hover:text-gray-600'
+              : 'text-white hover:text-gray-300';
+          const linkColor =
+            empresa === 'DHL'
+              ? 'text-blue-600 hover:text-blue-800'
+              : 'text-blue-300 hover:text-blue-100';
+
+          return {
+            popup1: {
+              bgColor,
+              textColor,
+              borderColor,
+              triangleColor,
+            },
+            popup2: {
+              bgColor,
+              textColor,
+              borderColor,
+              closeButtonColor,
+              linkColor,
+            },
+          };
+        } else {
+          // Blanco cuando no tiene ultimoServicio
+          return {
+            popup1: {
+              bgColor: 'bg-white',
+              textColor: 'text-black',
+              borderColor: 'border-white',
+              triangleColor: 'border-t-white',
+            },
+            popup2: {
+              bgColor: 'bg-white',
+              textColor: 'text-black',
+              borderColor: 'border-white',
+              closeButtonColor: 'text-black hover:text-gray-600',
+              linkColor: 'text-blue-600 hover:text-blue-800',
+            },
+          };
+        }
+      }
 
       if (!isMovilbusUser) {
         return {
@@ -688,6 +772,7 @@ export default function RequestPage() {
         const colorMap: { [key: string]: string } = {
           // Colores de fondo
           'bg-red-500': '#ef4444',
+          'bg-white': '#ffffff',
           'bg-green-500': '#22c55e',
           'bg-orange-500': '#ffd670',
           'bg-red-600': '#dc2626',
@@ -698,23 +783,37 @@ export default function RequestPage() {
           'bg-[#ffccd5]': '#ffccd5',
           'bg-[#8fd694]': '#8fd694',
           'bg-[#ffd670]': '#ffd670',
+          // Colores de empresas
+          'bg-[#8DBB37]': '#8DBB37',
+          'bg-[#3d048c]': '#3d048c',
+          'bg-[#FFCC00]': '#FFCC00',
+          'bg-[#ED1C24]': '#ED1C24',
+          'bg-[#ff6600]': '#ff6600', // Empresa desconocida
 
-          // ✅ AGREGAR mapeos de borde (FALTABAN ESTOS)
+          // Mapeos de borde
           'border-red-500': '#ef4444',
+          'border-white': '#ffffff',
           'border-green-500': '#22c55e',
-          'border-orange-500': '#ffd670', // ✅ CAMBIO: Nuevo naranja suave
+          'border-orange-500': '#ffd670',
           'border-red-600': '#dc2626',
           'border-green-600': '#16a34a',
-          'border-orange-600': '#ffd670', // ✅ CAMBIO: Nuevo naranja suave
+          'border-orange-600': '#ffd670',
           'border-[#fca311]': '#fca311',
           'border-[#1f2937]': '#1f2937',
           'border-[#ffccd5]': '#ffccd5',
           'border-[#8fd694]': '#8fd694',
           'border-[#ffd670]': '#ffd670',
           'border-black': '#000000',
+          // Bordes de empresas
+          'border-[#8DBB37]': '#8DBB37',
+          'border-[#3d048c]': '#3d048c',
+          'border-[#FFCC00]': '#FFCC00',
+          'border-[#ED1C24]': '#ED1C24',
+          'border-[#ff6600]': '#ff6600', // Empresa desconocida
 
-          // Mapeos de triángulos (actualizados)
+          // Mapeos de triángulos
           'border-t-red-500': '#ef4444',
+          'border-t-white': '#ffffff',
           'border-t-green-500': '#22c55e',
           'border-t-orange-500': '#ffd670',
           'border-t-red-600': '#dc2626',
@@ -725,6 +824,12 @@ export default function RequestPage() {
           'border-t-[#ffccd5]': '#ffccd5',
           'border-t-[#8fd694]': '#8fd694',
           'border-t-[#ffd670]': '#ffd670',
+          // Triángulos de empresas
+          'border-t-[#8DBB37]': '#8DBB37',
+          'border-t-[#3d048c]': '#3d048c',
+          'border-t-[#FFCC00]': '#FFCC00',
+          'border-t-[#ED1C24]': '#ED1C24',
+          'border-t-[#ff6600]': '#ff6600', // Empresa desconocida
         };
         return colorMap[bgColorClass] || '#fca311';
       };
@@ -887,7 +992,8 @@ export default function RequestPage() {
 
       // ACTUALIZAR el colorMap con los colores correctos
       const colorMap: { [key: string]: string } = {
-        'bg-red-500': '#ffccd5',
+        'bg-red-500': '#ef4444',
+        'bg-white': '#ffffff',
         'bg-green-500': '#8fd694',
         'bg-orange-500': '#ffd670',
         'bg-red-600': '#ffccd5',
@@ -898,6 +1004,12 @@ export default function RequestPage() {
         'bg-[#ffccd5]': '#ffccd5',
         'bg-[#8fd694]': '#8fd694',
         'bg-[#ffd670]': '#ffd670',
+        // Colores de empresas
+        'bg-[#8DBB37]': '#8DBB37',
+        'bg-[#3d048c]': '#3d048c',
+        'bg-[#FFCC00]': '#FFCC00',
+        'bg-[#ED1C24]': '#ED1C24',
+        'bg-[#ff6600]': '#ff6600', // Empresa desconocida
       };
 
       const shouldBlink =
