@@ -74,6 +74,46 @@ interface ModalDireccionAdicionalProps {
   onDireccionGuardada?: () => void;
 }
 
+// Interfaz para los resultados de búsqueda
+interface SearchResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+  place_id: string;
+}
+
+// Hook personalizado para Google Places Autocomplete
+const useGooglePlacesAutocomplete = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [autocompleteService, setAutocompleteService] =
+    useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] =
+    useState<google.maps.places.PlacesService | null>(null);
+
+  useEffect(() => {
+    const checkGoogleMaps = () => {
+      if (window.google && window.google.maps && window.google.maps.places) {
+        setAutocompleteService(
+          new window.google.maps.places.AutocompleteService(),
+        );
+        setPlacesService(
+          new window.google.maps.places.PlacesService(
+            document.createElement('div'),
+          ),
+        );
+        setIsLoaded(true);
+      } else {
+        // Intentar de nuevo en 100ms si no está cargado
+        setTimeout(checkGoogleMaps, 100);
+      }
+    };
+
+    checkGoogleMaps();
+  }, []);
+
+  return { isLoaded, autocompleteService, placesService };
+};
+
 export default function ModalDireccionAdicional({
   isOpen,
   onClose,
@@ -93,10 +133,20 @@ export default function ModalDireccionAdicional({
   const [latitud, setLatitud] = useState('');
   const [longitud, setLongitud] = useState('');
 
+  // Estados para la búsqueda de direcciones
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   const mapRef = useRef<LeafletMap | null>(null);
+  const debounceSearchRef = useRef<NodeJS.Timeout | null>(null);
+  
   const [markerPosition, setMarkerPosition] = useState<[number, number]>([
     -12.0464, -77.0428, // Coordenadas por defecto (Lima, Perú)
   ]);
+
+  // Hook de Google Places
+  const { isLoaded, autocompleteService, placesService } =
+    useGooglePlacesAutocomplete();
 
   // Manejar cambios de fullscreen
   useEffect(() => {
@@ -134,6 +184,222 @@ export default function ModalDireccionAdicional({
     }
   };
 
+  // Función de fallback a Nominatim
+  const fallbackToNominatim = async (query: string) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
+      );
+      setSearchResults(response.data);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Error with fallback search:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  // Función principal de búsqueda con Google Places
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    // Usar Google Places Autocomplete si está disponible
+    if (isLoaded && autocompleteService && placesService) {
+      try {
+        const request: google.maps.places.AutocompletionRequest = {
+          input: query,
+          componentRestrictions: { country: 'pe' },
+          types: ['address'],
+        };
+
+        autocompleteService.getPlacePredictions(
+          request,
+          (predictions, status) => {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              predictions
+            ) {
+              // Obtener detalles de cada predicción
+              const processedResults: SearchResult[] = [];
+              let processedCount = 0;
+              const totalPredictions = Math.min(5, predictions.length);
+
+              if (totalPredictions === 0) {
+                fallbackToNominatim(query);
+                return;
+              }
+
+              predictions.slice(0, 5).forEach((prediction) => {
+                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+                  placeId: prediction.place_id,
+                  fields: [
+                    'geometry',
+                    'formatted_address',
+                    'address_components',
+                  ],
+                };
+
+                placesService.getDetails(
+                  detailsRequest,
+                  (place, detailsStatus) => {
+                    if (
+                      detailsStatus ===
+                        google.maps.places.PlacesServiceStatus.OK &&
+                      place &&
+                      place.geometry
+                    ) {
+                      processedResults.push({
+                        lat: place.geometry.location!.lat().toString(),
+                        lon: place.geometry.location!.lng().toString(),
+                        display_name:
+                          place.formatted_address || prediction.description,
+                        place_id: prediction.place_id,
+                      });
+                    }
+
+                    processedCount++;
+                    if (processedCount === totalPredictions) {
+                      if (processedResults.length > 0) {
+                        setSearchResults(processedResults);
+                        setShowSearchResults(true);
+                      } else {
+                        fallbackToNominatim(query);
+                      }
+                    }
+                  },
+                );
+              });
+            } else {
+              // Fallback a Nominatim si Google Places falla
+              fallbackToNominatim(query);
+            }
+          },
+        );
+      } catch (error) {
+        console.error('Error with Google Places:', error);
+        fallbackToNominatim(query);
+      }
+    } else {
+      // Fallback a Nominatim si Google Places no está disponible
+      fallbackToNominatim(query);
+    }
+  };
+
+  // Función de fallback para geocodificación inversa
+  const fallbackReverseGeocode = async (lat: number, lng: number) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      );
+
+      if (response.data && response.data.display_name) {
+        const address = response.data.display_name;
+        const district =
+          response.data.address?.suburb ||
+          response.data.address?.city_district ||
+          response.data.address?.county ||
+          response.data.address?.city ||
+          '';
+
+        return { address, district };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error in reverse geocoding fallback:', error);
+      return null;
+    }
+  };
+
+  // Función de geocodificación inversa con Google
+  const reverseGeocodeGoogle = async (
+    lat: number,
+    lng: number,
+  ): Promise<{ address: string; district: string } | null> => {
+    return new Promise((resolve) => {
+      if (isLoaded && window.google && window.google.maps) {
+        const geocoder = new google.maps.Geocoder();
+        const latlng = new google.maps.LatLng(lat, lng);
+
+        geocoder.geocode({ location: latlng }, (results, status) => {
+          if (
+            status === google.maps.GeocoderStatus.OK &&
+            results &&
+            results[0]
+          ) {
+            const result = results[0];
+            const address = result.formatted_address;
+
+            // Extraer distrito
+            const districtComponent = result.address_components.find(
+              (component) =>
+                component.types.includes('sublocality') ||
+                component.types.includes('locality') ||
+                component.types.includes('administrative_area_level_2'),
+            );
+
+            const district = districtComponent
+              ? districtComponent.long_name
+              : '';
+            resolve({ address, district });
+          } else {
+            // Fallback a Nominatim
+            fallbackReverseGeocode(lat, lng).then(resolve);
+          }
+        });
+      } else {
+        // Fallback a Nominatim
+        fallbackReverseGeocode(lat, lng).then(resolve);
+      }
+    });
+  };
+
+  // Manejar selección de direcciones de la búsqueda
+  const handleAddressSelect = (result: SearchResult) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+
+    setMarkerPosition([lat, lng]);
+    setDireccion(result.display_name);
+    setLatitud(lat.toString());
+    setLongitud(lng.toString());
+    setShowSearchResults(false);
+
+    // Extraer distrito de la dirección
+    const addressParts = result.display_name.split(', ');
+    const possibleDistrict =
+      addressParts.find(
+        (part) =>
+          part.includes('Lima') ||
+          part.includes('Distrito') ||
+          addressParts.indexOf(part) === 1 ||
+          addressParts.indexOf(part) === 2,
+      ) || '';
+    
+    setDistrito(possibleDistrict);
+
+    if (mapRef.current) {
+      mapRef.current.setView([lat, lng], 15);
+    }
+  };
+
+  // Manejar cambios en el input de dirección con debounce
+  const handleDireccionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDireccion(value);
+
+    if (debounceSearchRef.current) {
+      clearTimeout(debounceSearchRef.current);
+    }
+
+    debounceSearchRef.current = setTimeout(() => {
+      searchAddress(value);
+    }, 300);
+  };
+
   // Configurar iconos de Leaflet cuando se carga el cliente
   useEffect(() => {
     setIsClient(true);
@@ -167,6 +433,13 @@ export default function ModalDireccionAdicional({
     setLatitud(lat.toString());
     setLongitud(lng.toString());
     
+    // Usar Google para geocodificación inversa
+    const geocodeResult = await reverseGeocodeGoogle(lat, lng);
+    if (geocodeResult) {
+      setDireccion(geocodeResult.address);
+      setDistrito(geocodeResult.district);
+    }
+    
     console.log('Coordenadas seleccionadas:', { lat, lng });
   };
 
@@ -177,6 +450,8 @@ export default function ModalDireccionAdicional({
     setReferencia('');
     setLatitud('');
     setLongitud('');
+    setSearchResults([]);
+    setShowSearchResults(false);
     setMarkerPosition([-12.0464, -77.0428]);
     onClose();
   };
@@ -315,16 +590,45 @@ export default function ModalDireccionAdicional({
               
               <ModalBody>
                 <div className="space-y-4">
-                  {/* Campo Dirección */}
-                  <div>
+                  {/* Campo Dirección con búsqueda */}
+                  <div className="relative" style={{ zIndex: 1050 }}>
                     <Input
                       label="Dirección"
                       placeholder="Ingrese la dirección completa"
                       value={direccion}
-                      onChange={(e) => setDireccion(e.target.value)}
+                      onChange={handleDireccionChange}
+                      onFocus={() =>
+                        searchResults.length > 0 &&
+                        setShowSearchResults(true)
+                      }
+                      onBlur={() => {
+                        // Delay para permitir clic en resultados
+                        setTimeout(() => setShowSearchResults(false), 200);
+                      }}
                       size="sm"
                       isRequired
                     />
+
+                    {/* Resultados de búsqueda con z-index alto */}
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div
+                        className="absolute left-0 right-0 top-full max-h-60 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg"
+                        style={{ zIndex: 1060 }}
+                      >
+                        {searchResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className="cursor-pointer border-b border-gray-100 p-3 last:border-b-0 hover:bg-gray-100"
+                            onClick={() => handleAddressSelect(result)}
+                            onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes del clic
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {result.display_name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Campo Distrito */}
