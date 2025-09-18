@@ -20,6 +20,7 @@ import ModalDestino from '../ModalDestino';
 import { IoTime } from 'react-icons/io5';
 import { DateTimePicker } from '@/app/dashboard/DateTimePicker';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
+import { useUsername } from '@/hooks/useUsername';
 
 interface ItemData {
   id: string;
@@ -90,6 +91,7 @@ export default function Container({
 
   // console.log("formatDateToISO(grupo.horaprog):", formatDateToISO(grupo.horaprog));
   // console.log("formatDateToISO(grupo.fecha):", formatDateToISO(grupo.fecha));
+  const { username, isReady } = useUsername();
   const { isLoaded } = useGoogleMaps();
   const [startDate, setStartDate] = useState<string>(grupo?.fecha || '');
   const [endDate, setEndDate] = useState<string>(grupo?.horaprog || '');
@@ -345,6 +347,7 @@ export default function Container({
               </div>
 
               <div>
+                {username && (
                 <InputUnidad
                   value={unidad}
                   onChange={setUnidad}
@@ -352,7 +355,9 @@ export default function Container({
                     setUnidad(codunidad);
                     onUpdateUnidad?.(grupo.id, codunidad);
                   }}
-                />
+                 usuario={username}
+  />
+)}
               </div>
 
               <div className="w-[230px]  border border-gray-200 bg-white px-2 py-[7px] shadow-sm">

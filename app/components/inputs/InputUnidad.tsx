@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaCar } from 'react-icons/fa';
 import axios from 'axios';
-import { API_UNIDADES } from '../urlsApi/urlApi';
+import { getApiUnidadesUrl } from '../urlsApi/urlApi';
 
 interface Unidad {
   id: number;
@@ -13,21 +13,28 @@ interface InputUnidadProps {
   onChange: (value: string) => void;
   onSelect?: (codunidad: string) => void;
   bgColor?: 'gray-100' | 'gray-200';
- padding?: string;
+  padding?: string;
+  usuario: string; // Nuevo prop requerido
 }
 
-const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgColor = 'gray-100' , padding = 'p-2'  }) => {
-
+const InputUnidad: React.FC<InputUnidadProps> = ({ 
+  value, 
+  onChange, 
+  onSelect, 
+  bgColor = 'gray-100', 
+  padding = 'p-2',
+  usuario // Nuevo prop
+}) => {
 
   const [unidades, setUnidades] = useState<Unidad[]>([]);
   const [filtered, setFiltered] = useState<Unidad[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    axios.get(API_UNIDADES)
+    axios.get(getApiUnidadesUrl(usuario)) // Usar la función con el parámetro usuario
       .then(res => setUnidades(res.data))
       .catch(err => console.error('Error al obtener unidades:', err));
-  }, []);
+  }, [usuario]); // Agregar usuario como dependencia
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -36,11 +43,10 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgC
     if (val.trim() === '') {
       setFiltered([]);
       setShowDropdown(false);
-
       onSelect?.('');
-      
       return;
     }
+    
     const result = unidades.filter(u =>
       (u.codunidad ?? '').toLowerCase().includes(val.toLowerCase())
     );
@@ -53,7 +59,6 @@ const InputUnidad: React.FC<InputUnidadProps> = ({ value, onChange, onSelect,bgC
       <input
         type="text"
         className={`w-full border border-gray-300 bg-${bgColor} ${padding} ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
-
         placeholder="Unidad"
         value={value}
         onChange={handleInputChange}

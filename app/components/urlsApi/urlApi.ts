@@ -17,7 +17,7 @@ export const API_BASE_URL125 = 'https://velsat.pe:2096';
 
 export const getApiConductoresUrl = (usuario: string) => `${API_BASE_URL}/conductores?usuario=${usuario}`;
 
-export const API_UNIDADES = `${API_BASE_URL}/unidades`;
+export const getApiUnidadesUrl = (usuario: string) => `${API_BASE_URL}/unidades?usuario=${usuario}`;
 
 // Api para los select y selectall
 export const getDeviceListUrlSelect = (baseUrl: string, username: string) =>

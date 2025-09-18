@@ -10,11 +10,12 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { TbGps } from 'react-icons/tb';
+import { TbGps, TbTrash } from 'react-icons/tb';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { GrSelect } from 'react-icons/gr';
+import ModalDireccionAdicional from './ModalDireccionAdicional';
 
 type ModalDireccionesProp = {
   codCliente: string;
@@ -41,6 +42,8 @@ export default function ModalDirecciones({
   const [selectedValue, setSelectedValue] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
+  const [isModalDireccionAdicionalOpen, setIsModalDireccionAdicionalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && codCliente) {
@@ -49,9 +52,16 @@ export default function ModalDirecciones({
       axios
         .get(`${API_BASE_URL125}/api/Preplan/lugares/${codCliente}`)
         .then((response) => {
+          // Imprimir los datos completos de la respuesta
+          console.log('Respuesta completa de la API:', response);
+
+          // Imprimir información adicional del contexto
+          console.log('Código del cliente:', codCliente);
+          
           setLugares(response.data);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Error al obtener direcciones:', error);
           toast.error('Error al obtener las direcciones.');
         })
         .finally(() => {
@@ -77,6 +87,51 @@ export default function ModalDirecciones({
       toast.error('Hubo un error al guardar la dirección.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEliminar = async (codlugar: number) => {
+    setIsDeleting(codlugar);
+    
+    try {
+      await axios.delete(`https://velsat.pe:2096/api/Preplan/EliminarDireccion?codlugar=${codlugar}`);
+      
+      // Actualizar la lista local removiendo la dirección eliminada
+      setLugares(prevLugares => prevLugares.filter(lugar => lugar.codlugar !== codlugar));
+      
+      // Si la dirección eliminada era la seleccionada, limpiar la selección
+      if (selectedValue === String(codlugar)) {
+        setSelectedValue('');
+      }
+      
+      toast.success('Dirección eliminada correctamente.');
+      setShouldRefetch(true);
+      
+    } catch (error) {
+      console.error('Error al eliminar dirección:', error);
+      toast.error('Error al eliminar la dirección.');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  const handleDireccionAdicionalGuardada = () => {
+    // Cuando se guarde una dirección adicional, podemos recargar la lista
+    setShouldRefetch(true);
+    // También podríamos volver a cargar las direcciones del modal actual
+    if (isOpen && codCliente) {
+      setIsLoading(true);
+      axios
+        .get(`${API_BASE_URL125}/api/Preplan/lugares/${codCliente}`)
+        .then((response) => {
+          setLugares(response.data);
+        })
+        .catch((error) => {
+          console.error('Error al recargar direcciones:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
   };
 
@@ -119,19 +174,34 @@ export default function ModalDirecciones({
                     onValueChange={setSelectedValue}
                   >
                     {lugares.map((lugar) => (
-                      <Radio
-                        key={lugar.codlugar}
-                        value={String(lugar.codlugar)}
-                        description={lugar.direccion}
-                      >
-                        <span className="text-[11px]">{lugar.distrito}</span>
-                      </Radio>
+                      <div key={lugar.codlugar} className="flex items-center gap-2 w-full">
+                        <div className="flex-1">
+                          <Radio
+                            value={String(lugar.codlugar)}
+                            description={lugar.direccion}
+                          >
+                            <span className="text-[11px]">{lugar.distrito}</span>
+                          </Radio>
+                        </div>
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          color="danger"
+                          variant="light"
+                          onPress={() => handleEliminar(lugar.codlugar)}
+                          isLoading={isDeleting === lugar.codlugar}
+                          className="min-w-8 h-8"
+                        >
+                          <TbTrash size={16} />
+                        </Button>
+                      </div>
                     ))}
                   </RadioGroup>
                 ) : (
                   <p>No hay direcciones disponibles.</p>
                 )}
               </ModalBody>
+              
               <ModalFooter>
                 <Button color="danger" onPress={onClose}>
                   Cerrar
@@ -144,11 +214,27 @@ export default function ModalDirecciones({
                 >
                   Guardar
                 </Button>
+
+                <Button 
+                  color="secondary" 
+                  onPress={() => setIsModalDireccionAdicionalOpen(true)}
+                >
+                  Dirección Adicional
+                </Button>
               </ModalFooter>
             </>
           )}
         </ModalContent>
       </Modal>
+
+      {/* Modal de Dirección Adicional */}
+      <ModalDireccionAdicional
+        isOpen={isModalDireccionAdicionalOpen}
+        onClose={() => setIsModalDireccionAdicionalOpen(false)}
+        codCliente={codCliente}
+        nombrePasajero={nombrePasajero}
+        onDireccionGuardada={handleDireccionAdicionalGuardada}
+      />
     </div>
   );
 }

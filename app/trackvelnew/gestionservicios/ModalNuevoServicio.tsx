@@ -12,12 +12,12 @@ import { toast } from 'sonner';
 import { parseFecha } from '@/app/components/dates/convertToCustomFormat ';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
-import InputDestino from '@/app/components/inputs/InputDestino'; 
-import { IDestino } from '@/app/components/inputs/IDestino'; 
+import InputDestino from '@/app/components/inputs/InputDestino';
+import { IDestino } from '@/app/components/inputs/IDestino';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdAddBox } from 'react-icons/md';
 import { FiLoader } from 'react-icons/fi';
-import { useUsername } from '@/hooks/useUsername'; 
+import { useUsername } from '@/hooks/useUsername';
 
 interface NuevoServicioModalProps {
   isOpen: boolean;
@@ -105,7 +105,8 @@ export default function NuevoServicioModal({
   const [codConductor, setCodConductor] = useState<number | null>(null);
 
   // ← CAMBIAR ESTOS ESTADOS PARA MANEJAR EL DESTINO
-  const [destinoSeleccionado, setDestinoSeleccionado] = useState<IDestino | null>(null);
+  const [destinoSeleccionado, setDestinoSeleccionado] =
+    useState<IDestino | null>(null);
   const [codigoDestino, setCodigoDestino] = useState('4175'); // ← VALOR POR DEFECTO
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -421,7 +422,7 @@ export default function NuevoServicioModal({
                   <label className="mb-1 block text-xs font-medium text-gray-700">
                     Destino (Opcional):
                   </label>
-                  <InputDestino onSelectDestino={handleSelectDestino}/>
+                  <InputDestino onSelectDestino={handleSelectDestino} />
                 </div>
 
                 <div className="col-span-2">
@@ -503,14 +504,17 @@ export default function NuevoServicioModal({
                 </label>
                 <div className="flex gap-2">
                   <div className="w-full">
-                    <InputUnidad
-                      value={inputValue}
-                      onChange={setInputValue}
-                      onSelect={(codunidad) => {
-                        setInputValue(codunidad);
-                        setCodUnidadSeleccionado(codunidad);
-                      }}
-                    ></InputUnidad>
+                    {username && (
+                      <InputUnidad
+                        value={inputValue}
+                        onChange={setInputValue}
+                        onSelect={(codunidad) => {
+                          setInputValue(codunidad);
+                          setCodUnidadSeleccionado(codunidad);
+                        }}
+                        usuario={username}
+                      />
+                    )}
                   </div>
 
                   <div className="w-full">

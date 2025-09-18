@@ -402,8 +402,7 @@ export default function Page() {
                       onChange={(e) => setEmpresaSelecRes(e.target.value)}
                     >
                       <option value="">Seleccione Empresa</option>
-                      {(username  &&
-                      username .toLowerCase() !== 'movilbus'
+                      {(username && username.toLowerCase() !== 'movilbus'
                         ? empresasG
                         : empresas
                       ).map((empresa, index) => (
@@ -462,8 +461,7 @@ export default function Page() {
                       <option value="" disabled>
                         Seleccione Cliente
                       </option>
-                      {(username  &&
-                      username.toLowerCase() !== 'movilbus'
+                      {(username && username.toLowerCase() !== 'movilbus'
                         ? empresasG
                         : empresas
                       ).map((empresa, index) => (
@@ -562,15 +560,18 @@ export default function Page() {
                     />
                   </div>
 
-                  <InputUnidad
-                    value={unidadSeleccionada}
-                    onChange={(value) => setUnidadSeleccionada(value)}
-                    onSelect={(codunidad) => {
-                      setUnidadSeleccionada(codunidad);
-                    }}
-                    padding="p-[7px]"
-                    bgColor="gray-200"
-                  />
+                  {username && (
+                    <InputUnidad
+                      value={unidadSeleccionada}
+                      onChange={(value) => setUnidadSeleccionada(value)}
+                      onSelect={(codunidad) => {
+                        setUnidadSeleccionada(codunidad);
+                      }}
+                      padding="p-[7px]"
+                      bgColor="gray-200"
+                      usuario={username}
+                    />
+                  )}
                   <div className="bg-red-100 ">
                     <button
                       className="flex items-center gap-2 bg-[#d62828] p-[7px] text-white hover:bg-red-500"
@@ -605,14 +606,17 @@ export default function Page() {
                   />
                 </div>
 
-                <InputUnidad
-                  value={unidadSeleccionadaAsignar}
-                  onChange={(value) => setUnidadSeleccionadaAsignar(value)}
-                  onSelect={(codunidad) => {
-                    setUnidadSeleccionadaAsignar(codunidad);
-                  }}
-                  bgColor="gray-200"
-                />
+                {username && (
+                  <InputUnidad
+                    value={unidadSeleccionadaAsignar}
+                    onChange={(value) => setUnidadSeleccionadaAsignar(value)}
+                    onSelect={(codunidad) => {
+                      setUnidadSeleccionadaAsignar(codunidad);
+                    }}
+                    bgColor="gray-200"
+                    usuario={username}
+                  />
+                )}
               </div>
 
               <div className="flex gap-2 pr-1">
