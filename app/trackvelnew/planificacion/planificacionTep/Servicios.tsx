@@ -47,6 +47,8 @@ interface ServiciosProps {
     cabeceras: { empresa: string; fecha: string }[],
   ) => void;
   filtro?: { empresa: string; fecha: string } | null;
+  filtroHora?: string; // Mantener como string simple
+
   nombrePasajero?: string;
   onActualizarFechas?: (fechas: {
     totalFechas: number;
@@ -69,6 +71,7 @@ export default function App({
   onActualizarDatos,
   onActualizarCabeceras,
   filtro,
+  filtroHora,
   nombrePasajero = '',
   onActualizarFechas,
   modoVista,
@@ -87,6 +90,19 @@ export default function App({
     {},
   );
   const [unidades, setUnidades] = useState<{ [grupoId: number]: string }>({});
+
+  // Función simple para extraer hora
+  const extraerHora = (fechaHora: string): string => {
+    if (!fechaHora || fechaHora === 'null') return '';
+
+    // Si tiene formato "DD/MM/YYYY HH:MM"
+    if (fechaHora.includes(' ')) {
+      return fechaHora.split(' ')[1] || '';
+    }
+
+    // Si ya es solo hora
+    return fechaHora;
+  };
 
   const handleUpdateConductor = (id: number, codigoConductor: number) => {
     setConductores((prev) => {
@@ -220,9 +236,13 @@ export default function App({
     );
   };
 
+  // Actualizar gruposFiltrados:
   const gruposFiltrados = useMemo(() => {
-    if (!filtro?.fecha && !nombrePasajero.trim()) return grupos;
+    if (!filtro?.fecha && !nombrePasajero.trim() && !filtroHora?.trim())
+      return grupos;
+
     const filtroFechaHora = filtro?.fecha ? parseFechaHora(filtro.fecha) : null;
+
     return grupos.filter((grupo) => {
       const fechaHoraGrupo = parseFechaHora(grupo.fecha);
       const coincideFecha = filtroFechaHora
@@ -235,9 +255,17 @@ export default function App({
         : grupo.personas.some((persona: any) =>
             persona.nombre.trim().toLowerCase().includes(nombreBuscado),
           );
-      return coincideFecha && coincidePasajero;
+
+      // Filtro de hora super simple
+      let coincideHora = true;
+      if (filtroHora?.trim()) {
+        const horaGrupo = extraerHora(grupo.horaprog);
+        coincideHora = horaGrupo.includes(filtroHora.trim());
+      }
+
+      return coincideFecha && coincidePasajero && coincideHora;
     });
-  }, [grupos, filtro, nombrePasajero]);
+  }, [grupos, filtro, nombrePasajero, filtroHora]);
 
   useEffect(() => {
     console.log('Grupos filtrados:', gruposFiltrados);
@@ -304,8 +332,10 @@ export default function App({
   useEffect(() => {
     if (gruposFiltrados.length > 0) {
       const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
-              console.log(`\n--- Procesando Grupo ${grupo.id} para render ---`);
-      console.log(`Grupo.horaprog original: "${grupo.horaprog}" (tipo: ${typeof grupo.horaprog})`);
+        console.log(`\n--- Procesando Grupo ${grupo.id} para render ---`);
+        console.log(
+          `Grupo.horaprog original: "${grupo.horaprog}" (tipo: ${typeof grupo.horaprog})`,
+        );
         if (grupo.personas && grupo.personas.length > 0) {
           acc[`container${index}`] = grupo.personas.map(
             (persona: any, idx: any) => {
@@ -559,19 +589,18 @@ export default function App({
       // Limpiar grupos vacíos y reindexar después del movimiento
       const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
 
-       // AGREGAR ESTAS LÍNEAS:
-    if (onActualizarDatos) {
-      setTimeout(() => {
-        onActualizarDatos({
-          totalGrupos: gruposLimpios.length,
-          totalPasajeros: gruposLimpios.reduce(
-            (acc, grupo) => acc + (grupo.personas?.length || 0),
-            0,
-          ),
-        });
-      }, 0);
-    }
-
+      // AGREGAR ESTAS LÍNEAS:
+      if (onActualizarDatos) {
+        setTimeout(() => {
+          onActualizarDatos({
+            totalGrupos: gruposLimpios.length,
+            totalPasajeros: gruposLimpios.reduce(
+              (acc, grupo) => acc + (grupo.personas?.length || 0),
+              0,
+            ),
+          });
+        }, 0);
+      }
 
       return gruposLimpios;
     });
@@ -608,9 +637,8 @@ export default function App({
         if (clienteMovido) {
           const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
 
-
-        console.log("=== ANTES DE CREAR NUEVO GRUPO ===");
-        console.log("grupoOrigen.horaprog:", grupoOrigen.horaprog);
+          console.log('=== ANTES DE CREAR NUEVO GRUPO ===');
+          console.log('grupoOrigen.horaprog:', grupoOrigen.horaprog);
 
           nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
             grupoOrigenIndex
@@ -626,9 +654,9 @@ export default function App({
             personas: [clienteMovido],
           };
 
-      console.log("=== NUEVO GRUPO RECIÉN CREADO ===");
-        console.log("nuevoGrupo.horaprog:", nuevoGrupo.horaprog);
-        console.log("nuevoGrupo completo:", nuevoGrupo);
+          console.log('=== NUEVO GRUPO RECIÉN CREADO ===');
+          console.log('nuevoGrupo.horaprog:', nuevoGrupo.horaprog);
+          console.log('nuevoGrupo completo:', nuevoGrupo);
 
           nuevosGrupos.splice(grupoOrigenIndex + 1, 0, nuevoGrupo);
 
@@ -639,23 +667,22 @@ export default function App({
           // Limpiar grupos vacíos y reindexar
           const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
 
-                 console.log("=== DESPUÉS DE LIMPIAR GRUPOS ===");
-        gruposLimpios.forEach((g, index) => {
-          console.log(`Grupo ${index}: id=${g.id}, horaprog="${g.horaprog}"`);
-        });
+          console.log('=== DESPUÉS DE LIMPIAR GRUPOS ===');
+          gruposLimpios.forEach((g, index) => {
+            console.log(`Grupo ${index}: id=${g.id}, horaprog="${g.horaprog}"`);
+          });
 
-
-           if (onActualizarDatos) {
-      setTimeout(() => {
-        onActualizarDatos({
-          totalGrupos: gruposLimpios.length,
-          totalPasajeros: gruposLimpios.reduce(
-            (acc, grupo) => acc + (grupo.personas?.length || 0),
-            0,
-          ),
-        });
-      }, 0);
-    }
+          if (onActualizarDatos) {
+            setTimeout(() => {
+              onActualizarDatos({
+                totalGrupos: gruposLimpios.length,
+                totalPasajeros: gruposLimpios.reduce(
+                  (acc, grupo) => acc + (grupo.personas?.length || 0),
+                  0,
+                ),
+              });
+            }, 0);
+          }
 
           return gruposLimpios;
         }
@@ -665,98 +692,101 @@ export default function App({
     });
   };
 
-const handleEliminarDelArray = (idCliente: number) => {
-  // Primero encontramos el grupo que contiene al cliente
-  const grupoOrigenIndex = grupos.findIndex((grupo) =>
-    grupo.personas.some((persona: any) => persona.idCliente === idCliente),
-  );
-
-  if (grupoOrigenIndex === -1) {
-    console.warn('No se encontró el grupo del cliente');
-    return;
-  }
-
-  const grupoOrigen = grupos[grupoOrigenIndex];
-
-  // Verificamos si el grupo tiene solo una persona
-  if (grupoOrigen.personas.length === 1) {
-    Swal.fire({
-      title: 'Advertencia',
-      text: 'Al eliminar a este pasajero, se eliminará todo el grupo y no podrás regresar al pasajero a su grupo original.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Eliminar de todas formas',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // Proceder con la eliminación
-        procederConEliminacion(idCliente, grupoOrigenIndex);
-      }
-    });
-    return;
-  }
-
-  // Si el grupo tiene más de una persona, proceder directamente
-  procederConEliminacion(idCliente, grupoOrigenIndex);
-};
-
-// Función auxiliar para realizar la eliminación
-const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => {
-  setGrupos((prevGrupos) => {
-    let nuevosGrupos = [...prevGrupos];
-
-    let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
-      (persona: any) => persona.idCliente === idCliente,
+  const handleEliminarDelArray = (idCliente: number) => {
+    // Primero encontramos el grupo que contiene al cliente
+    const grupoOrigenIndex = grupos.findIndex((grupo) =>
+      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
     );
 
-    if (clienteEliminado) {
-      clienteEliminado = {
-        ...clienteEliminado,
-        numGrupo: nuevosGrupos[grupoOrigenIndex].id,
-        ordenOriginal: idCliente,
-      };
+    if (grupoOrigenIndex === -1) {
+      console.warn('No se encontró el grupo del cliente');
+      return;
+    }
 
-      // Eliminar el cliente del grupo
-      nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
-        grupoOrigenIndex
-      ].personas.filter((persona: any) => persona.idCliente !== idCliente);
+    const grupoOrigen = grupos[grupoOrigenIndex];
 
-      setEliminados((prevEliminados) => {
-        const nuevosEliminados = [...prevEliminados, clienteEliminado];
-
-        console.log(
-          `Cliente eliminado:`,
-          clienteEliminado,
-          `\nViene del grupo:`,
-          clienteEliminado.numGrupo,
-          `\nNuevo estado de eliminados:`,
-          nuevosEliminados,
-        );
-
-        return nuevosEliminados;
+    // Verificamos si el grupo tiene solo una persona
+    if (grupoOrigen.personas.length === 1) {
+      Swal.fire({
+        title: 'Advertencia',
+        text: 'Al eliminar a este pasajero, se eliminará todo el grupo y no podrás regresar al pasajero a su grupo original.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar de todas formas',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Proceder con la eliminación
+          procederConEliminacion(idCliente, grupoOrigenIndex);
+        }
       });
+      return;
     }
 
-    // Limpiar grupos vacíos y reindexar después de la eliminación
-    const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+    // Si el grupo tiene más de una persona, proceder directamente
+    procederConEliminacion(idCliente, grupoOrigenIndex);
+  };
 
-    if (onActualizarDatos) {
-      setTimeout(() => {
-        onActualizarDatos({
-          totalGrupos: gruposLimpios.length,
-          totalPasajeros: gruposLimpios.reduce(
-            (acc, grupo) => acc + (grupo.personas?.length || 0),
-            0,
-          ),
+  // Función auxiliar para realizar la eliminación
+  const procederConEliminacion = (
+    idCliente: number,
+    grupoOrigenIndex: number,
+  ) => {
+    setGrupos((prevGrupos) => {
+      let nuevosGrupos = [...prevGrupos];
+
+      let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
+        (persona: any) => persona.idCliente === idCliente,
+      );
+
+      if (clienteEliminado) {
+        clienteEliminado = {
+          ...clienteEliminado,
+          numGrupo: nuevosGrupos[grupoOrigenIndex].id,
+          ordenOriginal: idCliente,
+        };
+
+        // Eliminar el cliente del grupo
+        nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
+          grupoOrigenIndex
+        ].personas.filter((persona: any) => persona.idCliente !== idCliente);
+
+        setEliminados((prevEliminados) => {
+          const nuevosEliminados = [...prevEliminados, clienteEliminado];
+
+          console.log(
+            `Cliente eliminado:`,
+            clienteEliminado,
+            `\nViene del grupo:`,
+            clienteEliminado.numGrupo,
+            `\nNuevo estado de eliminados:`,
+            nuevosEliminados,
+          );
+
+          return nuevosEliminados;
         });
-      }, 0);
-    }
+      }
 
-    return gruposLimpios;
-  });
-};
+      // Limpiar grupos vacíos y reindexar después de la eliminación
+      const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
+
+      if (onActualizarDatos) {
+        setTimeout(() => {
+          onActualizarDatos({
+            totalGrupos: gruposLimpios.length,
+            totalPasajeros: gruposLimpios.reduce(
+              (acc, grupo) => acc + (grupo.personas?.length || 0),
+              0,
+            ),
+          });
+        }, 0);
+      }
+
+      return gruposLimpios;
+    });
+  };
 
   useEffect(() => {
     console.log('Estado actualizado de eliminados:', eliminados);
@@ -915,19 +945,19 @@ const procederConEliminacion = (idCliente: number, grupoOrigenIndex: number) => 
         console.log('Buscando grupo con ID:', item.numGrupo);
       }
 
-       if (onActualizarDatos) {
-      setTimeout(() => {
-        const totalPasajeros = nuevosGrupos.reduce(
-          (acc, grupo) => acc + (grupo.personas?.length || 0),
-          0,
-        );
-        onActualizarDatos({
-          totalGrupos: nuevosGrupos.length,
-          totalPasajeros: totalPasajeros,
-        });
-      }, 0);
-    }
-    
+      if (onActualizarDatos) {
+        setTimeout(() => {
+          const totalPasajeros = nuevosGrupos.reduce(
+            (acc, grupo) => acc + (grupo.personas?.length || 0),
+            0,
+          );
+          onActualizarDatos({
+            totalGrupos: nuevosGrupos.length,
+            totalPasajeros: totalPasajeros,
+          });
+        }, 0);
+      }
+
       return nuevosGrupos;
     });
   };

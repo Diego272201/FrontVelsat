@@ -27,6 +27,23 @@ import ModalNuevoGrupo from './ModalNuevoGrupo';
 import { ArchiveRestore, Database, DatabaseZap, Funnel } from 'lucide-react';
 import { useUsername } from '@/hooks/useUsername';
 
+const FiltroHoras = ({
+  filtroHora,
+  setFiltroHora,
+}: {
+  filtroHora: string;
+  setFiltroHora: (value: string) => void;
+}) => (
+  <input
+    type="text"
+    value={filtroHora}
+    onChange={(e) => setFiltroHora(e.target.value)}
+    className="border border-gray-300 bg-gray-200 p-[6px] text-[11px] focus:border-gray-400 focus:outline-none focus:ring-0"
+    style={{ width: '100px' }}
+    placeholder="Ej: 08:30"
+  />
+);
+
 export default function TepContent() {
   const { username, isReady } = useUsername();
 
@@ -71,6 +88,8 @@ export default function TepContent() {
     empresa: string;
     fecha: string;
   } | null>(null);
+
+  const [filtroHora, setFiltroHora] = useState<string>('');
 
   const [nombrePasajero, setNombrePasajero] = useState('');
   const [totalFechas, setTotalFechas] = useState(0);
@@ -286,7 +305,7 @@ export default function TepContent() {
                 toast.success(
                   'Guardado automático ejecutado después de la carga exitosa',
                 );
-              }, 1000); 
+              }, 1000);
             }
 
             if (response.data.errores?.length > 0) {
@@ -432,7 +451,7 @@ export default function TepContent() {
 
   const handleDeleteCarga = async () => {
     if (!isReady) return;
-    
+
     if (!selectedDate) {
       toast.error('Por favor selecciona una fecha.');
       return;
@@ -769,6 +788,25 @@ export default function TepContent() {
                       />
                     </div>
 
+                    {/* REEMPLAZAR la sección actual con esto: */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-medium text-gray-700">
+                        Hora:
+                      </span>
+                      <FiltroHoras
+                        filtroHora={filtroHora}
+                        setFiltroHora={setFiltroHora}
+                      />
+                      {filtroHora && (
+                        <button
+                          onClick={() => setFiltroHora('')}
+                          className="bg-gray-500 px-2 py-1 text-[10px] text-white hover:bg-gray-600"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
                     <button
                       onClick={alternarEstado}
                       className={`px-4 py-[8px]  text-[12px] font-medium shadow-sm transition-all duration-200 ${
@@ -934,6 +972,7 @@ export default function TepContent() {
               onActualizarCabeceras={actualizarCabeceras}
               onActualizarFechas={actualizarFechas}
               filtro={filtro}
+              filtroHora={filtroHora} // Ahora es un string simple
               nombrePasajero={nombrePasajero}
               modoVista={modoVista}
               onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
