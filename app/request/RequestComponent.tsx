@@ -469,13 +469,16 @@ export default function RequestPage() {
           }
 
           // Determinar color de texto basado en el fondo
-          const textColor = empresa === 'DHL' ? 'text-black' : 'text-white';
+          const textColor =
+            empresa === 'DHL' || empresa === 'TALMA'
+              ? 'text-black'
+              : 'text-white';
           const closeButtonColor =
-            empresa === 'DHL'
+            empresa === 'DHL' || empresa === 'TALMA'
               ? 'text-black hover:text-gray-600'
               : 'text-white hover:text-gray-300';
           const linkColor =
-            empresa === 'DHL'
+            empresa === 'DHL' || empresa === 'TALMA'
               ? 'text-blue-600 hover:text-blue-800'
               : 'text-blue-300 hover:text-blue-100';
 
@@ -500,13 +503,13 @@ export default function RequestPage() {
             popup1: {
               bgColor: 'bg-white',
               textColor: 'text-black',
-              borderColor: 'border-white',
+              borderColor: 'border-black',
               triangleColor: 'border-t-white',
             },
             popup2: {
               bgColor: 'bg-white',
               textColor: 'text-black',
-              borderColor: 'border-white',
+              borderColor: 'border-black',
               closeButtonColor: 'text-black hover:text-gray-600',
               linkColor: 'text-blue-600 hover:text-blue-800',
             },
@@ -1010,6 +1013,20 @@ export default function RequestPage() {
         'bg-[#FFCC00]': '#FFCC00',
         'bg-[#ED1C24]': '#ED1C24',
         'bg-[#ff6600]': '#ff6600', // Empresa desconocida
+        // Agregar estos mapeos de borde:
+        'border-white': '#ffffff',
+        'border-black': '#000000',
+        'border-[#fca311]': '#fca311',
+        'border-[#1f2937]': '#1f2937',
+        'border-[#ffccd5]': '#ffccd5',
+        'border-[#8fd694]': '#8fd694',
+        'border-[#ffd670]': '#ffd670',
+        // Bordes de empresas
+        'border-[#8DBB37]': '#8DBB37',
+        'border-[#3d048c]': '#3d048c',
+        'border-[#FFCC00]': '#FFCC00',
+        'border-[#ED1C24]': '#ED1C24',
+        'border-[#ff6600]': '#ff6600',
       };
 
       const shouldBlink =
@@ -1030,6 +1047,9 @@ export default function RequestPage() {
 
         if (contentDiv) {
           const bgColor = colorMap[colorScheme.popup1.bgColor] || '#fca311';
+          const borderColor =
+            colorMap[colorScheme.popup1.borderColor] || '#fca311'; // ← AGREGAR ESTA LÍNEA
+
           if (shouldBlink) {
             // Iniciar parpadeo para contenido
             startBlinkingAnimation(contentDiv, 'background', device.deviceId);
@@ -1041,7 +1061,11 @@ export default function RequestPage() {
               bgColor,
               'important',
             );
-            contentDiv.style.setProperty('border-color', bgColor, 'important');
+            contentDiv.style.setProperty(
+              'border-color',
+              borderColor,
+              'important',
+            ); // ← USAR borderColor EN LUGAR DE bgColor
           }
 
           // Aplicar color de texto
@@ -1114,6 +1138,9 @@ export default function RequestPage() {
 
             // Aplicar colores inmediatamente después de regenerar
             const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
+            const borderColor =
+              colorMap[colorScheme.popup2.borderColor] || '#1f2937';
+
             if (shouldBlink) {
               startBlinkingAnimation(
                 popupElement,
@@ -1130,7 +1157,7 @@ export default function RequestPage() {
               );
               popupElement.style.setProperty(
                 'border-color',
-                bgColor,
+                borderColor,
                 'important',
               );
             }
@@ -1171,6 +1198,9 @@ export default function RequestPage() {
         } else {
           // Solo actualizar colores sin regenerar
           const bgColor = colorMap[colorScheme.popup2.bgColor] || '#1f2937';
+          const borderColor =
+            colorMap[colorScheme.popup2.borderColor] || '#1f2937'; // ← AGREGAR
+
           if (shouldBlink) {
             startBlinkingAnimation(
               popupElement,
@@ -1187,7 +1217,7 @@ export default function RequestPage() {
             );
             popupElement.style.setProperty(
               'border-color',
-              bgColor,
+              borderColor,
               'important',
             );
           }
