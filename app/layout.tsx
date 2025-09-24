@@ -2,6 +2,7 @@ import SessionAuthProvider from '@/context/SessionAuthProvider';
 import './globals.css';
 import { ApiProvider } from '@/context/ApiContext';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import ConditionalMapsWrapper from '@/app/components/ConditionalMapsWrapper';
 
 export default function RootLayout({
@@ -24,6 +25,7 @@ export default function RootLayout({
           <ApiProvider>
             <ConditionalMapsWrapper>
               {children}
+              <SpeedInsights />
             </ConditionalMapsWrapper>
             <Analytics />
           </ApiProvider>

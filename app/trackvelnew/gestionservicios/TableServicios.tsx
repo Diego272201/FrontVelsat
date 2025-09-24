@@ -105,8 +105,13 @@ export default function App({
 }) {
   const { username, isReady } = useUsername();
 
-  const [coordenadas, setCoordenadas] = useState<{ lat: number; lng: number }[]>([]);
-  const [centroMapa, setCentroMapa] = useState<{lat: number; lng: number;} | null>(null);
+  const [coordenadas, setCoordenadas] = useState<
+    { lat: number; lng: number }[]
+  >([]);
+  const [centroMapa, setCentroMapa] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isOpenD, setIsOpenD] = useState(false);
@@ -351,64 +356,64 @@ export default function App({
   }, [dataSeleccionada]);
 
   useEffect(() => {
-  const fetchConductores = async () => {
-    if (!isReady) {
-      console.log('useUsername hook not ready yet');
-      return;
-    }
+    const fetchConductores = async () => {
+      if (!isReady) {
+        console.log('useUsername hook not ready yet');
+        return;
+      }
 
-    if (!username || username.trim() === '') {
-      console.error('Username is empty or invalid:', username);
-      return;
-    }
+      if (!username || username.trim() === '') {
+        console.error('Username is empty or invalid:', username);
+        return;
+      }
 
-    try {
-      const encodedUsername = encodeURIComponent(username);
-      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${encodedUsername}`;
-      console.log('Making request to:', url);
-      
-      const response = await axios.get(url);
-      setConductores(response.data);
-    } catch (error) {
-      console.error('Error al obtener conductores:', error);
-    }
-  };
+      try {
+        const encodedUsername = encodeURIComponent(username);
+        const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${encodedUsername}`;
+        console.log('Making request to:', url);
 
-  fetchConductores();
-}, [username, isReady]);
+        const response = await axios.get(url);
+        setConductores(response.data);
+      } catch (error) {
+        console.error('Error al obtener conductores:', error);
+      }
+    };
+
+    fetchConductores();
+  }, [username, isReady]);
 
   // Reemplaza el useEffect actual que obtiene las unidades con este código corregido:
 
-useEffect(() => {
-  const fetchUnidades = async () => {
-    // Verificar que el hook esté listo y que username no esté vacío
-    if (!isReady) {
-      console.log('useUsername hook not ready yet');
-      return;
-    }
+  useEffect(() => {
+    const fetchUnidades = async () => {
+      // Verificar que el hook esté listo y que username no esté vacío
+      if (!isReady) {
+        console.log('useUsername hook not ready yet');
+        return;
+      }
 
-    if (!username || username.trim() === '') {
-      console.error('Username is empty or invalid:', username);
-      return;
-    }
+      if (!username || username.trim() === '') {
+        console.error('Username is empty or invalid:', username);
+        return;
+      }
 
-    try {
-      // Codificar el username para evitar problemas con caracteres especiales
-      const encodedUsername = encodeURIComponent(username);
-      const url = `https://velsat.pe:2096/api/Preplan/unidades?usuario=${encodedUsername}`;
-      console.log('Making request to:', url);
-      
-      const response = await axios.get(url);
-      setUnidadesA(response.data);
-    } catch (error) {
-      console.error('Error al obtener unidades:', error);
-      // Opcional: mostrar un toast de error
-      // toast.error('Error al cargar las unidades');
-    }
-  };
+      try {
+        // Codificar el username para evitar problemas con caracteres especiales
+        const encodedUsername = encodeURIComponent(username);
+        const url = `https://velsat.pe:2096/api/Preplan/unidades?usuario=${encodedUsername}`;
+        console.log('Making request to:', url);
 
-  fetchUnidades();
-}, [username, isReady]); // Agregar isReady como dependencia
+        const response = await axios.get(url);
+        setUnidadesA(response.data);
+      } catch (error) {
+        console.error('Error al obtener unidades:', error);
+        // Opcional: mostrar un toast de error
+        // toast.error('Error al cargar las unidades');
+      }
+    };
+
+    fetchUnidades();
+  }, [username, isReady]); // Agregar isReady como dependencia
 
   const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUnidadA(e.target.value);
@@ -538,7 +543,7 @@ useEffect(() => {
     refreshFlagServicio,
     refreshSearch,
     username,
-    isReady
+    isReady,
   ]);
 
   useEffect(() => {
@@ -553,7 +558,7 @@ useEffect(() => {
       const currentDate = selectedDate || getFormattedDate();
       const API_URL = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
 
-      console.log(API_URL)
+      console.log(API_URL);
 
       setLoading(true);
       setErrorPasajero(null);
@@ -579,7 +584,7 @@ useEffect(() => {
     refreshFlagDelete,
     refreshFlagServicio,
     username,
-    isReady
+    isReady,
   ]);
 
   useEffect(() => {
@@ -1577,10 +1582,17 @@ useEffect(() => {
                             resetMap={resetMap}
                           />
                         ) : (
-                          <div className="rounded-lg bg-white p-3">
+                          <div
+                            className="rounded-lg bg-white p-3"
+                            style={{
+                              height: '30vh',
+                              maxHeight: '30vh',
+                              overflow: 'hidden',
+                            }}
+                          >
                             <SeguirUnidad
                               deviceId={selectedRow.unidadSF?.toLowerCase()}
-                              height="30vh"
+                              height="100%" // Usa 100% del contenedor padre
                               marcadores={coordenadas}
                               centro={centroMapa}
                               resetMap={resetMap}

@@ -74,13 +74,14 @@ export default function RequestPage() {
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastAlertTime = useRef<{ [key: string]: number }>({});
   const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio('/alert.mp3');
       audioRef.current.preload = 'auto';
+      audioRef.current.volume = 0.6;
+
     }
   }, []);
 

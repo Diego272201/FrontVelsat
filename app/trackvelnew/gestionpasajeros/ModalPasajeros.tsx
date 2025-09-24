@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { MdAddBox } from 'react-icons/md';
 import dynamic from 'next/dynamic';
 import type { Map as LeafletMap } from 'leaflet';
+import { Controller } from 'react-hook-form';
 
 // Importar Leaflet dinámicamente para evitar problemas de SSR
 const MapContainer = dynamic(
@@ -109,11 +110,24 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    control,
     reset,
-    clearErrors,
-    watch,
-  } = useForm();
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      identificador: '',
+      nombre: '',
+      telefono: '',
+      sexo: '',
+      empresa: '',
+      tarifa: '',
+      direccion: '',
+      distrito: '',
+      latitud: '',
+      longitud: '',
+    },
+  });
 
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [tarifa, setTarifa] = useState<{ zona: string }[]>([]);
@@ -392,13 +406,10 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           addressParts.indexOf(part) === 2,
       ) || '';
 
-    reset((prev) => ({
-      ...prev,
-      direccion: result.display_name,
-      distrito: possibleDistrict,
-      latitud: lat.toString(),
-      longitud: lng.toString(),
-    }));
+    setValue('direccion', result.display_name, { shouldValidate: true });
+    setValue('distrito', possibleDistrict, { shouldValidate: true });
+    setValue('latitud', lat.toString(), { shouldValidate: true });
+    setValue('longitud', lng.toString(), { shouldValidate: true });
 
     if (mapRef.current) {
       mapRef.current.setView([lat, lng], 15);
@@ -423,23 +434,17 @@ export default function App({ title, onPasajeroAgregado }: Props) {
   const handleMapClick = async (lat: number, lng: number) => {
     setMarkerPosition([lat, lng]);
 
-    reset((prev) => ({
-      ...prev,
-      latitud: lat.toString(),
-      longitud: lng.toString(),
-    }));
+    setValue('latitud', lat.toString(), { shouldValidate: true });
+    setValue('longitud', lng.toString(), { shouldValidate: true });
 
     // Usar Google para geocodificación inversa
     const geocodeResult = await reverseGeocodeGoogle(lat, lng);
     if (geocodeResult) {
       setSearchInput(geocodeResult.address);
-      reset((prev) => ({
-        ...prev,
-        latitud: lat.toString(),
-        longitud: lng.toString(),
-        direccion: geocodeResult.address,
-        distrito: geocodeResult.district,
-      }));
+      setValue('latitud', lat.toString(), { shouldValidate: true });
+      setValue('longitud', lng.toString(), { shouldValidate: true });
+      setValue('direccion', geocodeResult.address, { shouldValidate: true });
+      setValue('distrito', geocodeResult.district, { shouldValidate: true });
     }
   };
 
@@ -529,6 +534,26 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       toast.error('Error al agregar el pasajero');
     }
   });
+
+  // Detectar cambios manuales en los inputs de latitud/longitud
+  useEffect(() => {
+    const lat = parseFloat(String(control._formValues.latitud));
+    const lng = parseFloat(String(control._formValues.longitud));
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setMarkerPosition([lat, lng]);
+      setMapCenter([lat, lng]);
+
+      // Llamar geocodificación inversa
+      reverseGeocodeGoogle(lat, lng).then((result) => {
+        if (result) {
+          setSearchInput(result.address);
+          setValue('direccion', result.address, { shouldValidate: true });
+          setValue('distrito', result.district, { shouldValidate: true });
+        }
+      });
+    }
+  }, [control._formValues.latitud, control._formValues.longitud]);
 
   return (
     <>
@@ -686,15 +711,19 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                       </Select>
 
                       <div>
-                        <Input
-                          type="text"
-                          label="Dirección"
-                          placeholder="Dirección"
-                          labelPlacement="outside"
-                          className="md:w-[350px]"
-                          {...register('direccion', {
-                            required: true,
-                          })}
+                        <Controller
+                          name="direccion"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              type="text"
+                              label="Dirección"
+                              placeholder="Dirección"
+                              labelPlacement="outside"
+                            />
+                          )}
                         />
 
                         {errors.direccion && (
@@ -705,15 +734,19 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                       </div>
 
                       <div>
-                        <Input
-                          type="text"
-                          label="Distrito"
-                          placeholder="Distrito"
-                          labelPlacement="outside"
-                          className="md:w-[205px]"
-                          {...register('distrito', {
-                            required: true,
-                          })}
+                        <Controller
+                          name="distrito"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              type="text"
+                              label="Distrito"
+                              placeholder="Distrito"
+                              labelPlacement="outside"
+                            />
+                          )}
                         />
 
                         {errors.distrito && (
@@ -728,16 +761,25 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
                       <div className="mensajeR">
-                        <Input
-                          type="text"
-                          label="Latitud"
-                          placeholder="Latitud"
-                          labelPlacement="outside"
-                          readOnly
-                          className="pointer-events-none cursor-default"
-                          {...register('latitud', {
-                            required: true,
-                          })}
+                        <Controller
+                          name="latitud"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              type="text"
+                              label="Latitud"
+                              placeholder="Latitud"
+                              labelPlacement="outside"
+                              onChange={(e) => {
+                                field.onChange(e); // mantiene react-hook-form sincronizado
+                                setValue('latitud', e.target.value, {
+                                  shouldValidate: true,
+                                });
+                              }}
+                            />
+                          )}
                         />
 
                         {errors.latitud && (
@@ -747,16 +789,25 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                         )}
                       </div>
                       <div className="mensajeR">
-                        <Input
-                          type="text"
-                          label="Longitud"
-                          placeholder="Longitud"
-                          labelPlacement="outside"
-                          readOnly
-                          className="pointer-events-none cursor-default"
-                          {...register('longitud', {
-                            required: true,
-                          })}
+                        <Controller
+                          name="longitud"
+                          control={control}
+                          rules={{ required: true }}
+                          render={({ field }) => (
+                            <Input
+                              {...field}
+                              type="text"
+                              label="Longitud"
+                              placeholder="Longitud"
+                              labelPlacement="outside"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                setValue('longitud', e.target.value, {
+                                  shouldValidate: true,
+                                });
+                              }}
+                            />
+                          )}
                         />
 
                         {errors.longitud && (

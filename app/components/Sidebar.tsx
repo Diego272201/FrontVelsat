@@ -154,19 +154,34 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     setLastCheckedId(id);
   }, []);
 
-  const filteredUnidades = useMemo(() => {
-    const baseFiltrado = unidades.filter((unidad) =>
-      unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
+const filteredUnidades = useMemo(() => {
+  // Función para ordenar deviceID alfabética y numéricamente
+  const sortDeviceIds = (a: UnidadData, b: UnidadData) => {
+    const deviceA = a.deviceId.toLowerCase();
+    const deviceB = b.deviceId.toLowerCase();
+    
+    // Usar localeCompare con opciones numéricas para un ordenamiento natural
+    return deviceA.localeCompare(deviceB, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  };
+
+  const baseFiltrado = unidades.filter((unidad) =>
+    unidad.deviceId.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  let resultado = baseFiltrado;
+  
+  if (filteredDeviceIds) {
+    resultado = baseFiltrado.filter((unidad) =>
+      filteredDeviceIds.includes(unidad.deviceId.toLowerCase()),
     );
+  }
 
-    if (filteredDeviceIds) {
-      return baseFiltrado.filter((unidad) =>
-        filteredDeviceIds.includes(unidad.deviceId.toLowerCase()),
-      );
-    }
-
-    return baseFiltrado;
-  }, [unidades, searchTerm, filteredDeviceIds]);
+  // Ordenar alfabética y numéricamente
+  return resultado.sort(sortDeviceIds);
+}, [unidades, searchTerm, filteredDeviceIds]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);

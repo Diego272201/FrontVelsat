@@ -1,20 +1,19 @@
 'use client';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import 'leaflet-defaulticon-compatibility';
-import '@/app/styles/popup.css';
-import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import * as signalR from '@microsoft/signalr';
+import { X } from 'lucide-react';
+import GoogleMapComponent from '../components/GoogleMapComponent';
+import { useMapInstance } from '@/hooks/useMapInstance';
+import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
-import { X, Maximize2, Map, MapPin, Eye } from 'lucide-react';
+import '@/app/styles/popup.css';
 
-const initialCenter: [number, number] = [
-  -12.046591525826495, -77.04689047482863,
-];
+const initialCenter = {
+  lat: -12.046591525826495,
+  lng: -77.04689047482863,
+};
 
 interface Device {
   deviceId: string;
@@ -38,188 +37,38 @@ interface Props {
 }
 
 interface MarkerData {
-  marker: L.Marker;
-  popup1: L.Popup;
-  popup2: L.Popup;
+  marker: google.maps.Marker;
+  popup1: any; // Custom popup overlay
+  popup2: any; // Custom popup overlay
   intervalId?: NodeJS.Timeout;
 }
 
-const mapLayers = {
-  openstreetmap: {
-    name: 'Calles',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    icon: '🗺️',
-  },
-  hybrid: {
-    name: 'Híbrido',
-    url: 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
-    icon: '🌍',
-  },
-  satellite_google: {
-    name: 'Satelital',
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attribution: '&copy; <a href="https://www.google.com/maps">Google</a>',
-    icon: '🛰️',
-  },
-};
-
-const LayerController = ({
-  currentLayer,
-}: {
-  currentLayer: keyof typeof mapLayers;
-}) => {
-  const map = useMap();
-
-  useEffect(() => {
-    map.eachLayer((layer) => {
-      if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer);
-      }
-    });
-
-    const newLayer = L.tileLayer(mapLayers[currentLayer].url, {
-      attribution: mapLayers[currentLayer].attribution,
-      maxZoom: 19,
-    });
-
-    newLayer.addTo(map);
-  }, [map, currentLayer]);
-
-  return null;
-};
-
-// ✅ Componente simplificado para marcadores estáticos - solo Street View al hacer clic
-const AdditionalMarkers = ({
-  marcadores,
-  onStreetViewOpen,
-}: {
-  marcadores: { lat: number; lng: number }[];
-  onStreetViewOpen: (lat: number, lng: number, markerId: string) => void;
-}) => {
-  const createCustomIcon = (index: number) => {
-    const markerSvg = getMarkerSVG(index + 1);
-
-    return L.icon({
-      iconUrl:
-        'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
-      iconSize: [40, 50],
-      iconAnchor: [20, 45],
-      popupAnchor: [0, -45],
-    });
-  };
-
-  return (
-    <>
-      {marcadores.map((punto, index) => {
-        const StaticMarkerComponent = () => {
-          const map = useMap();
-
-          useEffect(() => {
-            const markerId = `static-marker-${index}`;
-            const marker = L.marker([punto.lat, punto.lng], {
-              icon: createCustomIcon(index),
-            }).addTo(map);
-
-            // ✅ Solo abrir Street View al hacer clic - sin popups
-            marker.on('click', () => {
-              onStreetViewOpen(punto.lat, punto.lng, markerId);
-            });
-
-            // Cleanup al desmontar
-            return () => {
-              map.removeLayer(marker);
-            };
-          }, []);
-
-          return null;
-        };
-
-        return <StaticMarkerComponent key={index} />;
-      })}
-    </>
-  );
-};
-
-const MapController = ({
-  onMapReady,
-  device,
-  hasInitialCentered,
-  setHasInitialCentered,
-}: {
-  onMapReady: (map: L.Map) => void;
-  device: Device | null;
-  hasInitialCentered: boolean;
-  setHasInitialCentered: (value: boolean) => void;
-}) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (map) {
-      onMapReady(map);
-    }
-  }, [map, onMapReady]);
-
-  useEffect(() => {
-    if (map && device && !hasInitialCentered) {
-      const newCenter: [number, number] = [
-        device.lastValidLatitude,
-        device.lastValidLongitude,
-      ];
-      map.setView(newCenter, 16);
-      setHasInitialCentered(true);
-    }
-  }, [map, device, hasInitialCentered, setHasInitialCentered]);
-
-  return null;
-};
-
-const MapCenterController = ({
-  centro,
-  resetMap,
-}: {
-  centro: { lat: number; lng: number } | null;
-  resetMap: boolean;
-}) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (resetMap) {
-      // Opcional: resetear el mapa a la posición inicial o hacer alguna acción de reset
-      console.log('🔄 Reseteando mapa...');
-      return;
-    }
-
-    if (centro && centro.lat && centro.lng) {
-      console.log('🎯 Centrando mapa en SeguirUnidad:', centro);
-      map.setView([centro.lat, centro.lng], 16, {
-        animate: true,
-        duration: 1,
-      });
-    }
-  }, [map, centro, resetMap]);
-
-  return null;
-};
+interface StaticMarkerData {
+  marker: google.maps.Marker;
+}
 
 export default function SeguirUnidadPage({
   deviceId,
-  height = '100vh',
+  height,
   marcadores = [],
   centro = null,
   resetMap = false,
 }: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
+  const { isLoaded } = useGoogleMaps();
+  const {
+    mapRef,
+    mapLoaded,
+    onLoad: mapOnLoad,
+    onUnmount: mapOnUnmount,
+  } = useMapInstance();
 
   const [device, setDevice] = useState<Device | null>(null);
   const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInitialCentered, setHasInitialCentered] = useState(false);
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
-  // ✅ Estado para manejar Street View de marcadores estáticos
   const [streetViewData, setStreetViewData] = useState<{
     lat: number;
     lng: number;
@@ -227,23 +76,12 @@ export default function SeguirUnidadPage({
     title: string;
   } | null>(null);
 
-  const mapRef = useRef<L.Map | null>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
-  const [currentLayer, setCurrentLayer] =
-    useState<keyof typeof mapLayers>('openstreetmap');
-  const [showLayerSelector, setShowLayerSelector] = useState(false);
-
+  const staticMarkersRef = useRef<StaticMarkerData[]>([]);
+  const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
+  
   const servidorUrl = localStorage.getItem('servidorUrl');
-
-  // ✅ API Key desde variables de entorno
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
-
-  useEffect(() => {
-    console.log(
-      '🔍 SeguirUnidad - Cantidad de marcadores:',
-      marcadores?.length,
-    );
-  }, [marcadores]);
 
   // Manejo del fullscreen
   useEffect(() => {
@@ -269,29 +107,19 @@ export default function SeguirUnidadPage({
 
       setTimeout(() => {
         if (mapRef.current) {
-          mapRef.current.invalidateSize();
+          google.maps.event.trigger(mapRef.current, 'resize');
         }
       }, 300);
     } catch (error) {
-      console.error('Error al cambiar modo fullscreen:', error);
     }
   };
 
-  // ✅ Funciones para Street View (mejoradas)
+  // Funciones para Street View
   const getStreetViewEmbedUrl = (lat: number, lng: number) => {
     if (!GOOGLE_MAPS_API_KEY) {
-      console.error('❌ API Key de Google Maps no disponible');
       return '';
     }
     return `https://www.google.com/maps/embed/v1/streetview?location=${lat},${lng}&heading=0&pitch=0&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
-  };
-
-  const getDirectGoogleMapsUrl = (lat: number, lng: number) => {
-    return `https://www.google.com/maps/@${lat},${lng},3a,75y,0h,90t/data=!3m7!1e1!3m5!1s0!2e0!6shttps:%2F%2Fstreetviewpixels-pa.googleapis.com!7i16384!8i8192`;
-  };
-
-  const toggleStreetView = () => {
-    setIsStreetViewOpen(!isStreetViewOpen);
   };
 
   const closeStreetView = () => {
@@ -299,7 +127,6 @@ export default function SeguirUnidadPage({
     setStreetViewData(null);
   };
 
-  // ✅ Handler para abrir Street View de marcadores estáticos
   const handleStaticMarkerStreetView = (
     lat: number,
     lng: number,
@@ -315,7 +142,7 @@ export default function SeguirUnidadPage({
     setIsStreetViewOpen(true);
   };
 
-  // SignalR Connection (mismo código que tenías)
+  // SignalR Connection
   useEffect(() => {
     let connection: signalR.HubConnection | null = null;
     let isComponentMounted = true;
@@ -334,7 +161,7 @@ export default function SeguirUnidadPage({
       const deviceIdFinal = deviceId || getDeviceIdFromUrl();
 
       if (!isComponentMounted || !deviceIdFinal) {
-        console.warn('❌ Componente desmontado o deviceId no disponible');
+        console.warn('Componente desmontado o deviceId no disponible');
         return;
       }
 
@@ -343,7 +170,7 @@ export default function SeguirUnidadPage({
         !session?.user?.username ||
         !servidorUrl
       ) {
-        console.warn('⚠️ Sesión no autenticada o datos faltantes');
+        console.warn('Sesión no autenticada o datos faltantes');
         return;
       }
 
@@ -362,10 +189,7 @@ export default function SeguirUnidadPage({
         const username = session.user.username;
         const hubUrl = `${servidorUrl}/dataHubDevice/${username}`;
 
-        console.log(
-          '🚀 Iniciando nueva conexión SignalR para device:',
-          deviceIdFinal,
-        );
+        console.log('Iniciando nueva conexión SignalR para device:', deviceIdFinal);
 
         connection = new signalR.HubConnectionBuilder()
           .withUrl(hubUrl, {
@@ -385,15 +209,10 @@ export default function SeguirUnidadPage({
 
         connection.onclose((error) => {
           if (isComponentMounted) {
-            console.log('Conexión cerrada:', error?.message || 'Sin error');
-
             if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
               reconnectionAttempts++;
               setTimeout(() => {
                 if (isComponentMounted) {
-                  console.log(
-                    `🔄 Reintentando conexión (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-                  );
                   connectSignalR();
                 }
               }, RECONNECTION_DELAY);
@@ -421,35 +240,26 @@ export default function SeguirUnidadPage({
 
         reconnectionAttempts = 0;
 
-        console.log(`Automáticamente unido al grupo: ${username}`);
-
         connection.on('ActualizarDatos', (datos) => {
           if (!isComponentMounted) return;
-
-          if (!isFirstDataReceived) {
-            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            console.log(`⚡ Primera actualización recibida en ${totalTime}s`);
-            isFirstDataReceived = true;
-          }
 
           const updatedDevice = datos.datosDevice.find(
             (d: Device) => d.deviceId === deviceIdFinal,
           );
 
           if (updatedDevice) {
-            console.log(`📱 Dispositivo ${deviceIdFinal} actualizado`);
             setFechaActual(datos.fechaActual);
             setDevice(updatedDevice);
           } else {
             console.warn(
-              `⚠️ Dispositivo ${deviceIdFinal} no encontrado en los datos`,
+              `Dispositivo ${deviceIdFinal} no encontrado en los datos`,
             );
           }
         });
 
         connection.on('Error', (error) => {
           if (isComponentMounted) {
-            console.error('❌ Error desde SignalR:', error);
+            console.error('Error desde SignalR:', error);
           }
         });
 
@@ -469,7 +279,7 @@ export default function SeguirUnidadPage({
           setTimeout(() => {
             if (isComponentMounted) {
               console.log(
-                `🔄 Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
+                `Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
               );
               connectSignalR();
             }
@@ -492,6 +302,7 @@ export default function SeguirUnidadPage({
     };
   }, [status, session, deviceId, servidorUrl, searchParams]);
 
+  // Utility functions
   const formatFecha = useCallback((fecha: any) => {
     const date = new Date(fecha);
     const day = String(date.getDate()).padStart(2, '0');
@@ -523,114 +334,162 @@ export default function SeguirUnidadPage({
   }, []);
 
   const getMarkerIcon = useCallback((heading: number) => {
+    if (typeof window === 'undefined') return null;
+
+    const cacheKey = Math.floor(heading / 45) * 45;
+
+    if (iconCache.current[cacheKey]) {
+      return iconCache.current[cacheKey];
+    }
+
     const directions = [
-      { range: [0, 22.5], url: '/up.webp', size: [25, 35] as [number, number] },
-      {
-        range: [22.51, 67.5],
-        url: '/topright.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [67.51, 112.5],
-        url: '/right.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [112.51, 157.5],
-        url: '/downright.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [157.51, 202.5],
-        url: '/down.webp',
-        size: [25, 35] as [number, number],
-      },
-      {
-        range: [202.51, 247.5],
-        url: '/downleft.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [247.51, 292.5],
-        url: '/left.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [292.51, 337.5],
-        url: '/topleft.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [337.51, 360.0],
-        url: '/up.webp',
-        size: [25, 35] as [number, number],
-      },
+      { range: [0, 22.5], url: '/up.webp', size: [25, 35] },
+      { range: [22.51, 67.5], url: '/topright.webp', size: [42, 25] },
+      { range: [67.51, 112.5], url: '/right.webp', size: [42, 25] },
+      { range: [112.51, 157.5], url: '/downright.webp', size: [42, 25] },
+      { range: [157.51, 202.5], url: '/down.webp', size: [25, 35] },
+      { range: [202.51, 247.5], url: '/downleft.webp', size: [42, 25] },
+      { range: [247.51, 292.5], url: '/left.webp', size: [42, 25] },
+      { range: [292.51, 337.5], url: '/topleft.webp', size: [42, 25] },
+      { range: [337.51, 360.0], url: '/up.webp', size: [25, 35] },
     ];
 
     const direction = directions.find(
       (d) => heading >= d.range[0] && heading <= d.range[1],
     );
+    const icon = direction
+      ? {
+          url: direction.url,
+          scaledSize: new google.maps.Size(direction.size[0], direction.size[1]),
+        }
+      : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
 
-    return direction
-      ? L.icon({
-          iconUrl: direction.url,
-          iconSize: direction.size,
-          iconAnchor: [direction.size[0] / 2, direction.size[1] / 2],
-        })
-      : L.icon({
-          iconUrl: '/unknown.png',
-          iconSize: [42, 25],
-          iconAnchor: [21, 12.5],
-        });
+    iconCache.current[cacheKey] = icon;
+    return icon;
   }, []);
 
   const getEstado = useCallback((speed: number) => {
     return speed > 0 ? 'En Movimiento' : 'Estacionado';
   }, []);
 
+  // Custom Popup class for Google Maps - define as function to avoid early execution
+  const createPopupClass = useCallback(() => {
+    if (typeof window === 'undefined' || !window.google?.maps) {
+      return null;
+    }
+
+    class Popup extends google.maps.OverlayView {
+      position: google.maps.LatLng;
+      containerDiv: HTMLDivElement;
+
+      constructor(position: google.maps.LatLng, content: HTMLElement) {
+        super();
+        this.position = position;
+        content.classList.add('popup-bubble');
+        const bubbleAnchor = document.createElement('div');
+        bubbleAnchor.appendChild(content);
+        this.containerDiv = document.createElement('div');
+        this.containerDiv.classList.add('popup-container');
+        this.containerDiv.appendChild(bubbleAnchor);
+        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+      }
+
+      onAdd() {
+        this.getPanes()!.floatPane.appendChild(this.containerDiv);
+      }
+
+      onRemove() {
+        if (this.containerDiv.parentElement) {
+          this.containerDiv.parentElement.removeChild(this.containerDiv);
+        }
+      }
+
+      draw() {
+        if (!this.getProjection() || !this.position || !this.containerDiv) return;
+
+        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
+        this.containerDiv.style.left = `${divPosition.x}px`;
+        this.containerDiv.style.top = `${divPosition.y}px`;
+        this.containerDiv.style.display = 'block';
+      }
+    }
+
+    return Popup;
+  }, []);
+
   const getPopupContent = useCallback(
     (device: Device) => {
       return `
-    <div class="content-custom-popup bg-gray-800 text-white p-4 shadow-lg border border-gray-600 min-w-82" id="content2-${device.deviceId}">
-      <button id="close-btn-${device.deviceId}" class="absolute top-0 right-3 text-gray-300 hover:text-red-400 text-xl font-bold transition-colors">&times;</button>
+    <div style="
+      background-color: #1f2937 !important;
+      color: #ffffff !important;
+      padding: 16px !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+      border: 1px solid #4b5563 !important;
+      min-width: 300px !important;
+      border-radius: 8px !important;
+      font-size: 12px !important;
+      line-height: 1.4 !important;
+      position: relative !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+    " id="content2-${device.deviceId}">
+      <button id="close-btn-${device.deviceId}" style="
+        position: absolute !important;
+        top: 0 !important;
+        right: 12px !important;
+        color: #d1d5db !important;
+        font-size: 20px !important;
+        font-weight: bold !important;
+        cursor: pointer !important;
+        border: none !important;
+        background: transparent !important;
+        transition: color 0.15s ease !important;
+      " onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#d1d5db'">&times;</button>
       
-      <div class="space-y-1">
-        <div class="flex items-center">
-          <span class="text-gray-300">Unidad:</span> 
-          <strong class="text-blue-300 ml-1">${device.deviceId.toUpperCase()}</strong>
+      <div style="margin-bottom: 8px !important;">
+        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
+          <span style="color: #d1d5db !important;">Unidad:</span> 
+          <strong style="color: #93c5fd !important; margin-left: 4px !important;">${device.deviceId.toUpperCase()}</strong>
         </div>
         
-        <div class="flex items-center">
-          <span class="text-gray-300">Velocidad:</span> 
-          <strong class="text-green-300 ml-1">${device.lastValidSpeed} Km/h</strong>
+        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
+          <span style="color: #d1d5db !important;">Velocidad:</span> 
+          <strong style="color: #86efac !important; margin-left: 4px !important;">${device.lastValidSpeed} Km/h</strong>
         </div>
         
-        <div class="flex items-center">
-          <span class="text-gray-300">Estado:</span> 
-          <strong class="text-yellow-300 ml-1">${getEstado(device.lastValidSpeed)}</strong>
+        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
+          <span style="color: #d1d5db !important;">Estado:</span> 
+          <strong style="color: #fde047 !important; margin-left: 4px !important;">${getEstado(device.lastValidSpeed)}</strong>
         </div>
       </div>
 
-      <hr class="my-1 border-gray-600">
+      <hr style="border: none !important; border-top: 1px solid #4b5563 !important; margin: 8px 0 !important;">
       
-      <h4 class="font-semibold text-gray-200 uppercase text-[10px] mb-1 ml-[2px]">
+      <h4 style="
+        font-weight: 600 !important;
+        color: #e5e7eb !important;
+        text-transform: uppercase !important;
+        font-size: 10px !important;
+        margin-bottom: 4px !important;
+        margin-left: 2px !important;
+      ">
         <strong>Último Reporte</strong>
       </h4>
       
-      <div class="bg-gray-700 p-1 space-y-2">
-        <div class="text-center">
+      <div style="background-color: #374151 !important; padding: 8px !important; border-radius: 4px !important;">
+        <div style="margin-bottom: 5px !important;">
             <strong>${formatFecha(fechaActual)}</strong>
         </div>
         
-        <div class="space-y-1">
-          <div>
-            <span class="text-gray-300 text-[12px]">Dirección:</span> 
-            <strong class="text-white">${getDireccion(device.lastValidHeading)}</strong>
+        <div>
+          <div style="margin-bottom: 4px !important;">
+            <span style="color: #d1d5db !important; font-size: 12px !important;">Dirección:</span> 
+            <span style="color: #ffffff !important;">${getDireccion(device.lastValidHeading)}</span>
           </div>
           
           <div>
-            <span class="text-gray-300 text-[12px]">Ubicación:</span> 
-            <strong class="text-white text-[12x]">${device.direccion}</strong>
+            <span style="color: #d1d5db !important; font-size: 12px !important;">Ubicación:</span> 
+            <span style="color: #ffffff !important; font-size: 12px !important;">${device.direccion}</span>
           </div>
         </div>
       </div>
@@ -640,84 +499,149 @@ export default function SeguirUnidadPage({
     [fechaActual, getDireccion, getEstado, formatFecha],
   );
 
-  const createMarkerAndPopup = useCallback(
-    (map: L.Map) => {
-      if (!device) return;
+  // Create static markers for additional points
+  const createStaticMarkers = useCallback((map: google.maps.Map) => {
+    // Clean up existing static markers
+    staticMarkersRef.current.forEach((markerData) => {
+      markerData.marker.setMap(null);
+    });
+    staticMarkersRef.current = [];
 
-      const position: [number, number] = [
+    marcadores.forEach((punto, index) => {
+      const markerSvg = getMarkerSVG(index + 1);
+      const icon = {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(markerSvg),
+        scaledSize: new google.maps.Size(40, 50),
+        anchor: new google.maps.Point(20, 45),
+      };
+
+      const marker = new google.maps.Marker({
+        position: { lat: punto.lat, lng: punto.lng },
+        map,
+        icon,
+      });
+
+      marker.addListener('click', () => {
+        handleStaticMarkerStreetView(punto.lat, punto.lng, `static-marker-${index}`);
+      });
+
+      staticMarkersRef.current.push({ marker });
+    });
+  }, [marcadores, handleStaticMarkerStreetView]);
+
+  const createMarkerAndPopup = useCallback(
+    (map: google.maps.Map) => {
+      if (!device || !window.google?.maps) return;
+
+      const PopupClass = createPopupClass();
+      if (!PopupClass) return;
+
+      const position = new google.maps.LatLng(
         device.lastValidLatitude,
         device.lastValidLongitude,
-      ];
+      );
 
       if (markerDataRef.current) {
-        // Actualizar marcador existente
+        // Update existing marker - SIN mover el mapa
         const markerData = markerDataRef.current;
 
-        // Actualizar posición
-        markerData.marker.setLatLng(position);
+        // Solo actualizar posición del marcador, NO del mapa
+        markerData.marker.setPosition(position);
+        markerData.popup1.position = position;
+        markerData.popup2.position = position;
 
-        // Actualizar icono
+        // Update icon
         const newIcon = getMarkerIcon(device.lastValidHeading);
-        markerData.marker.setIcon(newIcon);
+        if (newIcon) {
+          markerData.marker.setIcon(newIcon);
+        }
 
-        // Actualizar contenido del popup2
-        const popupElement = markerData.popup2.getElement();
-        if (popupElement) {
-          popupElement.innerHTML = getPopupContent(device);
-
-          // Re-agregar event listeners
-          const closeButton = popupElement.querySelector(
-            `#close-btn-${device.deviceId}`,
-          );
-          if (closeButton) {
-            closeButton.addEventListener('click', (e) => {
-              e.stopPropagation();
-              markerData.marker.closePopup();
-              markerData.marker.bindPopup(markerData.popup1).openPopup();
-              // ✅ Cerrar Street View al cerrar popup
-              setIsStreetViewOpen(false);
-              setStreetViewData(null);
-            });
+        // Update popup2 content - preservar estilos con !important
+        const popup2Element = document.querySelector(`#content2-${device.deviceId}`) as HTMLElement;
+        if (popup2Element) {
+          const newContent = getPopupContent(device);
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = newContent;
+          const newPopupContent = tempDiv.firstElementChild as HTMLElement;
+          
+          if (newPopupContent) {
+            // Reemplazar completamente el contenido para mantener los estilos
+            popup2Element.parentNode?.replaceChild(newPopupContent, popup2Element);
+            
+            // Re-add event listeners
+            setTimeout(() => {
+              const closeButton = document.querySelector(`#close-btn-${device.deviceId}`);
+              if (closeButton) {
+                closeButton.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  markerData.popup2.setMap(null);
+                  markerData.popup1.setMap(map);
+                  setIsStreetViewOpen(false);
+                  setStreetViewData(null);
+                });
+              }
+            }, 10);
           }
         }
       } else {
-        // Crear nuevo marcador (mismo código que tenías)
-        const popup1Content = `
-        <div class="relative flex flex-col items-center mt-4">
-          <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
-            ${device.deviceId.toUpperCase()}
+        // Create new marker
+        const popup1Content = document.createElement('div');
+        popup1Content.innerHTML = `
+          <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 16px;
+            position: relative;
+          ">
+            <div id="content" style="
+              background-color: #fca311 !important;
+              color: #1f2937 !important;
+              padding: 6px 8px !important;
+              border: 1px solid #fca311 !important;
+              font-size: 12px !important;
+              font-weight: 700 !important;
+              font-family: system-ui, -apple-system, sans-serif !important;
+              border-radius: 4px !important;
+            ">
+              ${device.deviceId.toUpperCase()}
+            </div>
+            <div style="
+              width: 0 !important;
+              height: 0 !important;
+              border-left: 8px solid transparent !important;
+              border-right: 8px solid transparent !important;
+              border-top: 8px solid #fca311 !important;
+              margin-top: -1px !important;
+            "></div>
           </div>
-          <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
-        </div>
-      `;
+        `;
 
-        const popup1 = L.popup({
-          closeButton: false,
-          autoClose: false,
-          autoPan: false,
-          className: 'custom-popup-1 transparent-popup',
-        }).setContent(popup1Content);
+        const popup2Content = document.createElement('div');
+        popup2Content.innerHTML = getPopupContent(device);
 
-        const popup2 = L.popup({
-          closeButton: false,
-          autoClose: false,
-          className: 'custom-popup-2 transparent-popup',
-        }).setContent(getPopupContent(device));
+        const popup1 = new PopupClass(position, popup1Content);
+        const popup2 = new PopupClass(position, popup2Content);
+
+        popup1.setMap(map);
+        popup2.setMap(null);
 
         const icon = getMarkerIcon(device.lastValidHeading);
-        const marker = L.marker(position, { icon }).addTo(map);
-
-        // Abrir popup1 por defecto
-        marker.bindPopup(popup1).openPopup();
+        const marker = new google.maps.Marker({
+          position,
+          map,
+          icon: icon || undefined,
+        });
 
         let popup2IsOpen = false;
 
-        // Event listeners
-        marker.on('click', () => {
+        marker.addListener('click', () => {
           if (!popup2IsOpen) {
-            marker.bindPopup(popup2).openPopup();
+            popup1.setMap(null);
+            popup2.setMap(map);
             popup2IsOpen = true;
-            // ✅ Abrir Street View automáticamente al hacer clic en el marcador
+            
+            // Open Street View automatically
             setStreetViewData({
               lat: device.lastValidLatitude,
               lng: device.lastValidLongitude,
@@ -726,34 +650,31 @@ export default function SeguirUnidadPage({
             });
             setIsStreetViewOpen(true);
           } else {
-            marker.closePopup();
-            marker.bindPopup(popup1).openPopup();
+            popup2.setMap(null);
+            popup1.setMap(map);
             popup2IsOpen = false;
-            // ✅ Cerrar Street View al cerrar popup2
+            
+            // Close Street View
             setIsStreetViewOpen(false);
             setStreetViewData(null);
           }
         });
 
-        // Configurar event listeners para popup2
-        popup2.on('add', () => {
-          const closeButton = document.querySelector(
-            `#close-btn-${device.deviceId}`,
-          );
+        // Add close button event listener for popup2
+        setTimeout(() => {
+          const closeButton = document.querySelector(`#close-btn-${device.deviceId}`);
           if (closeButton) {
             closeButton.addEventListener('click', (e) => {
               e.stopPropagation();
-              marker.closePopup();
-              marker.bindPopup(popup1).openPopup();
+              popup2.setMap(null);
+              popup1.setMap(map);
               popup2IsOpen = false;
-              // ✅ Cerrar Street View al cerrar popup2
               setIsStreetViewOpen(false);
               setStreetViewData(null);
             });
           }
-        });
+        }, 100);
 
-        // Guardar referencia
         markerDataRef.current = {
           marker,
           popup1,
@@ -761,31 +682,82 @@ export default function SeguirUnidadPage({
         };
       }
     },
-    [device, getMarkerIcon, getPopupContent],
+    [device, getMarkerIcon, getPopupContent, createPopupClass],
   );
 
-  const onMapReady = useCallback(
-    (map: L.Map) => {
-      mapRef.current = map;
+  const handleMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      if (!window.google?.maps) {
+        return;
+      }
 
-      map.on('click', (e) => {
-        e.originalEvent.stopPropagation();
-      });
+      mapOnLoad(map);
 
+      // Solo manejar centro externo si se proporciona explícitamente
+      if (centro && centro.lat && centro.lng && !resetMap) {
+        map.setCenter({ lat: centro.lat, lng: centro.lng });
+        map.setZoom(16);
+      }
+
+      // Create markers only when Google Maps is ready
       if (device) {
         createMarkerAndPopup(map);
       }
+
+      // Create static markers
+      if (marcadores && marcadores.length > 0) {
+        createStaticMarkers(map);
+      }
     },
-    [createMarkerAndPopup, device],
+    [mapOnLoad, centro, resetMap, createMarkerAndPopup, createStaticMarkers, marcadores],
   );
 
+  const handleMapUnmount = useCallback(() => {
+    // Clean up markers
+    if (markerDataRef.current) {
+      markerDataRef.current.marker.setMap(null);
+      markerDataRef.current.popup1.setMap(null);
+      markerDataRef.current.popup2.setMap(null);
+      if (markerDataRef.current.intervalId) {
+        clearInterval(markerDataRef.current.intervalId);
+      }
+    }
+    markerDataRef.current = null;
+
+    // Clean up static markers
+    staticMarkersRef.current.forEach((markerData) => {
+      markerData.marker.setMap(null);
+    });
+    staticMarkersRef.current = [];
+
+    iconCache.current = {};
+    mapOnUnmount();
+  }, [mapOnUnmount]);
+
   useEffect(() => {
-    if (mapRef.current && device) {
+    if (device && mapLoaded && mapRef.current && !hasInitialCentered) {
+      const center = {
+        lat: device.lastValidLatitude,
+        lng: device.lastValidLongitude,
+      };
+      mapRef.current.setCenter(center);
+      mapRef.current.setZoom(15);
+      setHasInitialCentered(true);
+    }
+  }, [mapLoaded, hasInitialCentered]);
+
+  useEffect(() => {
+    if (mapRef.current && device && mapLoaded) {
       createMarkerAndPopup(mapRef.current);
     }
-  }, [device, createMarkerAndPopup]);
+  }, [device, createMarkerAndPopup, mapLoaded]);
 
-  // ✅ Determinar qué datos usar para Street View
+  useEffect(() => {
+    if (mapRef.current && mapLoaded && marcadores.length > 0) {
+      createStaticMarkers(mapRef.current);
+    }
+  }, [marcadores, createStaticMarkers, mapLoaded]);
+
   const currentStreetViewData =
     streetViewData ||
     (device && isStreetViewOpen
@@ -797,10 +769,9 @@ export default function SeguirUnidadPage({
         }
       : null);
 
-  const handleLayerChange = useCallback((layerKey: keyof typeof mapLayers) => {
-    setCurrentLayer(layerKey);
-    setShowLayerSelector(false);
-  }, []);
+  if (!isLoaded) {
+    return;
+  }
 
   return (
     <div
@@ -809,11 +780,11 @@ export default function SeguirUnidadPage({
       style={{
         height: isFullscreen ? '100vh' : height,
         backgroundColor: isFullscreen ? '#000' : 'transparent',
+        minHeight: height,
       }}
     >
-      {/* Botones de control */}
+      {/* Botón fullscreen */}
       <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-2">
-        {/* Botón fullscreen */}
         <button
           onClick={toggleFullscreen}
           className="rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
@@ -851,40 +822,14 @@ export default function SeguirUnidadPage({
         </button>
       </div>
 
-      <MapContainer
-        center={
-          device
-            ? [device.lastValidLatitude + 0.009, device.lastValidLongitude]
-            : initialCenter
-        }
-        zoom={14}
-        scrollWheelZoom={true}
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={false}
-        maxZoom={19}
-        minZoom={1}
-        closePopupOnClick={false}
-      >
-        <LayerController currentLayer={currentLayer} />
+      <GoogleMapComponent
+        onLoad={handleMapLoad}
+        onUnmount={handleMapUnmount}
+        center={initialCenter}
+        zoom={6}
+      />
 
-        <MapController
-          onMapReady={onMapReady}
-          device={device}
-          hasInitialCentered={hasInitialCentered}
-          setHasInitialCentered={setHasInitialCentered}
-        />
-
-        <MapCenterController centro={centro} resetMap={resetMap} />
-
-        {marcadores && marcadores.length > 0 && (
-          <AdditionalMarkers
-            marcadores={marcadores}
-            onStreetViewOpen={handleStaticMarkerStreetView}
-          />
-        )}
-      </MapContainer>
-
-      {/* ✅ Panel de Street View mejorado que funciona para ambos tipos de marcadores */}
+      {/* Street View Panel */}
       {currentStreetViewData && isStreetViewOpen && (
         <div
           style={{
@@ -902,7 +847,7 @@ export default function SeguirUnidadPage({
             overflow: 'hidden',
           }}
         >
-          {/* Header del panel */}
+          {/* Header */}
           <div
             style={{
               padding: '0px 12px',
@@ -944,11 +889,11 @@ export default function SeguirUnidadPage({
             </button>
           </div>
 
-          {/* Contenido del Street View */}
+          {/* Street View Content */}
           <div
             style={{
               position: 'relative',
-              height: 'calc(100% - 25px)', // Ajustado para el header
+              height: 'calc(100% - 25px)',
             }}
           >
             {GOOGLE_MAPS_API_KEY ? (
@@ -983,156 +928,37 @@ export default function SeguirUnidadPage({
         </div>
       )}
 
-      {/* Controles de zoom y selector de capas en la esquina inferior derecha */}
-      <div className="absolute bottom-4 right-4 z-[1001] flex flex-col gap-2">
-        {/* Selector de capas */}
-        <div className="relative">
-          <button
-            onClick={() => setShowLayerSelector(!showLayerSelector)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white shadow-lg transition-colors hover:bg-gray-50"
-            title="Cambiar vista del mapa"
-          >
-            <span className="text-lg">{mapLayers[currentLayer].icon}</span>
-          </button>
-
-          {showLayerSelector && (
-            <div className="absolute bottom-12 right-0 z-[1002] w-48 rounded-lg border border-gray-200 bg-white shadow-xl">
-              <div className="p-2">
-                <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Vista del Mapa
-                </div>
-                {Object.entries(mapLayers).map(([key, layer]) => (
-                  <button
-                    key={key}
-                    onClick={() =>
-                      handleLayerChange(key as keyof typeof mapLayers)
-                    }
-                    className={`flex w-full items-center rounded-md px-3 py-2 text-sm transition-colors ${
-                      currentLayer === key
-                        ? 'bg-blue-50 font-medium text-blue-700'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="mr-3 text-base">{layer.icon}</span>
-                    {layer.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Controles de zoom */}
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => mapRef.current?.zoomIn()}
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
-          >
-            +
-          </button>
-          <button
-            onClick={() => mapRef.current?.zoomOut()}
-            className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 bg-white text-lg font-bold shadow-lg hover:bg-gray-50"
-          >
-            -
-          </button>
-        </div>
-      </div>
-
-      {/* CSS Styles */}
+      {/* Custom CSS Styles - Simplificado */}
       <style jsx global>{`
-        .transparent-popup .leaflet-popup-content-wrapper {
+        .popup-bubble {
           background: transparent !important;
           box-shadow: none !important;
           border: none !important;
         }
 
-        .transparent-popup .leaflet-popup-tip {
-          background: transparent !important;
-          box-shadow: none !important;
-          border: none !important;
+        .popup-container {
+          position: absolute;
+          z-index: 1000;
         }
 
-        .transparent-popup .leaflet-popup-content {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-
-        .transparent-popup .leaflet-popup-close-button {
-          display: none !important;
-        }
-
-        .custom-popup-2 * {
-          text-align: left !important;
-        }
-
-        .custom-popup1-font {
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .popup-title {
-          padding: 8px 12px;
-          font-size: 12px;
-          font-weight: 700;
+        /* Forzar altura específica cuando se pasa una altura pequeña */
+        #map-container[style*="30vh"] {
+          height: 30vh !important;
+          max-height: 30vh !important;
+          min-height: 30vh !important;
         }
 
         #map-container:fullscreen {
           background: #000;
         }
 
-        #map-container:fullscreen .leaflet-container {
+        #map-container:fullscreen .gm-style {
           background: #fff;
-        }
-
-        /* Indicadores de estado en tiempo real */
-        .status-indicator {
-          display: inline-block;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          margin-right: 6px;
-        }
-
-        .status-moving {
-          background-color: #10b981;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-          animation: pulse-green 2s infinite;
-        }
-
-        .status-stopped {
-          background-color: #f59e0b;
-          box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
-          animation: pulse-orange 2s infinite;
-        }
-
-        @keyframes pulse-green {
-          0% {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-          }
-        }
-
-        @keyframes pulse-orange {
-          0% {
-            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
-          }
-          70% {
-            box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
-          }
         }
 
         /* Responsividad para pantallas pequeñas */
         @media (max-width: 768px) {
-          .street-view-panel {
+          div[style*='position: absolute'][style*='bottom: 2%'] {
             width: 90% !important;
             height: 50% !important;
             left: 5% !important;
@@ -1141,25 +967,9 @@ export default function SeguirUnidadPage({
         }
 
         /* Mejoras visuales para el panel Street View */
-        .street-view-panel {
+        div[style*='position: absolute'][style*='bottom: 2%'] {
           backdrop-filter: blur(10px);
-          background: rgba(255, 255, 255, 0.95);
-        }
-
-        .street-view-header {
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        .street-view-footer {
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        /* Hacer más pequeños los controles del Street View */
-        div[style*='position: absolute'][style*='bottom: 2%'] iframe {
-          transform: scale(0.85);
-          transform-origin: top left;
-          width: 117.6%;
-          height: 117.6%;
+          background: rgba(255, 255, 255, 0.95) !important;
         }
       `}</style>
     </div>

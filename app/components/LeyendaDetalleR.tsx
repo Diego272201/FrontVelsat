@@ -49,7 +49,7 @@ export default function Leyenda({ unidad, fechaIni, fechaFin }: Leyenda) {
           id="label-muestra"
           title="Despliega Menu"
         >
-          <div className="nombreP bg-[#495057]">
+          <div className="nombreP bg-[#1d4ed8]">
             <GrFormNext size={25} />
           </div>
         </label>
