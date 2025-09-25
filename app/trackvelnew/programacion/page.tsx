@@ -175,30 +175,33 @@ const ServicesSearchSystem: React.FC = () => {
 const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
 
   // Función para transformar datos de la API
-  const transformApiData = (apiData: ApiService[]): Service[] => {
-    return apiData.map((item) => ({
-      id: item.codservicio,
-      numero: item.numeromovil,
-      tierra:
-        item.grupo === 'T'
-          ? 'Tierra'
-          : item.grupo === 'A'
-            ? 'Aire'
-            : item.grupo,
-      tipo:
-        item.tipo === 'S'
-          ? 'Salida'
-          : item.tipo === 'I'
-            ? 'Entrada'
-            : item.tipo,
-      fechaAeropuerto: item.fecha,
-      conductor: `${item.conductor.nombre} ${item.conductor.apepate}`.trim(),
-      unidad: item.unidad?.codunidad || '',
-      aerolinea: item.empresa,
-      estado: item.estado,
-      numpax: item.numpax,
-    }));
-  };
+const transformApiData = (apiData: ApiService[]): Service[] => {
+  return apiData.map((item) => ({
+    id: item.codservicio,
+    numero: item.numeromovil,
+    tierra:
+      item.grupo === 'T'
+        ? 'Tierra'
+        : item.grupo === 'A'
+          ? 'Aire'
+          : item.grupo,
+    tipo:
+      item.tipo === 'S'
+        ? 'Salida'
+        : item.tipo === 'I'
+          ? 'Entrada'
+          : item.tipo,
+    fechaAeropuerto: item.fecha,
+    // AQUÍ ESTÁ LA CORRECCIÓN - Validamos si conductor existe antes de acceder a sus propiedades
+    conductor: item.conductor && item.conductor.nombre && item.conductor.apepate
+      ? `${item.conductor.nombre} ${item.conductor.apepate}`.trim()
+      : 'Sin asignar', // Valor por defecto si no hay conductor
+    unidad: item.unidad?.codunidad || 'Sin asignar', // Ya tienes esta validación correcta
+    aerolinea: item.empresa,
+    estado: item.estado,
+    numpax: item.numpax,
+  }));
+};
 
   // Función para buscar pasajeros
   const searchPasajeros = async (palabra: string) => {
