@@ -17,12 +17,13 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
-import { HiCalendarDateRange } from 'react-icons/hi2';
+import { HiCalendarDateRange, HiClock } from 'react-icons/hi2';
 import { RiCheckboxMultipleFill } from 'react-icons/ri';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
 import { useUsername } from '@/hooks/useUsername';
+import { HiDocumentReport } from 'react-icons/hi';
 
 const empresas = [
   'ABNER MATOS',
@@ -111,6 +112,100 @@ export default function Page() {
   const [refreshFlag, setRefreshFlag] = useState(false);
   const [refreshFlagServicio, setRefreshFlagServicio] = useState(false);
   const [refreshSearch, setRefreshSearch] = useState(0);
+  const [fechaInicial, setFechaInicial] = useState('');
+  const [fechaFinal, setFechaFinal] = useState('');
+  const [tipoReporte, setTipoReporte] = useState('');
+
+  const formatearFechaParaAPI = (fechaDatetimeLocal: string) => {
+    if (!fechaDatetimeLocal) return '';
+
+    const [fecha, hora] = fechaDatetimeLocal.split('T');
+    return `${fecha} ${hora}`;
+  };
+
+  const handleGenerarReporte = async () => {
+    // Mostrar toast de loading
+    const toastId = toast.loading('Generando reporte de diferencias...');
+
+    try {
+      // Validar que los campos requeridos estén completos
+      if (!fechaInicial || !fechaFinal || !tipoReporte) {
+        toast.dismiss(toastId);
+        toast.error('Por favor complete todos los campos obligatorios');
+        return;
+      }
+
+      const fechaInicialAPI = formatearFechaParaAPI(fechaInicial);
+      const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
+
+      // Construir la URL con los parámetros
+      const baseUrl = 'https://velsat.pe:2096/api/Preplan/ExcelDiferencias';
+      const params = new URLSearchParams({
+        fecini: fechaInicialAPI,
+        fecfin: fechaFinalAPI,
+        aerolinea: empresaSelecRes || 'AMERICAN TIERRA', // Usar la empresa seleccionada o default
+        usuario: username || '', // Usar el usuario actual o default
+        tipo: tipoReporte === 'RECOJO' ? 'I' : 'S', // Mapear RECOJO=I, REPARTO=S
+      });
+
+      const url = `${baseUrl}?${params.toString()}`;
+
+      console.log('Llamando a API:', url);
+
+      // Realizar la petición
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Error en la API: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      // Obtener el blob del archivo Excel
+      const blob = await response.blob();
+
+      // Crear un enlace temporal para descargar el archivo
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      // Generar nombre del archivo
+      const fechaHoy = new Date().toISOString().split('T')[0];
+      const tipoArchivo = tipoReporte === 'RECOJO' ? 'Recojo' : 'Reparto';
+      link.download = `Diferencias_${tipoArchivo}_${fechaHoy}.xlsx`;
+
+      // Ejecutar la descarga
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      console.log('Archivo descargado exitosamente');
+
+      // Dismissar el toast de loading y mostrar éxito
+      toast.dismiss(toastId);
+      toast.success('Reporte generado y descargado exitosamente');
+
+      // Limpiar los campos después de la descarga exitosa
+      setFechaInicial('');
+      setFechaFinal('');
+      setTipoReporte('');
+    } catch (error) {
+      console.error('Error al generar el reporte:', error);
+
+      // Dismissar el toast de loading y mostrar error
+      toast.dismiss(toastId);
+      toast.error('Error al generar el reporte. Por favor intente nuevamente.');
+    }
+  };
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -420,6 +515,70 @@ export default function Page() {
                     >
                       <FaClipboard size={20} />
                       Resumen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Nueva sección: Reporte Diferencias de Tiempo */}
+            <div className="fristFileT">
+              <div className="cargaArchivos">
+                <div className="relative flex items-center pb-1">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiClock className="h-5 w-5 text-gray-600" />
+                    Reporte Diferencias de Tiempo
+                  </span>
+                </div>
+
+                <div className="cabeceraArchivos">
+                  <div>
+                    <label className="mb-1 block text-[11px] text-gray-600">
+                      Fecha Inicial
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full border border-gray-300 bg-gray-200 px-1 py-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      value={fechaInicial || ''}
+                      onChange={(e) => setFechaInicial(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[11px] text-gray-600">
+                      Fecha Final
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full border border-gray-300 bg-gray-200 px-1 py-1.5 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      value={fechaFinal || ''}
+                      onChange={(e) => setFechaFinal(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="w-[150px]">
+                    <label className="mb-1 block text-[11px] text-gray-600">
+                      Tipo
+                    </label>
+                    <select
+                      id="tipoReporte"
+                      className="w-full border border-gray-300 bg-gray-200 p-[8px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      value={tipoReporte}
+                      onChange={(e) => setTipoReporte(e.target.value)}
+                    >
+                      <option value="">Seleccione Tipo</option>
+                      <option value="RECOJO">Recojo</option>
+                      <option value="REPARTO">Reparto</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <button
+                      className="container-btn-file mt-5 flex items-center text-[12px]"
+                      onClick={handleGenerarReporte}
+                    >
+                      <HiDocumentReport size={20} />
+                      Generar
                     </button>
                   </div>
                 </div>
