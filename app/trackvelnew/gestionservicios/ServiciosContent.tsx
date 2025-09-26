@@ -123,89 +123,110 @@ export default function Page() {
     return `${fecha} ${hora}`;
   };
 
-  const handleGenerarReporte = async () => {
-    // Mostrar toast de loading
-    const toastId = toast.loading('Generando reporte de diferencias...');
+ const handleGenerarReporte = async () => {
+  // Validaciones específicas con mensajes personalizados
+  if (!fechaInicial) {
+    toast.error('Por favor seleccione la fecha inicial');
+    return;
+  }
 
-    try {
-      // Validar que los campos requeridos estén completos
-      if (!fechaInicial || !fechaFinal || !tipoReporte) {
-        toast.dismiss(toastId);
-        toast.error('Por favor complete todos los campos obligatorios');
-        return;
-      }
+  if (!fechaFinal) {
+    toast.error('Por favor seleccione la fecha final');
+    return;
+  }
 
-      const fechaInicialAPI = formatearFechaParaAPI(fechaInicial);
-      const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
+  if (!tipoReporte) {
+    toast.error('Por favor seleccione el tipo de reporte (Recojo o Reparto)');
+    return;
+  }
 
-      // Construir la URL con los parámetros
-      const baseUrl = 'https://velsat.pe:2096/api/Preplan/ExcelDiferencias';
-      const params = new URLSearchParams({
-        fecini: fechaInicialAPI,
-        fecfin: fechaFinalAPI,
-        aerolinea: empresaSelecRes || 'AMERICAN TIERRA', // Usar la empresa seleccionada o default
-        usuario: username || '', // Usar el usuario actual o default
-        tipo: tipoReporte === 'RECOJO' ? 'I' : 'S', // Mapear RECOJO=I, REPARTO=S
-      });
+  if (!empresaSelecRes) {
+    toast.error('Por favor seleccione un cliente/empresa');
+    return;
+  }
 
-      const url = `${baseUrl}?${params.toString()}`;
+  // Validar que fecha inicial no sea mayor que fecha final
+  if (new Date(fechaInicial) > new Date(fechaFinal)) {
+    toast.error('La fecha inicial no puede ser mayor que la fecha final');
+    return;
+  }
 
-      console.log('Llamando a API:', url);
+  // Mostrar toast de loading
+  const toastId = toast.loading('Generando reporte de diferencias...');
 
-      // Realizar la petición
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Accept:
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        },
-      });
+  try {
+    const fechaInicialAPI = formatearFechaParaAPI(fechaInicial);
+    const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
 
-      if (!response.ok) {
-        throw new Error(
-          `Error en la API: ${response.status} ${response.statusText}`,
-        );
-      }
+    // Construir la URL con los parámetros
+    const baseUrl = 'https://velsat.pe:2096/api/Preplan/ExcelDiferencias';
+    const params = new URLSearchParams({
+      fecini: fechaInicialAPI,
+      fecfin: fechaFinalAPI,
+      aerolinea: empresaSelecRes,
+      usuario: username || '',
+      tipo: tipoReporte === 'RECOJO' ? 'I' : 'S',
+    });
 
-      // Obtener el blob del archivo Excel
-      const blob = await response.blob();
+    const url = `${baseUrl}?${params.toString()}`;
 
-      // Crear un enlace temporal para descargar el archivo
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
+    console.log('Llamando a API:', url);
 
-      // Generar nombre del archivo
-      const fechaHoy = new Date().toISOString().split('T')[0];
-      const tipoArchivo = tipoReporte === 'RECOJO' ? 'Recojo' : 'Reparto';
-      link.download = `Diferencias_${tipoArchivo}_${fechaHoy}.xlsx`;
+    // Realizar la petición
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept:
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    });
 
-      // Ejecutar la descarga
-      document.body.appendChild(link);
-      link.click();
-
-      // Limpiar
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-
-      console.log('Archivo descargado exitosamente');
-
-      // Dismissar el toast de loading y mostrar éxito
-      toast.dismiss(toastId);
-      toast.success('Reporte generado y descargado exitosamente');
-
-      // Limpiar los campos después de la descarga exitosa
-      setFechaInicial('');
-      setFechaFinal('');
-      setTipoReporte('');
-    } catch (error) {
-      console.error('Error al generar el reporte:', error);
-
-      // Dismissar el toast de loading y mostrar error
-      toast.dismiss(toastId);
-      toast.error('Error al generar el reporte. Por favor intente nuevamente.');
+    if (!response.ok) {
+      throw new Error(
+        `Error en la API: ${response.status} ${response.statusText}`,
+      );
     }
-  };
+
+    // Obtener el blob del archivo Excel
+    const blob = await response.blob();
+
+    // Crear un enlace temporal para descargar el archivo
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+
+    // Generar nombre del archivo
+    const fechaHoy = new Date().toISOString().split('T')[0];
+    const tipoArchivo = tipoReporte === 'RECOJO' ? 'Recojo' : 'Reparto';
+    link.download = `Diferencias_${tipoArchivo}_${fechaHoy}.xlsx`;
+
+    // Ejecutar la descarga
+    document.body.appendChild(link);
+    link.click();
+
+    // Limpiar
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    console.log('Archivo descargado exitosamente');
+
+    // Dismissar el toast de loading y mostrar éxito
+    toast.dismiss(toastId);
+    toast.success('Reporte generado y descargado exitosamente');
+
+    // Limpiar los campos después de la descarga exitosa
+    setFechaInicial('');
+    setFechaFinal('');
+    setTipoReporte('');
+    setEmpresaSelecRes('');
+  } catch (error) {
+    console.error('Error al generar el reporte:', error);
+
+    // Dismissar el toast de loading y mostrar error
+    toast.dismiss(toastId);
+    toast.error('Error al generar el reporte. Por favor intente nuevamente.');
+  }
+};
 
   useEffect(() => {
     const fetchPasajeros = async () => {
