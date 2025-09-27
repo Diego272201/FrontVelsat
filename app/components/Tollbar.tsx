@@ -848,7 +848,7 @@ const Tollbar: React.FC = () => {
             title="Logo"
             className="flex items-center gap-3 transition-all duration-200"
           >
-            <div className="ml-[-1px] mt-[-5px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px] max-[1180px]:p-[0px]">
+            <div className="ml-[-1px] mt-[-1px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px] max-[1180px]:p-[0px]">
               {' '}
               <div className="logo-animation">
                 <Image
@@ -860,7 +860,7 @@ const Tollbar: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-[-3px]">
+            <div className="mt-[-1px]">
               <h3 className="text-center text-[12px] font-semibold text-white md:text-[12.5px]">
                 TRACKVEL SYSTEM :
                 <span className="pl-1  text-[12px] text-white/80 md:text-[11.5px]">

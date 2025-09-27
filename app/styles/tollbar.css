@@ -58,7 +58,7 @@
 
 @media (max-width: 1612px) {
   .tollbar-bg {
-    clip-path: polygon(0 0, 100% 0, 100% 70%, 60% 70%, 58% 28%, 25% 28%, 23% 75%, 0 75%);
+    clip-path: polygon(0 0, 100% 0, 100% 70%, 57% 70%, 54% 28%, 25% 28%, 23% 75%, 0 75%);
   }
 }
 
@@ -147,6 +147,7 @@
 }
 
 .menu__bar {
+  background: #113eb9;
   position: fixed;
   width: 100%;
   display: flex;
@@ -155,7 +156,7 @@
   flex-direction: row;
   padding-right: 24px;
   gap: 32px;
-  height: 40px;
+  height: 35px;
   font-weight: 500;
 }
 
