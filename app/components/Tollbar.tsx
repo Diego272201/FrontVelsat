@@ -827,9 +827,9 @@ const Tollbar: React.FC = () => {
       />
 
       {/* Main Menu Bar */}
-      <div className="menu__bar">
+      <div className="menu__bar bg-[#113eb9] md:bg-transparent">
         {/* Mobile Menu Button */}
-        <div className="mobile-only-button">
+        <div className="mobile-only-button ">
           <button
             onClick={() => toggleMenu('sidebar')}
             className="mt-[-5px] h-[36px] bg-[#FB7B0F] bg-opacity-90 px-2 py-1"
