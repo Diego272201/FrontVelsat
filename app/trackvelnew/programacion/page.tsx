@@ -175,32 +175,64 @@ const ServicesSearchSystem: React.FC = () => {
 const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
 
   // Función para transformar datos de la API
+// Función para transformar datos de la API
 const transformApiData = (apiData: ApiService[]): Service[] => {
-  return apiData.map((item) => ({
-    id: item.codservicio,
-    numero: item.numeromovil,
-    tierra:
-      item.grupo === 'T'
-        ? 'Tierra'
-        : item.grupo === 'A'
-          ? 'Aire'
-          : item.grupo,
-    tipo:
-      item.tipo === 'S'
-        ? 'Salida'
-        : item.tipo === 'I'
-          ? 'Entrada'
-          : item.tipo,
-    fechaAeropuerto: item.fecha,
-    // AQUÍ ESTÁ LA CORRECCIÓN - Validamos si conductor existe antes de acceder a sus propiedades
-    conductor: item.conductor && item.conductor.nombre && item.conductor.apepate
-      ? `${item.conductor.nombre} ${item.conductor.apepate}`.trim()
-      : 'Sin asignar', // Valor por defecto si no hay conductor
-    unidad: item.unidad?.codunidad || 'Sin asignar', // Ya tienes esta validación correcta
-    aerolinea: item.empresa,
-    estado: item.estado,
-    numpax: item.numpax,
-  }));
+  return apiData.map((item) => {
+    return {
+      id: item.codservicio,
+      numero: item.numeromovil,
+      tierra:
+        item.grupo === 'T'
+          ? 'Tierra'
+          : item.grupo === 'A'
+            ? 'Aire'
+            : item.grupo,
+      tipo:
+        item.tipo === 'S'
+          ? 'Salida'
+          : item.tipo === 'I'
+            ? 'Entrada'
+            : item.tipo,
+      fechaAeropuerto: item.fecha,
+      // CONDUCTOR: Validación corregida para manejar nombres en campo apepate
+      conductor: (() => {
+        if (!item.conductor) return 'Sin asignar';
+        
+        const nombre = item.conductor.nombre || '';
+        const apepate = item.conductor.apepate || '';
+        
+        // Limpiar espacios extras
+        const nombreLimpio = nombre.trim();
+        const apepateLimpio = apepate.trim();
+        
+        // Si ambos tienen contenido
+        if (nombreLimpio && apepateLimpio) {
+          return `${nombreLimpio} ${apepateLimpio}`;
+        }
+        
+        // Si solo apepate tiene contenido (caso común en tu sistema)
+        if (apepateLimpio) {
+          return apepateLimpio;
+        }
+        
+        // Si solo nombre tiene contenido
+        if (nombreLimpio) {
+          return nombreLimpio;
+        }
+        
+        // Si tiene código pero no nombre ni apellido
+        if (item.conductor.codigo) {
+          return `Conductor ${item.conductor.codigo}`;
+        }
+        
+        return 'Sin asignar';
+      })(),
+      unidad: item.unidad?.codunidad || 'Sin asignar',
+      aerolinea: item.empresa,
+      estado: item.estado,
+      numpax: item.numpax,
+    };
+  });
 };
 
   // Función para buscar pasajeros
