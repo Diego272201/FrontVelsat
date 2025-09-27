@@ -59,33 +59,6 @@ interface Grupo {
   coordenadas: { wx: string; wy: string }[]
 }
 
-// Función para dividir un grupo en subgrupos de máximo 6 pasajeros
-const dividirGrupoEnSubgrupos = (grupo: Grupo, gn: number): Grupo[] => {
-  const MAX_PASAJEROS = 6;
-  const subgrupos: Grupo[] = [];
-  
-  if (grupo.personas.length <= MAX_PASAJEROS) {
-    return [grupo];
-  }
-  
-  // Dividir las personas en chunks de máximo 6
-  for (let i = 0; i < grupo.personas.length; i += MAX_PASAJEROS) {
-    const personasSubgrupo = grupo.personas.slice(i, i + MAX_PASAJEROS);
-    const coordenadasSubgrupo = grupo.coordenadas.slice(i, i + MAX_PASAJEROS);
-    
-    const subgrupo: Grupo = {
-      ...grupo,
-      id: gn + Math.floor(i / MAX_PASAJEROS),
-      personas: personasSubgrupo,
-      coordenadas: coordenadasSubgrupo,
-    };
-    
-    subgrupos.push(subgrupo);
-  }
-  
-  return subgrupos;
-};
-
 export const obtenerDatosYAgrupar = async (empresa: string, dato: string, username: string,): Promise<Grupo[]> => {
   try {
     const url = `${API_BASE_URL125}/api/preplan/get?dato=${encodeURIComponent(
@@ -162,18 +135,7 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
           personas: grupo.personas.sort((a, b) => a.orden - b.orden),
         }))
 
-        // Solo para cgacela: dividir grupos que excedan 6 pasajeros
-        if (username === "cgacela") {
-          let currentGn = gn;
-          gruposConOrden.forEach((grupo) => {
-            const subgrupos = dividirGrupoEnSubgrupos(grupo, currentGn);
-            grupos.push(...subgrupos);
-            currentGn += subgrupos.length;
-          });
-          gn = currentGn;
-        } else {
-          grupos.push(...gruposConOrden);
-        }
+        grupos.push(...gruposConOrden)
       }
 
       // PASO 2: Procesar datos sin orden usando lógica del Dato 2
@@ -239,15 +201,8 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
             }
           }
 
-          // Solo para cgacela: dividir grupos que excedan 6 pasajeros
-          if (username === "cgacela") {
-            const subgrupos = dividirGrupoEnSubgrupos(grupo, gn);
-            grupos.push(...subgrupos);
-            gn += subgrupos.length;
-          } else {
-            grupos.push(grupo);
-            gn++;
-          }
+          grupos.push(grupo)
+          gn++
         }
       }
     } else {
@@ -304,16 +259,8 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
             it++
           }
         }
-        
-        // Solo para cgacela: dividir grupos que excedan 6 pasajeros
-        if (username === "cgacela") {
-          const subgrupos = dividirGrupoEnSubgrupos(grupo, gn);
-          grupos.push(...subgrupos);
-          gn += subgrupos.length;
-        } else {
-          grupos.push(grupo);
-          gn++;
-        }
+        grupos.push(grupo)
+        gn++
       }
     }
 
