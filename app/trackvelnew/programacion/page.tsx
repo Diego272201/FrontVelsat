@@ -217,6 +217,7 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
         
         // Si solo nombre tiene contenido
         if (nombreLimpio) {
+          
           return nombreLimpio;
         }
         
