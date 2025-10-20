@@ -190,6 +190,7 @@ const MapContent = () => {
           ))}
 
           <Polyline
+          
             path={polylineCoordinates}
             options={{
               strokeColor: '#003049',
