@@ -1484,7 +1484,7 @@ export default function App({
                                     </li>
                                   )}
 
-                                  {['AS', 'NI'].includes(
+                                  {['PR', 'AS', 'NI'].includes(
                                     selectedRow.estado,
                                   ) && (
                                     <li
