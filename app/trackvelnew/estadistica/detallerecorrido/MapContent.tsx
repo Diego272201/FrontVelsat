@@ -56,45 +56,30 @@ const MapContent = () => {
   });
 
 const fetchData = useCallback(async () => {
-  try {
-    const response = await axios.get(detailRecorrido);
-    
-    // ✅ Cambio aquí: response.data en lugar de response.data.result
-    const data = response.data;
-    
-    // Validación mejorada
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      toast.error('No hay registros para estas fechas', {
-        className: 'toast-slide-in',
-        richColors: true,
-        duration: Infinity,
-      });
-      setMarkersData([]);
-      setIsMarkersLoaded(true);
-      return;
+    try {
+      const response = await axios.get(detailRecorrido);
+      if (response.data.result.length === 0) {
+        toast.error('No hay registros para estas fechas', {
+          className: 'toast-slide-in',
+          richColors: true,
+          duration: Infinity,
+        });
+      } else {
+        setMarkersData(response.data.result);
+        setIsMarkersLoaded(true);
+        setMapCenter({
+          lat: response.data.result[0].latitude,
+          lng: response.data.result[0].longitude,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
-    
-    setMarkersData(data);
-    setIsMarkersLoaded(true);
-    setMapCenter({
-      lat: data[0].latitude,
-      lng: data[0].longitude,
-    });
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    toast.error('Error al cargar los datos del recorrido', {
-      className: 'toast-slide-in',
-      richColors: true,
-      duration: 5000,
-    });
-    setMarkersData([]);
-    setIsMarkersLoaded(true);
-  }
-}, [detailRecorrido]);
+  }, [detailRecorrido]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+useEffect(() => {
+  fetchData();
+}, [fetchData]);
 
   const onLoad = useCallback(function callback(map: any) {
     setMap(map);
