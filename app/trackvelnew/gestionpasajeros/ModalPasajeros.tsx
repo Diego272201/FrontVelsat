@@ -214,178 +214,136 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   }, []);
 
-  // Función de fallback a Nominatim
-  const fallbackToNominatim = async (query: string) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
-      );
-      setSearchResults(response.data);
-      setShowSearchResults(true);
-    } catch (error) {
-      console.error('Error with fallback search:', error);
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
-  };
+// Función de búsqueda con Google Places únicamente
+const searchAddress = async (query: string) => {
+  if (query.length < 3) {
+    setSearchResults([]);
+    setShowSearchResults(false);
+    return;
+  }
 
-  // Función principal de búsqueda con Google Places
-  const searchAddress = async (query: string) => {
-    if (query.length < 3) {
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
+  if (!isLoaded || !autocompleteService || !placesService) {
+    console.error('Google Places no está disponible');
+    setSearchResults([]);
+    setShowSearchResults(false);
+    return;
+  }
 
-    // Usar Google Places Autocomplete si está disponible
-    if (isLoaded && autocompleteService && placesService) {
-      try {
-        const request: google.maps.places.AutocompletionRequest = {
-          input: query,
-          componentRestrictions: { country: 'pe' },
-          types: ['address'],
-        };
+  try {
+    const request: google.maps.places.AutocompletionRequest = {
+      input: query,
+      componentRestrictions: { country: 'pe' },
+      types: ['address'],
+    };
 
-        autocompleteService.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            if (
-              status === google.maps.places.PlacesServiceStatus.OK &&
-              predictions
-            ) {
-              // Obtener detalles de cada predicción
-              const processedResults: SearchResult[] = [];
-              let processedCount = 0;
-              const totalPredictions = Math.min(5, predictions.length);
+    autocompleteService.getPlacePredictions(
+      request,
+      (predictions, status) => {
+        if (
+          status === google.maps.places.PlacesServiceStatus.OK &&
+          predictions
+        ) {
+          const processedResults: SearchResult[] = [];
+          let processedCount = 0;
+          const totalPredictions = Math.min(5, predictions.length);
 
-              if (totalPredictions === 0) {
-                fallbackToNominatim(query);
-                return;
-              }
-
-              predictions.slice(0, 5).forEach((prediction) => {
-                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                  placeId: prediction.place_id,
-                  fields: [
-                    'geometry',
-                    'formatted_address',
-                    'address_components',
-                  ],
-                };
-
-                placesService.getDetails(
-                  detailsRequest,
-                  (place, detailsStatus) => {
-                    if (
-                      detailsStatus ===
-                        google.maps.places.PlacesServiceStatus.OK &&
-                      place &&
-                      place.geometry
-                    ) {
-                      processedResults.push({
-                        lat: place.geometry.location!.lat().toString(),
-                        lon: place.geometry.location!.lng().toString(),
-                        display_name:
-                          place.formatted_address || prediction.description,
-                        place_id: prediction.place_id,
-                      });
-                    }
-
-                    processedCount++;
-                    if (processedCount === totalPredictions) {
-                      if (processedResults.length > 0) {
-                        setSearchResults(processedResults);
-                        setShowSearchResults(true);
-                      } else {
-                        fallbackToNominatim(query);
-                      }
-                    }
-                  },
-                );
-              });
-            } else {
-              // Fallback a Nominatim si Google Places falla
-              fallbackToNominatim(query);
-            }
-          },
-        );
-      } catch (error) {
-        console.error('Error with Google Places:', error);
-        fallbackToNominatim(query);
-      }
-    } else {
-      // Fallback a Nominatim si Google Places no está disponible
-      fallbackToNominatim(query);
-    }
-  };
-
-  // Función de fallback para geocodificación inversa
-  const fallbackReverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      );
-
-      if (response.data && response.data.display_name) {
-        const address = response.data.display_name;
-        const district =
-          response.data.address?.suburb ||
-          response.data.address?.city_district ||
-          response.data.address?.county ||
-          response.data.address?.city ||
-          '';
-
-        return { address, district };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error in reverse geocoding fallback:', error);
-      return null;
-    }
-  };
-
-  // Función de geocodificación inversa con Google
-  const reverseGeocodeGoogle = async (
-    lat: number,
-    lng: number,
-  ): Promise<{ address: string; district: string } | null> => {
-    return new Promise((resolve) => {
-      if (isLoaded && window.google && window.google.maps) {
-        const geocoder = new google.maps.Geocoder();
-        const latlng = new google.maps.LatLng(lat, lng);
-
-        geocoder.geocode({ location: latlng }, (results, status) => {
-          if (
-            status === google.maps.GeocoderStatus.OK &&
-            results &&
-            results[0]
-          ) {
-            const result = results[0];
-            const address = result.formatted_address;
-
-            // Extraer distrito
-            const districtComponent = result.address_components.find(
-              (component) =>
-                component.types.includes('sublocality') ||
-                component.types.includes('locality') ||
-                component.types.includes('administrative_area_level_2'),
-            );
-
-            const district = districtComponent
-              ? districtComponent.long_name
-              : '';
-            resolve({ address, district });
-          } else {
-            // Fallback a Nominatim
-            fallbackReverseGeocode(lat, lng).then(resolve);
+          if (totalPredictions === 0) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
           }
-        });
+
+          predictions.slice(0, 5).forEach((prediction) => {
+            const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+              placeId: prediction.place_id,
+              fields: [
+                'geometry',
+                'formatted_address',
+                'address_components',
+              ],
+            };
+
+            placesService.getDetails(
+              detailsRequest,
+              (place, detailsStatus) => {
+                if (
+                  detailsStatus ===
+                    google.maps.places.PlacesServiceStatus.OK &&
+                  place &&
+                  place.geometry
+                ) {
+                  processedResults.push({
+                    lat: place.geometry.location!.lat().toString(),
+                    lon: place.geometry.location!.lng().toString(),
+                    display_name:
+                      place.formatted_address || prediction.description,
+                    place_id: prediction.place_id,
+                  });
+                }
+
+                processedCount++;
+                if (processedCount === totalPredictions) {
+                  setSearchResults(processedResults);
+                  setShowSearchResults(processedResults.length > 0);
+                }
+              },
+            );
+          });
+        } else {
+          setSearchResults([]);
+          setShowSearchResults(false);
+        }
+      },
+    );
+  } catch (error) {
+    console.error('Error with Google Places:', error);
+    setSearchResults([]);
+    setShowSearchResults(false);
+  }
+};
+
+// Función de geocodificación inversa con Google únicamente
+const reverseGeocodeGoogle = async (
+  lat: number,
+  lng: number,
+): Promise<{ address: string; district: string } | null> => {
+  if (!isLoaded || !window.google || !window.google.maps) {
+    console.error('Google Maps no está disponible');
+    return null;
+  }
+
+  return new Promise((resolve) => {
+    const geocoder = new google.maps.Geocoder();
+    const latlng = new google.maps.LatLng(lat, lng);
+
+    geocoder.geocode({ location: latlng }, (results, status) => {
+      if (
+        status === google.maps.GeocoderStatus.OK &&
+        results &&
+        results[0]
+      ) {
+        const result = results[0];
+        const address = result.formatted_address;
+
+        // Extraer distrito
+        const districtComponent = result.address_components.find(
+          (component) =>
+            component.types.includes('sublocality') ||
+            component.types.includes('locality') ||
+            component.types.includes('administrative_area_level_2'),
+        );
+
+        const district = districtComponent
+          ? districtComponent.long_name
+          : '';
+        resolve({ address, district });
       } else {
-        // Fallback a Nominatim
-        fallbackReverseGeocode(lat, lng).then(resolve);
+        console.error('Error en geocodificación inversa:', status);
+        resolve(null);
       }
     });
-  };
+  });
+};
 
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);

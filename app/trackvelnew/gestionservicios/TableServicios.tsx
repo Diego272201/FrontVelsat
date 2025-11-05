@@ -784,44 +784,52 @@ export default function App({
     return `${año}-${mes}-${dia} ${hora}`;
   };
 
-  useEffect(() => {
-    console.log('❌ FECHAS', selectedRow?.fechaini, selectedRow?.fechafin);
-    if (
-      !selectedRow?.fechaini ||
-      !selectedRow?.fechafin ||
-      !selectedRow?.unidadSF
-    ) {
-      console.log('❌ No hay datos suficientes para llamar a la API');
-      return;
-    }
+ useEffect(() => {
+  console.log('❌ FECHAS', selectedRow?.fechaini, selectedRow?.fechafin);
+  if (
+    !selectedRow?.fechaini ||
+    !selectedRow?.fechafin ||
+    !selectedRow?.unidadSF
+  ) {
+    console.log('❌ No hay datos suficientes para llamar a la API');
+    return;
+  }
 
-    setRecorrido([]);
+  setRecorrido([]);
 
-    const fechaInicial = formatFecha(selectedRow?.fechaini);
-    const fechaFinal = formatFecha(selectedRow?.fechafin);
+  const fechaInicial = formatFecha(selectedRow?.fechaini);
+  const fechaFinal = formatFecha(selectedRow?.fechafin);
 
-    const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/${username}`;
+  const API_URL = `https://velsat.pe:2096/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/${username}`;
 
-    console.log('Llamando a la API con URL:', API_URL);
+  console.log('Llamando a la API con URL:', API_URL);
 
-    axios
-      .get(API_URL)
-      .then((response) => {
-        console.log('Respuesta de la API:', response.data);
+  axios
+    .get(API_URL)
+    .then((response) => {
+      console.log('Respuesta de la API:', response.data);
 
-        if (response.data.result) {
-          const puntos = response.data.result.map((item: any) => ({
-            lat: item.latitude,
-            lng: item.longitude,
-          }));
-          setRecorrido(puntos);
-        }
-      })
-      .catch((error) => console.error('❌ Error fetching route data:', error));
-    return () => {
+      // ✅ CAMBIO AQUÍ: response.data directamente, no response.data.result
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const puntos = response.data.map((item: any) => ({
+          lat: item.latitude,
+          lng: item.longitude,
+        }));
+        setRecorrido(puntos);
+      } else {
+        console.log('No hay datos de recorrido disponibles');
+        setRecorrido([]);
+      }
+    })
+    .catch((error) => {
+      console.error('❌ Error fetching route data:', error);
       setRecorrido([]);
-    };
-  }, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
+    });
+    
+  return () => {
+    setRecorrido([]);
+  };
+}, [selectedRow?.fechaini, selectedRow?.fechafin, selectedRow?.unidadSF]);
 
   const handleAgregarLimpiar = () => {
     setPasajero('');

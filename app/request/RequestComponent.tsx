@@ -80,7 +80,7 @@ export default function RequestPage() {
     if (typeof window !== 'undefined') {
       audioRef.current = new Audio('/alert.mp3');
       audioRef.current.preload = 'auto';
-      audioRef.current.volume = 0.6;
+      audioRef.current.volume = 0.4;
 
     }
   }, []);

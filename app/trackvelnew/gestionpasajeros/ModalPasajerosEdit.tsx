@@ -233,21 +233,6 @@ export default function App({ title, codCliente }: Props) {
     }
   }, []);
 
-  // Función de fallback a Nominatim
-  const fallbackToNominatim = async (query: string) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=pe`,
-      );
-      setSearchResults(response.data);
-      setShowSearchResults(true);
-    } catch (error) {
-      console.error('Error with fallback search:', error);
-      setSearchResults([]);
-      setShowSearchResults(false);
-    }
-  };
-
   // Función principal de búsqueda con Google Places
   const searchAddress = async (query: string) => {
     if (query.length < 3) {
@@ -256,7 +241,7 @@ export default function App({ title, codCliente }: Props) {
       return;
     }
 
-    // Usar Google Places Autocomplete si está disponible
+    // Solo usar Google Places, sin fallback
     if (isLoaded && autocompleteService && placesService) {
       try {
         const request: google.maps.places.AutocompletionRequest = {
@@ -272,13 +257,13 @@ export default function App({ title, codCliente }: Props) {
               status === google.maps.places.PlacesServiceStatus.OK &&
               predictions
             ) {
-              // Obtener detalles de cada predicción
               const processedResults: SearchResult[] = [];
               let processedCount = 0;
               const totalPredictions = Math.min(5, predictions.length);
 
               if (totalPredictions === 0) {
-                fallbackToNominatim(query);
+                setSearchResults([]);
+                setShowSearchResults(false);
                 return;
               }
 
@@ -316,53 +301,35 @@ export default function App({ title, codCliente }: Props) {
                         setSearchResults(processedResults);
                         setShowSearchResults(true);
                       } else {
-                        fallbackToNominatim(query);
+                        setSearchResults([]);
+                        setShowSearchResults(false);
                       }
                     }
                   },
                 );
               });
             } else {
-              // Fallback a Nominatim si Google Places falla
-              fallbackToNominatim(query);
+              setSearchResults([]);
+              setShowSearchResults(false);
             }
           },
         );
       } catch (error) {
         console.error('Error with Google Places:', error);
-        fallbackToNominatim(query);
+        // ❌ ELIMINAR: fallbackToNominatim(query);
+        // ✅ AGREGAR: Mensaje de error
+        toast.error('Error al conectar con Google Maps');
+        setSearchResults([]);
+        setShowSearchResults(false);
       }
     } else {
-      // Fallback a Nominatim si Google Places no está disponible
-      fallbackToNominatim(query);
+      // ❌ ELIMINAR: fallbackToNominatim(query);
+      // ✅ AGREGAR: Mensaje indicando que Google Maps no está cargado
+      toast.warning('Google Maps aún no está disponible, intenta nuevamente');
+      setSearchResults([]);
+      setShowSearchResults(false);
     }
   };
-
-  // Función de fallback para geocodificación inversa
-  const fallbackReverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const response = await axios.get(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-      );
-
-      if (response.data && response.data.display_name) {
-        const address = response.data.display_name;
-        const district =
-          response.data.address?.suburb ||
-          response.data.address?.city_district ||
-          response.data.address?.county ||
-          response.data.address?.city ||
-          '';
-
-        return { address, district };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error in reverse geocoding fallback:', error);
-      return null;
-    }
-  };
-
   // Función de geocodificación inversa con Google
   const reverseGeocodeGoogle = async (
     lat: number,
@@ -382,7 +349,6 @@ export default function App({ title, codCliente }: Props) {
             const result = results[0];
             const address = result.formatted_address;
 
-            // Extraer distrito
             const districtComponent = result.address_components.find(
               (component) =>
                 component.types.includes('sublocality') ||
@@ -395,13 +361,18 @@ export default function App({ title, codCliente }: Props) {
               : '';
             resolve({ address, district });
           } else {
-            // Fallback a Nominatim
-            fallbackReverseGeocode(lat, lng).then(resolve);
+            // ❌ ELIMINAR: fallbackReverseGeocode(lat, lng).then(resolve);
+            // ✅ AGREGAR: Retornar null si Google falla
+            console.error('Google Geocoder error:', status);
+            toast.error('No se pudo obtener la dirección desde Google Maps');
+            resolve(null);
           }
         });
       } else {
-        // Fallback a Nominatim
-        fallbackReverseGeocode(lat, lng).then(resolve);
+        // ❌ ELIMINAR: fallbackReverseGeocode(lat, lng).then(resolve);
+        // ✅ AGREGAR: Retornar null si Google no está disponible
+        toast.warning('Google Maps no está disponible');
+        resolve(null);
       }
     });
   };
