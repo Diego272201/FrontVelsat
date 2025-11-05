@@ -162,47 +162,28 @@ const MapContent = () => {
   }, [markersData]);
 
   const fetchData = useCallback(async () => {
-  try {
-    const response = await axios.get(detailRecorrido);
-    
-    // ✅ La API retorna directamente el array, no { result: [...] }
-    const data = response.data;
-    
-    // Validación mejorada
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      toast.error('No hay registros para estas fechas', {
-        className: 'toast-slide-in',
-        richColors: true,
-        duration: Infinity,
-      });
-      setMarkersData([]);
-      setIsMarkersLoaded(true);
-      return;
+    try {
+      const response = await axios.get(detailRecorrido);
+      if (response.data.result.length === 0) {
+        toast.error('No hay registros para estas fechas', {
+          className: 'toast-slide-in',
+          richColors: true,
+          duration: Infinity,
+        });
+      } else {
+        setMarkersData(response.data.result);
+        setIsMarkersLoaded(true);
+        setMapCenter([response.data.result[0].latitude, response.data.result[0].longitude]);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
     }
-    
-    // ✅ Usar el array directamente
-    setMarkersData(data);
-    setIsMarkersLoaded(true);
-    
-    // ✅ Formato de array [lat, lng] como lo espera el tipo
-    setMapCenter([data[0].latitude, data[0].longitude]);
-    
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    toast.error('Error al cargar los datos del recorrido', {
-      className: 'toast-slide-in',
-      richColors: true,
-      duration: 5000,
-    });
-    setMarkersData([]);
-    setIsMarkersLoaded(true);
-  }
-}, [detailRecorrido]);
+  }, [detailRecorrido]);
 
-useEffect(() => {
-  setIsClient(true);
-  fetchData();
-}, [fetchData]);
+  useEffect(() => {
+    setIsClient(true);
+    fetchData();
+  }, [fetchData]);
 
   // Opciones para la polilínea con patrón de línea discontinua
   const polylineOptions = {
