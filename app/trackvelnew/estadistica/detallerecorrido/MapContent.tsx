@@ -36,7 +36,7 @@ const MapContent = () => {
   const deviceId = searchParams.get('deviceId');
   const username = session?.user.username;
 
-  const detailRecorrido = `https://localhost:7223/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
+  const detailRecorrido = `${baseUrl}/api/Reporting/details/${startDate}/${endDate}/${deviceId}/${username}`;
 
   const [mapCenter, setMapCenter] = useState({
     lat: -12.046591525826495,
