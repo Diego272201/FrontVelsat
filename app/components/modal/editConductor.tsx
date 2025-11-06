@@ -416,7 +416,7 @@ const handleOpenModal = () => {
             <Button
               onClick={handleCerrar}
               disabled={loading}
-              className="transform bg-red-600 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-red-700 hover:shadow-xl disabled:transform-none disabled:opacity-50"
+              className="transform rounded-lg bg-red-600 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-red-700 hover:shadow-xl disabled:transform-none disabled:opacity-50"
             >
               <X className="mr-2 h-4 w-4" />
               Cancelar
