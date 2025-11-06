@@ -364,6 +364,9 @@ const LoadingSpinner = () => (
         </div>
       </div>
 
+
+      
+
       {/* Contenido principal */}
       <div className="mx-auto px-4 py-2">
         {/* Barra de búsqueda y acciones */}
@@ -404,7 +407,7 @@ const LoadingSpinner = () => (
             <div className="overflow-x-auto">
               <div className="max-h-[calc(100vh-150px)] overflow-y-auto">
                 <table className="w-full">
-<thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
+                  <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
                     <tr>
                       <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
                         #

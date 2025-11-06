@@ -79,7 +79,7 @@ export default function App({
   useEffect(() => {
     const calculateRowsPerPage = () => {
       const totalHeight = window.innerHeight;
-      const availableHeight = totalHeight - 50;
+      const availableHeight = totalHeight - 90;
       const rowHeight = 40;
       const calculatedRows = Math.max(
         Math.floor(availableHeight / rowHeight),
@@ -257,7 +257,7 @@ export default function App({
           <Input
             isClearable
             classNames={{
-              base: 'w-full sm:max-w-[44%] bg-[#dddedf] rounded-[10px]',
+              base: 'w-full sm:max-w-[44%] bg-[#fff] rounded-[10px]',
               inputWrapper: 'border-1',
             }}
             placeholder="Buscar por Rol"
@@ -272,7 +272,7 @@ export default function App({
           />
 
           <Select
-            style={{ background: '#dddedf' }}
+            style={{ background: '#fff' }}
             label=""
             placeholder="Filtrar por Empresa"
             labelPlacement="outside"

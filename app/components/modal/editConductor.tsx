@@ -289,7 +289,7 @@ export default function ConductorDialogModificar({
     <div>
       <button
         onClick={handleOpenModal}
-        className="inline-flex h-7 items-center justify-center rounded bg-green-700 px-3 text-xs font-medium text-white transition-colors hover:bg-green-600"
+        className="inline-flex h-8 items-center justify-center rounded-lg bg-green-700 px-3 text-xs font-medium text-white transition-colors hover:bg-green-600"
       >
         <Edit size={12} className="mr-1" />
         Modificar
