@@ -142,165 +142,127 @@ export default function SeguirUnidadPage({
     setIsStreetViewOpen(true);
   };
 
-  // SignalR Connection
-  useEffect(() => {
-    let connection: signalR.HubConnection | null = null;
-    let isComponentMounted = true;
-    let reconnectionAttempts = 0;
-    const MAX_RECONNECTION_ATTEMPTS = 3;
-    const RECONNECTION_DELAY = 1000;
+// Polling Connection
+useEffect(() => {
+  let isComponentMounted = true;
+  let intervalId: NodeJS.Timeout | null = null;
 
-    const getDeviceIdFromUrl = () => {
-      if (typeof window !== 'undefined') {
-        return searchParams.get('deviceId');
+  const getDeviceIdFromUrl = () => {
+    if (typeof window !== 'undefined') {
+      return searchParams.get('deviceId');
+    }
+    return null;
+  };
+
+  const fetchDeviceData = async () => {
+    const deviceIdFinal = deviceId || getDeviceIdFromUrl();
+
+    if (!isComponentMounted || !deviceIdFinal) {
+      console.warn('Componente desmontado o deviceId no disponible');
+      return;
+    }
+
+    if (
+      status !== 'authenticated' ||
+      !session?.user?.username ||
+      !servidorUrl
+    ) {
+      console.warn('Sesión no autenticada o datos faltantes');
+      return;
+    }
+
+    try {
+      const username = session.user.username;
+      const apiUrl = `${servidorUrl}/api/DeviceList/Unidad/${username}/${deviceIdFinal}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      return null;
-    };
 
-    const connectSignalR = async () => {
-      const deviceIdFinal = deviceId || getDeviceIdFromUrl();
+      const data = await response.json();
 
-      if (!isComponentMounted || !deviceIdFinal) {
-        console.warn('Componente desmontado o deviceId no disponible');
-        return;
+      if (!isComponentMounted) return;
+
+      // ✅ Extraer datosDevice del objeto de respuesta
+      const datosDevice = data.datosDevice;
+
+      // Buscar el dispositivo específico en el array
+      const updatedDevice = datosDevice.find(
+        (d: Device) => d.deviceId === deviceIdFinal
+      );
+
+      if (updatedDevice) {
+        setFechaActual(data.fechaActual);
+        setDevice(updatedDevice);
+      } else {
+        console.warn(
+          `Dispositivo ${deviceIdFinal} no encontrado en los datos`
+        );
       }
+    } catch (error) {
+      console.error('❌ Error obteniendo datos del dispositivo:', error);
+    }
+  };
 
-      if (
-        status !== 'authenticated' ||
-        !session?.user?.username ||
-        !servidorUrl
-      ) {
-        console.warn('Sesión no autenticada o datos faltantes');
-        return;
+  const handleVisibilityChange = () => {
+    if (!isComponentMounted) return;
+
+    if (document.visibilityState === 'visible') {
+      console.log('🔍 Pestaña activa - Reanudando polling...');
+      
+      // Llamar inmediatamente al activar
+      fetchDeviceData();
+      
+      // Reiniciar intervalo si no existe
+      if (!intervalId) {
+        intervalId = setInterval(fetchDeviceData, 8000);
       }
-
-      if (
-        connection &&
-        connection.state !== signalR.HubConnectionState.Disconnected
-      ) {
-        try {
-          await connection.stop();
-        } catch (error) {
-          console.warn('Error cerrando conexión previa:', error);
-        }
+    } else {
+      console.log('😴 Pestaña inactiva - Pausando polling');
+      
+      // Pausar polling cuando la pestaña está inactiva (opcional)
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
+    }
+  };
 
-      try {
-        const username = session.user.username;
-        const hubUrl = `${servidorUrl}/dataHubDevice/${username}`;
+  // Agregar event listener para visibilidad
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        console.log('Iniciando nueva conexión SignalR para device:', deviceIdFinal);
+  // Iniciar el polling
+  console.log('🚀 Iniciando polling de datos del dispositivo cada 8 segundos...');
+  
+  // Llamada inmediata
+  fetchDeviceData();
+  
+  // Configurar intervalo de 8 segundos
+  intervalId = setInterval(fetchDeviceData, 8000);
 
-        connection = new signalR.HubConnectionBuilder()
-          .withUrl(hubUrl, {
-            transport: signalR.HttpTransportType.WebSockets,
-            skipNegotiation: true,
-            headers: {
-              'Cache-Control': 'no-cache',
-              Pragma: 'no-cache',
-            },
-          })
-          .configureLogging(signalR.LogLevel.Warning)
-          .withAutomaticReconnect([0, 1000, 5000, 10000])
-          .build();
+  // Cleanup
+  return () => {
+    isComponentMounted = false;
 
-        connection.keepAliveIntervalInMilliseconds = 15000;
-        connection.serverTimeoutInMilliseconds = 30000;
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    }
 
-        connection.onclose((error) => {
-          if (isComponentMounted) {
-            if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
-              reconnectionAttempts++;
-              setTimeout(() => {
-                if (isComponentMounted) {
-                  connectSignalR();
-                }
-              }, RECONNECTION_DELAY);
-            }
-          }
-        });
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-        connection.onreconnecting(() => {
-          console.log('Reconectando...');
-        });
-
-        connection.onreconnected((connectionId) => {
-          console.log('Reconectado:', connectionId);
-          reconnectionAttempts = 0;
-        });
-
-        const startTime = Date.now();
-        let isFirstDataReceived = false;
-        await connection.start();
-
-        if (!isComponentMounted) {
-          await connection.stop();
-          return;
-        }
-
-        reconnectionAttempts = 0;
-
-        connection.on('ActualizarDatos', (datos) => {
-          if (!isComponentMounted) return;
-
-          const updatedDevice = datos.datosDevice.find(
-            (d: Device) => d.deviceId === deviceIdFinal,
-          );
-
-          if (updatedDevice) {
-            setFechaActual(datos.fechaActual);
-            setDevice(updatedDevice);
-          } else {
-            console.warn(
-              `Dispositivo ${deviceIdFinal} no encontrado en los datos`,
-            );
-          }
-        });
-
-        connection.on('Error', (error) => {
-          if (isComponentMounted) {
-            console.error('Error desde SignalR:', error);
-          }
-        });
-
-        connection.on('ConectadoExitosamente', (username) => {
-          console.log(
-            `Confirmación: Conectado exitosamente para usuario ${username}`,
-          );
-        });
-      } catch (error) {
-        console.error('Error conectando SignalR:', error);
-
-        if (
-          isComponentMounted &&
-          reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS
-        ) {
-          reconnectionAttempts++;
-          setTimeout(() => {
-            if (isComponentMounted) {
-              console.log(
-                `Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-              );
-              connectSignalR();
-            }
-          }, RECONNECTION_DELAY);
-        }
-      }
-    };
-
-    const timeoutId = setTimeout(connectSignalR, 50);
-
-    return () => {
-      isComponentMounted = false;
-      clearTimeout(timeoutId);
-
-      if (connection) {
-        connection.stop().catch((error) => {
-          console.warn('Error al cerrar conexión en cleanup:', error);
-        });
-      }
-    };
-  }, [status, session, deviceId, servidorUrl, searchParams]);
+    console.log('🧹 Cleanup: Polling detenido');
+  };
+}, [status, session, deviceId, servidorUrl, searchParams]);
 
   // Utility functions
   const formatFecha = useCallback((fecha: any) => {
@@ -454,7 +416,7 @@ export default function SeguirUnidadPage({
         
         <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
           <span style="color: #d1d5db !important;">Velocidad:</span> 
-          <strong style="color: #86efac !important; margin-left: 4px !important;">${device.lastValidSpeed} Km/h</strong>
+          <strong style="color: #86efac !important; margin-left: 4px !important;">${device.lastValidSpeed.toFixed(0)} Km/h</strong>
         </div>
         
         <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">

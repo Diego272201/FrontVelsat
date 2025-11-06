@@ -81,7 +81,6 @@ export default function RequestPage() {
       audioRef.current = new Audio('/alert.mp3');
       audioRef.current.preload = 'auto';
       audioRef.current.volume = 0.4;
-
     }
   }, []);
 
@@ -120,227 +119,148 @@ export default function RequestPage() {
   }, [filteredIdsFromSidebar]);
 
   useEffect(() => {
-    let connection: signalR.HubConnection | null = null;
     let isComponentMounted = true;
-    let reconnectionAttempts = 0;
-    const MAX_RECONNECTION_ATTEMPTS = 3;
-    const RECONNECTION_DELAY = 1000;
+    let intervalId: NodeJS.Timeout | null = null;
 
-    const connectSignalR = async () => {
+    const fetchDeviceData = async () => {
       if (!isComponentMounted || !session?.user?.username || !baseUrl) {
         return;
       }
 
-      if (
-        connection &&
-        connection.state !== signalR.HubConnectionState.Disconnected
-      ) {
-        try {
-          await connection.stop();
-        } catch (error) {
-          console.warn('Error cerrando conexión previa:', error);
-        }
-      }
-
       try {
         const username = session.user.username;
-        const hubUrl = `${baseUrl}/dataHubDevice/${username}`;
+        const apiUrl = `${baseUrl}/api/DeviceList/${username}`;
 
-        console.log('🚀 Iniciando nueva conexión SignalR...');
-
-        connection = new signalR.HubConnectionBuilder()
-          .withUrl(hubUrl, {
-            transport: signalR.HttpTransportType.WebSockets,
-            skipNegotiation: true,
-            headers: {
-              'Cache-Control': 'no-cache',
-              Pragma: 'no-cache',
-            },
-          })
-          .configureLogging(signalR.LogLevel.Warning)
-          .withAutomaticReconnect([0, 1000, 5000, 10000])
-          .build();
-
-        connection.keepAliveIntervalInMilliseconds = 15000; // 15 segundos
-        connection.serverTimeoutInMilliseconds = 30000; // 30 segundos
-
-        connection.onclose((error) => {
-          if (isComponentMounted) {
-            console.log('❌ Conexión cerrada:', error?.message || 'Sin error');
-
-            if (error && reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS) {
-              reconnectionAttempts++;
-              setTimeout(() => {
-                if (isComponentMounted) {
-                  console.log(
-                    `🔄 Reintentando conexión (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-                  );
-                  connectSignalR();
-                }
-              }, RECONNECTION_DELAY);
-            }
-          }
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
         });
 
-        connection.onreconnecting(() => {
-          console.log('🔄 Reconectando...');
-        });
-
-        connection.onreconnected((connectionId) => {
-          console.log('✅ Reconectado:', connectionId);
-          reconnectionAttempts = 0;
-        });
-
-        // Iniciar conexión
-        const startTime = Date.now();
-        let isFirstDataReceived = false;
-        await connection.start();
-
-        if (!isComponentMounted) {
-          await connection.stop();
-          return;
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
 
-        console.log('✅ Conexión SignalR establecida');
-        reconnectionAttempts = 0;
+        const data = await response.json();
 
-        console.log(`🏠 Automáticamente unido al grupo: ${username}`);
+        if (!isComponentMounted) return;
 
-        connection.on('ActualizarDatos', (datos) => {
-          if (!isComponentMounted) return;
-          if (!isFirstDataReceived) {
-            const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-            isFirstDataReceived = true;
-          }
+        // ✅ Extraer datosDevice del objeto de respuesta
+        const datos = data.datosDevice;
 
-          setMarkersLoaded(true);
-          setDeviceList(datos.datosDevice);
+        setMarkersLoaded(true);
+        setDeviceList(datos);
 
-          // DEBUG: Imprimir datos de la unidad específica
-          datos.datosDevice.forEach((device: DeviceList) => {
-            const deviceKey = device.deviceId;
+        // Procesar alertas de velocidad
+        datos.forEach((device: DeviceList) => {
+          const deviceKey = device.deviceId;
 
-            if (device.lastValidSpeed >= 91) {
-              // Solo activar si no hay alerta activa Y no hay timeout pendiente
-              if (
-                !activeAlerts.current[deviceKey] &&
-                !alertTimeouts.current[deviceKey]
-              ) {
-                activeAlerts.current[deviceKey] = true;
-                playSpeedAlert();
+          if (device.lastValidSpeed >= 91) {
+            // Solo activar si no hay alerta activa Y no hay timeout pendiente
+            if (
+              !activeAlerts.current[deviceKey] &&
+              !alertTimeouts.current[deviceKey]
+            ) {
+              activeAlerts.current[deviceKey] = true;
+              playSpeedAlert();
 
-                const alertTime = new Date().toLocaleTimeString('es-PE', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                });
+              const alertTime = new Date().toLocaleTimeString('es-PE', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+              });
 
-                toast.error(
-                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${alertTime})`,
-                  {
-                    duration: Infinity,
-                    action: {
-                      label: 'OK',
-                      onClick: () => {
-                        activeAlerts.current[deviceKey] = false;
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                        }
+              toast.error(
+                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${alertTime})`,
+                {
+                  duration: Infinity,
+                  action: {
+                    label: 'OK',
+                    onClick: () => {
+                      activeAlerts.current[deviceKey] = false;
+                      if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current.currentTime = 0;
+                      }
 
-                        alertTimeouts.current[deviceKey] = setTimeout(() => {
-                          delete alertTimeouts.current[deviceKey];
-                        }, 300000);
-                      },
+                      alertTimeouts.current[deviceKey] = setTimeout(() => {
+                        delete alertTimeouts.current[deviceKey];
+                      }, 300000); // 5 minutos
                     },
                   },
-                );
-              }
-            } else {
-              // Si la velocidad baja, limpiar todo
-              if (activeAlerts.current[deviceKey]) {
-                activeAlerts.current[deviceKey] = false;
-                if (audioRef.current) {
-                  audioRef.current.pause();
-                  audioRef.current.currentTime = 0;
-                }
-              }
-
-              // Limpiar timeout si existe
-              if (alertTimeouts.current[deviceKey]) {
-                clearTimeout(alertTimeouts.current[deviceKey]);
-                delete alertTimeouts.current[deviceKey];
+                },
+              );
+            }
+          } else {
+            // Si la velocidad baja, limpiar todo
+            if (activeAlerts.current[deviceKey]) {
+              activeAlerts.current[deviceKey] = false;
+              if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
               }
             }
-          });
-        });
 
-        connection.on('Error', (error) => {
-          if (isComponentMounted) {
-            console.error('❌ Error desde SignalR:', error);
+            // Limpiar timeout si existe
+            if (alertTimeouts.current[deviceKey]) {
+              clearTimeout(alertTimeouts.current[deviceKey]);
+              delete alertTimeouts.current[deviceKey];
+            }
           }
         });
-
-        connection.on('ConectadoExitosamente', (username) => {
-          console.log(
-            `Confirmación: Conectado exitosamente para usuario ${username}`,
-          );
-        });
       } catch (error) {
-        console.error('❌ Error conectando SignalR:', error);
-
-        if (
-          isComponentMounted &&
-          reconnectionAttempts < MAX_RECONNECTION_ATTEMPTS
-        ) {
-          reconnectionAttempts++;
-          setTimeout(() => {
-            if (isComponentMounted) {
-              console.log(
-                `Reintentando después de error (${reconnectionAttempts}/${MAX_RECONNECTION_ATTEMPTS})...`,
-              );
-              connectSignalR();
-            }
-          }, RECONNECTION_DELAY);
-        }
+        console.error('❌ Error obteniendo datos de devices:', error);
       }
     };
 
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChange = () => {
       if (!isComponentMounted) return;
 
       if (document.visibilityState === 'visible') {
-        console.log('🔍 Pestaña activa - Verificando conexión SignalR...');
+        console.log('🔍 Pestaña activa - Reanudando polling...');
 
-        // Verificar si la conexión está desconectada
-        if (
-          !connection ||
-          connection.state === signalR.HubConnectionState.Disconnected
-        ) {
-          console.log('🔄 Reconectando SignalR al activar pestaña...');
-          try {
-            await connectSignalR();
-          } catch (error) {
-            console.error('❌ Error reconectando:', error);
-          }
-        } else {
-          console.log('✅ Conexión SignalR ya está activa');
+        // Llamar inmediatamente al activar
+        fetchDeviceData();
+
+        // Reiniciar intervalo si no existe
+        if (!intervalId) {
+          intervalId = setInterval(fetchDeviceData, 8000);
         }
       } else {
-        console.log('😴 Pestaña inactiva');
+        console.log('😴 Pestaña inactiva - Pausando polling');
+
+        // Pausar polling cuando la pestaña está inactiva (opcional)
+        // Si prefieres seguir consultando aunque esté inactiva, comenta estas líneas:
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
       }
     };
 
     // Agregar event listener para visibilidad
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Delay inicial más corto
-    const timeoutId = setTimeout(connectSignalR, 50);
+    // Iniciar el polling
+    console.log('🚀 Iniciando polling de datos cada 8 segundos...');
+
+    // Llamada inmediata
+    fetchDeviceData();
+
+    // Configurar intervalo de 8 segundos
+    intervalId = setInterval(fetchDeviceData, 8000);
 
     // Cleanup
     return () => {
       isComponentMounted = false;
-      clearTimeout(timeoutId);
+
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
 
@@ -357,11 +277,7 @@ export default function RequestPage() {
         audioRef.current = null;
       }
 
-      if (connection) {
-        connection.stop().catch((error) => {
-          console.warn('Error al cerrar conexión en cleanup:', error);
-        });
-      }
+      console.log('🧹 Cleanup: Polling detenido');
     };
   }, [session?.user?.username, baseUrl]);
 
@@ -679,7 +595,7 @@ export default function RequestPage() {
         device.lastOdometerKM != null &&
         device.odometerini != null &&
         device.kmini != null
-          ? device.lastOdometerKM - device.odometerini + device.kmini
+          ? Math.round(device.lastOdometerKM - device.odometerini + device.kmini)
           : 0;
 
       const isMovilbusUser = session?.user?.username === 'movilbus';
@@ -730,7 +646,7 @@ export default function RequestPage() {
 
               <p class="px-2"><strong>Velocidad:</strong> <span class="speed-value">${Math.round(device.lastValidSpeed)} Km/h</span></p>
               <p class="px-2"><strong>Estado:</strong> <span class="state-value">${getEstado(device.lastValidSpeed)}</span></p>
-              ${isMovilbusUser ? `<p class="px-2"><strong>Kilometraje:</strong> <span class="kilometraje-value">${kilometraje.toFixed(2)} Km</span></p>` : ''}
+              ${isMovilbusUser ? `<p class="px-2"><strong>Kilometraje:</strong> <span class="kilometraje-value">${kilometraje.toFixed(0)} Km</span></p>` : ''}
               <br>
 
               <h4 class="px-2 font-bold uppercase" style="#fff">Último Reporte</h4>
