@@ -252,7 +252,7 @@ export default function App({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4 ">
-        <h2 className="tituloTunos">TURNOS DE {title}</h2>
+<h2 className="tituloTunos font-medium text-900">TURNOS DE {title}</h2>
         <div className="flex items-end justify-between gap-3 px-1">
           <Input
             isClearable

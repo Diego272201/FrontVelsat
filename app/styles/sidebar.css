@@ -134,7 +134,7 @@ label[id^='label'] {
   border: 1px solid transparent;
   border-radius: 6px;
   outline: none;
-  background-color: #fca311;
+  background-color: #ffaa00;
   color: #212529;
   font-weight: 500;
   transition: all 0.3s ease-in-out;

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
 import { TbView360 } from 'react-icons/tb';
+import { Filter } from 'lucide-react';
 import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
@@ -35,6 +36,9 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
 
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [filteredDeviceIds, setFilteredDeviceIds] = useState<string[] | null>(null);
+  const [filtroMovimiento, setFiltroMovimiento] = useState<'todos' | 'movimiento' | 'detenidas'>('todos');
+  const [showFiltroDropdown, setShowFiltroDropdown] = useState(false);
+  const filtroDropdownRef = useRef<HTMLDivElement>(null);
 
   // Estados para el polling de API
   const [connectionStatus, setConnectionStatus] = useState<'Connecting' | 'Connected' | 'Disconnected'>('Disconnected');
@@ -135,6 +139,23 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     };
   }, []); 
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filtroDropdownRef.current && !filtroDropdownRef.current.contains(event.target as Node)) {
+        setShowFiltroDropdown(false);
+      }
+    };
+
+    if (showFiltroDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFiltroDropdown]); 
+
   const showMenu = () => {
     setShowDropdown(true);
   };
@@ -173,15 +194,23 @@ const filteredUnidades = useMemo(() => {
 
   let resultado = baseFiltrado;
   
+  // Aplicar filtro de ruta (Sedapal)
   if (filteredDeviceIds) {
-    resultado = baseFiltrado.filter((unidad) =>
+    resultado = resultado.filter((unidad) =>
       filteredDeviceIds.includes(unidad.deviceId.toLowerCase()),
     );
   }
 
+  // Aplicar filtro de movimiento/detenidas
+  if (filtroMovimiento === 'movimiento') {
+    resultado = resultado.filter((unidad) => unidad.lastValidSpeed > 0);
+  } else if (filtroMovimiento === 'detenidas') {
+    resultado = resultado.filter((unidad) => unidad.lastValidSpeed === 0);
+  }
+
   // Ordenar alfabética y numéricamente
   return resultado.sort(sortDeviceIds);
-}, [unidades, searchTerm, filteredDeviceIds]);
+}, [unidades, searchTerm, filteredDeviceIds, filtroMovimiento]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -252,8 +281,61 @@ const filteredUnidades = useMemo(() => {
               onChange={handleSearchChange}
               style={{ borderRadius: '0px' }}
             />
+            <div className="relative" ref={filtroDropdownRef}>
+              <button
+                onClick={() => setShowFiltroDropdown(!showFiltroDropdown)}
+            className={`ml-1 bg-[#ffaa00] py-[9px] px-2 hover:bg-orange-50 border border-[#5b75bb] transition-colors ${
+            filtroMovimiento !== 'todos' ? 'text-[#113EB9]' : 'text-gray-600'
+              }`}
+                title="Filtrar por estado"
+              >
+                <Filter size={20} />
+              </button>
+
+              {showFiltroDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setFiltroMovimiento('todos');
+                        setShowFiltroDropdown(false);
+                      }}
+                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
+                        filtroMovimiento === 'todos' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      Todas las unidades
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFiltroMovimiento('movimiento');
+                        setShowFiltroDropdown(false);
+                      }}
+                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+                        filtroMovimiento === 'movimiento' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      En movimiento
+                    </button>
+                    <button
+                      onClick={() => {
+                        setFiltroMovimiento('detenidas');
+                        setShowFiltroDropdown(false);
+                      }}
+                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
+                        filtroMovimiento === 'detenidas' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      Detenidas
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          
+
           {username === 'sedapal' && (
             <div className="search">
               <SelectSidebar onRutaChange={setRutaSeleccionada} />

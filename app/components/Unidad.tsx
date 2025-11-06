@@ -58,9 +58,9 @@ const Unidad: React.FC<UnidadProps> = ({
     if (speed >= 0 && speed < 1) {
       return '#FF0000'; // Rojo
     } else if (speed >= 1 && speed <= 20) {
-      return '#ffb703'; // Amarillo
+      return '#f69300ff'; // Amarillo
     } else if (speed > 20 && speed <= 45) {
-      return '#38b000'; // Verde
+      return '#319602ff'; // Verde
     } else {
       return '#0066FF'; // Azul
     }
@@ -96,15 +96,11 @@ const Unidad: React.FC<UnidadProps> = ({
         <p id="cod_unidad">{velocidad.toFixed(0)} Km/h </p>
       </div>
 
-      <div className="luz-carro">
+      <div className="luz-carro px-3">
         <TbPointFilled style={{ color: getColorBySpeed(velocidad) }} />
       </div>
 
-      <div className="detalles-carro">
-        <a href="#">
-          <CgMoreVerticalAlt size={30} />
-        </a>
-      </div>
+   
     </div>
   );
 };
