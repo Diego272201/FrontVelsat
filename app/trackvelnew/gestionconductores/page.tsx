@@ -372,6 +372,9 @@ export default function Page() {
         </div>
       </div>
 
+
+      
+
       {/* Contenido principal */}
       <div className="mx-auto px-4 py-2">
         {/* Barra de búsqueda y acciones */}
