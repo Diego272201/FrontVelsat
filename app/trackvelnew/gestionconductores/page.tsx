@@ -62,9 +62,13 @@ export default function Page() {
   const [conductoresAPI, setConductoresAPI] = useState<ConductorAPI[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [eliminandoLoading, setEliminandoLoading] = useState<number | null>(null);
+  const [eliminandoLoading, setEliminandoLoading] = useState<number | null>(
+    null,
+  );
   const [liberandoLoading, setLiberandoLoading] = useState<number | null>(null);
-  const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(null);
+  const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(
+    null,
+  );
   const { username, isReady } = useUsername(); // ✅ Agregar esta línea
 
   // Función para obtener datos de la API
@@ -277,11 +281,11 @@ export default function Page() {
       prev.map((conductor) =>
         conductor.id === modifiedConductor.codigo
           ? {
-            id: modifiedConductor.codigo,
-            nombre: modifiedConductor.apellidos.trim(),
-            telefono: modifiedConductor.telefono || '',
-            correo: modifiedConductor.email || '',
-          }
+              id: modifiedConductor.codigo,
+              nombre: modifiedConductor.apellidos.trim(),
+              telefono: modifiedConductor.telefono || '',
+              correo: modifiedConductor.email || '',
+            }
           : conductor,
       ),
     );
@@ -311,18 +315,22 @@ export default function Page() {
   );
 
   // Componente de loading
-const LoadingSpinner = () => (
-  <div className="flex flex-col items-center justify-center py-12">
-    <Spinner color="primary" size="md" />
-    <span className="mt-3 text-gray-600 text-md">Cargando conductores...</span>
-  </div>
-);
+  const LoadingSpinner = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Spinner color="primary" size="md" />
+      <span className="text-md mt-3 text-gray-600">
+        Cargando conductores...
+      </span>
+    </div>
+  );
   // Componente de error
   const ErrorMessage = () => (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <p className="mb-3 text-red-600 text-lg font-medium">Error al cargar los datos</p>
-        <p className="text-sm text-gray-600 mb-4">{error}</p>
+        <p className="mb-3 text-lg font-medium text-red-600">
+          Error al cargar los datos
+        </p>
+        <p className="mb-4 text-sm text-gray-600">{error}</p>
         <button
           onClick={fetchConductores}
           className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -336,19 +344,19 @@ const LoadingSpinner = () => (
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header moderno */}
-      <div className="bg-[#113EB9] shadow-lg border-b border-gray-200">
+      <div className="border-b border-gray-200 bg-[#113EB9] shadow-lg">
         <div className="px-4 py-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center justify-center w-10 h-10  bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
+              <div className="flex h-10 w-10 items-center justify-center  bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
                 <Users className="h-6 w-6 text-white drop-shadow-md" />
               </div>
 
               <div>
-                <h1 className="text-[14px] font-bold text-white tracking-tight uppercase">
+                <h1 className="text-[14px] font-bold uppercase tracking-tight text-white">
                   Gestión de Conductores
                 </h1>
-                <p className="text-gray-200 mt-0 text-[12px]">
+                <p className="mt-0 text-[12px] text-gray-200">
                   Administra y controla la información de todos los conductores
                 </p>
               </div>
@@ -367,10 +375,10 @@ const LoadingSpinner = () => (
       {/* Contenido principal */}
       <div className="mx-auto px-4 py-2">
         {/* Barra de búsqueda y acciones */}
-        <div className="p-0 mb-3">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="mb-3 p-0">
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
@@ -378,7 +386,7 @@ const LoadingSpinner = () => (
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled={loading}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50 transition-all duration-200"
+                className="block w-full border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm leading-5 placeholder-gray-500 transition-all duration-200 focus:border-transparent focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               />
             </div>
             <div className="flex-shrink-0">
@@ -386,16 +394,16 @@ const LoadingSpinner = () => (
             </div>
           </div>
 
-
           {searchTerm && (
             <div className="mt-3 text-sm text-gray-600">
-              Mostrando {filteredConductores.length} de {conductores.length} conductores
+              Mostrando {filteredConductores.length} de {conductores.length}{' '}
+              conductores
             </div>
           )}
         </div>
 
         {/* Tabla con scroll */}
-        <div className="bg-white  shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden  border border-gray-200 bg-white shadow-sm">
           {loading ? (
             <LoadingSpinner />
           ) : error ? (
@@ -404,7 +412,7 @@ const LoadingSpinner = () => (
             <div className="overflow-x-auto">
               <div className="max-h-[calc(100vh-150px)] overflow-y-auto">
                 <table className="w-full">
-<thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
+                  <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
                     <tr>
                       <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
                         #
@@ -429,32 +437,36 @@ const LoadingSpinner = () => (
                         key={conductor.id}
                         className="transition-all duration-200 hover:bg-gray-50 hover:shadow-sm"
                       >
-                        <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="whitespace-nowrap px-6 py-2 text-sm font-medium text-gray-900">
                           {index + 1}
                         </td>
-                        <td className="px-6 py-2 whitespace-nowrap">
-                          <div className="text-[12px] text-gray-900 uppercase">
+                        <td className="whitespace-nowrap px-6 py-2">
+                          <div className="text-[12px] uppercase text-gray-900">
                             {conductor.nombre}
                           </div>
                         </td>
-                        <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <td className="whitespace-nowrap px-6 py-2 text-sm text-gray-600">
                           {conductor.telefono || (
-                            <span className="text-gray-400 italic">No disponible</span>
+                            <span className="italic text-gray-400">
+                              No disponible
+                            </span>
                           )}
                         </td>
-                        <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <td className="whitespace-nowrap px-6 py-2 text-sm text-gray-600">
                           {conductor.correo || (
-                            <span className="text-gray-400 italic">No disponible</span>
+                            <span className="italic text-gray-400">
+                              No disponible
+                            </span>
                           )}
                         </td>
-                        <td className="px-6 py-2 whitespace-nowrap">
-                          <div className="flex gap-1 overflow-x-auto min-w-max">
+                        <td className="whitespace-nowrap px-6 py-2">
+                          <div className="flex min-w-max gap-1 overflow-x-auto">
                             <ConductorDialogModificar
                               conductorData={getConductorData(conductor.id)}
                               onConductorModified={handleConductorModified}
                             />
 
-                            <button className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-blue-600 text-xs font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
+                            <button className="inline-flex h-8 items-center justify-center rounded-lg bg-blue-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
                               <Image size={14} className="mr-1" />
                               Imagen
                             </button>
@@ -463,11 +475,14 @@ const LoadingSpinner = () => (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <button
-                                  className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-red-600 text-xs font-medium text-white transition-all duration-200 hover:bg-red-700 hover:shadow-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                                  className="inline-flex h-8 items-center justify-center rounded-lg bg-red-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-red-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-50"
                                   disabled={eliminandoLoading === conductor.id}
                                 >
                                   {eliminandoLoading === conductor.id ? (
-                                    <Loader2 size={14} className="mr-1 animate-spin" />
+                                    <Loader2
+                                      size={14}
+                                      className="mr-1 animate-spin"
+                                    />
                                   ) : (
                                     <Trash2 size={14} className="mr-1" />
                                   )}
@@ -476,15 +491,23 @@ const LoadingSpinner = () => (
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    ¿Estás seguro?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el conductor &quot;{conductor.nombre}&quot; del sistema.
+                                    Esta acción no se puede deshacer. Esto
+                                    eliminará permanentemente el conductor
+                                    &quot;{conductor.nombre}&quot; del sistema.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => eliminarConductor(conductor.id)}
+                                    onClick={() =>
+                                      eliminarConductor(conductor.id)
+                                    }
                                     className="bg-red-600 hover:bg-red-700"
                                   >
                                     Eliminar
@@ -497,11 +520,14 @@ const LoadingSpinner = () => (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <button
-                                  className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-yellow-500 text-xs font-medium text-white transition-all duration-200 hover:bg-yellow-600 hover:shadow-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1"
+                                  className="inline-flex h-8 items-center justify-center rounded-lg bg-yellow-500 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-yellow-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 disabled:opacity-50"
                                   disabled={liberandoLoading === conductor.id}
                                 >
                                   {liberandoLoading === conductor.id ? (
-                                    <Loader2 size={14} className="mr-1 animate-spin" />
+                                    <Loader2
+                                      size={14}
+                                      className="mr-1 animate-spin"
+                                    />
                                   ) : (
                                     <Eye size={14} className="mr-1" />
                                   )}
@@ -510,15 +536,23 @@ const LoadingSpinner = () => (
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    ¿Estás seguro?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    ¿Deseas liberar al conductor &quot;{conductor.nombre}&quot;? Esta acción liberará al conductor de su unidad actual.
+                                    ¿Deseas liberar al conductor &quot;
+                                    {conductor.nombre}&quot;? Esta acción
+                                    liberará al conductor de su unidad actual.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => liberarConductor(conductor.id)}
+                                    onClick={() =>
+                                      liberarConductor(conductor.id)
+                                    }
                                     className="bg-yellow-600 hover:bg-yellow-700"
                                   >
                                     Liberar
@@ -527,7 +561,7 @@ const LoadingSpinner = () => (
                               </AlertDialogContent>
                             </AlertDialog>
 
-                            <button className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-purple-600 text-xs font-medium text-white transition-all duration-200 hover:bg-purple-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
+                            <button className="inline-flex h-8 items-center justify-center rounded-lg bg-purple-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-purple-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
                               <FileCheck size={14} className="mr-1" />
                               Documentos
                             </button>
@@ -537,11 +571,16 @@ const LoadingSpinner = () => (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <button
-                                    className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-gray-500 text-xs font-medium text-white transition-all duration-200 hover:bg-gray-600 hover:shadow-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1"
-                                    disabled={habilitandoLoading === conductor.id}
+                                    className="inline-flex h-8 items-center justify-center rounded-lg bg-gray-500 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 disabled:opacity-50"
+                                    disabled={
+                                      habilitandoLoading === conductor.id
+                                    }
                                   >
                                     {habilitandoLoading === conductor.id ? (
-                                      <Loader2 size={14} className="mr-1 animate-spin" />
+                                      <Loader2
+                                        size={14}
+                                        className="mr-1 animate-spin"
+                                      />
                                     ) : (
                                       <UserX size={14} className="mr-1" />
                                     )}
@@ -550,15 +589,24 @@ const LoadingSpinner = () => (
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                      ¿Estás seguro?
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      ¿Deseas deshabilitar al conductor &quot;{conductor.nombre}&quot;? El conductor no podrá ser asignado a unidades mientras esté deshabilitado.
+                                      ¿Deseas deshabilitar al conductor &quot;
+                                      {conductor.nombre}&quot;? El conductor no
+                                      podrá ser asignado a unidades mientras
+                                      esté deshabilitado.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancelar
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => deshabilitarConductor(conductor.id)}
+                                      onClick={() =>
+                                        deshabilitarConductor(conductor.id)
+                                      }
                                       className="bg-gray-600 hover:bg-gray-700"
                                     >
                                       Deshabilitar
@@ -570,11 +618,16 @@ const LoadingSpinner = () => (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <button
-                                    className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-green-600 text-xs font-medium text-white transition-all duration-200 hover:bg-green-700 hover:shadow-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
-                                    disabled={habilitandoLoading === conductor.id}
+                                    className="inline-flex h-8 items-center justify-center rounded-lg bg-green-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-50"
+                                    disabled={
+                                      habilitandoLoading === conductor.id
+                                    }
                                   >
                                     {habilitandoLoading === conductor.id ? (
-                                      <Loader2 size={14} className="mr-1 animate-spin" />
+                                      <Loader2
+                                        size={14}
+                                        className="mr-1 animate-spin"
+                                      />
                                     ) : (
                                       <UserCheck size={14} className="mr-1" />
                                     )}
@@ -583,15 +636,24 @@ const LoadingSpinner = () => (
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogTitle>
+                                      ¿Estás seguro?
+                                    </AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      ¿Deseas habilitar al conductor &quot;{conductor.nombre}&quot;? El conductor podrá ser asignado a unidades una vez habilitado.
+                                      ¿Deseas habilitar al conductor &quot;
+                                      {conductor.nombre}&quot;? El conductor
+                                      podrá ser asignado a unidades una vez
+                                      habilitado.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                      Cancelar
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => habilitarConductor(conductor.id)}
+                                      onClick={() =>
+                                        habilitarConductor(conductor.id)
+                                      }
                                       className="bg-green-600 hover:bg-green-700"
                                     >
                                       Habilitar

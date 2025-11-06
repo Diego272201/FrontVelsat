@@ -94,24 +94,24 @@ export default function ConductorDialogModificar({
   });
 
   // Cargar datos del conductor cuando se abre el modal
-  useEffect(() => {
-    if (isOpen && conductorData) {
-      setFormData({
-        apellidos: conductorData.apellidos || '',
-        dni: conductorData.dni || '',
-        sexo:
-          conductorData.sexo === 'M'
-            ? 'masculino'
-            : conductorData.sexo === 'F'
-              ? 'femenino'
-              : '',
-        login: conductorData.login || '',
-        clave: conductorData.clave || '',
-        telefono: conductorData.telefono || '',
-        email: conductorData.email || '',
-      });
-    }
-  }, [isOpen, conductorData]);
+  // useEffect(() => {
+  //   if (isOpen && conductorData) {
+  //     setFormData({
+  //       apellidos: conductorData.apellidos || '',
+  //       dni: conductorData.dni || '',
+  //       sexo:
+  //         conductorData.sexo === 'M'
+  //           ? 'masculino'
+  //           : conductorData.sexo === 'F'
+  //             ? 'femenino'
+  //             : '',
+  //       login: conductorData.login || '',
+  //       clave: conductorData.clave || '',
+  //       telefono: conductorData.telefono || '',
+  //       email: conductorData.email || '',
+  //     });
+  //   }
+  // }, [isOpen, conductorData]);
 
   const handleInputChange = (field: FormField, value: string) => {
     setFormData((prev) => ({
@@ -268,13 +268,27 @@ export default function ConductorDialogModificar({
     }
   };
 
-  const handleOpenModal = () => {
-    if (!conductorData) {
-      toast.error('No se encontraron datos del conductor');
-      return;
-    }
-    setIsOpen(true);
-  };
+const handleOpenModal = () => {
+  if (!conductorData) {
+    toast.error('No se encontraron datos del conductor');
+    return;
+  }
+
+  // Prepara los datos antes de abrir
+  setFormData({
+    apellidos: conductorData.apellidos || '',
+    dni: conductorData.dni || '',
+    sexo: conductorData.sexo === 'M' ? 'masculino' :
+          conductorData.sexo === 'F' ? 'femenino' : '',
+    login: conductorData.login || '',
+    clave: conductorData.clave || '',
+    telefono: conductorData.telefono || '',
+    email: conductorData.email || '',
+  });
+
+  setIsOpen(true);
+};
+
 
   const inputFields: FieldConfig[] = [
     { id: 'apellidos', label: 'Nombre Completo', icon: User, type: 'text' },
