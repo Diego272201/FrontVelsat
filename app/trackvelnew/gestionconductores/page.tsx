@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from '@/app/components/ui/alert-dialog';
 import { useUsername } from '@/hooks/useUsername';
+import { Spinner } from '@nextui-org/react';
 
 // Definir tipos
 interface Conductor {
@@ -68,7 +69,7 @@ export default function Page() {
 
   // Función para obtener datos de la API
   const fetchConductores = async () => {
-    if (!isReady) return; 
+    if (!isReady) return;
 
     try {
       setLoading(true);
@@ -276,11 +277,11 @@ export default function Page() {
       prev.map((conductor) =>
         conductor.id === modifiedConductor.codigo
           ? {
-              id: modifiedConductor.codigo,
-              nombre: modifiedConductor.apellidos.trim(),
-              telefono: modifiedConductor.telefono || '',
-              correo: modifiedConductor.email || '',
-            }
+            id: modifiedConductor.codigo,
+            nombre: modifiedConductor.apellidos.trim(),
+            telefono: modifiedConductor.telefono || '',
+            correo: modifiedConductor.email || '',
+          }
           : conductor,
       ),
     );
@@ -310,13 +311,12 @@ export default function Page() {
   );
 
   // Componente de loading
-  const LoadingSpinner = () => (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      <span className="ml-3 text-gray-600 text-lg">Cargando conductores...</span>
-    </div>
-  );
-
+const LoadingSpinner = () => (
+  <div className="flex flex-col items-center justify-center py-12">
+    <Spinner color="primary" size="md" />
+    <span className="mt-3 text-gray-600 text-md">Cargando conductores...</span>
+  </div>
+);
   // Componente de error
   const ErrorMessage = () => (
     <div className="flex items-center justify-center py-12">
@@ -336,25 +336,26 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header moderno */}
-      <div className="bg-white shadow-lg border-b border-gray-200">
-        <div className="px-4 py-2">
+      <div className="bg-[#113EB9] shadow-lg border-b border-gray-200">
+        <div className="px-4 py-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg">
-                <Users className="h-5 w-5 text-white" />
+              <div className="flex items-center justify-center w-10 h-10  bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
+                <Users className="h-6 w-6 text-white drop-shadow-md" />
               </div>
+
               <div>
-                <h1 className="text-[14px] font-bold text-gray-900 tracking-tight uppercase">
+                <h1 className="text-[14px] font-bold text-white tracking-tight uppercase">
                   Gestión de Conductores
                 </h1>
-                <p className="text-gray-600 mt-1 text-[12px]">
+                <p className="text-gray-200 mt-0 text-[12px]">
                   Administra y controla la información de todos los conductores
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-50 px-4 py-2 border border-blue-200">
-                <span className="text-sm font-medium text-blue-700">
+              <div className=" px-4 py-1 ">
+                <span className="text-sm font-medium text-white">
                   Total: {conductores.length} conductores
                 </span>
               </div>
@@ -366,14 +367,14 @@ export default function Page() {
       {/* Contenido principal */}
       <div className="mx-auto px-4 py-2">
         {/* Barra de búsqueda y acciones */}
-        <div className="shadow-sm border border-gray-200 p-0 mb-6">
+        <div className="p-0 mb-3">
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
-                placeholder="Buscar conductor por nombre..."
+                placeholder="Buscar conductor por nombre"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 disabled={loading}
@@ -401,9 +402,9 @@ export default function Page() {
             <ErrorMessage />
           ) : (
             <div className="overflow-x-auto">
-              <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
+              <div className="max-h-[calc(100vh-150px)] overflow-y-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0 z-10 bg-gradient-to-r from-gray-800 to-gray-700 shadow-sm">
+<thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
                     <tr>
                       <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
                         #

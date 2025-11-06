@@ -29,6 +29,7 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUsername } from '@/hooks/useUsername';
@@ -214,14 +215,22 @@ const validateForm = () => {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        disabled={loading || !isReady}
-        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-[9px] px-6 text-sm shadow-lg transition-all duration-300 transform disabled:opacity-50"
-      >
-        Nuevo Conductor
-      </button>
+<button
+  type="button"
+  onClick={() => setIsOpen(true)}
+  disabled={loading || !isReady}
+  className="flex items-center justify-center gap-2 w-full 
+             bg-gradient-to-r from-orange-600 to-orange-600
+             hover:from-orange-600 hover:to-orange-700
+             text-white py-[9px] px-6 text-sm font-medium 
+             shadow-lg transition-all duration-300 transform 
+             disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  <Plus className="w-4 h-4" />
+  Nuevo Conductor
+</button>
+
+
 
       <Dialog open={isOpen} onOpenChange={!loading ? setIsOpen : undefined}>
         <DialogContent className="sm:max-w-[550px] border-0 shadow-2xl bg-white/95 backdrop-blur-lg max-h-[90vh] overflow-y-auto">
