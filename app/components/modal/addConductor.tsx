@@ -91,30 +91,18 @@ export default function ConductorDialog({
     setShowPassword(false);
   };
 
-  const validateForm = () => {
-    const requiredFields: FormField[] = ["apellidos", "login", "clave", "dni"];
+const validateForm = () => {
+  const requiredFields: FormField[] = ["apellidos", "login", "clave"]; // ⬅️ Quitamos "dni"
 
-    for (const field of requiredFields) {
-      if (!formData[field].trim()) {
-        toast.error(`El campo ${getFieldLabel(field)} es obligatorio`);
-        return false;
-      }
-    }
-
-    // Validar DNI (8 dígitos)
-    if (formData.dni.length !== 8 || !/^\d+$/.test(formData.dni)) {
-      toast.error("El DNI debe tener 8 dígitos");
+  for (const field of requiredFields) {
+    if (!formData[field].trim()) {
+      toast.error(`El campo ${getFieldLabel(field)} es obligatorio`);
       return false;
     }
+  }
 
-    // Validar email si se proporciona
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error("Ingrese un email válido");
-      return false;
-    }
-
-    return true;
-  };
+  return true;
+};
 
   const getFieldLabel = (field: FormField): string => {
     const labels: Record<FormField, string> = {
@@ -130,77 +118,83 @@ export default function ConductorDialog({
   };
 
   const handleGuardar = async () => {
-    if (!validateForm() || !isReady) return; // ✅ Agregar !isReady
+  if (!validateForm() || !isReady) return;
 
-    setLoading(true);
-    const loadingToast = toast.loading("Guardando conductor...");
+  setLoading(true);
+  const loadingToast = toast.loading("Guardando conductor...");
 
-    try {
-      // Transformar sexo a formato API (M/F)
-      const sexoAPI =
-        formData.sexo === "masculino"
-          ? "M"
-          : formData.sexo === "femenino"
-          ? "F"
-          : "M";
+  try {
+    const sexoAPI =
+      formData.sexo === "masculino"
+        ? "M"
+        : formData.sexo === "femenino"
+        ? "F"
+        : "M";
 
-      const payload = {
-        apellidos: formData.apellidos.trim(),
-        login: formData.login.trim(),
-        clave: formData.clave.trim(),
-        telefono: formData.telefono.trim(),
-        dni: formData.dni.trim(),
-        email: formData.email.trim(),
-        sexo: sexoAPI,
-      };
+    const payload = {
+      nombres: "",                           // ⬅️ AGREGAR (vacío o usar apellidos)
+      apellidos: formData.apellidos.trim(),
+      login: formData.login.trim(),
+      clave: formData.clave.trim(),
+      telefono: formData.telefono.trim(),
+      dni: formData.dni.trim(),
+      email: formData.email.trim(),
+      sexo: sexoAPI,
+      // ⬅️ AGREGAR estos campos que el backend necesita
+      brevete: "",
+      direccion: "",
+      sctr: "",
+      catBrevete: "",
+      estBrevete: "",
+      fecValidBrevete: "",
+      unidadActual: ""  // Si quieres asignar a una unidad
+    };
 
-      const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/NuevoConductor/${username}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      console.log(payload);
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`Error ${response.status}: ${errorData}`);
+    const response = await fetch(
+      `https://velsat.pe:2096/api/Preplan/NuevoConductor/${username}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       }
+    );
 
-      // Éxito
-      toast.dismiss(loadingToast);
-      toast.success("Conductor guardado exitosamente");
+    console.log("Payload enviado:", payload); // ⬅️ Verifica qué envías
 
-      // Cerrar modal y resetear formulario
-      setIsOpen(false);
-      resetForm();
-
-      // Llamar función para actualizar la lista
-      if (onConductorAdded) {
-        onConductorAdded();
-      }
-    } catch (error: unknown) {
-      toast.dismiss(loadingToast);
-      console.error("Error al guardar conductor:", error);
-
-      let errorMessage = "Error al guardar el conductor";
-
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      toast.error(errorMessage);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Error del servidor:", errorData); // ⬅️ Ver error exacto
+      throw new Error(`Error ${response.status}: ${errorData}`);
     }
-  };
+
+    toast.dismiss(loadingToast);
+    toast.success("Conductor guardado exitosamente");
+
+    setIsOpen(false);
+    resetForm();
+
+    if (onConductorAdded) {
+      onConductorAdded();
+    }
+  } catch (error: unknown) {
+    toast.dismiss(loadingToast);
+    console.error("Error al guardar conductor:", error);
+
+    let errorMessage = "Error al guardar el conductor";
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
+
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCerrar = () => {
     if (!loading) {
@@ -256,7 +250,7 @@ export default function ConductorDialog({
                 >
                   <field.icon className="w-4 h-4 text-orange-500" />
                   {field.label}
-                  {["apellidos", "dni", "login", "clave"].includes(
+                  {["apellidos", "login", "clave"].includes(
                     field.id
                   ) && <span className="text-red-500">*</span>}
                 </Label>
