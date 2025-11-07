@@ -201,9 +201,11 @@ const filteredUnidades = useMemo(() => {
     );
   }
 
+
   // Aplicar filtro de movimiento/detenidas
   if (filtroMovimiento === 'movimiento') {
     resultado = resultado.filter((unidad) => unidad.lastValidSpeed >= 1);
+    
   } else if (filtroMovimiento === 'detenidas') {
     resultado = resultado.filter((unidad) => unidad.lastValidSpeed === 0);
   }
