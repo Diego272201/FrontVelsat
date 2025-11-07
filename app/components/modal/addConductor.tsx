@@ -218,7 +218,7 @@ const validateForm = () => {
 <button
   type="button"
   onClick={() => setIsOpen(true)}
-  disabled={loading || !isReady}
+  disabled={loading}
   className="flex items-center justify-center gap-2 w-full 
              bg-gradient-to-r from-orange-600 to-orange-600
              hover:from-orange-600 hover:to-orange-700
@@ -250,94 +250,103 @@ const validateForm = () => {
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            {inputFields.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <Label
-                  htmlFor={field.id}
-                  className="text-sm font-medium text-gray-700 flex items-center gap-2"
-                >
-                  <field.icon className="w-4 h-4 text-orange-500" />
-                  {field.label}
-                  {["apellidos", "login", "clave"].includes(
-                    field.id
-                  ) && <span className="text-red-500">*</span>}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id={field.id}
-                    type={field.id === "clave" && showPassword ? "text" : field.type}
-                    value={formData[field.id]}
-                    onChange={(e) =>
-                      handleInputChange(field.id, e.target.value)
-                    }
-                    disabled={loading}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/70 disabled:opacity-50"
-                    placeholder={`Ingrese ${field.label.toLowerCase()}`}
-                    maxLength={field.id === "dni" ? 8 : undefined}
-                  />
-                  <div className="absolute inset-y-0 right-3 flex items-center">
-                    {field.id === "clave" ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={loading}
-                        className="text-gray-500 hover:text-orange-500 transition-colors disabled:opacity-50"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    ) : (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full opacity-50 pointer-events-none"></div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="sexo"
-                className="text-sm font-medium text-gray-700 flex items-center gap-2"
-              >
-                <Users className="w-4 h-4 text-orange-500" />
-                Género
-                <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.sexo}
-                onValueChange={(value) => handleInputChange("sexo", value)}
+          {/* 👇 Envuelve todo en un form con autoComplete="off" */}
+    <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
+      <div className="space-y-4 py-2">
+        {inputFields.map((field) => (
+          <div key={field.id} className="space-y-2">
+            <Label
+              htmlFor={field.id}
+              className="text-sm font-medium text-gray-700 flex items-center gap-2"
+            >
+              <field.icon className="w-4 h-4 text-orange-500" />
+              {field.label}
+              {["apellidos", "login", "clave"].includes(
+                field.id
+              ) && <span className="text-red-500">*</span>}
+            </Label>
+            <div className="relative">
+              <Input
+                id={field.id}
+                name={`conductor-${field.id}`} // 👈 Nombre único
+                type={field.id === "clave" && showPassword ? "text" : field.type}
+                value={formData[field.id]}
+                onChange={(e) =>
+                  handleInputChange(field.id, e.target.value)
+                }
                 disabled={loading}
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/70 disabled:opacity-50">
-                  <SelectValue placeholder="Seleccione el género" />
-                </SelectTrigger>
-                <SelectContent className="bg-white/95 backdrop-blur-lg border-gray-200 shadow-xl">
-                  <SelectItem
-                    value="masculino"
-                    className="hover:bg-orange-50 focus:bg-orange-50"
+                autoComplete="off" // 👈 Desactivar autocompletado
+                data-form-type="other" // 👈 Hint adicional
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute('readonly')} // 👈 Y esto
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/70 disabled:opacity-50"
+                placeholder={`Ingrese ${field.label.toLowerCase()}`}
+                maxLength={field.id === "dni" ? 8 : undefined}
+              />
+              <div className="absolute inset-y-0 right-3 flex items-center">
+                {field.id === "clave" ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    className="text-gray-500 hover:text-orange-500 transition-colors disabled:opacity-50"
                   >
-                    Masculino
-                  </SelectItem>
-                  <SelectItem
-                    value="femenino"
-                    className="hover:bg-orange-50 focus:bg-orange-50"
-                  >
-                    Femenino
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="w-2 h-2 bg-blue-400 rounded-full opacity-50 pointer-events-none"></div>
+                )}
+              </div>
             </div>
           </div>
+        ))}
+
+        <div className="space-y-2">
+          <Label
+            htmlFor="sexo"
+            className="text-sm font-medium text-gray-700 flex items-center gap-2"
+          >
+            <Users className="w-4 h-4 text-orange-500" />
+            Género
+            <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formData.sexo}
+            onValueChange={(value) => handleInputChange("sexo", value)}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm hover:bg-white/70 disabled:opacity-50">
+              <SelectValue placeholder="Seleccione el género" />
+            </SelectTrigger>
+            <SelectContent className="bg-white/95 backdrop-blur-lg border-gray-200 shadow-xl">
+              <SelectItem
+                value="masculino"
+                className="hover:bg-orange-50 focus:bg-orange-50"
+              >
+                Masculino
+              </SelectItem>
+              <SelectItem
+                value="femenino"
+                className="hover:bg-orange-50 focus:bg-orange-50"
+              >
+                Femenino
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </form>
+    {/* 👆 Cierra el form aquí */}
 
           <DialogFooter className="gap-3 pt-6">
             <Button
               onClick={handleCerrar}
               disabled={loading}
-              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
+              className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
             >
               <X className="w-4 h-4 mr-2" />
               Cancelar
