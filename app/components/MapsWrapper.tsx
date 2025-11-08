@@ -4,7 +4,7 @@ import { GoogleMapsProvider } from '@/context/GoogleMapsContext';
 import { ReactNode, useMemo } from 'react';
 
 // Define users that should use TALMA API key
-const TALMA_USERS = ['talmav', 'agfajardo', 'fjbarboza', 'rccoaguila', 'rmlozano', 'talma']; // Add your additional usernames here
+const TALMA_USERS = ['talmav', 'agfajardo', 'fjbarboza', 'rccoaguila', 'rmlozano', 'talma', 'aloremisse']; // Add your additional usernames here
 
 // Mapeo de usuarios a sus respectivas API keys
 const API_KEY_MAP: Record<string, string> = {
