@@ -481,7 +481,10 @@ const Tollbar: React.FC = () => {
   const { modals, openModal, closeModal } = useModalState();
 
   const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
-  const isSedapal = useMemo(() => baseUrl === 'https://sub.velsat.pe:2096', [baseUrl]);
+  const isSedapal = useMemo(
+    () => baseUrl === 'https://sub.velsat.pe:2096',
+    [baseUrl],
+  );
 
   const TALMAV_LIKE_USERS = [
     'talmav',
@@ -493,11 +496,11 @@ const Tollbar: React.FC = () => {
     'talma',
     'aloremisse',
   ];
-  const VIEWERS = [
-    'aremyscontrol1',
-    'aremyscontrol2',
-  ];
-  const isTalmav = useMemo(() => TALMAV_LIKE_USERS.includes(username), [username]);
+  const VIEWERS = ['aremyscontrol1', 'aremyscontrol2'];
+  const isTalmav = useMemo(
+    () => TALMAV_LIKE_USERS.includes(username),
+    [username],
+  );
   const isMovilbus = useMemo(() => username === 'movilbus', [username]);
   const isAremys = useMemo(() => username === 'aremys', [username]);
   const isView = useMemo(() => VIEWERS.includes(username), [username]);
@@ -1446,9 +1449,9 @@ const Tollbar: React.FC = () => {
               toggleMenu('reportes'),
             )}
           </div>
-         ) : isView ? (
+        ) : isView ? (
           // SIDEBAR PARA AREMYS
-          <div className="mb-0 space-y-0">       
+          <div className="mb-0 space-y-0">
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
             )}
