@@ -13,6 +13,7 @@ import '@/app/styles/sonner.css';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { FaChevronDown } from 'react-icons/fa';
+import { useUsername } from '@/hooks/useUsername';
 
 interface AppModalProps {
   isOpen: boolean;
@@ -49,34 +50,53 @@ const AppModalServicios: React.FC<AppModalProps> = ({
   const [fecha, setFecha] = useState('');
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [selectedServicio, setSelectedServicio] = useState<string>('');
+  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
 
   function formatearFecha(fechaEntrada: string): string {
-    const [anio, mes, dia] = fechaEntrada.split('-'); 
+    const [anio, mes, dia] = fechaEntrada.split('-');
 
     return `${dia}/${mes}/${anio}`;
   }
 
   function convertirFechaFormatoISO(fecha: string | null | undefined): string {
     if (!fecha || !fecha.includes('/')) return '';
-  
+
     const [fechaParte, horaParte = '00:00:00'] = fecha.split(' ');
     const [dia, mes, anio] = fechaParte.split('/');
-  
+
     if (!dia || !mes || !anio) return '';
-  
+
     return `${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T${horaParte}`;
   }
-  
+
   useEffect(() => {
     const fetchServicios = async () => {
-      if (!fecha) return;
+      if (!fecha || !isReady) return;
 
       const fechaFormateada = formatearFecha(fecha);
 
+      // ✅ Condiciones personalizadas según username
+      let empresa: string | null = null;
+      let usuario: string | null = null;
+
+      if (username === 'talmav') {
+        empresa = 'TALMA';
+        usuario = 'cgacela';
+      } else if (
+        username === 'aremyscontrol1' ||
+        username === 'aremyscontrol2'
+      ) {
+        empresa = 'SASAA';
+        usuario = 'aremys';
+      }
+
       try {
         const response = await fetch(
-          `https://velsat.pe:2096/api/Recorrido/SelectServicio?fecha=${fechaFormateada}`,
+          `https://velsat.pe:2096/api/Recorrido/SelectServicio?fecha=${fechaFormateada}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
         );
+
+        if (!response.ok) throw new Error('Error al obtener servicios');
+
         const data = await response.json();
         setServicios(data);
       } catch (error) {
@@ -86,7 +106,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
     };
 
     fetchServicios();
-  }, [fecha]);
+  }, [fecha, isReady, username]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -105,7 +125,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
       });
       return;
     }
-  
+
     const servicioSeleccionado = servicios.find((item) => {
       const tipoTexto = item.tipo === 'S' ? 'Salida' : 'Ingreso';
       return (
@@ -113,28 +133,40 @@ const AppModalServicios: React.FC<AppModalProps> = ({
         `Número: ${item.numero} - Tipo: ${tipoTexto} - Empresa: ${item.empresa}`
       );
     });
-  
+
     if (!servicioSeleccionado) {
       toast.error('Servicio no válido');
       return;
     }
-  
+
     const fechaFormateada = formatearFecha(fecha);
+
+    // ✅ Condiciones personalizadas según username
+    let empresa: string | null = null;
+    let usuario: string | null = null;
+
+    if (username === 'talmav') {
+      empresa = 'TALMA';
+      usuario = 'cgacela';
+    } else if (username === 'aremyscontrol1' || username === 'aremyscontrol2') {
+      empresa = 'SASAA';
+      usuario = 'aremys';
+    }
 
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}`,
+        `https://velsat.pe:2096/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
       );
-  
+
       if (!response.ok) {
         throw new Error('Error al obtener datos del servicio');
       }
-  
+
       const data = await response.json();
 
       const fechainiFormateada = convertirFechaFormatoISO(data.fechaini);
       const fechafinFormateada = convertirFechaFormatoISO(data.fechafin);
-  
+
       const queryParams = new URLSearchParams({
         codservicio: data.codservicio,
         numero: data.numero,
@@ -145,7 +177,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
         fechafin: fechafinFormateada || '',
         fechaoriginal: fecha,
       });
-  
+
       const url = `/trackvelnew/estadistica/${nameurl}?${queryParams.toString()}`;
       window.open(url, '_blank');
     } catch (error) {
@@ -246,7 +278,6 @@ const AppModalServicios: React.FC<AppModalProps> = ({
               >
                 Mostrar
               </Button>
-          
             </ModalFooter>
           </>
         )}

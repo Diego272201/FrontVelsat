@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 import ModalAddService from './ModalAddService';
 import ModalPasajero from './ModalPasajero';
-import ModalAddPasajeros from './ModalAddPasajeros';
 import Swal from 'sweetalert2';
+import { useUsername } from '@/hooks/useUsername';
 
 interface ApiService {
   codservicio: string;
@@ -122,6 +122,7 @@ const ServicesSearchSystem: React.FC = () => {
   const [tipo, setTipo] = useState('');
   const [aerolinea, setAerolinea] = useState('');
   const [estado, setEstado] = useState('');
+  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
 
   // Estados para la API
   const [services, setServices] = useState<Service[]>([]);
@@ -170,74 +171,77 @@ const ServicesSearchSystem: React.FC = () => {
 
   const [loadingAsignacion, setLoadingAsignacion] = useState(false);
 
-
   const [isFirstTimeFromDate, setIsFirstTimeFromDate] = useState(true);
-const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
+  const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
 
   // Función para transformar datos de la API
-// Función para transformar datos de la API
-const transformApiData = (apiData: ApiService[]): Service[] => {
-  return apiData.map((item) => {
-    return {
-      id: item.codservicio,
-      numero: item.numeromovil,
-      tierra:
-        item.grupo === 'T'
-          ? 'Tierra'
-          : item.grupo === 'A'
-            ? 'Aire'
-            : item.grupo,
-      tipo:
-        item.tipo === 'S'
-          ? 'Salida'
-          : item.tipo === 'I'
-            ? 'Entrada'
-            : item.tipo,
-      fechaAeropuerto: item.fecha,
-      // CONDUCTOR: Validación corregida para manejar nombres en campo apepate
-      conductor: (() => {
-        if (!item.conductor) return 'Sin asignar';
-        
-        const nombre = item.conductor.nombre || '';
-        const apepate = item.conductor.apepate || '';
-        
-        // Limpiar espacios extras
-        const nombreLimpio = nombre.trim();
-        const apepateLimpio = apepate.trim();
-        
-        // Si ambos tienen contenido
-        if (nombreLimpio && apepateLimpio) {
-          return `${nombreLimpio} ${apepateLimpio}`;
-        }
-        
-        // Si solo apepate tiene contenido (caso común en tu sistema)
-        if (apepateLimpio) {
-          return apepateLimpio;
-        }
-        
-        // Si solo nombre tiene contenido
-        if (nombreLimpio) {
-          
-          return nombreLimpio;
-        }
-        
-        // Si tiene código pero no nombre ni apellido
-        if (item.conductor.codigo) {
-          return `Conductor ${item.conductor.codigo}`;
-        }
-        
-        return 'Sin asignar';
-      })(),
-      unidad: item.unidad?.codunidad || 'Sin asignar',
-      aerolinea: item.empresa,
-      estado: item.estado,
-      numpax: item.numpax,
-    };
-  });
-};
+  // Función para transformar datos de la API
+  const transformApiData = (apiData: ApiService[]): Service[] => {
+    return apiData.map((item) => {
+      return {
+        id: item.codservicio,
+        numero: item.numeromovil,
+        tierra:
+          item.grupo === 'T'
+            ? 'Tierra'
+            : item.grupo === 'A'
+              ? 'Aire'
+              : item.grupo,
+        tipo:
+          item.tipo === 'S'
+            ? 'Salida'
+            : item.tipo === 'I'
+              ? 'Entrada'
+              : item.tipo,
+        fechaAeropuerto: item.fecha,
+        // CONDUCTOR: Validación corregida para manejar nombres en campo apepate
+        conductor: (() => {
+          if (!item.conductor) return 'Sin asignar';
+
+          const nombre = item.conductor.nombre || '';
+          const apepate = item.conductor.apepate || '';
+
+          // Limpiar espacios extras
+          const nombreLimpio = nombre.trim();
+          const apepateLimpio = apepate.trim();
+
+          // Si ambos tienen contenido
+          if (nombreLimpio && apepateLimpio) {
+            return `${nombreLimpio} ${apepateLimpio}`;
+          }
+
+          // Si solo apepate tiene contenido (caso común en tu sistema)
+          if (apepateLimpio) {
+            return apepateLimpio;
+          }
+
+          // Si solo nombre tiene contenido
+          if (nombreLimpio) {
+            return nombreLimpio;
+          }
+
+          // Si tiene código pero no nombre ni apellido
+          if (item.conductor.codigo) {
+            return `Conductor ${item.conductor.codigo}`;
+          }
+
+          return 'Sin asignar';
+        })(),
+        unidad: item.unidad?.codunidad || 'Sin asignar',
+        aerolinea: item.empresa,
+        estado: item.estado,
+        numpax: item.numpax,
+      };
+    });
+  };
 
   // Función para buscar pasajeros
   const searchPasajeros = async (palabra: string) => {
+    if (!isReady || !username) {
+      toast.error('Usuario no disponible');
+      return;
+    }
+
     if (palabra.length < 3) {
       setPasajeroSuggestions([]);
       setShowPasajeroSuggestions(false);
@@ -246,7 +250,7 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
 
     setLoadingPasajeros(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=cgacela`;
+      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -267,6 +271,11 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
 
   // Función para buscar conductores
   const searchConductores = async (palabra: string) => {
+    if (!isReady || !username) {
+      toast.error('Usuario no disponible');
+      return;
+    }
+
     if (palabra.length < 2) {
       setConductorSuggestions([]);
       setShowConductorSuggestions(false);
@@ -275,7 +284,7 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
 
     setLoadingConductores(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=cgacela`;
+      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -303,6 +312,11 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
 
   // Función para buscar unidades
   const searchUnidades = async (palabra: string) => {
+    if (!isReady || !username) {
+      toast.error('Usuario no disponible');
+      return;
+    }
+
     if (palabra.length < 2) {
       setUnidadSuggestions([]);
       setShowUnidadSuggestions(false);
@@ -311,7 +325,7 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
 
     setLoadingUnidades(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/carros/cgacela`;
+      const url = `https://velsat.pe:2096/api/Preplan/carros/${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -337,8 +351,12 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
     }
   };
 
-  // Función para obtener datos de la API
   const fetchServices = async () => {
+    if (!isReady || !username) {
+      toast.error('Usuario no disponible');
+      return;
+    }
+
     if (!dateFrom || !dateTo) {
       toast.error('Por favor selecciona las fechas de inicio y fin');
       return;
@@ -350,12 +368,19 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
     try {
       let data: ApiService[] = [];
 
-      // Si hay un pasajero seleccionado, usar la API específica del pasajero
       if (selectedPasajero && selectedPasajero.codlan) {
-        const fechaFormatted = dateFrom.split('T')[0]; // Solo fecha YYYY-MM-DD
-        const url = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=cgacela&fec=${fechaFormatted}&codcliente=${selectedPasajero.codlan}`;
+        const fechaFormatted = dateFrom.split('T')[0];
+        const url = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${fechaFormatted}&codcliente=${selectedPasajero.codlan}`;
 
         const response = await fetch(url);
+
+        // ✅ Manejo específico para 404
+        if (response.status === 404) {
+          toast.info('No hay servicios para las fechas ingresadas');
+          setServices([]);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -365,12 +390,19 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
           `Se cargaron ${data.length} servicios del pasajero ${selectedPasajero.apepate}`,
         );
       } else {
-        // Usar la API general de servicios
         const fechainiFormatted = dateFrom.replace('T', ' ');
         const fechafinFormatted = dateTo.replace('T', ' ');
-        const url = `https://velsat.pe:2096/api/Gacela/Getservicios?fechaini=${fechainiFormatted}&fechafin=${fechafinFormatted}&usu=cgacela`;
+        const url = `https://velsat.pe:2096/api/Gacela/Getservicios?fechaini=${fechainiFormatted}&fechafin=${fechafinFormatted}&usu=${username}`;
 
         const response = await fetch(url);
+
+        // ✅ Manejo específico para 404
+        if (response.status === 404) {
+          toast.info('No hay servicios para las fechas ingresadas');
+          setServices([]);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`Error HTTP: ${response.status}`);
         }
@@ -497,6 +529,11 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
   };
 
   const asignarServicios = async () => {
+    if (!isReady || !username) {
+      toast.error('Usuario no disponible');
+      return;
+    }
+
     if (
       !selectedConductor ||
       !selectedUnidad ||
@@ -749,27 +786,27 @@ const transformApiData = (apiData: ApiService[]): Service[] => {
       return numA - numB;
     });
 
-const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  if (value && isFirstTimeFromDate) {
-    const selectedDate = value.split('T')[0];
-    setDateFrom(selectedDate + 'T00:00');
-    setIsFirstTimeFromDate(false);
-  } else {
-    setDateFrom(value);
-  }
-};
+  const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value && isFirstTimeFromDate) {
+      const selectedDate = value.split('T')[0];
+      setDateFrom(selectedDate + 'T00:00');
+      setIsFirstTimeFromDate(false);
+    } else {
+      setDateFrom(value);
+    }
+  };
 
-const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  if (value && isFirstTimeToDate) {
-    const selectedDate = value.split('T')[0];
-    setDateTo(selectedDate + 'T23:59');
-    setIsFirstTimeToDate(false);
-  } else {
-    setDateTo(value);
-  }
-};
+  const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value && isFirstTimeToDate) {
+      const selectedDate = value.split('T')[0];
+      setDateTo(selectedDate + 'T23:59');
+      setIsFirstTimeToDate(false);
+    } else {
+      setDateTo(value);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Toaster richColors />
