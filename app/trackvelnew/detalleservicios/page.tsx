@@ -7,6 +7,7 @@ import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
 import { Spinner } from '@nextui-org/react';
 import { AlertCircle } from 'lucide-react';
+import { useUsername } from "@/hooks/useUsername";
 
 interface TransportService {
   servicio: number;
@@ -98,6 +99,22 @@ function PageContent() {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const deviceId = searchParams.get('deviceId');
+  const { username } = useUsername();
+
+  const getEmpresaName = (username: string | null): string => {
+  if (!username) return 'CORPORACIÓN CGACELA S.A.C';
+  
+  const usernameLower = username.toLowerCase();
+  
+  if (usernameLower === 'aremys') {
+    return 'AREMYS';
+  }
+  
+  // Por defecto, devuelve CGACELA
+  return 'CORPORACIÓN CGACELA S.A.C';
+};
+
+  const empresaName = getEmpresaName(username);
 
   const [data, setData] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +137,13 @@ function PageContent() {
       return;
     }
 
+    // Validar que el username esté disponible
+    if (!username) {
+      setError('No se pudo obtener el nombre de usuario');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -131,7 +155,7 @@ function PageContent() {
         return;
       }
 
-      const apiUrl = `https://velsat.pe:2096/api/Gacela/DetalleServicios?usuario=cgacela&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+      const apiUrl = `https://velsat.pe:2096/api/Gacela/DetalleServicios?usuario=${encodeURIComponent(username)}&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
 
       const response = await fetch(apiUrl);
 
@@ -165,6 +189,13 @@ function PageContent() {
       setLoading(false);
     }
   };
+
+  // Efecto para cargar datos cuando cambien las fechas o el username
+  useEffect(() => {
+    if (username) {
+      fetchData();
+    }
+  }, [startDate, endDate, username]);
 
   // Efecto para cargar datos cuando cambien las fechas
   useEffect(() => {
@@ -256,7 +287,7 @@ function PageContent() {
     <div>
       <ReporteHeader
         title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
-        deviceId="CORPORACIÓN CGACELA S.A.C"
+        deviceId={empresaName}
         startDate={startDate ?? ''}
         endDate={endDate ?? ''}
         extraInfo={extraInfo}

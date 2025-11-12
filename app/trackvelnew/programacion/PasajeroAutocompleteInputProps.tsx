@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, User, X, Loader2 } from 'lucide-react';
+import { useUsername } from '@/hooks/useUsername';
 
 interface Pasajero {
   codigo: string;
@@ -51,6 +52,7 @@ const PasajeroAutocompleteInput: React.FC<PasajeroAutocompleteInputProps> = ({
   const [suggestions, setSuggestions] = useState<Pasajero[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { username, isReady } = useUsername();
   
   const autocompleteRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,9 +65,15 @@ const PasajeroAutocompleteInput: React.FC<PasajeroAutocompleteInputProps> = ({
       return;
     }
 
+    // Validar que el username esté disponible
+    if (!username) {
+      console.error('Username no disponible');
+      return;
+    }
+
     setLoading(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=cgacela`;
+      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${encodeURIComponent(username)}`;
       const response = await fetch(url);
 
       if (!response.ok) {

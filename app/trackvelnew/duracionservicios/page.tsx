@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
+import { useUsername } from '@/hooks/useUsername';
 
 interface APIResponse {
   codservicio: string | null;
@@ -77,11 +78,27 @@ interface TransportService {
   empresa: string;
 }
 
+const getEmpresaName = (username: string | null): string => {
+  if (!username) return 'CORPORACIÓN CGACELA S.A.C';
+
+  const usernameLower = username.toLowerCase();
+
+  if (usernameLower === 'aremys') {
+    return 'EMPRESA AREMYS';
+  }
+
+  // Por defecto, devuelve CGACELA
+  return 'CORPORACIÓN CGACELA S.A.C';
+};
+
 function DuracionServiciosContent() {
   const [data, setData] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const { username } = useUsername();
+
+  const empresaName = getEmpresaName(username);
+
   const searchParams = useSearchParams();
 
   const startDate = searchParams.get('startDate');
@@ -111,7 +128,13 @@ function DuracionServiciosContent() {
           return;
         }
 
-        const apiUrl = `https://velsat.pe:2096/api/Gacela/DuracionServicios?usuario=cgacela&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+        if (!username) {
+          setError('No se pudo obtener el nombre de usuario');
+          setLoading(false);
+          return;
+        }
+
+        const apiUrl = `https://velsat.pe:2096/api/Gacela/DuracionServicios?usuario=${encodeURIComponent(username)}&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
 
         const response = await fetch(apiUrl);
 
@@ -144,8 +167,11 @@ function DuracionServiciosContent() {
       }
     };
 
-    fetchData();
-  }, [startDate, endDate, fechaIni, fechaFin]);
+    // Solo ejecutar si username está disponible
+    if (username) {
+      fetchData();
+    }
+  }, [startDate, endDate, fechaIni, fechaFin, username]); // Agregar username aquí
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -211,7 +237,7 @@ function DuracionServiciosContent() {
     <div>
       <ReporteHeader
         title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
-        deviceId="CORPORACION CGACELA S.A.C"
+        deviceId={empresaName}
         startDate={startDate ?? ''}
         endDate={endDate ?? ''}
         extraInfo={extraInfo}
@@ -222,7 +248,6 @@ function DuracionServiciosContent() {
       <div className="w-full overflow-x-auto bg-gradient-to-br from-gray-50 to-gray-100 p-2 shadow-lg">
         <div className="overflow-hidden border border-gray-200 bg-white shadow-sm">
           <div className="h-[calc(100vh-125px)] overflow-y-auto">
-            
             <table className="w-full min-w-max">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
@@ -311,12 +336,16 @@ function DuracionServiciosContent() {
 }
 
 // ✅ COMPONENTE DE LOADING para Suspense
+// ✅ COMPONENTE DE LOADING para Suspense
 function SearchParamsLoading() {
+  const { username } = useUsername();
+  const empresaName = getEmpresaName(username);
+
   return (
     <div>
       <ReporteHeader
         title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
-        deviceId="CORPORACION CGACELA S.A.C"
+        deviceId={empresaName}
         startDate=""
         endDate=""
         extraInfo="Cargando parámetros..."

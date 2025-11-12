@@ -637,6 +637,7 @@ const reverseGeocodeGoogle = async (
                         <SelectItem key="COPA_AIR">COPA AIR</SelectItem>
                         <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
                         <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
+                        <SelectItem key="SASAA">SASAA</SelectItem>                  
                         <SelectItem key="TALMA">TALMA</SelectItem>
                         <SelectItem key="OI_PERU">OI PERU</SelectItem>
                         <SelectItem key="METSO">METSO</SelectItem>

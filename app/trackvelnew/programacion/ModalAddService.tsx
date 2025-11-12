@@ -13,8 +13,9 @@ import {
   SelectItem,
 } from '@nextui-org/react';
 import { Plus, Search, Trash2, Save, Plane, User } from 'lucide-react';
-import { Toaster, toast } from 'sonner';
+import { toast } from 'sonner';
 import PasajeroAutocompleteInput from './PasajeroAutocompleteInputProps';
+import { useUsername } from '@/hooks/useUsername';
 
 interface ModalAddServiceProps {
   onServiceAdded?: () => void;
@@ -40,6 +41,7 @@ export default function ModalAddService({
     aerolinea: '',
   });
 
+  const { username, isReady } = useUsername();
   const [pasajeros, setPasajeros] = useState<string[]>([]);
   const [codigosPasajeros, setCodigosPasajeros] = useState<
     Array<{ codigo: string; codlugar: number }>
@@ -66,6 +68,8 @@ export default function ModalAddService({
     { key: 'terpel', label: 'TERPEL' },
   ];
 
+  const aerolineaAremys = [{ key: 'sasaa', label: 'SASAA' }];
+
   interface Pasajero {
     codigo: string;
     nombre: string | null;
@@ -90,6 +94,13 @@ export default function ModalAddService({
     };
     servicioactual: any;
   }
+
+  const getAerolineaOptions = () => {
+    if (username?.toLowerCase() === 'aremys') {
+      return aerolineaAremys;
+    }
+    return aerolineaOptions;
+  };
 
   // Función para parsear fecha al formato que espera la API (dd/MM/yyyy HH:mm)
   const parseFecha = (fechaString: string) => {
@@ -189,6 +200,15 @@ export default function ModalAddService({
       return;
     }
 
+    // Validar que el username esté disponible
+    if (!username) {
+      toast.error('Error de autenticación', {
+        description: 'No se pudo obtener el nombre de usuario',
+        duration: 5000,
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -243,7 +263,7 @@ export default function ModalAddService({
       console.log('Datos a enviar a la API:', datosServicio);
 
       const response = await fetch(
-        'https://velsat.pe:2096/api/Preplan/AgregarServicio?usuario=cgacela',
+        `https://velsat.pe:2096/api/Preplan/AgregarServicio?usuario=${encodeURIComponent(username)}`,
         {
           method: 'POST',
           headers: {
@@ -485,7 +505,7 @@ export default function ModalAddService({
                           label: 'text-gray-700 font-medium',
                         }}
                       >
-                        {aerolineaOptions.map((option) => (
+                        {getAerolineaOptions().map((option) => (
                           <SelectItem key={option.key} value={option.key}>
                             {option.label}
                           </SelectItem>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { MapContainer, TileLayer, useMap, Marker, Popup, Circle } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import { useUsername } from "@/hooks/useUsername"
 
 // Fix para los iconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -395,15 +396,22 @@ export default function MapComponent() {
   const [radioBusqueda, setRadioBusqueda] = useState(0.5)
   const [center, setCenter] = useState<[number, number] | null>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const { username, isReady } = useUsername();
 
   // Función para obtener datos de la API
-  const fetchUnidades = useCallback(async () => {
+const fetchUnidades = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
+      // Validar que el username esté disponible
+      if (!username) {
+        throw new Error('No se pudo obtener el nombre de usuario')
+      }
+
       const { deviceId, distancia } = getUrlParams()
-      const url = `https://velsat.pe:2096/api/Gacela/UnidadesCercanas?km=${distancia}&codunidad=${deviceId.toUpperCase()}&usuario=cgacela`
+      
+      const url = `https://velsat.pe:2096/api/Gacela/UnidadesCercanas?km=${distancia}&codunidad=${deviceId.toUpperCase()}&usuario=${encodeURIComponent(username)}`
 
       const response = await fetch(url)
       if (!response.ok) {
@@ -425,7 +433,7 @@ export default function MapComponent() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [username]) // Agregar username como dependencia
 
   useEffect(() => {
     injectStyles()
