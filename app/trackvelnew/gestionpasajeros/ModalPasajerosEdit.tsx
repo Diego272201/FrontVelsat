@@ -130,6 +130,7 @@ export default function App({ title, codCliente }: Props) {
       sexo: '',
       empresa: '',
       codigo: '',
+      codlugar: '',
       direccion: '',
       distrito: '',
       wy: '',
@@ -377,45 +378,45 @@ export default function App({ title, codCliente }: Props) {
     });
   };
 
-  const fetchPasajeroDetail = async () => {
-    if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
+ const fetchPasajeroDetail = async () => {
+  if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
 
-    try {
-      const response = await axios.get(
-        `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
-      );
-      const pasajeroData = response.data[0];
+  try {
+    const response = await axios.get(
+      `${baseUrl}/api/Pasajero/Detail/${codCliente}`,
+    );
+    const pasajeroData = response.data[0];
+    const lat = parseFloat(pasajeroData.wy) || 0;
+    const lng = parseFloat(pasajeroData.wx) || 0;
 
-      console.log('Datos del pasajero:', pasajeroData);
+    const tarifaItem = tarifa.find((item) => item.zona === pasajeroData.zona);
+    const codigoZona = tarifaItem ? tarifaItem.codigo.toString() : '';
 
-      const lat = parseFloat(pasajeroData.wy) || 0;
-      const lng = parseFloat(pasajeroData.wx) || 0;
+    const formData = {
+      codlan: pasajeroData.codlan || '',
+      apellidos: pasajeroData.apellidos || '',
+      telefono: pasajeroData.telefono || '',
+      sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
+      empresa: pasajeroData.empresa || '',
+      codigo: codigoZona,
+      codlugar: pasajeroData.codlugar || '', // ✅ AGREGADO
+      direccion: pasajeroData.direccion || '',
+      distrito: pasajeroData.distrito || '',
+      wy: pasajeroData.wy || '',
+      wx: pasajeroData.wx || '',
+      codusuario: pasajeroData.codusuario || '',
+    };
 
-      const tarifaItem = tarifa.find((item) => item.zona === pasajeroData.zona);
-      const codigoZona = tarifaItem ? tarifaItem.codigo.toString() : '';
+    reset(formData);
 
-      reset({
-        codlan: pasajeroData.codlan || '',
-        apellidos: pasajeroData.apellidos || '',
-        telefono: pasajeroData.telefono || '',
-        sexo: pasajeroData.sexo === 'M' ? 'M' : 'F',
-        empresa: pasajeroData.empresa || '',
-        codigo: codigoZona,
-        direccion: pasajeroData.direccion || '',
-        distrito: pasajeroData.distrito || '',
-        wy: pasajeroData.wy || '',
-        wx: pasajeroData.wx || '',
-        codusuario: pasajeroData.codusuario || '',
-      });
-
-      setMarkerPosition([lat, lng]);
-      setOriginalPosition([lat, lng]);
-      setMapCenter([lat, lng]);
-      setSearchInput(pasajeroData.direccion || '');
-    } catch (error) {
-      console.error('Error fetching pasajero detail:', error);
-    }
-  };
+    setMarkerPosition([lat, lng]);
+    setOriginalPosition([lat, lng]);
+    setMapCenter([lat, lng]);
+    setSearchInput(pasajeroData.direccion || '');
+  } catch (error) {
+    console.error('Error fetching pasajero detail:', error);
+  }
+};
 
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
@@ -538,57 +539,40 @@ export default function App({ title, codCliente }: Props) {
     fetchPasajeroDetail(); // Llamar a la función principal que ya corregiste
   }, [isBaseUrlReady, baseUrl, codCliente, isTarifaLoaded, reset]);
 
-  const onSubmit = handleSubmit(async (data) => {
-    if (!baseUrl || codCliente === null || username === null) return;
+const onSubmit = handleSubmit(async (data) => {
+  if (!baseUrl || codCliente === null || username === null) return;
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    try {
-      const codlan = data.codlan;
-      const codigoValue =
-        data.codigo && data.codigo.trim() !== '' ? data.codigo : null;
-
-      console.log('Datos enviados:', {
+  try {
+    const codlan = data.codlan;
+    const codlugar = data.codlugar || ''; // ✅ AGREGADO
+    const codigoValue = data.codigo && data.codigo.trim() !== '' ? data.codigo : null;
+    const response = await axios.put(
+      `${baseUrl}/api/Pasajero/Update/${username}/${codCliente}/${codlan}/${codlugar}`, // ✅ MODIFICADO - codlugar en la URL
+      {
         codlan: data.codlan,
         apellidos: data.apellidos,
         telefono: data.telefono,
         sexo: data.sexo,
         empresa: data.empresa,
-        codigo: codigoValue,
+        zona: codigoValue,
         direccion: data.direccion,
         distrito: data.distrito,
         wy: data.wy,
         wx: data.wx,
-        codusuario: data.codusuario,
-      });
-
-      const response = await axios.put(
-        `${baseUrl}/api/Pasajero/Update/${username}/${codCliente}/${codlan}`,
-        {
-          codlan: data.codlan,
-          apellidos: data.apellidos,
-          telefono: data.telefono,
-          sexo: data.sexo,
-          empresa: data.empresa,
-          zona: codigoValue,
-          direccion: data.direccion,
-          distrito: data.distrito,
-          wy: data.wy,
-          wx: data.wx,
-        },
-      );
-
-      console.log('Pasajero actualizado con éxito:', response.data);
-      await fetchPasajeroDetail();
-      onClose();
-      toast.success('Pasajero actualizado');
-    } catch (error) {
-      console.error('Error al actualizar el pasajero:', error);
-      toast.error('Error al actualizar el pasajero');
-    } finally {
-      setIsLoading(false);
-    }
-  });
+      },
+    );
+    
+    await fetchPasajeroDetail();
+    onClose();
+    toast.success('Pasajero actualizado');
+  } catch (error) {
+    toast.error('Error al actualizar el pasajero');
+  } finally {
+    setIsLoading(false);
+  }
+});
 
   // Detectar cambios manuales en los inputs de latitud/longitud
   useEffect(() => {
