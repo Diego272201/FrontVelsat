@@ -36,25 +36,31 @@ const getFormattedDate = () => {
 };
 
 const parseFecha = (fechaStr: string | null) => {
-  if (!fechaStr) return null;
-
+  // ✅ Validar cadenas vacías, null, undefined y el string "null"
+  if (!fechaStr || fechaStr === 'null' || fechaStr.trim() === '') {
+    return null;
+  }
+  
   try {
-    const fecha = new Date(fechaStr);
-
-    if (isNaN(fecha.getTime())) {
-      console.error('Fecha inválida:', fechaStr);
+    const [dia, mes, añoHora] = fechaStr.split('/');
+    
+    // Validar que el split funcionó correctamente
+    if (!dia || !mes || !añoHora) {
+      console.warn('⚠️ Formato de fecha inválido:', fechaStr);
       return null;
     }
-
-    const dia = fecha.getDate().toString().padStart(2, '0');
-    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
-    const año = fecha.getFullYear();
-    const horas = fecha.getHours().toString().padStart(2, '0');
-    const minutos = fecha.getMinutes().toString().padStart(2, '0');
-
-    return `${dia}/${mes}/${año} ${horas}:${minutos}`;
+    
+    const [año, hora] = añoHora.split(' ');
+    
+    // Validar que tenemos año y hora
+    if (!año || !hora) {
+      console.warn('⚠️ Formato de fecha inválido:', fechaStr);
+      return null;
+    }
+    
+    return new Date(`${año}-${mes}-${dia}T${hora}:00`).getTime();
   } catch (error) {
-    console.error('Error al parsear la fecha:', error);
+    console.error('❌ Error parseando fecha:', fechaStr, error);
     return null;
   }
 };
@@ -455,50 +461,60 @@ export default function App({
     setShowDropdown(false);
   };
 
-  const formatData = (rawData: any[]) => {
-    return rawData.map((item: any) => {
-      const { estado, color } = getEstadoYColor(item);
-      const numpax =
-        item.numpax && parseInt(item.numpax, 10) > 0
-          ? parseInt(item.numpax, 10) - 1
-          : 0;
-      return {
-        key: item.codservicio,
-        codServicio: item.codservicio,
-        area: item.area,
-        numero: item.numero,
-        tipo:
-          item.tipo === 'S'
-            ? 'REPARTO'
-            : item.tipo === 'I'
-              ? 'RECOJO'
-              : item.tipo,
-        empresa: `${item.empresa} (${numpax})`,
-        grupo: item.nomgrupo || 'NINGUNO',
-        horaProg: item.fecplan ? item.fecplan.split(' ')[1] : '-',
-        horaAto: item.fecha ? item.fecha.split(' ')[1] : '-',
-        fechaCompleta: item.fecha || '-',
-        fecPlanCompleta: item.fecplan || '-',
-        empresaSinNumber: item.empresa,
-        controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
-        fechaini: item.newfechaini || '---',
-        fechafin: item.newfechafni || '---',
-        unidadSF: item.unidad?.codunidad,
-        unidad: item.unidad?.codunidad
-          ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
-            item.unidad.codunidad.split('-')[0].slice(1)
-          : '-',
+const formatData = (rawData: any[]) => {
+  return rawData.map((item: any, index: number) => {
+    // Validar y obtener estado/color de forma segura
+    let estado = 'PENDIENTE';
+    let color = 'gray';
+    
+    try {
+      const result = getEstadoYColor(item);
+      estado = result.estado;
+      color = result.color;
+    } catch (error) {
+    }
 
-        conductor: item.conductor?.apepate
-          ? item.conductor.apepate.toUpperCase()
-          : '-',
-        destino: item.destino || '-',
-        nomDestino: item.nomDestino || 'Sin destino',
-        estado,
-        color,
-      };
-    });
-  };
+    const numpax =
+      item.numpax && parseInt(item.numpax, 10) > 0
+        ? parseInt(item.numpax, 10) - 1
+        : 0;
+        
+    return {
+      key: item.codservicio,
+      codServicio: item.codservicio,
+      area: item.area,
+      numero: item.numero,
+      tipo:
+        item.tipo === 'S'
+          ? 'REPARTO'
+          : item.tipo === 'I'
+            ? 'RECOJO'
+            : item.tipo,
+      empresa: `${item.empresa} (${numpax})`,
+      grupo: item.nomgrupo || 'NINGUNO',
+      horaProg: item.fecplan ? item.fecplan.split(' ')[1] : '-',
+      horaAto: item.fecha ? item.fecha.split(' ')[1] : '-',
+      fechaCompleta: item.fecha || '-',
+      fecPlanCompleta: item.fecplan || '-',
+      empresaSinNumber: item.empresa,
+      controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
+      fechaini: item.newfechaini || '---',
+      fechafin: item.newfechafni || '---',
+      unidadSF: item.unidad?.codunidad,
+      unidad: item.unidad?.codunidad
+        ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
+          item.unidad.codunidad.split('-')[0].slice(1)
+        : '-',
+      conductor: item.conductor?.apepate
+        ? item.conductor.apepate.toUpperCase()
+        : '-',
+      destino: item.destino || '-',
+      nomDestino: item.nomDestino || 'Sin destino',
+      estado,
+      color,
+    };
+  });
+};
 
   const [editandoFecha, setEditandoFecha] = useState(false);
   const [nuevaFecha, setNuevaFecha] = useState('');
