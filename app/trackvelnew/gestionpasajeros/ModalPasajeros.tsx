@@ -214,136 +214,131 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   }, []);
 
-// Función de búsqueda con Google Places únicamente
-const searchAddress = async (query: string) => {
-  if (query.length < 3) {
-    setSearchResults([]);
-    setShowSearchResults(false);
-    return;
-  }
+  // Función de búsqueda con Google Places únicamente
+  const searchAddress = async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
 
-  if (!isLoaded || !autocompleteService || !placesService) {
-    console.error('Google Places no está disponible');
-    setSearchResults([]);
-    setShowSearchResults(false);
-    return;
-  }
+    if (!isLoaded || !autocompleteService || !placesService) {
+      console.error('Google Places no está disponible');
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
 
-  try {
-    const request: google.maps.places.AutocompletionRequest = {
-      input: query,
-      componentRestrictions: { country: 'pe' },
-      types: ['address'],
-    };
+    try {
+      const request: google.maps.places.AutocompletionRequest = {
+        input: query,
+      };
 
-    autocompleteService.getPlacePredictions(
-      request,
-      (predictions, status) => {
-        if (
-          status === google.maps.places.PlacesServiceStatus.OK &&
-          predictions
-        ) {
-          const processedResults: SearchResult[] = [];
-          let processedCount = 0;
-          const totalPredictions = Math.min(5, predictions.length);
+      autocompleteService.getPlacePredictions(
+        request,
+        (predictions, status) => {
+          if (
+            status === google.maps.places.PlacesServiceStatus.OK &&
+            predictions
+          ) {
+            const processedResults: SearchResult[] = [];
+            let processedCount = 0;
+            const totalPredictions = Math.min(5, predictions.length);
 
-          if (totalPredictions === 0) {
+            if (totalPredictions === 0) {
+              setSearchResults([]);
+              setShowSearchResults(false);
+              return;
+            }
+
+            predictions.slice(0, 5).forEach((prediction) => {
+              const detailsRequest: google.maps.places.PlaceDetailsRequest = {
+                placeId: prediction.place_id,
+                fields: [
+                  'geometry',
+                  'formatted_address',
+                  'address_components',
+                  'name', // ✅ AÑADE ESTO para obtener el nombre del lugar
+                ],
+              };
+
+              placesService.getDetails(
+                detailsRequest,
+                (place, detailsStatus) => {
+                  if (
+                    detailsStatus ===
+                      google.maps.places.PlacesServiceStatus.OK &&
+                    place &&
+                    place.geometry
+                  ) {
+                    processedResults.push({
+                      lat: place.geometry.location!.lat().toString(),
+                      lon: place.geometry.location!.lng().toString(),
+                      // ✅ MEJORA: prioriza el nombre del lugar si existe
+                      display_name: place.name
+                        ? `${place.name} - ${place.formatted_address}`
+                        : place.formatted_address || prediction.description,
+                      place_id: prediction.place_id,
+                    });
+                  }
+
+                  processedCount++;
+                  if (processedCount === totalPredictions) {
+                    setSearchResults(processedResults);
+                    setShowSearchResults(processedResults.length > 0);
+                  }
+                },
+              );
+            });
+          } else {
             setSearchResults([]);
             setShowSearchResults(false);
-            return;
           }
+        },
+      );
+    } catch (error) {
+      console.error('Error with Google Places:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
 
-          predictions.slice(0, 5).forEach((prediction) => {
-            const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-              placeId: prediction.place_id,
-              fields: [
-                'geometry',
-                'formatted_address',
-                'address_components',
-              ],
-            };
+  // Función de geocodificación inversa con Google únicamente
+  const reverseGeocodeGoogle = async (
+    lat: number,
+    lng: number,
+  ): Promise<{ address: string; district: string } | null> => {
+    if (!isLoaded || !window.google || !window.google.maps) {
+      console.error('Google Maps no está disponible');
+      return null;
+    }
 
-            placesService.getDetails(
-              detailsRequest,
-              (place, detailsStatus) => {
-                if (
-                  detailsStatus ===
-                    google.maps.places.PlacesServiceStatus.OK &&
-                  place &&
-                  place.geometry
-                ) {
-                  processedResults.push({
-                    lat: place.geometry.location!.lat().toString(),
-                    lon: place.geometry.location!.lng().toString(),
-                    display_name:
-                      place.formatted_address || prediction.description,
-                    place_id: prediction.place_id,
-                  });
-                }
+    return new Promise((resolve) => {
+      const geocoder = new google.maps.Geocoder();
+      const latlng = new google.maps.LatLng(lat, lng);
 
-                processedCount++;
-                if (processedCount === totalPredictions) {
-                  setSearchResults(processedResults);
-                  setShowSearchResults(processedResults.length > 0);
-                }
-              },
-            );
-          });
+      geocoder.geocode({ location: latlng }, (results, status) => {
+        if (status === google.maps.GeocoderStatus.OK && results && results[0]) {
+          const result = results[0];
+          const address = result.formatted_address;
+
+          // Extraer distrito
+          const districtComponent = result.address_components.find(
+            (component) =>
+              component.types.includes('sublocality') ||
+              component.types.includes('locality') ||
+              component.types.includes('administrative_area_level_2'),
+          );
+
+          const district = districtComponent ? districtComponent.long_name : '';
+          resolve({ address, district });
         } else {
-          setSearchResults([]);
-          setShowSearchResults(false);
+          console.error('Error en geocodificación inversa:', status);
+          resolve(null);
         }
-      },
-    );
-  } catch (error) {
-    console.error('Error with Google Places:', error);
-    setSearchResults([]);
-    setShowSearchResults(false);
-  }
-};
-
-// Función de geocodificación inversa con Google únicamente
-const reverseGeocodeGoogle = async (
-  lat: number,
-  lng: number,
-): Promise<{ address: string; district: string } | null> => {
-  if (!isLoaded || !window.google || !window.google.maps) {
-    console.error('Google Maps no está disponible');
-    return null;
-  }
-
-  return new Promise((resolve) => {
-    const geocoder = new google.maps.Geocoder();
-    const latlng = new google.maps.LatLng(lat, lng);
-
-    geocoder.geocode({ location: latlng }, (results, status) => {
-      if (
-        status === google.maps.GeocoderStatus.OK &&
-        results &&
-        results[0]
-      ) {
-        const result = results[0];
-        const address = result.formatted_address;
-
-        // Extraer distrito
-        const districtComponent = result.address_components.find(
-          (component) =>
-            component.types.includes('sublocality') ||
-            component.types.includes('locality') ||
-            component.types.includes('administrative_area_level_2'),
-        );
-
-        const district = districtComponent
-          ? districtComponent.long_name
-          : '';
-        resolve({ address, district });
-      } else {
-        console.error('Error en geocodificación inversa:', status);
-        resolve(null);
-      }
+      });
     });
-  });
-};
+  };
 
   const handleAddressSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
@@ -503,13 +498,13 @@ const reverseGeocodeGoogle = async (
       setMapCenter([lat, lng]);
 
       // Llamar geocodificación inversa
-      reverseGeocodeGoogle(lat, lng).then((result) => {
-        if (result) {
-          setSearchInput(result.address);
-          setValue('direccion', result.address, { shouldValidate: true });
-          setValue('distrito', result.district, { shouldValidate: true });
-        }
-      });
+      // reverseGeocodeGoogle(lat, lng).then((result) => {
+      //   if (result) {
+      //     setSearchInput(result.address);
+      //     setValue('direccion', result.address, { shouldValidate: true });
+      //     setValue('distrito', result.district, { shouldValidate: true });
+      //   }
+      // });
     }
   }, [control._formValues.latitud, control._formValues.longitud]);
 
@@ -637,7 +632,7 @@ const reverseGeocodeGoogle = async (
                         <SelectItem key="COPA_AIR">COPA AIR</SelectItem>
                         <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
                         <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
-                        <SelectItem key="SASAA">SASAA</SelectItem>                  
+                        <SelectItem key="SASAA">SASAA</SelectItem>
                         <SelectItem key="TALMA">TALMA</SelectItem>
                         <SelectItem key="OI_PERU">OI PERU</SelectItem>
                         <SelectItem key="METSO">METSO</SelectItem>
