@@ -40,24 +40,24 @@ const parseFecha = (fechaStr: string | null) => {
   if (!fechaStr || fechaStr === 'null' || fechaStr.trim() === '') {
     return null;
   }
-  
+
   try {
     const [dia, mes, añoHora] = fechaStr.split('/');
-    
+
     // Validar que el split funcionó correctamente
     if (!dia || !mes || !añoHora) {
       console.warn('⚠️ Formato de fecha inválido:', fechaStr);
       return null;
     }
-    
+
     const [año, hora] = añoHora.split(' ');
-    
+
     // Validar que tenemos año y hora
     if (!año || !hora) {
       console.warn('⚠️ Formato de fecha inválido:', fechaStr);
       return null;
     }
-    
+
     return new Date(`${año}-${mes}-${dia}T${hora}:00`).getTime();
   } catch (error) {
     console.error('❌ Error parseando fecha:', fechaStr, error);
@@ -461,60 +461,59 @@ export default function App({
     setShowDropdown(false);
   };
 
-const formatData = (rawData: any[]) => {
-  return rawData.map((item: any, index: number) => {
-    // Validar y obtener estado/color de forma segura
-    let estado = 'PENDIENTE';
-    let color = 'gray';
-    
-    try {
-      const result = getEstadoYColor(item);
-      estado = result.estado;
-      color = result.color;
-    } catch (error) {
-    }
+  const formatData = (rawData: any[]) => {
+    return rawData.map((item: any, index: number) => {
+      // Validar y obtener estado/color de forma segura
+      let estado = 'PENDIENTE';
+      let color = 'gray';
 
-    const numpax =
-      item.numpax && parseInt(item.numpax, 10) > 0
-        ? parseInt(item.numpax, 10) - 1
-        : 0;
-        
-    return {
-      key: item.codservicio,
-      codServicio: item.codservicio,
-      area: item.area,
-      numero: item.numero,
-      tipo:
-        item.tipo === 'S'
-          ? 'REPARTO'
-          : item.tipo === 'I'
-            ? 'RECOJO'
-            : item.tipo,
-      empresa: `${item.empresa} (${numpax})`,
-      grupo: item.nomgrupo || 'NINGUNO',
-      horaProg: item.fecplan ? item.fecplan.split(' ')[1] : '-',
-      horaAto: item.fecha ? item.fecha.split(' ')[1] : '-',
-      fechaCompleta: item.fecha || '-',
-      fecPlanCompleta: item.fecplan || '-',
-      empresaSinNumber: item.empresa,
-      controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
-      fechaini: item.newfechaini || '---',
-      fechafin: item.newfechafni || '---',
-      unidadSF: item.unidad?.codunidad,
-      unidad: item.unidad?.codunidad
-        ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
-          item.unidad.codunidad.split('-')[0].slice(1)
-        : '-',
-      conductor: item.conductor?.apepate
-        ? item.conductor.apepate.toUpperCase()
-        : '-',
-      destino: item.destino || '-',
-      nomDestino: item.nomDestino || 'Sin destino',
-      estado,
-      color,
-    };
-  });
-};
+      try {
+        const result = getEstadoYColor(item);
+        estado = result.estado;
+        color = result.color;
+      } catch (error) {}
+
+      const numpax =
+        item.numpax && parseInt(item.numpax, 10) > 0
+          ? parseInt(item.numpax, 10) - 1
+          : 0;
+
+      return {
+        key: item.codservicio,
+        codServicio: item.codservicio,
+        area: item.area,
+        numero: item.numero,
+        tipo:
+          item.tipo === 'S'
+            ? 'REPARTO'
+            : item.tipo === 'I'
+              ? 'RECOJO'
+              : item.tipo,
+        empresa: `${item.empresa} (${numpax})`,
+        grupo: item.nomgrupo || 'NINGUNO',
+        horaProg: item.fecplan ? item.fecplan.split(' ')[1] : '-',
+        horaAto: item.fecha ? item.fecha.split(' ')[1] : '-',
+        fechaCompleta: item.fecha || '-',
+        fecPlanCompleta: item.fecplan || '-',
+        empresaSinNumber: item.empresa,
+        controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
+        fechaini: item.newfechaini || '---',
+        fechafin: item.newfechafni || '---',
+        unidadSF: item.unidad?.codunidad,
+        unidad: item.unidad?.codunidad
+          ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
+            item.unidad.codunidad.split('-')[0].slice(1)
+          : '-',
+        conductor: item.conductor?.apepate
+          ? item.conductor.apepate.toUpperCase()
+          : '-',
+        destino: item.destino || '-',
+        nomDestino: item.nomDestino || 'Sin destino',
+        estado,
+        color,
+      };
+    });
+  };
 
   const [editandoFecha, setEditandoFecha] = useState(false);
   const [nuevaFecha, setNuevaFecha] = useState('');
@@ -877,11 +876,15 @@ const formatData = (rawData: any[]) => {
     if (!selectedRow) return;
 
     const codservicio = selectedRow.codServicio;
+
+    // Formatear fecha de servicio
     const fecha = nuevaFecha
-      ? parseFecha(nuevaFecha)
+      ? formatFechaParaAPI(nuevaFecha) // Convertir de ISO a formato "dd/mm/yyyy hh:mm"
       : selectedRow.fechaCompleta || '';
+
+    // Formatear fecha de programación
     const fecplan = nuevaFechaProg
-      ? parseFecha(nuevaFechaProg)
+      ? formatFechaParaAPI(nuevaFechaProg) // Convertir de ISO a formato "dd/mm/yyyy hh:mm"
       : selectedRow.fecPlanCompleta || '';
 
     try {
@@ -889,11 +892,7 @@ const formatData = (rawData: any[]) => {
 
       const response = await axios.put(url);
 
-      console.log('Respuesta de la API Wua:', response.data);
-      console.log('Respuesta de la API CODservicio:', codservicio);
-      console.log('Respuesta de la API Hora Ato :', fecha);
-      console.log('Respuesta de la API Hora Prog:', fecplan);
-      console.log('La URL ES : ' + url);
+      console.log('Respuesta de la API:', response.data);
 
       setData((prevData) =>
         prevData.map((item) =>
@@ -906,19 +905,29 @@ const formatData = (rawData: any[]) => {
                 horaProg: nuevaFechaProg
                   ? nuevaFechaProg.split('T')[1].slice(0, 5)
                   : item.horaProg,
-                fechaCompleta: nuevaFecha
-                  ? parseFecha(nuevaFecha)
-                  : item.fechaCompleta,
+                fechaCompleta: nuevaFecha || item.fechaCompleta,
                 fecPlanCompleta: nuevaFechaProg
-                  ? parseFecha(nuevaFechaProg)
+                  ? formatFechaParaAPI(nuevaFechaProg)
                   : item.fecPlanCompleta,
               }
             : item,
         ),
       );
+
+      toast.success('Horas actualizadas correctamente');
     } catch (error) {
       console.error('Error al actualizar horas:', error);
+      toast.error('Error al actualizar las horas');
     }
+  };
+
+  // Agregar esta función helper
+  const formatFechaParaAPI = (fechaISO: string): string => {
+    // Entrada: "2024-01-15T10:30"
+    // Salida: "15/01/2024 10:30"
+    const [fecha, hora] = fechaISO.split('T');
+    const [anio, mes, dia] = fecha.split('-');
+    return `${dia}/${mes}/${anio} ${hora}`;
   };
 
   function formatearFechaParaMostrar(fechaISO: string) {
