@@ -1,10 +1,5 @@
 'use client';
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useRef,
-} from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import '@/app/styles/popup.css';
 import Sidebar from '../components/Sidebar';
 import { useSession } from 'next-auth/react';
@@ -593,7 +588,9 @@ export default function RequestPage() {
         device.lastOdometerKM != null &&
         device.odometerini != null &&
         device.kmini != null
-          ? Math.round(device.lastOdometerKM - device.odometerini + device.kmini)
+          ? Math.round(
+              device.lastOdometerKM - device.odometerini + device.kmini,
+            )
           : 0;
 
       const isMovilbusUser = session?.user?.username === 'movilbus';

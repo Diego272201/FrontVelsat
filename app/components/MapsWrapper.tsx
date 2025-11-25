@@ -4,7 +4,15 @@ import { GoogleMapsProvider } from '@/context/GoogleMapsContext';
 import { ReactNode, useMemo } from 'react';
 
 // Define users that should use TALMA API key
-const TALMA_USERS = ['talmav', 'agfajardo', 'fjbarboza', 'rccoaguila', 'rmlozano', 'talma', 'aloremisse']; // Add your additional usernames here
+const TALMA_USERS = [
+  'talmav',
+  'agfajardo',
+  'fjbarboza',
+  'rccoaguila',
+  'rmlozano',
+  'talma',
+  'aloremisse',
+];
 
 // Mapeo de usuarios a sus respectivas API keys
 const API_KEY_MAP: Record<string, string> = {
@@ -13,9 +21,11 @@ const API_KEY_MAP: Record<string, string> = {
 };
 
 // API key for TALMA users
-const TALMA_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_TALMA as string;
+const TALMA_API_KEY = process.env
+  .NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_TALMA as string;
 
-const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_125 as string;
+const DEFAULT_API_KEY = process.env
+  .NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_125 as string;
 
 interface MapsWrapperProps {
   children: ReactNode;
@@ -30,7 +40,11 @@ function getUserIdentifier(user: any): string {
   return 'default';
 }
 
-export default function MapsWrapper({ children, servidorUrl, disableGoogleMaps = false }: MapsWrapperProps) {
+export default function MapsWrapper({
+  children,
+  servidorUrl,
+  disableGoogleMaps = false,
+}: MapsWrapperProps) {
   const { data: session, status } = useSession();
 
   const apiKey = useMemo(() => {
@@ -43,34 +57,51 @@ export default function MapsWrapper({ children, servidorUrl, disableGoogleMaps =
     if (status === 'loading' || !session?.user) {
       return DEFAULT_API_KEY;
     }
-    
+
     const userIdentifier = getUserIdentifier(session.user);
     const usernameLower = userIdentifier.toLowerCase();
-    
+
     // Check if user should use TALMA API key
     if (TALMA_USERS.includes(usernameLower)) {
       return TALMA_API_KEY;
     }
-    
+
     // Check specific API keys for other users
     const selectedKey = API_KEY_MAP[usernameLower] || DEFAULT_API_KEY;
-    
-    // console.log('🔑 MapsWrapper - Usuario:', userIdentifier, 'API Key:', selectedKey?.substring(0, 20) + '...');
-    
+
     return selectedKey;
-  }, [session, status, disableGoogleMaps]);
+  }, [session?.user, status, disableGoogleMaps]);
+
+  // ✅ AGREGAR ESTO - Calcular username
+  const username = useMemo(() => {
+    if (status === 'loading' || !session?.user) {
+      return undefined;
+    }
+    const user = getUserIdentifier(session.user);
+    // console.log('🔑 Username calculado:', user);
+    return user;
+  }, [session?.user, status]);
 
   // Siempre renderizar GoogleMapsProvider
   if (!apiKey) {
-    // console.warn('⚠️ MapsWrapper - No hay API key disponible');
     return <>{children}</>;
   }
 
+  // console.log('🔍 MapsWrapper DEBUG:', {
+  //   username, // ✅ AGREGAR ESTO
+  //   apiKey: apiKey?.substring(0, 20) + '...',
+  //   servidorUrl,
+  //   disableGoogleMaps,
+  //   sessionStatus: status,
+  //   hasSession: !!session?.user
+  // });
+
   return (
-    <GoogleMapsProvider 
-      apiKey={apiKey} 
+    <GoogleMapsProvider
+      apiKey={apiKey}
       servidorUrl={disableGoogleMaps ? '' : servidorUrl}
-      disabled={disableGoogleMaps}    
+      disabled={disableGoogleMaps}
+      username={username} // ✅ AGREGAR ESTO
     >
       {children}
     </GoogleMapsProvider>
