@@ -21,7 +21,6 @@ const MapControllerInner = dynamic(
       resetMap?: boolean;
     }) {
       const map = useMap();
-
       useEffect(() => {
         if (!map) return;
 
