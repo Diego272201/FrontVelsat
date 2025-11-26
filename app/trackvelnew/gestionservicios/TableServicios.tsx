@@ -873,53 +873,73 @@ export default function App({
   };
 
   const handleGuardarHoras = async () => {
-    if (!selectedRow) return;
+  if (!selectedRow) return;
 
-    const codservicio = selectedRow.codServicio;
+  const codservicio = selectedRow.codServicio;
 
-    // Formatear fecha de servicio
-    const fecha = nuevaFecha
-      ? formatFechaParaAPI(nuevaFecha) // Convertir de ISO a formato "dd/mm/yyyy hh:mm"
-      : selectedRow.fechaCompleta || '';
+  // Formatear fecha de servicio
+  const fecha = nuevaFecha
+    ? formatFechaParaAPI(nuevaFecha) // Ya está correcto
+    : selectedRow.fechaCompleta || '';
 
-    // Formatear fecha de programación
-    const fecplan = nuevaFechaProg
-      ? formatFechaParaAPI(nuevaFechaProg) // Convertir de ISO a formato "dd/mm/yyyy hh:mm"
-      : selectedRow.fecPlanCompleta || '';
+  // Formatear fecha de programación
+  const fecplan = nuevaFechaProg
+    ? formatFechaParaAPI(nuevaFechaProg) // Ya está correcto
+    : selectedRow.fecPlanCompleta || '';
 
-    try {
-      const url = `https://velsat.pe:2096/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
+  try {
+    const url = `https://velsat.pe:2096/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
 
-      const response = await axios.put(url);
+    const response = await axios.put(url);
 
-      console.log('Respuesta de la API:', response.data);
+    console.log('Respuesta de la API:', response.data);
 
-      setData((prevData) =>
-        prevData.map((item) =>
-          item.codServicio === selectedRow.codServicio
-            ? {
-                ...item,
-                horaAto: nuevaFecha
-                  ? nuevaFecha.split('T')[1].slice(0, 5)
-                  : item.horaAto,
-                horaProg: nuevaFechaProg
-                  ? nuevaFechaProg.split('T')[1].slice(0, 5)
-                  : item.horaProg,
-                fechaCompleta: nuevaFecha || item.fechaCompleta,
-                fecPlanCompleta: nuevaFechaProg
-                  ? formatFechaParaAPI(nuevaFechaProg)
-                  : item.fecPlanCompleta,
-              }
-            : item,
-        ),
-      );
+    // ✅ ACTUALIZAR con el formato correcto
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.codServicio === selectedRow.codServicio
+          ? {
+              ...item,
+              horaAto: nuevaFecha
+                ? nuevaFecha.split('T')[1].slice(0, 5)
+                : item.horaAto,
+              horaProg: nuevaFechaProg
+                ? nuevaFechaProg.split('T')[1].slice(0, 5)
+                : item.horaProg,
+              fechaCompleta: nuevaFecha 
+                ? formatFechaParaAPI(nuevaFecha) // ✅ Usar formato correcto
+                : item.fechaCompleta,
+              fecPlanCompleta: nuevaFechaProg
+                ? formatFechaParaAPI(nuevaFechaProg)
+                : item.fecPlanCompleta,
+            }
+          : item,
+      ),
+    );
 
-      toast.success('Horas actualizadas correctamente');
-    } catch (error) {
-      console.error('Error al actualizar horas:', error);
-      toast.error('Error al actualizar las horas');
-    }
-  };
+    // ✅ TAMBIÉN actualizar selectedRow con el formato correcto
+    setSelectedRow({
+      ...selectedRow,
+      horaAto: nuevaFecha
+        ? nuevaFecha.split('T')[1].slice(0, 5)
+        : selectedRow.horaAto,
+      horaProg: nuevaFechaProg
+        ? nuevaFechaProg.split('T')[1].slice(0, 5)
+        : selectedRow.horaProg,
+      fechaCompleta: nuevaFecha 
+        ? formatFechaParaAPI(nuevaFecha) // ✅ Usar formato correcto
+        : selectedRow.fechaCompleta,
+      fecPlanCompleta: nuevaFechaProg
+        ? formatFechaParaAPI(nuevaFechaProg)
+        : selectedRow.fecPlanCompleta,
+    });
+
+    toast.success('Horas actualizadas correctamente');
+  } catch (error) {
+    console.error('Error al actualizar horas:', error);
+    toast.error('Error al actualizar las horas');
+  }
+};
 
   // Agregar esta función helper
   const formatFechaParaAPI = (fechaISO: string): string => {
