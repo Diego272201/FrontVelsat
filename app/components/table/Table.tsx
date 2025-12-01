@@ -78,7 +78,6 @@ export default function App({ url, deviceId }: AppProps) {
               <th className="p-2 text-center">VELOCIDAD</th>
               <th className="p-2 text-center">LATITUD</th>
               <th className="p-2 text-center">LONGITUD</th>
-              <th className="p-2 text-center">ODÓMETRO</th>
               <th className="p-2 text-center">UBICACIÓN</th>
               <th className="p-2 text-center">VER MAPA</th>
             </tr>
@@ -117,11 +116,6 @@ export default function App({ url, deviceId }: AppProps) {
                   </td>
                   <td className="p-2 text-center">
                     {item.longitude.toFixed(5)}
-                  </td>
-                  <td className="p-2 text-center">
-                    {typeof item.odometerKM === 'number'
-                      ? `${item.odometerKM.toFixed(2)} km`
-                      : '—'}
                   </td>
 
                   <td className="p-2 text-center">{item.address}</td>
