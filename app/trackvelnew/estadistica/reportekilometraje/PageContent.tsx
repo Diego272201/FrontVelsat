@@ -82,9 +82,8 @@ export default function PageContent() {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${baseUrl}${url}`);
-        const data = response.data?.result?.listaKilometros || [];
+        const data = response.data?.listaKilometros || [];
         setRows(data);
-        console.log(data);
       } catch (error) {
         setError('Error al cargar los datos');
 
