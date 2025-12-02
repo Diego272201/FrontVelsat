@@ -41,7 +41,6 @@ export default function Leyenda({ unidad, fechaIni, fechaFin }: Leyenda) {
         onClick={hideMenu}
         defaultChecked={!showDropdown}
       />
-
       <div className="desplegable" style={{ width: '250px' }}>
         <label
           className="previos"
