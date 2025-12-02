@@ -101,12 +101,28 @@ const MapController = ({
 export default function RequestPage() {
   const isClient = typeof window !== 'undefined';
 
-  const openStreetView = useCallback((lat: number, lng: number) => {
-    // URL que abre directamente en Street View (vista de calles)
-    const streetViewUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+const openStreetView = useCallback((lat: number, lng: number) => {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobile = /iphone|ipad|ipod|android/.test(userAgent);
+  
+  if (isMobile) {
+    const link = document.createElement('a');
+    link.href = `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
 
-    window.open(streetViewUrl, '_blank');
-  }, []);
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
+  } else {
+    const desktopUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+    window.open(desktopUrl, '_blank');
+  }
+}, []);
+
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
