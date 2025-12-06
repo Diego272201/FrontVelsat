@@ -178,8 +178,21 @@ const openStreetView = useCallback((lat: number, lng: number) => {
               activeAlerts.current[deviceKey] = true;
               playSpeedAlert();
 
+              // Convertir timestamp Unix a hora local peruana
+              const peruTime = new Date(device.lastGPSTimestamp * 1000)
+                .toLocaleString('es-PE', {
+                  timeZone: 'America/Lima',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false
+                });
+
               toast.error(
-                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${device.lastGPSTimestamp})`,
+                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${peruTime})`,
                 {
                   duration: Infinity,
                   action: {
