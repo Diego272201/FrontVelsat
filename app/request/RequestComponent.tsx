@@ -24,6 +24,7 @@ interface DeviceList {
   lastValidSpeed: number;
   direccion: string;
   lastValidHeading: number;
+  lastGPSTimestamp: number;
   lastOdometerKM: number;
   odometerini: number;
   kmini: number;
@@ -177,14 +178,8 @@ const openStreetView = useCallback((lat: number, lng: number) => {
               activeAlerts.current[deviceKey] = true;
               playSpeedAlert();
 
-              const alertTime = new Date().toLocaleTimeString('es-PE', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              });
-
               toast.error(
-                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${alertTime})`,
+                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${device.lastGPSTimestamp})`,
                 {
                   duration: Infinity,
                   action: {
