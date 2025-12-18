@@ -375,7 +375,7 @@ export default function App({
 
       try {
         const encodedUsername = encodeURIComponent(username);
-        const url = `https:/do.velsat.pe:2083/api/Preplan/conductores?usuario=${encodedUsername}`;
+        const url = `https://do.velsat.pe:2083/api/Preplan/conductores?usuario=${encodedUsername}`;
         console.log('Making request to:', url);
 
         const response = await axios.get(url);
