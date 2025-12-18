@@ -48,7 +48,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
     if (!isReady) return;
 
     axios
-      .get(`https://velsat.pe:2096/api/Turnos/empresa/${username}`)
+      .get(`https://do.velsat.pe:2083/api/Turnos/empresa/${username}`)
       .then((response) => {
         setEmpresas(response.data);
       })
@@ -109,7 +109,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.post(
-          `https://velsat.pe:2096/api/Turnos/${username}`,
+          `https://do.velsat.pe:2083/api/Turnos/${username}`,
           postData,
         );
         console.log('Datos enviados correctamente', postData);

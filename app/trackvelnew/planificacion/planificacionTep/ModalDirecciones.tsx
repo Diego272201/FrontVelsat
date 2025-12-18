@@ -94,7 +94,7 @@ export default function ModalDirecciones({
     setIsDeleting(codlugar);
     
     try {
-      await axios.delete(`https://velsat.pe:2096/api/Preplan/EliminarDireccion?codlugar=${codlugar}`);
+      await axios.delete(`https://do.velsat.pe:2083/api/Preplan/EliminarDireccion?codlugar=${codlugar}`);
       
       // Actualizar la lista local removiendo la dirección eliminada
       setLugares(prevLugares => prevLugares.filter(lugar => lugar.codlugar !== codlugar));

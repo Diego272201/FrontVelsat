@@ -209,7 +209,7 @@ export default function ConductorDialogModificar({
       };
 
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/ModificarConductor/${conductorData.codigo}`, // ✅ Con ID en ruta
+        `https://do.velsat.pe:2083/api/Preplan/ModificarConductor/${conductorData.codigo}`, // ✅ Con ID en ruta
         {
           method: 'PUT',
           headers: {

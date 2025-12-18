@@ -172,7 +172,7 @@ export default function App({
       try {
         // Llamar a la API UpdateDestino
         const response = await axios.put(
-          `https://velsat.pe:2096/api/Preplan/UpdateDestino?codservicio=${codservicio}&newcoddestino=${destinoSeleccionado.codigo}&newcodubicli=${destinoSeleccionado.lugar.codlugar}`
+          `https://do.velsat.pe:2083/api/Preplan/UpdateDestino?codservicio=${codservicio}&newcoddestino=${destinoSeleccionado.codigo}&newcodubicli=${destinoSeleccionado.lugar.codlugar}`
         );
 
         console.log('Respuesta de UpdateDestino:', response.data);

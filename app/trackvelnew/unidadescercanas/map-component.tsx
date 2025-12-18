@@ -411,7 +411,7 @@ const fetchUnidades = useCallback(async () => {
 
       const { deviceId, distancia } = getUrlParams()
       
-      const url = `https://velsat.pe:2096/api/Gacela/UnidadesCercanas?km=${distancia}&codunidad=${deviceId.toUpperCase()}&usuario=${encodeURIComponent(username)}`
+      const url = `https://do.velsat.pe:2083/api/Gacela/UnidadesCercanas?km=${distancia}&codunidad=${deviceId.toUpperCase()}&usuario=${encodeURIComponent(username)}`
 
       const response = await fetch(url)
       if (!response.ok) {

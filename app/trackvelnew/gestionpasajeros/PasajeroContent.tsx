@@ -58,7 +58,7 @@ export default function PasajeroContent() {
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:2096/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
+          `https://do.velsat.pe:2083/api/Pasajero/GetPasajerosCodigo?codlan=${value}`,
         );
         const data = response.data.map((item: any) => ({
           codigo: item.codigo,
@@ -138,7 +138,7 @@ export default function PasajeroContent() {
 
     try {
       const response = await axios.delete(
-        `https://velsat.pe:2096/api/Pasajero/Delete/${selectedCodCliente}/${username}`,
+        `https://do.velsat.pe:2083/api/Pasajero/Delete/${selectedCodCliente}/${username}`,
       );
 
       if (response.status === 200) {

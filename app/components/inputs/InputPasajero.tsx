@@ -37,7 +37,7 @@ export default function InputPasajero({
 
       try {
         const response = await axios.get(
-          `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
+          `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
         const resultados = Array.isArray(response.data)

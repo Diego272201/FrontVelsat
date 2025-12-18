@@ -72,7 +72,7 @@ export default function ModalDirecciones({
     try {
         
       // codpedido = codigo del pasajero, codubicli = codlugar del lugar seleccionado
-      const url = `https://velsat.pe:2096/api/Preplan/ActualizarDireccionPasajero/${codigo}/${selectedValue}`;
+      const url = `https://do.velsat.pe:2083/api/Preplan/ActualizarDireccionPasajero/${codigo}/${selectedValue}`;
 
       console.log("La url es: "+ url)
       await axios.put(url);

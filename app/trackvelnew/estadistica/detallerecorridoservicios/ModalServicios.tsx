@@ -92,7 +92,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
 
       try {
         const response = await fetch(
-          `https://velsat.pe:2096/api/Recorrido/SelectServicio?fecha=${fechaFormateada}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
+          `https://do.velsat.pe:2083/api/Recorrido/SelectServicio?fecha=${fechaFormateada}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
         );
 
         if (!response.ok) throw new Error('Error al obtener servicios');
@@ -155,7 +155,7 @@ const AppModalServicios: React.FC<AppModalProps> = ({
 
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
+        `https://do.velsat.pe:2083/api/Recorrido/DatoServicio?fecha=${fechaFormateada}&numero=${servicioSeleccionado.numero}&empresa=${empresa ?? ''}&usuario=${usuario ?? ''}`,
       );
 
       if (!response.ok) {

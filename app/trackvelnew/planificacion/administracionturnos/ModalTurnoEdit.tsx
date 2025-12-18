@@ -114,7 +114,7 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
       try {
         setIsSubmitting(true);
         await axios.put(
-          `https://velsat.pe:2096/api/Turnos/${user.codigo}`,
+          `https://do.velsat.pe:2083/api/Turnos/${user.codigo}`,
           putData,
         );
         console.log('Datos actualizados correctamente', putData);

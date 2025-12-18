@@ -475,7 +475,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
     try {
       const response = await axios.post(
-        `https://velsat.pe:2096/api/Pasajero/New/${username}`,
+        `https://do.velsat.pe:2083/api/Pasajero/New/${username}`,
         body,
       );
       console.log('Pasajero registrado correctamente:', response.data);

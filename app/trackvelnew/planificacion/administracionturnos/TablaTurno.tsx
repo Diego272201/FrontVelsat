@@ -98,7 +98,7 @@ export default function App({
     if (!isReady) return;
 
     axios
-      .get(`https://velsat.pe:2096/api/Turnos/empresa/${username}`)
+      .get(`https://do.velsat.pe:2083/api/Turnos/empresa/${username}`)
       .then((response) => {
         setUniqueEmpresas(response.data);
       })
@@ -164,7 +164,7 @@ export default function App({
 
   const handleDelete = async (codigo: number) => {
     try {
-      await axios.delete(`https://velsat.pe:2096/api/Turnos/${codigo}`);
+      await axios.delete(`https://do.velsat.pe:2083/api/Turnos/${codigo}`);
       onSaveSuccess();
       console.log('Elimnado ...');
     } catch (error) {

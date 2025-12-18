@@ -134,7 +134,7 @@ function DuracionServiciosContent() {
           return;
         }
 
-        const apiUrl = `https://velsat.pe:2096/api/Gacela/DuracionServicios?usuario=${encodeURIComponent(username)}&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+        const apiUrl = `https://do.velsat.pe:2083/api/Gacela/DuracionServicios?usuario=${encodeURIComponent(username)}&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
 
         const response = await fetch(apiUrl);
 

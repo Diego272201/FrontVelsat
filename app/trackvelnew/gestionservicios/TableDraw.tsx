@@ -260,7 +260,7 @@ const DragAndDropTable = forwardRef(
       console.log('Código a cancelar:', codigo);
 
       try {
-        await axios.put('https://velsat.pe:2096/api/Preplan/UpdateEstado', {
+        await axios.put('https://do.velsat.pe:2083/api/Preplan/UpdateEstado', {
           codigo,
         });
         toast.success('Pasajero cancelado con éxito.');
@@ -309,7 +309,7 @@ const DragAndDropTable = forwardRef(
     useEffect(() => {
       if (!codServicio) return;
 
-      const API_URL = `https://velsat.pe:2096/api/Preplan/PasajeroList?codservicio=${codServicio}`;
+      const API_URL = `https://do.velsat.pe:2083/api/Preplan/PasajeroList?codservicio=${codServicio}`;
       setLoading(true);
 
       console.log('Refrescando datos de la tabla...', { shouldRefetch });
@@ -380,7 +380,7 @@ const DragAndDropTable = forwardRef(
 
       if (!codServicio || data.length === 0) return;
 
-      const API_URL = `https://velsat.pe:2096/api/Preplan/actualizarOrden`;
+      const API_URL = `https://do.velsat.pe:2083/api/Preplan/actualizarOrden`;
 
       const payload = {
         codservicio: codServicio,

@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 
 const getServerUrl = async (username: string) => {
   try {
-    const res = await fetch(`https://velsat.pe:2096/api/Server/${username}`);
+    const res = await fetch(`https://do.velsat.pe:2083/api/Server/${username}`);
     if (!res.ok) {
       throw new Error('No se pudo obtener la URL del servidor');
     }

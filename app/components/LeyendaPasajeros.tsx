@@ -27,7 +27,7 @@ export default function ServiceLegend({codigo}: Leyenda) {
     const fetchPasajeros = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`https://velsat.pe:2096/api/Recorrido/PasajerosServicio/${codigo}`);
+        const response = await fetch(`https://do.velsat.pe:2083/api/Recorrido/PasajerosServicio/${codigo}`);
         const data = await response.json();
         setPasajeros(data);
       } catch (error) {

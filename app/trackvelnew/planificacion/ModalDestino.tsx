@@ -435,7 +435,7 @@ export default function App({
 
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Pasajero/NewDestino/${username}`,
+        `https://do.velsat.pe:2083/api/Pasajero/NewDestino/${username}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

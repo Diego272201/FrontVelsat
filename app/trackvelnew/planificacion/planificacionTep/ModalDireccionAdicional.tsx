@@ -504,7 +504,7 @@ export default function ModalDireccionAdicional({
 
       // Llamada a la API POST
       const response = await axios.post(
-        'https://velsat.pe:2096/api/Preplan/DireccionAdicional',
+        'https://do.velsat.pe:2083/api/Preplan/DireccionAdicional',
         datosAPI,
         {
           headers: {

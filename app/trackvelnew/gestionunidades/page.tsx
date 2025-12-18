@@ -80,7 +80,7 @@ export default function Page() {
   const fetchUnidades = async () => {
     if (!isReady) return;
 
-    const res = await fetch(`https://velsat.pe:2096/api/Preplan/carros/${username}`);
+    const res = await fetch(`https://do.velsat.pe:2083/api/Preplan/carros/${username}`);
     const data = await res.json();
     setUnidades(
       data
@@ -96,7 +96,7 @@ export default function Page() {
     setLoadingLiberarTodas(true);
 
     try {
-      const response = await fetch("https://velsat.pe:2096/api/Preplan/LiberarTotal", {
+      const response = await fetch("https://do.velsat.pe:2083/api/Preplan/LiberarTotal", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
       });
@@ -120,7 +120,7 @@ export default function Page() {
 
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Caja/LiberarUnidad/${placa}`,
+        `https://do.velsat.pe:2083/api/Caja/LiberarUnidad/${placa}`,
         { method: "PUT", headers: { "Content-Type": "application/json" } }
       );
 
@@ -146,8 +146,8 @@ export default function Page() {
     try {
       const url =
         accion === "habilitar"
-          ? `https://velsat.pe:2096/api/Preplan/HabilitarUnidad/${selectedUnidad}`
-          : `https://velsat.pe:2096/api/Preplan/DeshabilitarUnidad/${selectedUnidad}`;
+          ? `https://do.velsat.pe:2083/api/Preplan/HabilitarUnidad/${selectedUnidad}`
+          : `https://do.velsat.pe:2083/api/Preplan/DeshabilitarUnidad/${selectedUnidad}`;
 
       const response = await fetch(url, { method: "POST" });
 

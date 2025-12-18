@@ -73,7 +73,7 @@ const PasajeroAutocompleteInput: React.FC<PasajeroAutocompleteInputProps> = ({
 
     setLoading(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${encodeURIComponent(username)}`;
+      const url = `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${encodeURIComponent(username)}`;
       const response = await fetch(url);
 
       if (!response.ok) {

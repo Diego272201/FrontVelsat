@@ -79,7 +79,7 @@ export default function Page() {
       setLoading(true);
       setError(null);
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/conductores/${username}`,
+        `https://do.velsat.pe:2083/api/Preplan/conductores/${username}`,
       );
 
       if (!response.ok) {
@@ -115,7 +115,7 @@ export default function Page() {
     try {
       setLiberandoLoading(id);
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/Liberar/${id}`,
+        `https://do.velsat.pe:2083/api/Preplan/Liberar/${id}`,
         {
           method: 'POST',
           headers: {
@@ -145,7 +145,7 @@ export default function Page() {
     try {
       setHabilitandoLoading(id);
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/DeshabilitarCond/${id}`,
+        `https://do.velsat.pe:2083/api/Preplan/DeshabilitarCond/${id}`,
         {
           method: 'POST',
           headers: {
@@ -190,7 +190,7 @@ export default function Page() {
     try {
       setHabilitandoLoading(id);
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/HabilitarCond/${id}`,
+        `https://do.velsat.pe:2083/api/Preplan/HabilitarCond/${id}`,
         {
           method: 'POST',
           headers: {
@@ -236,7 +236,7 @@ export default function Page() {
     try {
       setEliminandoLoading(id);
       const response = await fetch(
-        `https://velsat.pe:2096/api/Preplan/Eliminar/${id}`,
+        `https://do.velsat.pe:2083/api/Preplan/Eliminar/${id}`,
         {
           method: 'DELETE',
           headers: {

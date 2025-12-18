@@ -219,7 +219,7 @@ export default function App({ servicioData }: ModalPasajeroProps) {
 
       console.log('Eliminando pasajero:', datosEliminacion);
 
-      const response = await fetch('https://velsat.pe:2096/api/Gacela/UpdateEstado', {
+      const response = await fetch('https://do.velsat.pe:2083/api/Gacela/UpdateEstado', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -390,7 +390,7 @@ export default function App({ servicioData }: ModalPasajeroProps) {
     setLoading(true);
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Gacela/PasajeroList?codservicio=${servicioData.codservicio}`,
+        `https://do.velsat.pe:2083/api/Gacela/PasajeroList?codservicio=${servicioData.codservicio}`,
       );
       const data: ApiPasajero[] = await response.json();
 
@@ -503,7 +503,7 @@ export default function App({ servicioData }: ModalPasajeroProps) {
       console.log('Datos formateados para API:', datosParaApi);
       console.log('Cantidad de pasajeros:', pasajeros.length);
 
-      const response = await fetch('https://velsat.pe:2096/api/Gacela/GuardarServicio', {
+      const response = await fetch('https://do.velsat.pe:2083/api/Gacela/GuardarServicio', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

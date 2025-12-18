@@ -250,7 +250,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingPasajeros(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${username}`; // ✅ Cambio aquí
+      const url = `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -284,7 +284,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingConductores(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/conductores?usuario=${username}`; // ✅ Cambio aquí
+      const url = `https://do.velsat.pe:2083/api/Preplan/conductores?usuario=${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -325,7 +325,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingUnidades(true);
     try {
-      const url = `https://velsat.pe:2096/api/Preplan/carros/${username}`; // ✅ Cambio aquí
+      const url = `https://do.velsat.pe:2083/api/Preplan/carros/${username}`; // ✅ Cambio aquí
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -370,7 +370,7 @@ const ServicesSearchSystem: React.FC = () => {
 
       if (selectedPasajero && selectedPasajero.codlan) {
         const fechaFormatted = dateFrom.split('T')[0];
-        const url = `https://velsat.pe:2096/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${fechaFormatted}&codcliente=${selectedPasajero.codlan}`;
+        const url = `https://do.velsat.pe:2083/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${fechaFormatted}&codcliente=${selectedPasajero.codlan}`;
 
         const response = await fetch(url);
 
@@ -392,7 +392,7 @@ const ServicesSearchSystem: React.FC = () => {
       } else {
         const fechainiFormatted = dateFrom.replace('T', ' ');
         const fechafinFormatted = dateTo.replace('T', ' ');
-        const url = `https://velsat.pe:2096/api/Gacela/Getservicios?fechaini=${fechainiFormatted}&fechafin=${fechafinFormatted}&usu=${username}`;
+        const url = `https://do.velsat.pe:2083/api/Gacela/Getservicios?fechaini=${fechainiFormatted}&fechafin=${fechafinFormatted}&usu=${username}`;
 
         const response = await fetch(url);
 
@@ -559,7 +559,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     try {
       const response = await fetch(
-        'https://velsat.pe:2096/api/Preplan/AsignarServicio',
+        'https://do.velsat.pe:2083/api/Preplan/AsignarServicio',
         {
           method: 'POST',
           headers: {
@@ -606,7 +606,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     try {
       const response = await fetch(
-        `https://velsat.pe:2096/api/Gacela/ReiniciarServicio/${codservicio}`,
+        `https://do.velsat.pe:2083/api/Gacela/ReiniciarServicio/${codservicio}`,
         {
           method: 'PUT',
         },
@@ -642,7 +642,7 @@ const ServicesSearchSystem: React.FC = () => {
 
       try {
         const response = await fetch(
-          `https://velsat.pe:2096/api/Preplan/cancelar/${codservicio}`,
+          `https://do.velsat.pe:2083/api/Preplan/cancelar/${codservicio}`,
           {
             method: 'DELETE',
           },

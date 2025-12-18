@@ -155,7 +155,7 @@ export default function ModalAddPasajeros({
       console.log('Datos a enviar a la API:', pasajerosParaGuardar);
 
       // Llamar a la API PUT
-      const response = await fetch('https://velsat.pe:2096/api/Gacela/NuevoSubServicioPasajero', {
+      const response = await fetch('https://do.velsat.pe:2083/api/Gacela/NuevoSubServicioPasajero', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

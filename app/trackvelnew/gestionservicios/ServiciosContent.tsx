@@ -159,7 +159,7 @@ export default function Page() {
     const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
 
     // Construir la URL con los parámetros
-    const baseUrl = 'https://velsat.pe:2096/api/Preplan/ExcelDiferencias';
+    const baseUrl = 'https://do.velsat.pe:2083/api/Preplan/ExcelDiferencias';
     const params = new URLSearchParams({
       fecini: fechaInicialAPI,
       fecfin: fechaFinalAPI,

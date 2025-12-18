@@ -164,7 +164,7 @@ const AppModalCargaDatos: React.FC<AppModalProps> = ({
       formData.append('file', archivoExcel);
 
       // Construir la URL con los parámetros
-      const apiUrl = `https://velsat.pe:2096/api/Gacela/ProcessExcel?tipoGrupo=${tipoGrupo}&usuario=${usuario}`;
+      const apiUrl = `https://do.velsat.pe:2083/api/Gacela/ProcessExcel?tipoGrupo=${tipoGrupo}&usuario=${usuario}`;
 
       // Realizar la llamada a la API
       const response = await fetch(apiUrl, {
