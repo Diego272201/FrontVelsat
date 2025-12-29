@@ -32,8 +32,8 @@ export default function Header() {
     <>
       {/* Header Compacto */}
       <div className="bg-[#113EB9]">
-        <div className=" flex items-center justify-between px-4 py-1.5">
-          <h1 className="text-[12px] font-bold uppercase text-white">
+        <div className=" flex items-center justify-between px-4 py-[5px]">
+          <h1 className="text-[12.5px] font-bold uppercase text-white">
             Módulo de Planificación de Servicios Talma
           </h1>
 
@@ -58,15 +58,16 @@ export default function Header() {
 
       {/* Contenido colapsable */}
       {isExpanded && (
-        <div className="px-4 py-4">
+        <div className="px-4 pt-2 pb-2">
           {/* FILA 1: Carga + Controles + Filtros + Estadísticas */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_0.5fr] justify-between">
             {' '}
+
             {/* Carga de Archivos */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Upload className="h-4 w-4 text-blue-600" />
-                <h2 className="text-sm font-semibold text-slate-800">
+                <h2 className="text-[12px] font-semibold text-slate-800">
                   Carga de Archivos
                 </h2>
               </div>
@@ -81,7 +82,7 @@ export default function Header() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="flex cursor-pointer items-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-2 transition-all hover:border-blue-400 hover:bg-blue-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-[14px] transition-all hover:border-blue-400 hover:bg-blue-50"
                   >
                     <Upload className="h-4 w-4 text-slate-400" />
                     <span className="truncate text-xs text-slate-600">
@@ -97,12 +98,15 @@ export default function Header() {
                 </button>
               </div>
             </div>
+
+
             {/* Controles */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+
+            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Download className="h-4 w-4 text-blue-600" />
-                  <h2 className="text-sm font-semibold text-slate-800">
+                  <h2 className="text-[12px] font-semibold text-slate-800">
                     Obtener Datos
                   </h2>
                 </div>
@@ -160,11 +164,13 @@ export default function Header() {
                 </button>
               </div>
             </div>
+
+
             {/* Filtros */}
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Filter className="h-4 w-4 text-blue-600" />
-                <h2 className="text-sm font-semibold text-slate-800">
+                <h2 className="text-[12px] font-semibold text-slate-800">
                   Filtrar Datos
                 </h2>
               </div>
@@ -217,13 +223,13 @@ export default function Header() {
             {/* Estadísticas - En una sola columna */}
             <div className="flex flex-col gap-3 ">
               {/* Total Servicios */}
-              <div className="flex-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-3 text-white shadow-md">
+              <div className="flex-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-2 text-white shadow-md">
                 <div className="flex h-full items-center justify-between">
                   <div>
                     <p className="mb-0.5 text-xs font-medium text-blue-100">
                       Servicios
                     </p>
-                    <p className="text-2xl font-bold">3</p>
+                    <p className="text-xl font-bold">3</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
                     <Briefcase className="h-4 w-4" />
@@ -232,13 +238,13 @@ export default function Header() {
               </div>
 
               {/* Total Pasajeros */}
-              <div className="flex-1 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 text-white shadow-md">
+              <div className="flex-1 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 p-2 text-white shadow-md">
                 <div className="flex h-full items-center justify-between">
                   <div>
                     <p className="mb-0.5 text-xs font-medium text-emerald-100">
                       Pasajeros
                     </p>
-                    <p className="text-2xl font-bold">3</p>
+                    <p className="text-xl font-bold">3</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
                     <Users className="h-4 w-4" />

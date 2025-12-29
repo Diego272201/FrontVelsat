@@ -1,164 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Calendar, Check, Plus } from 'lucide-react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-
-interface Pasajero {
-  id: string;
-  nombre: string;
-  distrito: string;
-  direccion: string;
-  fecha: string;
-  area: string;
-}
-
-interface Grupo {
-  id: string;
-  numero: number;
-  tipoSalida: string;
-  empresa: string;
-  destino: string;
-  inicio: Date;
-  fin: Date;
-  tarifa: string;
-  conductor: string;
-  unidad: string;
-  duracion: string;
-  pasajeros: Pasajero[];
-}
+import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus } from 'lucide-react';
+import { DatePickerField } from './DatePickerField';
+import { gruposIniciales } from './gruposData';
+import { Pasajero, Grupo } from './types';
 
 export const TablaList = () => {
-  const [grupos, setGrupos] = useState<Grupo[]>([
-    {
-      id: 'grupo-1',
-      numero: 1,
-      tipoSalida: 'Salida',
-      empresa: 'Rep',
-      destino: 'Destino Isa Rep (san Juan De Miraflores)',
-      inicio: new Date(2025, 11, 27, 7, 10),
-      fin: new Date(2025, 11, 27, 7, 10),
-      tarifa: 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: [
-        {
-          id: 'p1',
-          nombre: 'José Velásquez Sanchez ( 990930796 )',
-          distrito: 'SURCO',
-          direccion: 'Jr. Tacna 207 Depto C403 Santiago de Surco Alt. Cuadra 1 de Av. Ayacucho',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        },
-        {
-          id: 'p2',
-          nombre: 'María González López (987654321)',
-          distrito: 'SURCO',
-          direccion: 'Av. Principal 456',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        },
-        {
-          id: 'p3',
-          nombre: 'Carlos Ramírez Torres (912345678)',
-          distrito: 'SURCO',
-          direccion: 'Calle Los Pinos 789',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        },
-        {
-          id: 'p7',
-          nombre: 'Pedro Martínez Silva (998877665)',
-          distrito: 'SURCO',
-          direccion: 'Av. Benavides 890',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        },
-        {
-          id: 'p8',
-          nombre: 'Laura Castro Vega (987654322)',
-          distrito: 'SURCO',
-          direccion: 'Jr. Los Rosales 234',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        }
-      ]
-    },
-    {
-      id: 'grupo-2',
-      numero: 2,
-      tipoSalida: 'Salida',
-      empresa: 'Rep',
-      destino: 'Destino Isa Rep (san Juan De Miraflores)',
-      inicio: new Date(2025, 11, 27, 7, 10),
-      fin: new Date(2025, 11, 27, 7, 10),
-      tarifa: 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: [
-        {
-          id: 'p4',
-          nombre: 'Jimmy Benites Espinoza - SMP / 935386749',
-          distrito: 'SMP',
-          direccion: 'Urb. Virol El Naranjal Mz "A" Lt 01 San Martín de Porres A dos cuadras del mercado Virol',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        },
-        {
-          id: 'p5',
-          nombre: 'Ana Pérez Ruiz (923456789)',
-          distrito: 'SMP',
-          direccion: 'Jr. Las Flores 321',
-          fecha: '27/12/2025 07:10',
-          area: 'REP'
-        }
-      ]
-    },
-    {
-      id: 'grupo-3',
-      numero: 3,
-      tipoSalida: 'Salida',
-      empresa: 'Rep',
-      destino: 'Destino Isa Rep (san Juan De Miraflores)',
-      inicio: new Date(2025, 11, 27, 8, 0),
-      fin: new Date(2025, 11, 27, 8, 0),
-      tarifa: 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: [
-        {
-          id: 'p6',
-          nombre: 'Luis Fernández Castro (934567890)',
-          distrito: 'MIRAFLORES',
-          direccion: 'Av. Larco 1234',
-          fecha: '27/12/2025 08:00',
-          area: 'REP'
-        }
-      ]
-    },
-    {
-      id: 'grupo-4',
-      numero: 4,
-      tipoSalida: 'Salida',
-      empresa: 'Rep',
-      destino: 'Destino Isa Rep (san Juan De Miraflores)',
-      inicio: new Date(2025, 11, 27, 8, 0),
-      fin: new Date(2025, 11, 27, 8, 0),
-      tarifa: 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: []
-    }
-  ]);
+  const [grupos, setGrupos] = useState<Grupo[]>(gruposIniciales);
 
   const [selectedPasajeros, setSelectedPasajeros] = useState<{
     pasajeros: Pasajero[];
     grupoOrigenId: string;
   } | null>(null);
-  
+
   const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Set<string>>(new Set());
   const [grupoEnSeleccion, setGrupoEnSeleccion] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,9 +19,9 @@ export const TablaList = () => {
   // Actualizar fecha de grupo con tipado correcto
   const actualizarFecha = (grupoId: string, campo: 'inicio' | 'fin', fecha: Date | null) => {
     if (!fecha) return;
-    
-    setGrupos(prevGrupos => 
-      prevGrupos.map(grupo => 
+
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo =>
         grupo.id === grupoId ? { ...grupo, [campo]: fecha } : grupo
       )
     );
@@ -176,8 +29,8 @@ export const TablaList = () => {
 
   // Actualizar campo de texto de grupo
   const actualizarGrupo = (grupoId: string, campo: keyof Grupo, valor: string) => {
-    setGrupos(prevGrupos => 
-      prevGrupos.map(grupo => 
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo =>
         grupo.id === grupoId ? { ...grupo, [campo]: valor } : grupo
       )
     );
@@ -208,7 +61,7 @@ export const TablaList = () => {
     if (!grupo) return;
 
     const pasajerosAMover = grupo.pasajeros.filter(p => pasajerosSeleccionados.has(p.id));
-    
+
     if (pasajerosAMover.length === 0) {
       alert('Selecciona al menos un pasajero para mover');
       return;
@@ -247,7 +100,7 @@ export const TablaList = () => {
             )
           };
         }
-        
+
         // Agregar al grupo destino
         if (grupo.id === grupoDestinoId) {
           return {
@@ -255,7 +108,7 @@ export const TablaList = () => {
             pasajeros: [...grupo.pasajeros, ...selectedPasajeros.pasajeros]
           };
         }
-        
+
         return grupo;
       });
     });
@@ -312,11 +165,11 @@ export const TablaList = () => {
 
   const gruposFiltrados = useMemo(() => {
     if (!searchTerm) return grupos;
-    
+
     const term = searchTerm.toLowerCase();
     return grupos.map(grupo => ({
       ...grupo,
-      pasajeros: grupo.pasajeros.filter(p => 
+      pasajeros: grupo.pasajeros.filter(p =>
         p.nombre.toLowerCase().includes(term) ||
         p.distrito.toLowerCase().includes(term) ||
         p.direccion.toLowerCase().includes(term)
@@ -325,74 +178,25 @@ export const TablaList = () => {
   }, [grupos, searchTerm]);
 
   return (
-    <div className="w-full p-4 pb-8">
-      {/* Estilos personalizados para react-datepicker */}
-      <style>{`
-        .custom-datepicker {
-          font-size: 0.875rem;
-          padding: 0.25rem 0.5rem;
-          border: 1px solid #d1d5db;
-          border-radius: 0.375rem;
-          width: 140px;
-          font-weight: 500;
-        }
-        
-        .custom-datepicker:focus {
-          outline: none;
-          ring: 2px;
-          ring-color: #3b82f6;
-          border-color: transparent;
-        }
-        
-        .react-datepicker-wrapper {
-          display: inline-block;
-        }
-        
-        .react-datepicker__input-container {
-          display: inline-block;
-        }
-        
-        .react-datepicker {
-          font-family: inherit;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .react-datepicker__header {
-          background-color: #3b82f6;
-          border-bottom: none;
-        }
-        
-        .react-datepicker__current-month,
-        .react-datepicker__day-name {
-          color: white;
-        }
-        
-        .react-datepicker__day--selected,
-        .react-datepicker__day--keyboard-selected {
-          background-color: #3b82f6;
-        }
-        
-        .react-datepicker__day:hover {
-          background-color: #dbeafe;
-        }
-        
-        .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
-          background-color: #3b82f6;
-        }
-      `}</style>
-
+    <div className="w-full px-4 pt-2 pb-2">
       {/* Buscador */}
-      <div className="mb-6 max-w-xl">
+      <div className="mb-[10px] max-w-xl">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-800 w-5 h-5" />
           <input
             type="text"
             placeholder="Buscar pasajero por nombre, distrito o dirección..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
+            className="
+                    w-full pl-10 pr-4 py-[7px]
+                    border border-gray-300 rounded-lg
+                    bg-white shadow-sm
+                    placeholder:text-sm placeholder:text-gray-400
+                    focus:outline-none focus:ring-0 focus:border-gray-400
+                  "
           />
+
         </div>
       </div>
 
@@ -412,7 +216,7 @@ export const TablaList = () => {
                 ))}
               </div>
             </div>
-            
+
             <div className="p-6 space-y-4">
               {/* Botón para crear nuevo grupo */}
               <button
@@ -461,7 +265,7 @@ export const TablaList = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-6 border-t bg-gray-50">
               <button
                 onClick={() => setSelectedPasajeros(null)}
@@ -478,15 +282,15 @@ export const TablaList = () => {
       <div className="space-y-4">
         {gruposFiltrados.map(grupo => (
           <div key={grupo.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-            
+
             {/* Header del grupo con date pickers */}
-            <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-4 py-3 flex items-center justify-between gap-4 border-b-2 border-blue-300">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-4 py-0 flex items-center justify-between gap-4 ">
               <div className="flex items-center gap-6">
-                <span className="text-base font-bold text-gray-800">Grupo: {grupo.numero}</span>
+                <span className="text-sm font-bold text-gray-800">Grupo: {grupo.numero}</span>
                 <span className="text-sm text-gray-700">Tipo: {grupo.tipoSalida}</span>
                 <span className="text-sm text-gray-700">Empresa: {grupo.empresa}</span>
               </div>
-              
+
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-700">Destino: {grupo.destino}</span>
@@ -494,39 +298,21 @@ export const TablaList = () => {
                     <Edit className="w-4 h-4" />
                   </button>
                 </div>
-                
+
                 {/* DatePicker de Inicio */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-700">Inicio:</span>
-                  <DatePicker
-                    selected={grupo.inicio}
-                    onChange={(date: Date | null) => actualizarFecha(grupo.id, 'inicio', date)}
-                    showTimeSelect
-                    timeFormat="HH:mm"
-                    timeIntervals={15}
-                    dateFormat="dd/MM/yyyy HH:mm"
-                    className="custom-datepicker"
-                    wrapperClassName="inline-block"
-                  />
-                  <Calendar className="w-4 h-4 text-gray-600" />
-                </div>
-                
+                <DatePickerField
+                  label="Inicio"
+                  selected={grupo.inicio}
+                  onChange={(date) => actualizarFecha(grupo.id, 'inicio', date)}
+                />
+
                 {/* DatePicker de Fin */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-700">Fin:</span>
-                  <DatePicker
-                    selected={grupo.fin}
-                    onChange={(date: Date | null) => actualizarFecha(grupo.id, 'fin', date)}
-                    showTimeSelect
-                    timeFormat="HH:mm"
-                    timeIntervals={15}
-                    dateFormat="dd/MM/yyyy HH:mm"
-                    className="custom-datepicker"
-                    wrapperClassName="inline-block"
-                  />
-                  <Calendar className="w-4 h-4 text-gray-600" />
-                </div>
-                
+                <DatePickerField
+                  label="Fin"
+                  selected={grupo.fin}
+                  onChange={(date) => actualizarFecha(grupo.id, 'fin', date)}
+                />
+
                 <span className="text-sm text-gray-700">Tarifa: {grupo.tarifa}</span>
               </div>
             </div>
@@ -564,13 +350,12 @@ export const TablaList = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {grupo.pasajeros.map((pasajero, index) => (
-                      <tr 
-                        key={pasajero.id} 
-                        className={`transition-colors ${
-                          pasajerosSeleccionados.has(pasajero.id) 
-                            ? 'bg-blue-50' 
+                      <tr
+                        key={pasajero.id}
+                        className={`transition-colors ${pasajerosSeleccionados.has(pasajero.id)
+                            ? 'bg-blue-50'
                             : 'hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {grupoEnSeleccion === grupo.id && (
                           <td className="px-4 py-3">
@@ -582,33 +367,33 @@ export const TablaList = () => {
                             />
                           </td>
                         )}
-                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{index + 1}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{pasajero.nombre}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{pasajero.distrito}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 max-w-md" title={pasajero.direccion}>
+                        <td className="px-4 py-2 text-[12px] text-gray-900 font-medium">{index + 1}</td>
+                        <td className="px-4 py-2 text-[12px] text-gray-900">{pasajero.nombre}</td>
+                        <td className="px-4 py-2 text-[12px] text-gray-700">{pasajero.distrito}</td>
+                        <td className="px-4 py-2 text-[12px] text-gray-700 max-w-md" title={pasajero.direccion}>
                           {pasajero.direccion}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{pasajero.fecha}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
+                        <td className="px-4 py-2 text-[12px] text-gray-700">{pasajero.fecha}</td>
+                        <td className="px-4 py-2 text-[12px] ">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
                             {pasajero.area}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-2">
                           <div className="flex gap-2">
-                            <button 
+                            <button
                               className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
                               title="Editar"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
                               title="Eliminar"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded transition-colors text-xs font-semibold flex items-center gap-1.5"
                               title="Ver dirección"
                             >
@@ -630,51 +415,51 @@ export const TablaList = () => {
             )}
 
             {/* Barra inferior con inputs editables */}
-            <div className="bg-gradient-to-r from-orange-100 to-orange-200 px-4 py-2.5 flex items-center justify-between border-t-2 border-orange-300">
+            <div className="bg-[#ffd29d] px-4 py-1 flex items-center justify-between border-t-2 border-orange-300">
               <div className="flex items-center gap-6">
                 {/* Input de Conductor */}
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-orange-700" />
-                  <span className="text-sm font-semibold text-gray-800">Conductor</span>
+                  <span className="text-[12px] font-semibold text-gray-800">Conductor</span>
                   <input
                     type="text"
                     value={grupo.conductor}
                     onChange={(e) => actualizarGrupo(grupo.id, 'conductor', e.target.value)}
-                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent w-48"
+                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-transparent w-48"
                     placeholder="Nombre del conductor"
                   />
                 </div>
-                
+
                 {/* Input de Unidad */}
                 <div className="flex items-center gap-2">
                   <Car className="w-4 h-4 text-orange-700" />
-                  <span className="text-sm font-semibold text-gray-800">Unidad</span>
+                  <span className="text-[12px] font-semibold text-gray-800">Unidad</span>
                   <input
                     type="text"
                     value={grupo.unidad}
                     onChange={(e) => actualizarGrupo(grupo.id, 'unidad', e.target.value)}
-                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent w-32"
+                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-transparent w-32"
                     placeholder="Placa"
                   />
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-orange-700" />
-                  <span className="text-sm font-semibold text-gray-800">Duración: {grupo.duracion}</span>
+                  <span className="text-[12px] font-semibold text-gray-800">Duración: {grupo.duracion}</span>
                 </div>
               </div>
-              
+
               <div className="flex gap-2">
                 {grupoEnSeleccion === grupo.id ? (
                   <>
-                    <button 
+                    <button
                       onClick={() => abrirModalMover(grupo.id)}
-                      className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded font-semibold transition-colors flex items-center gap-1.5"
+                      className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
                     >
                       <Check className="w-4 h-4" />
                       Mover seleccionados ({pasajerosSeleccionados.size})
                     </button>
-                    <button 
+                    <button
                       onClick={cancelarSeleccion}
                       className="px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded font-semibold transition-colors"
                     >
@@ -683,19 +468,19 @@ export const TablaList = () => {
                   </>
                 ) : (
                   <>
-                    <button className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded font-semibold transition-colors flex items-center gap-1.5">
-                      <span className="text-base">+</span> Pasajero
+                    <button className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5">
+                      <span className="text-[12px]">+</span> Pasajero
                     </button>
                     {grupo.pasajeros.length > 1 && (
-                      <button 
+                      <button
                         onClick={() => activarSeleccionMultiple(grupo.id)}
-                        className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-sm rounded font-semibold transition-colors flex items-center gap-1.5"
+                        className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
                       >
-                        <Users className="w-4 h-4" />
+                        <Users className="w-3 h-3" />
                         Mover múltiples
                       </button>
                     )}
-                    <button className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded font-semibold transition-colors">
+                    <button className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[12px] rounded font-semibold transition-colors">
                       Ruta
                     </button>
                   </>
