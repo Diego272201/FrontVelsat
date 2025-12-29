@@ -1,6 +1,17 @@
-"use client";
+'use client';
 import React, { useState } from 'react';
-import { Upload, X, Download, Filter, Users, Briefcase, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Upload,
+  X,
+  Download,
+  Filter,
+  Users,
+  Briefcase,
+  Trash2,
+  Plus,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
 
 export default function Header() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -21,10 +32,11 @@ export default function Header() {
     <>
       {/* Header Compacto */}
       <div className="bg-[#113EB9]">
+        <div className=" flex items-center justify-between px-4 py-1.5">
+          <h1 className="text-[12px] font-bold uppercase text-white">
+            Módulo de Planificación de Servicios Talma
+          </h1>
 
-        <div className=" px-4 py-1.5 flex items-center justify-between">
-          <h1 className="text-[12px] font-bold text-white uppercase">Módulo de Planificación de Servicios Talma</h1>
-          
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-white/20 active:scale-95"
@@ -41,21 +53,24 @@ export default function Header() {
               </>
             )}
           </button>
-
         </div>
       </div>
 
       {/* Contenido colapsable */}
       {isExpanded && (
-        <div className="mx-auto px-4 py-4">
+        <div className="px-4 py-4">
           {/* FILA 1: Carga + Controles + Filtros + Estadísticas */}
-<div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_1fr_0.5fr] gap-3">            {/* Carga de Archivos */}
-            <div className="rounded-lg bg-white p-4 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_0.5fr] justify-between">
+            {' '}
+            {/* Carga de Archivos */}
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
                 <Upload className="h-4 w-4 text-blue-600" />
-                <h2 className="text-sm font-semibold text-slate-800">Carga de Archivos</h2>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Carga de Archivos
+                </h2>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="block">
                   <input
@@ -66,11 +81,13 @@ export default function Header() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="flex items-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-2 cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50"
+                    className="flex cursor-pointer items-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-2 transition-all hover:border-blue-400 hover:bg-blue-50"
                   >
                     <Upload className="h-4 w-4 text-slate-400" />
-                    <span className="text-xs text-slate-600 truncate">
-                      {selectedFile ? selectedFile.name : 'Ningún archivo seleccionado'}
+                    <span className="truncate text-xs text-slate-600">
+                      {selectedFile
+                        ? selectedFile.name
+                        : 'Ningún archivo seleccionado'}
                     </span>
                   </label>
                 </label>
@@ -80,19 +97,22 @@ export default function Header() {
                 </button>
               </div>
             </div>
-
             {/* Controles */}
-            <div className="rounded-lg bg-white p-4 shadow-sm border border-slate-200">
-              <div className="flex items-center justify-between mb-3">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Download className="h-4 w-4 text-blue-600" />
-                  <h2 className="text-sm font-semibold text-slate-800">Obtener Datos</h2>
+                  <h2 className="text-sm font-semibold text-slate-800">
+                    Obtener Datos
+                  </h2>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="mb-2 grid grid-cols-3 gap-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Fecha</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Fecha
+                  </label>
                   <input
                     type="date"
                     value={selectedDate}
@@ -102,7 +122,9 @@ export default function Header() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Servicio</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Servicio
+                  </label>
                   <select
                     value={selectedService}
                     onChange={(e) => setSelectedService(e.target.value)}
@@ -115,7 +137,9 @@ export default function Header() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Hora</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Hora
+                  </label>
                   <input
                     type="time"
                     value={selectedTime}
@@ -136,17 +160,20 @@ export default function Header() {
                 </button>
               </div>
             </div>
-
             {/* Filtros */}
-            <div className="rounded-lg bg-white p-4 shadow-sm border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
                 <Filter className="h-4 w-4 text-blue-600" />
-                <h2 className="text-sm font-semibold text-slate-800">Filtrar Datos</h2>
+                <h2 className="text-sm font-semibold text-slate-800">
+                  Filtrar Datos
+                </h2>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="mb-2 grid grid-cols-2 gap-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Tipo
+                  </label>
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
@@ -159,7 +186,9 @@ export default function Header() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">Pasajero</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-700">
+                    Pasajero
+                  </label>
                   <input
                     type="text"
                     value={passengerFilter}
@@ -185,14 +214,15 @@ export default function Header() {
                 </button>
               </div>
             </div>
-
             {/* Estadísticas - En una sola columna */}
             <div className="flex flex-col gap-3 ">
               {/* Total Servicios */}
-              <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-3 shadow-md text-white flex-1">
-                <div className="flex items-center justify-between h-full">
+              <div className="flex-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-3 text-white shadow-md">
+                <div className="flex h-full items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-blue-100 mb-0.5">Servicios</p>
+                    <p className="mb-0.5 text-xs font-medium text-blue-100">
+                      Servicios
+                    </p>
                     <p className="text-2xl font-bold">3</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
@@ -202,10 +232,12 @@ export default function Header() {
               </div>
 
               {/* Total Pasajeros */}
-              <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 shadow-md text-white flex-1">
-                <div className="flex items-center justify-between h-full">
+              <div className="flex-1 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 p-3 text-white shadow-md">
+                <div className="flex h-full items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-emerald-100 mb-0.5">Pasajeros</p>
+                    <p className="mb-0.5 text-xs font-medium text-emerald-100">
+                      Pasajeros
+                    </p>
                     <p className="text-2xl font-bold">3</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
