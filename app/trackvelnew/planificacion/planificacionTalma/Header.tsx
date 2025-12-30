@@ -64,18 +64,19 @@ export default function Header() {
     }
   };
 
-  // Convertir número serial de Excel a fecha DD/MM/YYYY
-  const excelSerialToDate = (serial: number): string => {
-    const utc_days = Math.floor(serial - 25569);
-    const utc_value = utc_days * 86400;
-    const date_info = new Date(utc_value * 1000);
+// Convertir número serial de Excel a fecha DD/MM/YYYY
+const excelSerialToDate = (serial: number): string => {
+  // Excel guarda las fechas como días desde 1900-01-01
+  const excelEpoch = new Date(1900, 0, 1);
+  const daysOffset = serial - 2; // Ajuste por bug de Excel con año 1900
+  const date = new Date(excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000);
 
-    const day = String(date_info.getUTCDate()).padStart(2, '0');
-    const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');
-    const year = date_info.getUTCFullYear();
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
 
-    return `${day}/${month}/${year}`;
-  };
+  return `${day}/${month}/${year}`;
+};
 
   // Convertir hora de Excel a HH:MM
   const excelTimeToString = (time: any): string => {
