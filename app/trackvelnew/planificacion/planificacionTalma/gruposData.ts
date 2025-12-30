@@ -109,19 +109,5 @@ export const gruposIniciales: Grupo[] = [
         area: 'REP'
       }
     ]
-  },
-  {
-    id: 'grupo-4',
-    numero: 4,
-    tipoSalida: 'Salida',
-    empresa: 'Rep',
-    destino: 'Destino Isa Rep (san Juan De Miraflores)',
-    inicio: new Date(2025, 11, 27, 8, 0),
-    fin: new Date(2025, 11, 27, 8, 0),
-    tarifa: 'Latam',
-    conductor: '',
-    unidad: '',
-    duracion: '0h 0min',
-    pasajeros: []
   }
 ];

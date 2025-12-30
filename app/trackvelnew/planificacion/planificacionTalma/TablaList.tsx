@@ -1,11 +1,27 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus } from 'lucide-react';
+import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, GripVertical, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
 import { gruposIniciales } from './gruposData';
 import { Pasajero, Grupo } from './types';
 
 export const TablaList = () => {
   const [grupos, setGrupos] = useState<Grupo[]>(gruposIniciales);
+  
+  // Grupo especial de eliminados
+  const [grupoEliminados, setGrupoEliminados] = useState<Grupo>({
+    id: 'grupo-eliminados',
+    numero: 0,
+    tipoSalida: 'Eliminados',
+    empresa: '-',
+    destino: 'Papelera',
+    inicio: new Date(),
+    fin: new Date(),
+    tarifa: '-',
+    conductor: '',
+    unidad: '',
+    duracion: '0h 0min',
+    pasajeros: []
+  });
 
   const [selectedPasajeros, setSelectedPasajeros] = useState<{
     pasajeros: Pasajero[];
@@ -15,6 +31,26 @@ export const TablaList = () => {
   const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Set<string>>(new Set());
   const [grupoEnSeleccion, setGrupoEnSeleccion] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Estado para confirmación de eliminación
+  const [confirmacionEliminar, setConfirmacionEliminar] = useState<{
+    pasajero: Pasajero;
+    grupoId: string;
+  } | null>(null);
+
+  // Estado para el pasajero que se está arrastrando
+  const [draggingPassenger, setDraggingPassenger] = useState<{
+    pasajero: Pasajero;
+    grupoId: string;
+    index: number;
+  } | null>(null);
+
+  // Estado para el indicador de drop
+  const [dropIndicator, setDropIndicator] = useState<{
+    grupoId: string;
+    index: number;
+    position: 'before' | 'after';
+  } | null>(null);
 
   // Actualizar fecha de grupo con tipado correcto
   const actualizarFecha = (grupoId: string, campo: 'inicio' | 'fin', fecha: Date | null) => {
@@ -53,6 +89,75 @@ export const TablaList = () => {
       }
       return newSet;
     });
+  };
+
+  // Eliminar pasajero con confirmación
+  const solicitarEliminarPasajero = (pasajero: Pasajero, grupoId: string) => {
+    setConfirmacionEliminar({ pasajero, grupoId });
+  };
+
+  const confirmarEliminarPasajero = () => {
+    if (!confirmacionEliminar) return;
+
+    const { pasajero, grupoId } = confirmacionEliminar;
+
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo => {
+        if (grupo.id === grupoId) {
+          return {
+            ...grupo,
+            pasajeros: grupo.pasajeros.filter(p => p.id !== pasajero.id)
+          };
+        }
+        return grupo;
+      })
+    );
+
+    // Agregar al grupo de eliminados con referencia al grupo original
+    setGrupoEliminados(prev => ({
+      ...prev,
+      pasajeros: [...prev.pasajeros, { ...pasajero, grupoOriginalId: grupoId }]
+    }));
+
+    setConfirmacionEliminar(null);
+  };
+
+  // Restaurar pasajero desde eliminados
+  const restaurarPasajero = (pasajero: Pasajero & { grupoOriginalId?: string }) => {
+    if (!pasajero.grupoOriginalId) {
+      alert('No se puede determinar el grupo original del pasajero');
+      return;
+    }
+
+    // Remover del grupo eliminados
+    setGrupoEliminados(prev => ({
+      ...prev,
+      pasajeros: prev.pasajeros.filter(p => p.id !== pasajero.id)
+    }));
+
+    // Restaurar al grupo original
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo => {
+        if (grupo.id === pasajero.grupoOriginalId) {
+          const { grupoOriginalId, ...pasajeroLimpio } = pasajero;
+          return {
+            ...grupo,
+            pasajeros: [...grupo.pasajeros, pasajeroLimpio]
+          };
+        }
+        return grupo;
+      })
+    );
+  };
+
+  // Eliminar permanentemente desde papelera
+  const eliminarPermanentemente = (pasajeroId: string) => {
+    if (confirm('¿Estás seguro de eliminar este pasajero permanentemente? Esta acción no se puede deshacer.')) {
+      setGrupoEliminados(prev => ({
+        ...prev,
+        pasajeros: prev.pasajeros.filter(p => p.id !== pasajeroId)
+      }));
+    }
   };
 
   // Abrir modal con pasajeros seleccionados
@@ -163,6 +268,123 @@ export const TablaList = () => {
     setGrupoEnSeleccion(null);
   };
 
+  // Mover pasajero arriba
+  const moverPasajeroArriba = (grupoId: string, index: number) => {
+    if (index === 0) return;
+
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo => {
+        if (grupo.id === grupoId) {
+          const nuevosPasajeros = [...grupo.pasajeros];
+          [nuevosPasajeros[index - 1], nuevosPasajeros[index]] = 
+          [nuevosPasajeros[index], nuevosPasajeros[index - 1]];
+          return { ...grupo, pasajeros: nuevosPasajeros };
+        }
+        return grupo;
+      })
+    );
+  };
+
+  // Mover pasajero abajo
+  const moverPasajeroAbajo = (grupoId: string, index: number, totalPasajeros: number) => {
+    if (index === totalPasajeros - 1) return;
+
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo => {
+        if (grupo.id === grupoId) {
+          const nuevosPasajeros = [...grupo.pasajeros];
+          [nuevosPasajeros[index], nuevosPasajeros[index + 1]] = 
+          [nuevosPasajeros[index + 1], nuevosPasajeros[index]];
+          return { ...grupo, pasajeros: nuevosPasajeros };
+        }
+        return grupo;
+      })
+    );
+  };
+
+  // Drag and Drop handlers - MEJORADOS
+  const handleDragStart = (e: React.DragEvent, pasajero: Pasajero, grupoId: string, index: number) => {
+    setDraggingPassenger({ pasajero, grupoId, index });
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetGrupoId: string, targetIndex: number) => {
+    e.preventDefault();
+    
+    // Solo permitir drop si es el mismo grupo
+    if (draggingPassenger && draggingPassenger.grupoId === targetGrupoId) {
+      e.dataTransfer.dropEffect = 'move';
+      
+      // Detectar si el mouse está en la mitad superior o inferior de la fila
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const midpoint = rect.top + rect.height / 2;
+      const position = e.clientY < midpoint ? 'before' : 'after';
+      
+      setDropIndicator({ grupoId: targetGrupoId, index: targetIndex, position });
+    } else {
+      e.dataTransfer.dropEffect = 'none';
+      setDropIndicator(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetGrupoId: string, targetIndex: number) => {
+    e.preventDefault();
+    
+    if (!draggingPassenger || !dropIndicator) {
+      setDropIndicator(null);
+      setDraggingPassenger(null);
+      return;
+    }
+    
+    const { pasajero, grupoId: sourceGrupoId, index: sourceIndex } = draggingPassenger;
+
+    // VALIDACIÓN: Solo permitir reordenar dentro del mismo grupo
+    if (sourceGrupoId !== targetGrupoId) {
+      setDraggingPassenger(null);
+      setDropIndicator(null);
+      return;
+    }
+
+    // Calcular el índice final considerando si es 'before' o 'after'
+    let finalIndex = targetIndex;
+    if (dropIndicator.position === 'after') {
+      finalIndex = targetIndex + 1;
+    }
+
+    // Si arrastramos hacia abajo, ajustar el índice
+    if (sourceIndex < finalIndex) {
+      finalIndex--;
+    }
+
+    if (sourceIndex === finalIndex) {
+      setDraggingPassenger(null);
+      setDropIndicator(null);
+      return;
+    }
+
+    setGrupos(prevGrupos =>
+      prevGrupos.map(grupo => {
+        if (grupo.id === sourceGrupoId) {
+          const nuevosPasajeros = [...grupo.pasajeros];
+          // Remover del índice original
+          const [removed] = nuevosPasajeros.splice(sourceIndex, 1);
+          // Insertar en nueva posición
+          nuevosPasajeros.splice(finalIndex, 0, removed);
+          
+          return { ...grupo, pasajeros: nuevosPasajeros };
+        }
+        return grupo;
+      })
+    );
+
+    setDraggingPassenger(null);
+    setDropIndicator(null);
+  };
+
+  const handleDragLeave = () => {
+    setDropIndicator(null);
+  };
+
   const gruposFiltrados = useMemo(() => {
     if (!searchTerm) return grupos;
 
@@ -188,17 +410,54 @@ export const TablaList = () => {
             placeholder="Buscar pasajero por nombre, distrito o dirección..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="
-                    w-full pl-10 pr-4 py-[7px]
-                    border border-gray-300 rounded-lg
-                    bg-white shadow-sm
-                    placeholder:text-sm placeholder:text-gray-400
-                    focus:outline-none focus:ring-0 focus:border-gray-400
-                  "
+            className="w-full pl-10 pr-4 py-[7px] border border-gray-300 rounded-lg bg-white shadow-sm placeholder:text-sm placeholder:text-gray-400 focus:outline-none focus:ring-0 focus:border-gray-400"
           />
-
         </div>
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      {confirmacionEliminar && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-red-100 rounded-full">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  ¿Eliminar pasajero?
+                </h3>
+              </div>
+              
+              <p className="text-gray-700 mb-2">
+                Estás por eliminar a:
+              </p>
+              <p className="font-semibold text-gray-900 mb-4">
+                {confirmacionEliminar.pasajero.nombre}
+              </p>
+              
+              <p className="text-sm text-gray-600 mb-6">
+                El pasajero se moverá a la papelera y podrás restaurarlo más tarde si lo necesitas.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmacionEliminar(null)}
+                  className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarEliminarPasajero}
+                  className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de selección de grupo destino */}
       {selectedPasajeros && (
@@ -278,13 +537,14 @@ export const TablaList = () => {
         </div>
       )}
 
+     
+
       {/* Lista de grupos */}
       <div className="space-y-4">
         {gruposFiltrados.map(grupo => (
           <div key={grupo.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-
             {/* Header del grupo con date pickers */}
-            <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-4 py-0 flex items-center justify-between gap-4 ">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-4 py-0 flex items-center justify-between gap-4">
               <div className="flex items-center gap-6">
                 <span className="text-sm font-bold text-gray-800">Grupo: {grupo.numero}</span>
                 <span className="text-sm text-gray-700">Tipo: {grupo.tipoSalida}</span>
@@ -339,6 +599,7 @@ export const TablaList = () => {
                           />
                         </th>
                       )}
+                      <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700 w-12">Orden</th>
                       <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">N°</th>
                       <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Nombre</th>
                       <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Distrito</th>
@@ -352,13 +613,31 @@ export const TablaList = () => {
                     {grupo.pasajeros.map((pasajero, index) => (
                       <tr
                         key={pasajero.id}
-                        className={`transition-colors ${pasajerosSeleccionados.has(pasajero.id)
+                        draggable={grupoEnSeleccion !== grupo.id}
+                        onDragStart={(e) => handleDragStart(e, pasajero, grupo.id, index)}
+                        onDragOver={(e) => handleDragOver(e, grupo.id, index)}
+                        onDrop={(e) => handleDrop(e, grupo.id, index)}
+                        onDragLeave={handleDragLeave}
+                        className={`transition-colors ${
+                          pasajerosSeleccionados.has(pasajero.id)
                             ? 'bg-blue-50'
                             : 'hover:bg-gray-50'
-                          }`}
+                        } ${grupoEnSeleccion !== grupo.id ? 'cursor-move' : ''} ${
+                          dropIndicator?.grupoId === grupo.id && 
+                          dropIndicator?.index === index && 
+                          dropIndicator?.position === 'before'
+                            ? 'border-t-4 border-blue-500'
+                            : ''
+                        } ${
+                          dropIndicator?.grupoId === grupo.id && 
+                          dropIndicator?.index === index && 
+                          dropIndicator?.position === 'after'
+                            ? 'border-b-4 border-blue-500'
+                            : ''
+                        }`}
                       >
                         {grupoEnSeleccion === grupo.id && (
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-2">
                             <input
                               type="checkbox"
                               checked={pasajerosSeleccionados.has(pasajero.id)}
@@ -367,19 +646,51 @@ export const TablaList = () => {
                             />
                           </td>
                         )}
-                        <td className="px-4 py-2 text-[12px] text-gray-900 font-medium">{index + 1}</td>
-                        <td className="px-4 py-2 text-[12px] text-gray-900">{pasajero.nombre}</td>
-                        <td className="px-4 py-2 text-[12px] text-gray-700">{pasajero.distrito}</td>
-                        <td className="px-4 py-2 text-[12px] text-gray-700 max-w-md" title={pasajero.direccion}>
+
+                        <td className="px-4 py-0 bg-gray-100">
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => moverPasajeroArriba(grupo.id, index)}
+                              disabled={index === 0}
+                              className={`flex items-center justify-center p-0 rounded ${
+                                index === 0
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-600 hover:bg-gray-200'
+                              }`}
+                              title="Mover arriba"
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                moverPasajeroAbajo(grupo.id, index, grupo.pasajeros.length)
+                              }
+                              disabled={index === grupo.pasajeros.length - 1}
+                              className={`flex items-center justify-center p-0 rounded ${
+                                index === grupo.pasajeros.length - 1
+                                  ? 'text-gray-300 cursor-not-allowed'
+                                  : 'text-gray-600 hover:bg-gray-200'
+                              }`}
+                              title="Mover abajo"
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-1 text-[12px] text-gray-900 font-medium">{index + 1}</td>
+                        <td className="px-4 py-1 text-[12px] text-gray-900">{pasajero.nombre}</td>
+                        <td className="px-4 py-1 text-[12px] text-gray-700">{pasajero.distrito}</td>
+                        <td className="px-4 py-1 text-[12px] text-gray-700 max-w-md" title={pasajero.direccion}>
                           {pasajero.direccion}
                         </td>
-                        <td className="px-4 py-2 text-[12px] text-gray-700">{pasajero.fecha}</td>
-                        <td className="px-4 py-2 text-[12px] ">
+                        <td className="px-4 py-1 text-[12px] text-gray-700">{pasajero.fecha}</td>
+                        <td className="px-4 py-1 text-[12px]">
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
                             {pasajero.area}
                           </span>
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-4 py-1">
                           <div className="flex gap-2">
                             <button
                               className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
@@ -388,6 +699,7 @@ export const TablaList = () => {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => solicitarEliminarPasajero(pasajero, grupo.id)}
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
                               title="Eliminar"
                             >
@@ -487,10 +799,69 @@ export const TablaList = () => {
                 )}
               </div>
             </div>
-
           </div>
         ))}
       </div>
+
+
+       {/* Grupo de Eliminados (Papelera) */}
+      {grupoEliminados.pasajeros.length > 0 && (
+        <div className="mt-3 mb-2 bg-red-50 rounded-lg shadow-md border-2 border-red-300 overflow-hidden">
+          <div className="bg-gradient-to-r from-red-200 to-red-300 px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trash2 className="w-5 h-5 text-red-800" />
+              <span className="text-sm font-bold text-red-900">
+                Papelera ({grupoEliminados.pasajeros.length} pasajero{grupoEliminados.pasajeros.length !== 1 ? 's' : ''})
+              </span>
+            </div>
+            <span className="text-xs text-red-800">
+              Puedes restaurar pasajeros a su grupo original
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-red-100 border-b-2 border-red-300">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">N°</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Nombre</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Distrito</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Dirección</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-bold text-gray-700">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-red-200">
+                {grupoEliminados.pasajeros.map((pasajero, index) => (
+                  <tr key={pasajero.id} className="hover:bg-red-100 transition-colors">
+                    <td className="px-4 py-2 text-[12px] text-gray-900 font-medium">{index + 1}</td>
+                    <td className="px-4 py-2 text-[12px] text-gray-900">{pasajero.nombre}</td>
+                    <td className="px-4 py-2 text-[12px] text-gray-700">{pasajero.distrito}</td>
+                    <td className="px-4 py-2 text-[12px] text-gray-700 max-w-md">{pasajero.direccion}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => restaurarPasajero(pasajero)}
+                          className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                          title="Restaurar al grupo original"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => eliminarPermanentemente(pasajero.id)}
+                          className="p-2 bg-red-700 hover:bg-red-800 text-white rounded transition-colors"
+                          title="Eliminar permanentemente"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
