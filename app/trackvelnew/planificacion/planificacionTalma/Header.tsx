@@ -16,8 +16,11 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  MonitorUp,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
+import { Spinner } from '@nextui-org/react';
 
 interface PassengerRecord {
   codlan: string;
@@ -49,6 +52,8 @@ export default function Header() {
     failed: 0,
   });
 
+  const [errorDetails, setErrorDetails] = useState<any[]>([]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -59,7 +64,7 @@ export default function Header() {
         .toLowerCase();
 
       if (!validExtensions.includes(fileExtension)) {
-        alert('Por favor, selecciona un archivo Excel válido (.xlsx o .xls)');
+        toast.error('Por favor, selecciona un archivo Excel válido (.xlsx o .xls)');
         return;
       }
 
@@ -68,59 +73,54 @@ export default function Header() {
   };
 
   // Convertir cualquier formato de fecha de Excel a DD/MM/YYYY
-// Convertir cualquier formato de fecha de Excel a DD/MM/YYYY
-const excelSerialToDate = (serial: any): string => {
-  if (!serial) return '';
+  const excelSerialToDate = (serial: any): string => {
+    if (!serial) return '';
 
-  // Si es un string en formato YYYY-MM-DD o similar
-  if (typeof serial === 'string') {
-    // Intentar detectar formato YYYY-MM-DD
-    const isoDateMatch = serial.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoDateMatch) {
-      const [, year, month, day] = isoDateMatch;
-      return `${day}/${month}/${year}`;
+    if (typeof serial === 'string') {
+      const isoDateMatch = serial.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (isoDateMatch) {
+        const [, year, month, day] = isoDateMatch;
+        return `${day}/${month}/${year}`;
+      }
+
+      if (serial.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+        return serial;
+      }
+
+      const date = new Date(serial);
+      if (!isNaN(date.getTime())) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
+
+      return '';
     }
 
-    // Si ya viene en formato DD/MM/YYYY
-    if (serial.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-      return serial;
-    }
+    // Si es un número serial de Excel
+    if (typeof serial === 'number') {
+      const excelEpoch = new Date(1900, 0, 1);
+      const daysOffset = serial - 2;
+      const date = new Date(excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000);
 
-    // Intentar parsear como fecha normal
-    const date = new Date(serial);
-    if (!isNaN(date.getTime())) {
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
+    }
+
+    // Si ya es un objeto Date
+    if (serial instanceof Date && !isNaN(serial.getTime())) {
+      const day = String(serial.getDate()).padStart(2, '0');
+      const month = String(serial.getMonth() + 1).padStart(2, '0');
+      const year = serial.getFullYear();
       return `${day}/${month}/${year}`;
     }
 
     return '';
-  }
-
-  // Si es un número serial de Excel
-  if (typeof serial === 'number') {
-    const excelEpoch = new Date(1900, 0, 1);
-    const daysOffset = serial - 2;
-    const date = new Date(excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000);
-
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  }
-
-  // Si ya es un objeto Date
-  if (serial instanceof Date && !isNaN(serial.getTime())) {
-    const day = String(serial.getDate()).padStart(2, '0');
-    const month = String(serial.getMonth() + 1).padStart(2, '0');
-    const year = serial.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
-
-  return '';
-};
+  };
   // Convertir hora de Excel a HH:MM
   const excelTimeToString = (time: any): string => {
     if (typeof time === 'string') return time;
@@ -138,7 +138,7 @@ const excelSerialToDate = (serial: any): string => {
 
   const handleUploadFile = async () => {
     if (!selectedFile) {
-      alert('Por favor, selecciona un archivo Excel primero');
+      toast.warning('Por favor, selecciona un archivo Excel primero');
       return;
     }
 
@@ -152,7 +152,7 @@ const excelSerialToDate = (serial: any): string => {
       const sheetName = workbook.SheetNames[1];
 
       if (!sheetName) {
-        alert('El archivo no tiene una segunda hoja');
+        toast.error('El archivo no tiene una segunda hoja');
         setIsLoading(false);
         return;
       }
@@ -200,7 +200,7 @@ const excelSerialToDate = (serial: any): string => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error al procesar el archivo:', error);
-      alert('Hubo un error al procesar el archivo Excel');
+      toast.error('Hubo un error al procesar el archivo Excel');
       setIsLoading(false);
     }
   };
@@ -210,6 +210,8 @@ const excelSerialToDate = (serial: any): string => {
     setShowPreviewModal(false);
     setSendProgress({ current: 0, total: processedData.length });
     setApiResults({ success: 0, failed: 0 });
+
+      setErrorDetails([]); 
 
     const API_URL = 'https://do.velsat.pe:2083/api/Talma/InsertPedidoTalma';
     const BATCH_SIZE = 50; // Enviar en lotes de 50
@@ -269,7 +271,38 @@ const excelSerialToDate = (serial: any): string => {
                 `✅ Lote ${actualBatchNumber} - Respuesta:`,
                 responseData
               );
-              return { success: batch.length, failed: 0 };
+
+              if (responseData.errores && Array.isArray(responseData.errores)) {
+                errorDetails.push(...responseData.errores);
+              }
+
+              // Interpretar la respuesta de la API
+              let batchSuccess = 0;
+              let batchFailed = 0;
+
+              // Si la API devuelve información detallada
+              if (responseData.registrosProcesados !== undefined) {
+                batchSuccess = responseData.registrosProcesados || 0;
+                batchFailed = responseData.registrosConError || 0;
+              } else if (responseData.exitoso === true) {
+                // Si solo dice que fue exitoso
+                batchSuccess = batch.length;
+                batchFailed = 0;
+              } else if (responseData.exitoso === false) {
+                // Si dice que falló
+                batchSuccess = 0;
+                batchFailed = batch.length;
+              } else {
+                // Por defecto, asumir que todo fue exitoso
+                batchSuccess = batch.length;
+                batchFailed = 0;
+              }
+
+              console.log(
+                `📊 Lote ${actualBatchNumber} - Exitosos: ${batchSuccess}, Fallidos: ${batchFailed}`
+              );
+
+              return { success: batchSuccess, failed: batchFailed };
             } else {
               const errorText = await response.text();
               console.error(
@@ -306,7 +339,7 @@ const excelSerialToDate = (serial: any): string => {
         });
 
         console.log(
-          `\n📊 Progreso: ${processedCount}/${processedData.length} registros procesados`
+          `\n📊 Progreso: ${processedCount}/${processedData.length} registros procesados (✅ ${successCount} exitosos, ❌ ${failedCount} fallidos)`
         );
       }
 
@@ -318,15 +351,17 @@ const excelSerialToDate = (serial: any): string => {
       console.log('📊 Total:', successCount + failedCount);
       console.log('========================================\n');
 
+      if (failedCount > 0) {
+        localStorage.setItem('talmaErrors', JSON.stringify(errorDetails));
+      }
       setIsSending(false);
       setShowResultModal(true);
     } catch (error) {
       console.error('💥 ERROR GENERAL:', error);
-      alert('Hubo un error al enviar los datos a la API');
+      toast.error('Hubo un error al enviar los datos a la API');
       setIsSending(false);
     }
   };
-
   return (
     <>
       {/* Header Compacto */}
@@ -404,7 +439,7 @@ const excelSerialToDate = (serial: any): string => {
                     </>
                   ) : (
                     <>
-                      <Eye className="h-4 w-4" />
+                      <MonitorUp className="h-4 w-4" />
                       Subir
                     </>
                   )}
@@ -574,11 +609,10 @@ const excelSerialToDate = (serial: any): string => {
             {/* Header del Modal */}
             <div className="flex items-center justify-between border-b border-slate-200 bg-[#113EB9] px-6 py-4">
               <div className="flex items-center gap-3">
-                <Eye className="h-5 w-5 text-white" />
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-[14px] font-semibold text-white">
                   Vista Previa de Registros
                 </h3>
-                <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white">
+                <span className="rounded bg-white/20 px-3 py-1 text-sm font-medium text-white">
                   Total: {processedData.length} registros
                 </span>
               </div>
@@ -607,9 +641,8 @@ const excelSerialToDate = (serial: any): string => {
                   {processedData.map((record, index) => (
                     <tr
                       key={index}
-                      className={`${
-                        index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                      } hover:bg-blue-50 transition-colors`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                        } hover:bg-blue-50 transition-colors`}
                     >
                       <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">
@@ -637,17 +670,17 @@ const excelSerialToDate = (serial: any): string => {
             <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
               <button
                 onClick={() => setShowPreviewModal(false)}
-                className="flex items-center gap-2 rounded-md bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:bg-slate-300 active:scale-95"
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-slate-50 transition-all hover:bg-red-300 active:scale-95"
               >
                 <X className="h-4 w-4" />
                 Cancelar
               </button>
               <button
                 onClick={handleSendToAPI}
-                className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+                className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-95"
               >
                 <Send className="h-4 w-4" />
-                Enviar a API
+                Enviar Datos
               </button>
             </div>
           </div>
@@ -659,7 +692,7 @@ const excelSerialToDate = (serial: any): string => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
             <div className="text-center">
-              <Loader2 className="mx-auto h-16 w-16 animate-spin text-blue-600" />
+      <Spinner color="primary" size='md' />
               <h3 className="mt-4 text-xl font-semibold text-slate-800">
                 Enviando datos a la API
               </h3>
@@ -700,10 +733,11 @@ const excelSerialToDate = (serial: any): string => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-2xl">
             {/* Header */}
-            <div className="border-b border-slate-200 bg-gradient-to-r from-emerald-500 to-blue-500 px-6 py-4">
+            <div className="border-b border-slate-200 bg-[#ffb703]
+           px-6 py-4">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-6 w-6 text-white" />
-                <h3 className="text-lg font-semibold text-white">
+                <CheckCircle2 className="h-6 w-6 text-black" />
+                <h3 className="text-[15px] font-semibold text-black">
                   Proceso Completado
                 </h3>
               </div>
@@ -770,16 +804,41 @@ const excelSerialToDate = (serial: any): string => {
 
             {/* Footer */}
             <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
-              <button
-                onClick={() => {
-                  setShowResultModal(false);
-                  setProcessedData([]);
-                  setSelectedFile(null);
-                }}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
-              >
-                Cerrar
-              </button>
+              {apiResults.failed > 0 ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      // Redirigir a la página de errores
+                      window.open('/trackvelnew/planificacion/planificacionTalma/erroresTalma', '_blank');
+                    }}
+                    className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <AlertCircle className="h-4 w-4" />
+                    Ver Errores ({apiResults.failed})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowResultModal(false);
+                      setProcessedData([]);
+                      setSelectedFile(null);
+                    }}
+                    className="w-full rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-slate-700 active:scale-95"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowResultModal(false);
+                    setProcessedData([]);
+                    setSelectedFile(null);
+                  }}
+                  className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+                >
+                  Cerrar
+                </button>
+              )}
             </div>
           </div>
         </div>
