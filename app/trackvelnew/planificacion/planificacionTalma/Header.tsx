@@ -68,38 +68,59 @@ export default function Header() {
   };
 
   // Convertir cualquier formato de fecha de Excel a DD/MM/YYYY
-  const excelSerialToDate = (serial: any): string => {
-    let date: Date;
+// Convertir cualquier formato de fecha de Excel a DD/MM/YYYY
+const excelSerialToDate = (serial: any): string => {
+  if (!serial) return '';
 
-    if (typeof serial === 'number') {
-      // Excel guarda las fechas como días desde 1900-01-01
-      const excelEpoch = new Date(1900, 0, 1);
-      const daysOffset = serial - 2; // Ajuste por bug de Excel con año 1900
-      date = new Date(
-        excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000
-      );
-    } else if (typeof serial === 'string') {
-      // Si es string, intentar parsearlo
-      date = new Date(serial);
-    } else if (serial instanceof Date) {
-      // Si ya es Date
-      date = serial;
-    } else {
-      return '';
+  // Si es un string en formato YYYY-MM-DD o similar
+  if (typeof serial === 'string') {
+    // Intentar detectar formato YYYY-MM-DD
+    const isoDateMatch = serial.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoDateMatch) {
+      const [, year, month, day] = isoDateMatch;
+      return `${day}/${month}/${year}`;
     }
 
-    // Verificar que sea una fecha válida
-    if (isNaN(date.getTime())) {
-      return '';
+    // Si ya viene en formato DD/MM/YYYY
+    if (serial.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      return serial;
     }
+
+    // Intentar parsear como fecha normal
+    const date = new Date(serial);
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    return '';
+  }
+
+  // Si es un número serial de Excel
+  if (typeof serial === 'number') {
+    const excelEpoch = new Date(1900, 0, 1);
+    const daysOffset = serial - 2;
+    const date = new Date(excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000);
 
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
 
     return `${day}/${month}/${year}`;
-  };
+  }
 
+  // Si ya es un objeto Date
+  if (serial instanceof Date && !isNaN(serial.getTime())) {
+    const day = String(serial.getDate()).padStart(2, '0');
+    const month = String(serial.getMonth() + 1).padStart(2, '0');
+    const year = serial.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+
+  return '';
+};
   // Convertir hora de Excel a HH:MM
   const excelTimeToString = (time: any): string => {
     if (typeof time === 'string') return time;
