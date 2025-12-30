@@ -166,79 +166,111 @@ export default function Header() {
     }
   };
 
-  const handleSendToAPI = async () => {
-    setIsSending(true);
-    setShowPreviewModal(false);
-    setSendProgress({ current: 0, total: processedData.length });
-    setApiResults({ success: 0, failed: 0 });
+const handleSendToAPI = async () => {
+  setIsSending(true);
+  setShowPreviewModal(false);
+  setSendProgress({ current: 0, total: processedData.length });
+  setApiResults({ success: 0, failed: 0 });
 
-    const API_URL = 'https://do.velsat.pe:2083/api/Talma/InsertPedidoTalma';
-    const BATCH_SIZE = 50; // Enviar en lotes de 50
-    const CONCURRENT_REQUESTS = 5; // Máximo 5 requests simultáneos
+  const API_URL = 'https://do.velsat.pe:2083/api/Talma/InsertPedidoTalma';
+  const BATCH_SIZE = 50; // Enviar en lotes de 50
+  const CONCURRENT_REQUESTS = 5; // Máximo 5 requests simultáneos
 
-    try {
-      let successCount = 0;
-      let failedCount = 0;
-      let processedCount = 0;
+  try {
+    let successCount = 0;
+    let failedCount = 0;
+    let processedCount = 0;
 
-      // Dividir en lotes
-      const batches: PassengerRecord[][] = [];
-      for (let i = 0; i < processedData.length; i += BATCH_SIZE) {
-        batches.push(processedData.slice(i, i + BATCH_SIZE));
-      }
+    // Dividir en lotes
+    const batches: PassengerRecord[][] = [];
+    for (let i = 0; i < processedData.length; i += BATCH_SIZE) {
+      batches.push(processedData.slice(i, i + BATCH_SIZE));
+    }
 
-      // Procesar lotes con concurrencia limitada
-      for (let i = 0; i < batches.length; i += CONCURRENT_REQUESTS) {
-        const currentBatches = batches.slice(i, i + CONCURRENT_REQUESTS);
+    console.log('========================================');
+    console.log('📊 INICIANDO ENVÍO A LA API');
+    console.log('========================================');
+    console.log('🔗 URL:', API_URL);
+    console.log('📦 Total de registros:', processedData.length);
+    console.log('📋 Número de lotes:', batches.length);
+    console.log('⚙️ Tamaño de cada lote:', BATCH_SIZE);
+    console.log('⚡ Requests concurrentes:', CONCURRENT_REQUESTS);
+    console.log('========================================\n');
 
-        const promises = currentBatches.map(async (batch) => {
-          try {
-            const response = await fetch(API_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(batch),
-            });
+    // Procesar lotes con concurrencia limitada
+    for (let i = 0; i < batches.length; i += CONCURRENT_REQUESTS) {
+      const currentBatches = batches.slice(i, i + CONCURRENT_REQUESTS);
 
-            if (response.ok) {
-              return { success: batch.length, failed: 0 };
-            } else {
-              return { success: 0, failed: batch.length };
-            }
-          } catch (error) {
-            console.error('Error al enviar lote:', error);
+      const promises = currentBatches.map(async (batch, batchIndex) => {
+        const actualBatchNumber = i + batchIndex + 1;
+        
+        console.log(`\n🚀 Enviando Lote ${actualBatchNumber}/${batches.length}`);
+        console.log('📝 Datos a enviar:', JSON.stringify(batch, null, 2));
+        
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(batch),
+          });
+
+          console.log(`✅ Lote ${actualBatchNumber} - Status:`, response.status);
+          console.log(`✅ Lote ${actualBatchNumber} - OK:`, response.ok);
+
+          if (response.ok) {
+            const responseData = await response.json();
+            console.log(`✅ Lote ${actualBatchNumber} - Respuesta:`, responseData);
+            return { success: batch.length, failed: 0 };
+          } else {
+            const errorText = await response.text();
+            console.error(`❌ Lote ${actualBatchNumber} - Error:`, errorText);
             return { success: 0, failed: batch.length };
           }
+        } catch (error) {
+          console.error(`❌ Lote ${actualBatchNumber} - Exception:`, error);
+          return { success: 0, failed: batch.length };
+        }
+      });
+
+      const results = await Promise.all(promises);
+
+      results.forEach((result) => {
+        successCount += result.success;
+        failedCount += result.failed;
+        processedCount += result.success + result.failed;
+
+        setSendProgress({
+          current: processedCount,
+          total: processedData.length,
         });
 
-        const results = await Promise.all(promises);
-
-        results.forEach((result) => {
-          successCount += result.success;
-          failedCount += result.failed;
-          processedCount += result.success + result.failed;
-
-          setSendProgress({
-            current: processedCount,
-            total: processedData.length,
-          });
-
-          setApiResults({
-            success: successCount,
-            failed: failedCount,
-          });
+        setApiResults({
+          success: successCount,
+          failed: failedCount,
         });
-      }
+      });
 
-      setIsSending(false);
-      setShowResultModal(true);
-    } catch (error) {
-      console.error('Error general al enviar datos:', error);
-      alert('Hubo un error al enviar los datos a la API');
-      setIsSending(false);
+      console.log(`\n📊 Progreso: ${processedCount}/${processedData.length} registros procesados`);
     }
-  };
+
+    console.log('\n========================================');
+    console.log('✅ ENVÍO COMPLETADO');
+    console.log('========================================');
+    console.log('✔️ Exitosos:', successCount);
+    console.log('❌ Fallidos:', failedCount);
+    console.log('📊 Total:', successCount + failedCount);
+    console.log('========================================\n');
+
+    setIsSending(false);
+    setShowResultModal(true);
+  } catch (error) {
+    console.error('💥 ERROR GENERAL:', error);
+    alert('Hubo un error al enviar los datos a la API');
+    setIsSending(false);
+  }
+};
 
   return (
     <>
