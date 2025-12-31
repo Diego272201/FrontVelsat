@@ -21,6 +21,7 @@ import {
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { Spinner } from '@nextui-org/react';
+import ObtenerDatos from './Obtenerdatos';
 
 interface PassengerRecord {
   codlan: string;
@@ -32,9 +33,7 @@ interface PassengerRecord {
 
 export default function Header() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedService, setSelectedService] = useState('Entrada');
-  const [selectedDate, setSelectedDate] = useState('2025-12-16');
-  const [selectedTime, setSelectedTime] = useState('00:00');
+
   const [filterType, setFilterType] = useState('Todos');
   const [passengerFilter, setPassengerFilter] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
@@ -211,7 +210,7 @@ export default function Header() {
     setSendProgress({ current: 0, total: processedData.length });
     setApiResults({ success: 0, failed: 0 });
 
-      setErrorDetails([]); 
+    setErrorDetails([]);
 
     const API_URL = 'https://do.velsat.pe:2083/api/Talma/InsertPedidoTalma';
     const BATCH_SIZE = 50; // Enviar en lotes de 50
@@ -362,6 +361,9 @@ export default function Header() {
       setIsSending(false);
     }
   };
+
+ 
+
   return (
     <>
       {/* Header Compacto */}
@@ -448,69 +450,10 @@ export default function Header() {
             </div>
 
             {/* Controles */}
-            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Download className="h-4 w-4 text-blue-600" />
-                  <h2 className="text-[12px] font-semibold text-slate-800">
-                    Obtener Datos
-                  </h2>
-                </div>
-              </div>
 
-              <div className="mb-2 grid grid-cols-3 gap-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">
-                    Fecha
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">
-                    Servicio
-                  </label>
-                  <select
-                    value={selectedService}
-                    onChange={(e) => setSelectedService(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  >
-                    <option>Entrada</option>
-                    <option>Salida</option>
-                    <option>Conexión</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">
-                    Hora
-                  </label>
-                  <input
-                    type="time"
-                    value={selectedTime}
-                    onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <button className="flex items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95">
-                  <Download className="h-3 w-3" />
-                  Cargar
-                </button>
-                <button className="flex items-center justify-center gap-1 rounded-md bg-red-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95">
-                  <X className="h-3 w-3" />
-                  Eliminar
-                </button>
-              </div>
-            </div>
-
+            <ObtenerDatos
+             
+            />
             {/* Filtros */}
             <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
@@ -692,7 +635,7 @@ export default function Header() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
             <div className="text-center">
-      <Spinner color="primary" size='md' />
+              <Spinner color="primary" size='md' />
               <h3 className="mt-4 text-xl font-semibold text-slate-800">
                 Enviando datos a la API
               </h3>
