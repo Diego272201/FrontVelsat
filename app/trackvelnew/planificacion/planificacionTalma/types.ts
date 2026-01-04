@@ -1,3 +1,5 @@
+// types.ts
+
 export interface Pasajero {
   id: string;
   nombre: string;
@@ -5,6 +7,7 @@ export interface Pasajero {
   direccion: string;
   fecha: string;
   area: string;
+  grupoOriginalId?: string; // Para rastrear el grupo original cuando está en papelera
 }
 
 export interface Grupo {

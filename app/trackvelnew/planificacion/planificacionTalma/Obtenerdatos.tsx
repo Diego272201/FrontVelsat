@@ -94,7 +94,6 @@ export default function ObtenerDatos() {
           >
             <option>Entrada</option>
             <option>Salida</option>
-            <option>Conexión</option>
           </select>
         </div>
 

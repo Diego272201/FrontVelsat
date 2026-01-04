@@ -1,12 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, GripVertical, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
-import { gruposIniciales } from './gruposData';
+import { cargarGruposDesdeAPI } from './gruposData'; // ⚠️ Cambiar este import
 import { Pasajero, Grupo } from './types';
 
 export const TablaList = () => {
-  const [grupos, setGrupos] = useState<Grupo[]>(gruposIniciales);
+
+   const [grupos, setGrupos] = useState<Grupo[]>([]); // ⚠️ Empieza vacío
+  const [cargando, setCargando] = useState(true); // ⚠️ Nuevo estado
   
+  // ⚠️ NUEVO: Cargar datos al montar el componente
+  useEffect(() => {
+    const cargarDatos = async () => {
+      setCargando(true);
+      const gruposCargados = await cargarGruposDesdeAPI();
+      setGrupos(gruposCargados);
+      setCargando(false);
+    };
+    
+    cargarDatos();
+  }, []); // Solo se ejecuta una vez al montar
   // Grupo especial de eliminados
   const [grupoEliminados, setGrupoEliminados] = useState<Grupo>({
     id: 'grupo-eliminados',
@@ -541,7 +554,54 @@ export const TablaList = () => {
 
       {/* Lista de grupos */}
       <div className="space-y-4">
-        {gruposFiltrados.map(grupo => (
+        {gruposFiltrados.length === 0 && grupos.length === 0 ? (
+          /* Mensaje cuando NO HAY DATOS CARGADOS */
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12">
+            <div className="text-center">
+              <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-6">
+                <Users className="w-12 h-12 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                No hay grupos cargados
+              </h3>
+              <p className="text-gray-600 mb-2 max-w-md mx-auto">
+                Aún no se han cargado datos desde la API.
+              </p>
+              <p className="text-sm text-gray-500">
+                Los grupos y pasajeros aparecerán aquí una vez que se conecte con el servidor.
+              </p>
+              <div className="mt-8 flex justify-center gap-3">
+                <div className="px-4 py-2 bg-blue-50 rounded-lg flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-700 font-medium">Esperando datos...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : gruposFiltrados.length === 0 && searchTerm ? (
+          /* Mensaje cuando NO HAY RESULTADOS DE BÚSQUEDA */
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12">
+            <div className="text-center">
+              <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                No se encontraron resultados
+              </h3>
+              <p className="text-gray-600 mb-4">
+                No hay pasajeros que coincidan con "<span className="font-semibold">{searchTerm}</span>"
+              </p>
+              <button
+                onClick={() => setSearchTerm('')}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+              >
+                Limpiar búsqueda
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* LISTA DE GRUPOS */
+          gruposFiltrados.map(grupo => (
           <div key={grupo.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
             {/* Header del grupo con date pickers */}
             <div className="bg-gradient-to-r from-blue-100 to-blue-200 px-4 py-0 flex items-center justify-between gap-4">
@@ -800,7 +860,7 @@ export const TablaList = () => {
               </div>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
 
