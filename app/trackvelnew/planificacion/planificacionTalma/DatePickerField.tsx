@@ -10,14 +10,16 @@ registerLocale('es', es);
 
 interface DatePickerFieldProps {
   label: string;
-  selected: Date;
+  selected: Date | null; // ✅ Ahora acepta null
   onChange: (date: Date | null) => void;
+  disabled?: boolean; // ✅ Nueva prop para bloquear
 }
 
 export const DatePickerField: React.FC<DatePickerFieldProps> = ({ 
   label, 
   selected, 
-  onChange 
+  onChange,
+  disabled = false // ✅ Por defecto false
 }) => {
   useEffect(() => {
     // Verificar si el estilo ya existe
@@ -35,6 +37,12 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
         .custom-datepicker:focus {
           outline: none;
           border-color: transparent;
+        }
+        
+        .custom-datepicker:disabled {
+          background-color: #f3f4f6;
+          cursor: not-allowed;
+          opacity: 0.6;
         }
         
         .react-datepicker-wrapper {
@@ -96,16 +104,18 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
       <DatePicker
         selected={selected}
         onChange={onChange}
+        disabled={disabled} // ✅ Pasar disabled
         showTimeSelect
         timeFormat="HH:mm"
         timeIntervals={15}
         dateFormat="dd/MM/yyyy HH:mm"
+        placeholderText="dd/mm/yy hh:mm" // ✅ Placeholder cuando está vacío
         locale="es"
         timeCaption="Hora"
         className="custom-datepicker"
         wrapperClassName="inline-block"
       />
-      <Calendar className="w-4 h-4 text-gray-600" />
+      <Calendar className={`w-4 h-4 ${disabled ? 'text-gray-400' : 'text-gray-600'}`} /> {/* ✅ Icono más claro cuando está disabled */}
     </div>
   );
 };

@@ -1,25 +1,38 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, GripVertical, ChevronUp, ChevronDown, GripHorizontal } from 'lucide-react';
+import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, GripVertical, ChevronUp, ChevronDown, GripHorizontal, Save } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
-import { cargarGruposDesdeAPI } from './gruposData'; // ⚠️ Cambiar este import
+import { cargarGruposDesdeAPI } from './gruposData';
 import { Pasajero, Grupo } from './types';
+import { Spinner } from '@nextui-org/react';
 
-export const TablaList = () => {
+export interface TablaListRef {
+  cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
+}
 
-   const [grupos, setGrupos] = useState<Grupo[]>([]); // ⚠️ Empieza vacío
-  const [cargando, setCargando] = useState(true); // ⚠️ Nuevo estado
+export const TablaList = forwardRef<TablaListRef>((props, ref) => {
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [cargando, setCargando] = useState(false);
+  const [datosIntentadosCargar, setDatosIntentadosCargar] = useState(false);
+
+
+useImperativeHandle(ref, () => ({
+  cargarDatos: async (fecha: string, hora: string, tipo: 'S' | 'I') => {
+    setCargando(true);
+    setDatosIntentadosCargar(true);
+    const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
+    setGrupos(gruposCargados);
+    setCargando(false);
+  }
+}));
   
-  // ⚠️ NUEVO: Cargar datos al montar el componente
-  useEffect(() => {
-    const cargarDatos = async () => {
-      setCargando(true);
-      const gruposCargados = await cargarGruposDesdeAPI();
-      setGrupos(gruposCargados);
-      setCargando(false);
-    };
-    
-    cargarDatos();
-  }, []); // Solo se ejecuta una vez al montar
+const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I') => {
+  setCargando(true);
+  setDatosIntentadosCargar(true);
+  const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
+  setGrupos(gruposCargados);
+  setCargando(false);
+};
+
   // Grupo especial de eliminados
   const [grupoEliminados, setGrupoEliminados] = useState<Grupo>({
     id: 'grupo-eliminados',
@@ -315,7 +328,7 @@ export const TablaList = () => {
     );
   };
 
-  // Drag and Drop handlers - MEJORADOS
+  // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, pasajero: Pasajero, grupoId: string, index: number) => {
     setDraggingPassenger({ pasajero, grupoId, index });
     e.dataTransfer.effectAllowed = 'move';
@@ -414,9 +427,11 @@ export const TablaList = () => {
 
   return (
     <div className="w-full px-4 pt-2 pb-2">
+
+ 
       {/* Buscador */}
-      <div className="mb-[10px] max-w-xl">
-        <div className="relative">
+      <div className="mb-[10px]  flex items-center justify-between ">
+        <div className="relative w-1/3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-800 w-5 h-5" />
           <input
             type="text"
@@ -426,6 +441,13 @@ export const TablaList = () => {
             className="w-full pl-10 pr-4 py-[7px] border border-gray-300 rounded-lg bg-white shadow-sm placeholder:text-sm placeholder:text-gray-400 focus:outline-none focus:ring-0 focus:border-gray-400"
           />
         </div>
+
+    <div>
+  <button className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
+    <Save className="h-4 w-4" />
+    Guardar
+  </button>
+</div>
       </div>
 
       {/* Modal de confirmación de eliminación */}
@@ -550,34 +572,53 @@ export const TablaList = () => {
         </div>
       )}
 
-     
-
       {/* Lista de grupos */}
       <div className="space-y-4">
-        {gruposFiltrados.length === 0 && grupos.length === 0 ? (
-          /* Mensaje cuando NO HAY DATOS CARGADOS */
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12">
-            <div className="text-center">
-              <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-6">
-                <Users className="w-12 h-12 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">
-                No hay grupos cargados
-              </h3>
-              <p className="text-gray-600 mb-2 max-w-md mx-auto">
-                Aún no se han cargado datos desde la API.
-              </p>
-              <p className="text-sm text-gray-500">
-                Los grupos y pasajeros aparecerán aquí una vez que se conecte con el servidor.
-              </p>
-              <div className="mt-8 flex justify-center gap-3">
-                <div className="px-4 py-2 bg-blue-50 rounded-lg flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-blue-700 font-medium">Esperando datos...</span>
-                </div>
-              </div>
-            </div>
+{gruposFiltrados.length === 0 && grupos.length === 0 ? (
+  <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12">
+    <div className="text-center">
+      {cargando ? (
+        <>
+          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-6">
+            <Spinner color="primary" />
           </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            Cargando datos...
+          </h3>
+          <p className="text-gray-600 mb-2 max-w-md mx-auto">
+            Por favor espera mientras se cargan los grupos y pasajeros.
+          </p>
+        </>
+      ) : datosIntentadosCargar ? (
+        <>
+          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="w-12 h-12 text-orange-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            No hay datos disponibles
+          </h3>
+          <p className="text-gray-600 mb-2 max-w-md mx-auto">
+            No se encontraron grupos para los rangos seleccionados.
+          </p>
+          <p className="text-sm text-gray-500">
+            Intenta con otra fecha, hora o tipo de salida.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mb-6">
+            <Users className="w-12 h-12 text-blue-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            No hay grupos cargados
+          </h3>
+          <p className="text-gray-600 mb-2 max-w-md mx-auto">
+            Selecciona los campos y presiona "Cargar" para ver los grupos.
+          </p>
+        </>
+      )}
+    </div>
+  </div>
         ) : gruposFiltrados.length === 0 && searchTerm ? (
           /* Mensaje cuando NO HAY RESULTADOS DE BÚSQUEDA */
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-12">
@@ -619,18 +660,27 @@ export const TablaList = () => {
                   </button>
                 </div>
 
-                {/* DatePicker de Inicio */}
                 <DatePickerField
                   label="Inicio"
                   selected={grupo.inicio}
-                  onChange={(date) => actualizarFecha(grupo.id, 'inicio', date)}
+                  onChange={(date) => {
+                    if (!grupo._bloqueaInicio) {
+                      actualizarFecha(grupo.id, 'inicio', date);
+                    }
+                  }}
+                  disabled={grupo._bloqueaInicio}
                 />
 
-                {/* DatePicker de Fin */}
+                {/* DatePicker de Fin - 🔥 CON BLOQUEO */}
                 <DatePickerField
                   label="Fin"
                   selected={grupo.fin}
-                  onChange={(date) => actualizarFecha(grupo.id, 'fin', date)}
+                  onChange={(date) => {
+                    if (!grupo._bloqueaFin) {
+                      actualizarFecha(grupo.id, 'fin', date);
+                    }
+                  }}
+                  disabled={grupo._bloqueaFin}
                 />
 
                 <span className="text-sm text-gray-700">Tarifa: {grupo.tarifa}</span>
@@ -863,7 +913,6 @@ export const TablaList = () => {
         )))}
       </div>
 
-
        {/* Grupo de Eliminados (Papelera) */}
       {grupoEliminados.pasajeros.length > 0 && (
         <div className="mt-3 mb-2 bg-red-50 rounded-lg shadow-md border-2 border-red-300 overflow-hidden">
@@ -923,5 +972,6 @@ export const TablaList = () => {
         </div>
       )}
     </div>
-  );
-};
+    );
+});
+

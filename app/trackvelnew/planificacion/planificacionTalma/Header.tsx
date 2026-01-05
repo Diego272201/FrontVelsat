@@ -23,6 +23,10 @@ import { toast } from 'sonner';
 import { Spinner } from '@nextui-org/react';
 import ObtenerDatos from './Obtenerdatos';
 
+interface HeaderProps {
+  tablaListRef: React.RefObject<any>;
+}
+
 interface PassengerRecord {
   codlan: string;
   tipo: string;
@@ -31,8 +35,8 @@ interface PassengerRecord {
   usuario: string;
 }
 
-export default function Header() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+export default function Header({ tablaListRef }: HeaderProps) {
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [filterType, setFilterType] = useState('Todos');
   const [passengerFilter, setPassengerFilter] = useState('');
@@ -451,9 +455,9 @@ export default function Header() {
 
             {/* Controles */}
 
-            <ObtenerDatos
+      <ObtenerDatos tablaListRef={tablaListRef} />
              
-            />
+            
             {/* Filtros */}
             <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">

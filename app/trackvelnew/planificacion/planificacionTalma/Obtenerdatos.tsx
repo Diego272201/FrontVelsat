@@ -3,12 +3,20 @@ import React, { useState, useEffect } from 'react';
 import { Download, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useFetchTalma } from './Usefetchtalma';
+import { Spinner } from '@nextui-org/react';
 
-export default function ObtenerDatos() {
+// ✅ NUEVA INTERFAZ - Recibe el ref de TablaList
+interface ObtenerDatosProps {
+  tablaListRef: React.RefObject<any>;
+}
+
+// ✅ Ahora recibe props
+export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
   // Todo el estado está dentro del componente
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedService, setSelectedService] = useState('Entrada');
+  const [selectedService, setSelectedService] = useState('Salida'); // ✅ Cambiar default a 'Salida'
   const [selectedTime, setSelectedTime] = useState('');
+  const [cargandoDatos, setCargandoDatos] = useState(false); // ✅ NUEVO - Estado para loading
 
   // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY para la API
   const formatDateForAPI = (date: string): string => {
@@ -30,8 +38,8 @@ export default function ObtenerDatos() {
     setSelectedTime('');
   }, [selectedDate]);
 
-  // Funciones manejadoras
-  const handleCargarDatos = () => {
+  // ✅ FUNCIÓN MODIFICADA - Ahora carga datos dinámicamente
+  const handleCargarDatos = async () => {
     if (!selectedDate) {
       toast.warning('Por favor, selecciona una fecha');
       return;
@@ -41,21 +49,50 @@ export default function ObtenerDatos() {
       return;
     }
 
-    toast.info('Función Cargar - En desarrollo');
-    console.log('Cargar datos:', { selectedDate, selectedService, selectedTime });
+    setCargandoDatos(true);
     
-    // Aquí puedes agregar tu lógica de carga
-    // Por ejemplo, hacer un fetch a una API:
-    // const response = await fetch(`/api/datos?fecha=${selectedDate}&servicio=${selectedService}&hora=${selectedTime}`);
+    try {
+      // Convertir fecha a formato DD/MM/YYYY
+      const fechaFormateada = formatDateForAPI(selectedDate);
+      
+      // Determinar tipo: 'S' para Salida, 'I' para Entrada
+      const tipo: 'S' | 'I' = selectedService === 'Salida' ? 'S' : 'I';
+      
+      console.log('📊 Parámetros a enviar:', {
+        fecha: fechaFormateada,
+        hora: selectedTime,
+        tipo: tipo,
+        servicio: selectedService
+      });
+      
+      // Llamar a la función de TablaList para cargar datos
+      if (tablaListRef.current) {
+        await tablaListRef.current.cargarDatos(fechaFormateada, selectedTime, tipo);
+        toast.success('Datos cargados correctamente');
+      } else {
+        toast.error('Error: No se pudo conectar con la tabla');
+      }
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      toast.error('Error al cargar los datos');
+    } finally {
+      setCargandoDatos(false);
+    }
   };
 
+  // ✅ FUNCIÓN MODIFICADA - Ahora también limpia los datos de la tabla
   const handleEliminarDatos = () => {
+    // Limpiar datos de la tabla
+    if (tablaListRef.current) {
+      tablaListRef.current.limpiarDatos();
+    }
+    
     toast.success('Datos eliminados');
     console.log('Eliminar datos');
     
-    // Resetear los valores
+    // Resetear los valores del formulario
     setSelectedDate('');
-    setSelectedService('Entrada');
+    setSelectedService('Salida');
     setSelectedTime('');
   };
 
@@ -92,8 +129,8 @@ export default function ObtenerDatos() {
             onChange={(e) => setSelectedService(e.target.value)}
             className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
           >
-            <option>Entrada</option>
             <option>Salida</option>
+            <option>Entrada</option>
           </select>
         </div>
 
@@ -134,13 +171,24 @@ export default function ObtenerDatos() {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
+        {/* ✅ BOTÓN MODIFICADO - Muestra loading mientras carga */}
         <button
           onClick={handleCargarDatos}
-          disabled={!selectedDate || !selectedTime}
+          disabled={!selectedDate || !selectedTime || cargandoDatos}
           className="flex items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Download className="h-3 w-3" />
-          Cargar
+          {cargandoDatos ? (
+            <>
+                    <Spinner color="default" size='sm'/>
+
+              Cargando
+            </>
+          ) : (
+            <>
+              <Download className="h-3 w-3" />
+              Obtener
+            </>
+          )}
         </button>
         <button
           onClick={handleEliminarDatos}
