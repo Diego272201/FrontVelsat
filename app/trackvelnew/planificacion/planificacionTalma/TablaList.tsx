@@ -5,6 +5,7 @@ import { cargarGruposDesdeAPI, guardarGruposEnAPI  } from './gruposData';
 import { Pasajero, Grupo } from './types';
 import { Spinner } from '@nextui-org/react';
 import { toast } from 'sonner';
+import FooterTablaList, { type Conductor, type Unidad } from './FooterTablaList';
 
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
@@ -16,6 +17,36 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
   const [cargando, setCargando] = useState(false);
   const [datosIntentadosCargar, setDatosIntentadosCargar] = useState(false);
 const [guardando, setGuardando] = useState(false);
+
+const [conductores, setConductores] = useState<Conductor[]>([]);
+const [unidades, setUnidades] = useState<Unidad[]>([]);
+
+useEffect(() => {
+  const cargarConductores = async () => {
+    try {
+      const response = await fetch('https://do.velsat.pe:2083/api/Preplan/conductores?usuario=cgacela');
+      const data = await response.json();
+      console.log('✅ Conductores cargados:', data.length);
+      setConductores(data);
+    } catch (error) {
+      console.error('❌ Error al cargar conductores:', error);
+    }
+  };
+
+  const cargarUnidades = async () => {
+    try {
+      const response = await fetch('https://do.velsat.pe:2083/api/Preplan/unidades?usuario=cgacela');
+      const data = await response.json();
+      console.log('✅ Unidades cargadas:', data.length);
+      setUnidades(data);
+    } catch (error) {
+      console.error('❌ Error al cargar unidades:', error);
+    }
+  };
+
+  cargarConductores();
+  cargarUnidades();
+}, []); // Solo se ejecuta una vez al montar
 
 const handleGuardar = async () => {
   try {
@@ -38,7 +69,7 @@ const handleGuardar = async () => {
     }
 
     setGuardando(true);
-    await guardarGruposEnAPI(grupos);
+    await guardarGruposEnAPI(grupos, conductores);  
       toast.success('Grupos guardados exitosamente');
 
     
@@ -890,78 +921,18 @@ const crearNuevoGrupo = () => {
             )}
 
             {/* Barra inferior con inputs editables */}
-            <div className="bg-[#ffd29d] px-4 py-1 flex items-center justify-between border-t-2 border-orange-300">
-              <div className="flex items-center gap-6">
-                {/* Input de Conductor */}
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-orange-700" />
-                  <span className="text-[12px] font-semibold text-gray-800">Conductor</span>
-                  <input
-                    type="text"
-                    value={grupo.conductor}
-                    onChange={(e) => actualizarGrupo(grupo.id, 'conductor', e.target.value)}
-                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-transparent w-48"
-                    placeholder="Nombre del conductor"
-                  />
-                </div>
+<FooterTablaList
+  grupo={grupo}
+  actualizarGrupo={actualizarGrupo}
+  grupoEnSeleccion={grupoEnSeleccion}
+  abrirModalMover={abrirModalMover}
+  pasajerosSeleccionados={pasajerosSeleccionados}
+  cancelarSeleccion={cancelarSeleccion}
+  activarSeleccionMultiple={activarSeleccionMultiple}
+  conductores={conductores}
+  unidades={unidades}
+/>
 
-                {/* Input de Unidad */}
-                <div className="flex items-center gap-2">
-                  <Car className="w-4 h-4 text-orange-700" />
-                  <span className="text-[12px] font-semibold text-gray-800">Unidad</span>
-                  <input
-                    type="text"
-                    value={grupo.unidad}
-                    onChange={(e) => actualizarGrupo(grupo.id, 'unidad', e.target.value)}
-                    className="px-3 py-1 text-sm text-gray-800 bg-white border border-gray-300 rounded focus:ring-1 focus:ring-orange-500 focus:border-transparent w-32"
-                    placeholder="Placa"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-orange-700" />
-                  <span className="text-[12px] font-semibold text-gray-800">Duración: {grupo.duracion}</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                {grupoEnSeleccion === grupo.id ? (
-                  <>
-                    <button
-                      onClick={() => abrirModalMover(grupo.id)}
-                      className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
-                    >
-                      <Check className="w-4 h-4" />
-                      Mover seleccionados ({pasajerosSeleccionados.size})
-                    </button>
-                    <button
-                      onClick={cancelarSeleccion}
-                      className="px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded font-semibold transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5">
-                      <span className="text-[12px]">+</span> Pasajero
-                    </button>
-                    {grupo.pasajeros.length > 1 && (
-                      <button
-                        onClick={() => activarSeleccionMultiple(grupo.id)}
-                        className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
-                      >
-                        <Users className="w-3 h-3" />
-                        Mover múltiples
-                      </button>
-                    )}
-                    <button className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[12px] rounded font-semibold transition-colors">
-                      Ruta
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
         )))}
       </div>

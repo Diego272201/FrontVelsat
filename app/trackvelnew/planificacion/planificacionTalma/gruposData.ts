@@ -244,7 +244,10 @@ export const cargarGruposDesdeAPI = async (
 };
 
 // Función para guardar grupos en la API
-export const guardarGruposEnAPI = async (grupos: Grupo[]): Promise<boolean> => {
+export const guardarGruposEnAPI = async (
+  grupos: Grupo[], 
+  conductores: Array<{codigo: string, apepate: string}>
+): Promise<boolean> => {
   try {
     // Array para acumular todos los pasajeros de todos los grupos
     const payload: any[] = [];
@@ -275,13 +278,24 @@ export const guardarGruposEnAPI = async (grupos: Grupo[]): Promise<boolean> => {
       grupo.pasajeros.forEach((pasajero, index) => {
         const apiData = pasajero._apiData;
 
+        // 🔥 Buscar código del conductor por nombre
+        let codconductorEncontrado: string | null = null;
+        if (grupo.conductor && grupo.conductor.trim() !== '') {
+          const conductorEncontrado = conductores.find(c => 
+            c.apepate.trim().toLowerCase() === grupo.conductor.trim().toLowerCase()
+          );
+          if (conductorEncontrado) {
+            codconductorEncontrado = conductorEncontrado.codigo;
+          }
+        }
+
         const pasajeroPayload = {
           codigo: apiData.codigo,
           horaprog: horaprog!,
           orden: String(index),
           grupo: String(grupo.numero - 1),
-          codconductor: apiData.conductor?.codtaxi ? String(apiData.conductor.codtaxi) : null,
-          codunidad: apiData.codunidad || null,
+          codconductor: codconductorEncontrado || (apiData.conductor?.codtaxi ? String(apiData.conductor.codtaxi) : null),
+          codunidad: grupo.unidad || apiData.codunidad || null,  // 🔥 TOMA DE grupo.unidad primero
           destinocodigo: apiData.destino.codlugar ? String(apiData.destino.codlugar) : null,
           destinocodlugar: String(apiData.direccionPasajero.codlugar)
         };
@@ -313,7 +327,7 @@ export const guardarGruposEnAPI = async (grupos: Grupo[]): Promise<boolean> => {
     return true;
 
   } catch (error) {
-    console.error('❌ Error al guardar grupos:', error);
+    console.error('Error al guardar grupos:', error);
     throw error;
   }
 };
