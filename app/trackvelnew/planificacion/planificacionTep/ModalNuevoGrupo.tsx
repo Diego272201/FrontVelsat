@@ -14,6 +14,7 @@ import InputPasajero from '@/app/components/inputs/InputPasajero';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdLibraryAdd, MdDelete } from 'react-icons/md';
 import { useUsername } from '@/hooks/useUsername';
+import InputPasajeroEmpresa from '@/app/components/inputs/InputPasajeroEmpresa';
 
 interface ModalNuevoGrupoProps {
   isOpen: boolean;
@@ -125,8 +126,8 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
 
   const handleSubmit = async () => {
     if (!isReady) {
-    return;
-  }
+      return;
+    }
 
     if (!validateForm()) {
       toast.error('Por favor, completa todos los campos obligatorios');
@@ -340,10 +341,18 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
                 Seleccionar Pasajeros
               </h3>
 
-              <InputPasajero
-                onSelectPasajero={handleAgregarPasajero}
-                clearAfterSelect={true}
-              />
+              {username === 'movilbus' ? (
+                <InputPasajeroEmpresa
+                  onSelectPasajero={handleAgregarPasajero}
+                  clearAfterSelect={true}
+                  empresa={empresaActual}
+                />
+              ) : (
+                <InputPasajero
+                  onSelectPasajero={handleAgregarPasajero}
+                  clearAfterSelect={true}
+                />
+              )}
 
               {errors.pasajeros && (
                 <p className="text-xs text-red-500">{errors.pasajeros}</p>
