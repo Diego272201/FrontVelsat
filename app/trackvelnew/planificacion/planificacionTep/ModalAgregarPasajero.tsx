@@ -1,4 +1,3 @@
-import InputPasajero from '@/app/components/inputs/InputPasajero';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import {
   Modal,
@@ -14,6 +13,8 @@ import { useState } from 'react';
 import { MdLibraryAdd, MdDelete } from 'react-icons/md';
 import { toast } from 'sonner';
 import { useUsername } from '@/hooks/useUsername';
+import InputPasajeroEmpresa from '@/app/components/inputs/InputPasajeroEmpresa';
+import InputPasajero from '@/app/components/inputs/InputPasajero';
 
 interface Grupo {
   id: number;
@@ -43,8 +44,11 @@ export default function App({
 }: ModalAgregarPasajeroProps) {
   const { username, isReady } = useUsername();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [pasajeroSeleccionado, setPasajeroSeleccionado] = useState<Pasajero | null>(null);
-  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Pasajero[]>([]);
+  const [pasajeroSeleccionado, setPasajeroSeleccionado] =
+    useState<Pasajero | null>(null);
+  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<
+    Pasajero[]
+  >([]);
   const [agregandoPasajeros, setAgregandoPasajeros] = useState(false);
 
   const handleSeleccionarPasajero = (pasajero: Pasajero) => {
@@ -52,7 +56,7 @@ export default function App({
 
     // Verificar si el pasajero ya está en la lista
     const yaExiste = pasajerosSeleccionados.some(
-      (p) => p.codlan === pasajero.codlan
+      (p) => p.codlan === pasajero.codlan,
     );
 
     if (yaExiste) {
@@ -67,15 +71,15 @@ export default function App({
 
   const handleEliminarPendiente = (codlan: string) => {
     setPasajerosSeleccionados(
-      pasajerosSeleccionados.filter((p) => p.codlan !== codlan)
+      pasajerosSeleccionados.filter((p) => p.codlan !== codlan),
     );
     toast.success('Pasajero eliminado de la lista');
   };
 
   const handleAgregarTodos = async () => {
     if (!isReady) {
-    return;
-  }
+      return;
+    }
 
     if (pasajerosSeleccionados.length === 0) {
       toast.warning('No hay pasajeros para agregar');
@@ -115,7 +119,7 @@ export default function App({
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify(payload),
-            }
+            },
           );
 
           if (response.ok) {
@@ -132,9 +136,11 @@ export default function App({
 
       // Mostrar resultado
       if (agregadosExitosamente > 0) {
-        toast.success(`${agregadosExitosamente} pasajero(s) agregado(s) correctamente`);
+        toast.success(
+          `${agregadosExitosamente} pasajero(s) agregado(s) correctamente`,
+        );
       }
-      
+
       if (errores > 0) {
         toast.error(`${errores} pasajero(s) no se pudieron agregar`);
       }
@@ -173,7 +179,7 @@ export default function App({
         <Plus size={14} />
         Pasajero
       </button>
-      
+
       <Modal
         isDismissable={false}
         isKeyboardDismissDisabled={true}
@@ -188,39 +194,53 @@ export default function App({
                 Agregar Pasajeros al Servicio
                 <MdLibraryAdd />
               </ModalHeader>
-              
+
               <ModalBody className="space-y-4">
                 {/* Input para seleccionar pasajero */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">
                     Buscar y seleccionar pasajero:
                   </h4>
-                  <InputPasajero onSelectPasajero={handleSeleccionarPasajero} clearAfterSelect={true}/>
+                  {username === 'movilbus' ? (
+                    <InputPasajeroEmpresa
+                      onSelectPasajero={handleSeleccionarPasajero}
+                      clearAfterSelect={true}
+                      empresa={grupo.empresa}
+                    />
+                  ) : (
+                    <InputPasajero
+                      onSelectPasajero={handleSeleccionarPasajero}
+                      clearAfterSelect={true}
+                    />
+                  )}
                 </div>
 
                 {/* Lista de pasajeros seleccionados */}
                 {pasajerosSeleccionados.length > 0 ? (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    <h4 className="mb-2 text-sm font-medium text-gray-700">
                       Pasajeros seleccionados ({pasajerosSeleccionados.length}):
                     </h4>
-                    <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-2">
+                    <div className="max-h-60 space-y-2 overflow-y-auto rounded-lg border p-2">
                       {pasajerosSeleccionados.map((pasajero, index) => (
                         <div
                           key={pasajero.codlan}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                          className="flex items-center justify-between rounded-lg border bg-gray-50 p-3"
                         >
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-800">
                               {index + 1}. {pasajero.apepate}
                             </p>
                             <p className="text-xs text-gray-600">
-                              Código: {pasajero.codlan} | Lugar: {pasajero.codlugar}
+                              Código: {pasajero.codlan} | Lugar:{' '}
+                              {pasajero.codlugar}
                             </p>
                           </div>
                           <button
-                            onClick={() => handleEliminarPendiente(pasajero.codlan)}
-                            className="ml-2 p-1 text-red-600 hover:bg-red-100 rounded"
+                            onClick={() =>
+                              handleEliminarPendiente(pasajero.codlan)
+                            }
+                            className="ml-2 rounded p-1 text-red-600 hover:bg-red-100"
                             title="Eliminar de la lista"
                           >
                             <MdDelete size={16} />
@@ -230,14 +250,15 @@ export default function App({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <p className="text-sm text-gray-600 text-center">
-                      Aún no has agregado pasajeros a la lista. Busca y selecciona pasajeros para agregarlos.
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+                    <p className="text-center text-sm text-gray-600">
+                      Aún no has agregado pasajeros a la lista. Busca y
+                      selecciona pasajeros para agregarlos.
                     </p>
                   </div>
                 )}
               </ModalBody>
-              
+
               <ModalFooter>
                 <Button color="danger" onPress={handleCerrarModal}>
                   Cerrar
@@ -248,10 +269,9 @@ export default function App({
                   isLoading={agregandoPasajeros}
                   isDisabled={pasajerosSeleccionados.length === 0}
                 >
-                  {agregandoPasajeros 
-                    ? `Agregando ${pasajerosSeleccionados.length} pasajero(s)...` 
-                    : `Agregar ${pasajerosSeleccionados.length} pasajero(s)`
-                  }
+                  {agregandoPasajeros
+                    ? `Agregando ${pasajerosSeleccionados.length} pasajero(s)...`
+                    : `Agregar ${pasajerosSeleccionados.length} pasajero(s)`}
                 </Button>
               </ModalFooter>
             </>

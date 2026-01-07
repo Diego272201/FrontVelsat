@@ -161,40 +161,43 @@ export default function NuevoServicioModal({
   };
 
   useEffect(() => {
-    const fetchPasajeros = async () => {
-      if (!isReady || pasajero.trim() === '') {
-        setSugerencias([]);
-        setMostrarSugerencias(false);
-        return;
-      }
+  const fetchPasajeros = async () => {
+    if (!isReady || pasajero.trim() === '') {
+      setSugerencias([]);
+      setMostrarSugerencias(false);
+      return;
+    }
 
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
-        );
+    try {
+      // ✅ Usar API diferente según el usuario
+      const apiUrl = username === 'movilbus'
+        ? `${API_BASE_URL125}/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${clienteSeleccionado}`
+        : `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
 
-        const resultados = response.data.map((item: any) => ({
-          apepate: item.apepate,
-          codigo: item.codigo,
-          codlugar: item.lugar?.codlugar || 0,
-          direccion: item.lugar?.direccion || 'No disponible',
-          distrito: item.lugar?.distrito || 'No disponible',
-          wx: item.lugar?.wx || '',
-          wy: item.lugar?.wy || '',
-        }));
+      const response = await axios.get(apiUrl);
 
-        setSugerencias(resultados);
-      } catch (error) {
-        console.error('Error al obtener pasajeros:', error);
-      }
-    };
+      const resultados = response.data.map((item: any) => ({
+        apepate: item.apepate,
+        codigo: item.codigo,
+        codlugar: item.lugar?.codlugar || 0,
+        direccion: item.lugar?.direccion || 'No disponible',
+        distrito: item.lugar?.distrito || 'No disponible',
+        wx: item.lugar?.wx || '',
+        wy: item.lugar?.wy || '',
+      }));
 
-    const delayDebounce = setTimeout(() => {
-      fetchPasajeros();
-    }, 300);
+      setSugerencias(resultados);
+    } catch (error) {
+      console.error('Error al obtener pasajeros:', error);
+    }
+  };
 
-    return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado, username, isReady]);
+  const delayDebounce = setTimeout(() => {
+    fetchPasajeros();
+  }, 300);
+
+  return () => clearTimeout(delayDebounce);
+}, [pasajero, seleccionado, username, isReady, clienteSeleccionado]); // ✅ Agregar clienteSeleccionado a las dependencias
 
   const agregarPasajero = () => {
     if (!pasajero) {

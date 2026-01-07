@@ -262,39 +262,42 @@ export default function App({
   };
 
   useEffect(() => {
-    const fetchPasajeros = async () => {
-      if (pasajero.length < 1) {
-        setSugerencias([]);
-        return;
-      }
+  const fetchPasajeros = async () => {
+    if (pasajero.length < 1) {
+      setSugerencias([]);
+      return;
+    }
 
-      try {
-        const response = await axios.get(
-          `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
-        );
+    try {
+      // ✅ Usar API diferente según el usuario
+      const apiUrl = username === 'movilbus'
+        ? `https://do.velsat.pe:2083/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${selectedRow?.empresaSinNumber || ''}`
+        : `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
 
-        const resultados = response.data.map((item: any) => ({
-          apepate: item.apepate,
-          codigo: item.codigo,
-          codlugar: item.lugar?.codlugar || 0,
-          direccion: item.lugar?.direccion || 'No disponible',
-          distrito: item.lugar?.distrito || 'No disponible',
-          wx: item.lugar?.wx || '',
-          wy: item.lugar?.wy || '',
-        }));
+      const response = await axios.get(apiUrl);
 
-        setSugerencias(resultados);
-      } catch (error) {
-        console.error('Error al obtener pasajeros:', error);
-      }
-    };
+      const resultados = response.data.map((item: any) => ({
+        apepate: item.apepate,
+        codigo: item.codigo,
+        codlugar: item.lugar?.codlugar || 0,
+        direccion: item.lugar?.direccion || 'No disponible',
+        distrito: item.lugar?.distrito || 'No disponible',
+        wx: item.lugar?.wx || '',
+        wy: item.lugar?.wy || '',
+      }));
 
-    const delayDebounce = setTimeout(() => {
-      fetchPasajeros();
-    }, 300);
+      setSugerencias(resultados);
+    } catch (error) {
+      console.error('Error al obtener pasajeros:', error);
+    }
+  };
 
-    return () => clearTimeout(delayDebounce);
-  }, [pasajero, seleccionado, username, isReady]);
+  const delayDebounce = setTimeout(() => {
+    fetchPasajeros();
+  }, 300);
+
+  return () => clearTimeout(delayDebounce);
+}, [pasajero, seleccionado, username, isReady, selectedRow?.empresaSinNumber]); // ✅ Agregar selectedRow?.empresaSinNumber a las dependencias
 
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
