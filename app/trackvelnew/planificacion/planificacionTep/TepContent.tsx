@@ -931,10 +931,10 @@ export default function TepContent() {
 
                 {/* Imagen principal */}
                 <Image
-                  src="https://res.cloudinary.com/dyc4ik1ko/image/upload/nodatavelsat_sd026b.png"
+                  src="/man_conf.png"
                   alt="Sin datos"
-                  width={400}
-                  height={400}
+                  width={350}
+                  height={350}
                   className="relative z-10 object-contain"
                 />
               </div>

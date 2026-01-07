@@ -80,6 +80,7 @@ interface MenuItem {
   modalType?: ModalType;
   href?: string;
   submenu?: SubMenuItem[];
+  allowedUsers?: string[];
 }
 
 interface MenuConfig {
@@ -231,6 +232,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Planificación Servicios',
         href: '/trackvelnew/planificacion/planificacionTep',
         icon: 'document',
+      },
+      {
+        id: 'plan-talma',
+        title: 'Planificación Talma',
+        href: '/trackvelnew/planificacion/planificacionTalma',
+        icon: 'document',
+        allowedUsers: ['cgacela'],
       },
     ],
   },
@@ -600,7 +608,14 @@ const Tollbar: React.FC = () => {
 
         <ul className="invisible absolute right-0 top-full z-50 mt-1 w-64 translate-y-3 transform overflow-hidden border border-slate-200/50 bg-white/95 opacity-0 shadow-2xl backdrop-blur-sm transition-all duration-300 ease-out group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
           <div className="py-0">
-            {config.items?.map((item, index) => (
+            {config.items
+              ?.filter((item) => {
+                if (item.allowedUsers) {
+                  return item.allowedUsers.includes(username);
+                }
+                return true;
+              })
+              .map((item, index) => (
               <React.Fragment key={item.id}>
                 {item.submenu ? (
                   <li className="group/sub">
@@ -790,7 +805,14 @@ const Tollbar: React.FC = () => {
 
         {isOpen && config.items && (
           <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-1 duration-300">
-            {config.items.map((item, index) => (
+            {config.items
+              .filter((item) => {
+                if (item.allowedUsers) {
+                  return item.allowedUsers.includes(username);
+                }
+                return true;
+              })
+              .map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => {
