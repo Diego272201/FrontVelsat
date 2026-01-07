@@ -1,21 +1,19 @@
 export interface Grupo {
   id: string;
   numero: number;
-  tipoSalida: string;
+  tipoSalida: 'Salida' | 'Entrada' | 'Eliminados';
   empresa: string;
   destino: string;
-  inicio: Date | null; // ✅ Ahora puede ser null
-  fin: Date | null; // ✅ Ahora puede ser null
+  inicio: Date | null;
+  fin: Date | null;
   tarifa: string;
   conductor: string;
   unidad: string;
   duracion: string;
   pasajeros: Pasajero[];
-  
-  // 🔥 NUEVOS CAMPOS OPCIONALES
-  _tipoServicio?: 'S' | 'I'; // Tipo original del servicio
-  _bloqueaInicio?: boolean; // true = no se puede editar inicio
-  _bloqueaFin?: boolean; // true = no se puede editar fin
+  _tipoServicio?: 'S' | 'I';     // 🔥 Agregar si no existe
+  _bloqueaInicio?: boolean;       // 🔥 Agregar si no existe
+  _bloqueaFin?: boolean;          // 🔥 Agregar si no existe
 }
 
 export interface Pasajero {

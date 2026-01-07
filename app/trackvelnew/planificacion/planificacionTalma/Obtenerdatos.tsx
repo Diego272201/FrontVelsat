@@ -5,18 +5,18 @@ import { toast } from 'sonner';
 import { useFetchTalma } from './Usefetchtalma';
 import { Spinner } from '@nextui-org/react';
 
-// ✅ NUEVA INTERFAZ - Recibe el ref de TablaList
+//  NUEVA INTERFAZ - Recibe el ref de TablaList
 interface ObtenerDatosProps {
   tablaListRef: React.RefObject<any>;
 }
 
-// ✅ Ahora recibe props
+//  Ahora recibe props
 export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
   // Todo el estado está dentro del componente
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedService, setSelectedService] = useState('Salida'); // ✅ Cambiar default a 'Salida'
+  const [selectedService, setSelectedService] = useState('Salida'); 
   const [selectedTime, setSelectedTime] = useState('');
-  const [cargandoDatos, setCargandoDatos] = useState(false); // ✅ NUEVO - Estado para loading
+  const [cargandoDatos, setCargandoDatos] = useState(false); 
 
   // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY para la API
   const formatDateForAPI = (date: string): string => {
@@ -38,7 +38,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
     setSelectedTime('');
   }, [selectedDate]);
 
-  // ✅ FUNCIÓN MODIFICADA - Ahora carga datos dinámicamente
+  
   const handleCargarDatos = async () => {
     if (!selectedDate) {
       toast.warning('Por favor, selecciona una fecha');

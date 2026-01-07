@@ -1,18 +1,55 @@
 import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, GripVertical, ChevronUp, ChevronDown, GripHorizontal, Save } from 'lucide-react';
+import { Search, Users, Clock, MapPin, Trash2, ArrowRight, Car, User, Edit, Check, Plus, AlertTriangle, RotateCcw, ChevronUp, ChevronDown, Save } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
-import { cargarGruposDesdeAPI } from './gruposData';
+import { cargarGruposDesdeAPI, guardarGruposEnAPI  } from './gruposData';
 import { Pasajero, Grupo } from './types';
 import { Spinner } from '@nextui-org/react';
+import { toast } from 'sonner';
 
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
+  getEstadisticas: () => { totalGrupos: number; totalPasajeros: number }; 
 }
 
 export const TablaList = forwardRef<TablaListRef>((props, ref) => {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [cargando, setCargando] = useState(false);
   const [datosIntentadosCargar, setDatosIntentadosCargar] = useState(false);
+const [guardando, setGuardando] = useState(false);
+
+const handleGuardar = async () => {
+  try {
+    // Validar que haya grupos
+    if (grupos.length === 0) {
+      alert('No hay grupos para guardar');
+      return;
+    }
+
+    // Validar que todos los grupos tengan la fecha requerida
+    for (const grupo of grupos) {
+      if (grupo._tipoServicio === 'S' && !grupo.fin) {
+        alert(`El grupo ${grupo.numero} (Salida) necesita una fecha de fin`);
+        return;
+      }
+      if (grupo._tipoServicio === 'I' && !grupo.inicio) {
+        alert(`El grupo ${grupo.numero} (Entrada) necesita una fecha de inicio`);
+        return;
+      }
+    }
+
+    setGuardando(true);
+    await guardarGruposEnAPI(grupos);
+      toast.success('Grupos guardados exitosamente');
+
+    
+  } catch (error: any) {
+
+      toast.error(`Error al guardar: ${error.message}`);
+
+  } finally {
+    setGuardando(false);
+  }
+};
 
 
 useImperativeHandle(ref, () => ({
@@ -22,6 +59,11 @@ useImperativeHandle(ref, () => ({
     const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
     setGrupos(gruposCargados);
     setCargando(false);
+  },
+  getEstadisticas: () => {
+    const totalGrupos = grupos.length;
+    const totalPasajeros = grupos.reduce((total, grupo) => total + grupo.pasajeros.length, 0);
+    return { totalGrupos, totalPasajeros };
   }
 }));
   
@@ -216,83 +258,86 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
     setPasajerosSeleccionados(new Set());
   };
 
-  // Mover pasajeros a grupo existente
-  const moverPasajerosAGrupo = (grupoDestinoId: string) => {
-    if (!selectedPasajeros) return;
+// Mover pasajeros a grupo existente
+const moverPasajerosAGrupo = (grupoDestinoId: string) => {
+  if (!selectedPasajeros) return;
 
-    setGrupos(prevGrupos => {
-      return prevGrupos.map(grupo => {
-        // Remover del grupo origen
-        if (grupo.id === selectedPasajeros.grupoOrigenId) {
-          return {
-            ...grupo,
-            pasajeros: grupo.pasajeros.filter(
-              p => !selectedPasajeros.pasajeros.some(sp => sp.id === p.id)
-            )
-          };
-        }
+  setGrupos(prevGrupos => {
+    return prevGrupos.map(grupo => {
+      // Remover del grupo origen
+      if (grupo.id === selectedPasajeros.grupoOrigenId) {
+        return {
+          ...grupo,
+          pasajeros: grupo.pasajeros.filter(
+            p => !selectedPasajeros.pasajeros.some(sp => sp.id === p.id)
+          )
+        };
+      }
 
-        // Agregar al grupo destino
-        if (grupo.id === grupoDestinoId) {
-          return {
-            ...grupo,
-            pasajeros: [...grupo.pasajeros, ...selectedPasajeros.pasajeros]
-          };
-        }
+      // Agregar al grupo destino
+      if (grupo.id === grupoDestinoId) {
+        return {
+          ...grupo,
+          pasajeros: [...grupo.pasajeros, ...selectedPasajeros.pasajeros]
+        };
+      }
 
-        return grupo;
-      });
+      return grupo;
     });
+  });
 
-    setSelectedPasajeros(null);
-    setPasajerosSeleccionados(new Set());
-    setGrupoEnSeleccion(null);
+  setSelectedPasajeros(null);
+  setPasajerosSeleccionados(new Set());
+  setGrupoEnSeleccion(null);
+};
+// Crear nuevo grupo con los pasajeros seleccionados
+const crearNuevoGrupo = () => {
+  if (!selectedPasajeros) return;
+
+  const nuevoNumero = Math.max(...grupos.map(g => g.numero)) + 1;
+  const grupoOrigen = grupos.find(g => g.id === selectedPasajeros.grupoOrigenId);
+
+  // 🔥 HEREDAR FECHAS Y BLOQUEOS DEL GRUPO ORIGEN
+  const nuevoGrupo: Grupo = {
+    id: `grupo-${Date.now()}`,
+    numero: nuevoNumero,
+    tipoSalida: grupoOrigen?.tipoSalida || 'Salida',
+    empresa: grupoOrigen?.empresa || 'Rep',
+    destino: grupoOrigen?.destino || '',
+    inicio: grupoOrigen?.inicio || null,  // 🔥 Heredar fecha inicio
+    fin: grupoOrigen?.fin || null,        // 🔥 Heredar fecha fin
+    tarifa: grupoOrigen?.tarifa || 'Latam',
+    conductor: '',
+    unidad: '',
+    duracion: '0h 0min',
+    pasajeros: selectedPasajeros.pasajeros,
+    _tipoServicio: grupoOrigen?._tipoServicio || 'S',     // 🔥 Heredar tipo
+    _bloqueaInicio: grupoOrigen?._bloqueaInicio || false, // 🔥 Heredar bloqueo inicio
+    _bloqueaFin: grupoOrigen?._bloqueaFin || false,       // 🔥 Heredar bloqueo fin
   };
 
-  // Crear nuevo grupo con los pasajeros seleccionados
-  const crearNuevoGrupo = () => {
-    if (!selectedPasajeros) return;
-
-    const nuevoNumero = Math.max(...grupos.map(g => g.numero)) + 1;
-    const grupoOrigen = grupos.find(g => g.id === selectedPasajeros.grupoOrigenId);
-
-    const nuevoGrupo: Grupo = {
-      id: `grupo-${Date.now()}`,
-      numero: nuevoNumero,
-      tipoSalida: grupoOrigen?.tipoSalida || 'Salida',
-      empresa: grupoOrigen?.empresa || 'Rep',
-      destino: grupoOrigen?.destino || '',
-      inicio: new Date(),
-      fin: new Date(),
-      tarifa: grupoOrigen?.tarifa || 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: selectedPasajeros.pasajeros
-    };
-
-    setGrupos(prevGrupos => {
-      // Remover pasajeros del grupo origen
-      const gruposActualizados = prevGrupos.map(grupo => {
-        if (grupo.id === selectedPasajeros.grupoOrigenId) {
-          return {
-            ...grupo,
-            pasajeros: grupo.pasajeros.filter(
-              p => !selectedPasajeros.pasajeros.some(sp => sp.id === p.id)
-            )
-          };
-        }
-        return grupo;
-      });
-
-      // Agregar nuevo grupo
-      return [...gruposActualizados, nuevoGrupo];
+  setGrupos(prevGrupos => {
+    // Remover pasajeros del grupo origen
+    const gruposActualizados = prevGrupos.map(grupo => {
+      if (grupo.id === selectedPasajeros.grupoOrigenId) {
+        return {
+          ...grupo,
+          pasajeros: grupo.pasajeros.filter(
+            p => !selectedPasajeros.pasajeros.some(sp => sp.id === p.id)
+          )
+        };
+      }
+      return grupo;
     });
 
-    setSelectedPasajeros(null);
-    setPasajerosSeleccionados(new Set());
-    setGrupoEnSeleccion(null);
-  };
+    // Agregar nuevo grupo
+    return [...gruposActualizados, nuevoGrupo];
+  });
+
+  setSelectedPasajeros(null);
+  setPasajerosSeleccionados(new Set());
+  setGrupoEnSeleccion(null);
+};
 
   // Mover pasajero arriba
   const moverPasajeroArriba = (grupoId: string, index: number) => {
@@ -442,10 +487,23 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
           />
         </div>
 
-    <div>
-  <button className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95">
-    <Save className="h-4 w-4" />
-    Guardar
+<div>
+  <button 
+    onClick={handleGuardar}
+    disabled={guardando || grupos.length === 0}
+    className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    {guardando ? (
+      <>
+        <Spinner size="sm" color="white" />
+        Guardando...
+      </>
+    ) : (
+      <>
+        <Save className="h-4 w-4" />
+        Guardar
+      </>
+    )}
   </button>
 </div>
       </div>
@@ -802,12 +860,7 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
                         </td>
                         <td className="px-4 py-1">
                           <div className="flex gap-2">
-                            <button
-                              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                              title="Editar"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
+                          
                             <button
                               onClick={() => solicitarEliminarPasajero(pasajero, grupo.id)}
                               className="p-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors"

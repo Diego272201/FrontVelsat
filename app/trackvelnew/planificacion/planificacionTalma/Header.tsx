@@ -1,9 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Upload,
   X,
-  Download,
   Filter,
   Users,
   Briefcase,
@@ -11,7 +10,6 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
-  Eye,
   Send,
   Loader2,
   CheckCircle2,
@@ -56,11 +54,23 @@ export default function Header({ tablaListRef }: HeaderProps) {
   });
 
   const [errorDetails, setErrorDetails] = useState<any[]>([]);
+const [estadisticas, setEstadisticas] = useState({ totalGrupos: 0, totalPasajeros: 0 });
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    if (tablaListRef.current?.getEstadisticas) {
+      const stats = tablaListRef.current.getEstadisticas();
+      setEstadisticas(stats);
+    }
+  }, 500);
+
+  return () => clearInterval(interval);
+}, []);
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Validar que sea un archivo Excel
       const validExtensions = ['.xlsx', '.xls'];
       const fileExtension = file.name
         .substring(file.name.lastIndexOf('.'))
@@ -75,7 +85,6 @@ export default function Header({ tablaListRef }: HeaderProps) {
     }
   };
 
-  // Convertir cualquier formato de fecha de Excel a DD/MM/YYYY
   const excelSerialToDate = (serial: any): string => {
     if (!serial) return '';
 
@@ -172,14 +181,13 @@ export default function Header({ tablaListRef }: HeaderProps) {
         // Columna C es índice 2 (DNI)
         const dni = row[2];
 
-        // Si no hay DNI, terminamos la lectura
         if (!dni || dni === '') {
           break;
         }
 
         // Extraer datos
         const codlan = `TA${dni}`;
-        const tipo = row[4] ? String(row[4]).toUpperCase() : ''; // Columna E (índice 4) - TIPO SERVICIO
+        const tipo = row[4] ? String(row[4]).toUpperCase() : ''; 
 
         // Columna G (índice 6) - FECHA
         const fecha = row[6] ? excelSerialToDate(row[6]) : '';
@@ -263,15 +271,15 @@ export default function Header({ tablaListRef }: HeaderProps) {
             });
 
             console.log(
-              `✅ Lote ${actualBatchNumber} - Status:`,
+              `Lote ${actualBatchNumber} - Status:`,
               response.status
             );
-            console.log(`✅ Lote ${actualBatchNumber} - OK:`, response.ok);
+            console.log(`Lote ${actualBatchNumber} - OK:`, response.ok);
 
             if (response.ok) {
               const responseData = await response.json();
               console.log(
-                `✅ Lote ${actualBatchNumber} - Respuesta:`,
+                `Lote ${actualBatchNumber} - Respuesta:`,
                 responseData
               );
 
@@ -279,30 +287,25 @@ export default function Header({ tablaListRef }: HeaderProps) {
                 errorDetails.push(...responseData.errores);
               }
 
-              // Interpretar la respuesta de la API
               let batchSuccess = 0;
               let batchFailed = 0;
 
-              // Si la API devuelve información detallada
               if (responseData.registrosProcesados !== undefined) {
                 batchSuccess = responseData.registrosProcesados || 0;
                 batchFailed = responseData.registrosConError || 0;
               } else if (responseData.exitoso === true) {
-                // Si solo dice que fue exitoso
                 batchSuccess = batch.length;
                 batchFailed = 0;
               } else if (responseData.exitoso === false) {
-                // Si dice que falló
                 batchSuccess = 0;
                 batchFailed = batch.length;
               } else {
-                // Por defecto, asumir que todo fue exitoso
                 batchSuccess = batch.length;
                 batchFailed = 0;
               }
 
               console.log(
-                `📊 Lote ${actualBatchNumber} - Exitosos: ${batchSuccess}, Fallidos: ${batchFailed}`
+                `Lote ${actualBatchNumber} - Exitosos: ${batchSuccess}, Fallidos: ${batchFailed}`
               );
 
               return { success: batchSuccess, failed: batchFailed };
@@ -455,7 +458,7 @@ export default function Header({ tablaListRef }: HeaderProps) {
 
             {/* Controles */}
 
-      <ObtenerDatos tablaListRef={tablaListRef} />
+            <ObtenerDatos tablaListRef={tablaListRef} />
              
             
             {/* Filtros */}
@@ -522,7 +525,7 @@ export default function Header({ tablaListRef }: HeaderProps) {
                     <p className="mb-0.5 text-xs font-medium text-blue-100">
                       Servicios
                     </p>
-                    <p className="text-xl font-bold">3</p>
+                    <p className="text-xl font-bold">{estadisticas.totalGrupos}</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
                     <Briefcase className="h-4 w-4" />
@@ -537,7 +540,7 @@ export default function Header({ tablaListRef }: HeaderProps) {
                     <p className="mb-0.5 text-xs font-medium text-emerald-100">
                       Pasajeros
                     </p>
-                    <p className="text-xl font-bold">3</p>
+                    <p className="text-xl font-bold">{estadisticas.totalPasajeros}</p>
                   </div>
                   <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
                     <Users className="h-4 w-4" />
