@@ -613,7 +613,7 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
             No hay grupos cargados
           </h3>
           <p className="text-gray-600 mb-2 max-w-md mx-auto">
-            Selecciona los campos y presiona "Cargar" para ver los grupos.
+            Selecciona los campos y presiona &quot;Cargar&quot; para ver los grupos.
           </p>
         </>
       )}
@@ -630,7 +630,7 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
                 No se encontraron resultados
               </h3>
               <p className="text-gray-600 mb-4">
-                No hay pasajeros que coincidan con "<span className="font-semibold">{searchTerm}</span>"
+                No hay pasajeros que coincidan con &quot;<span className="font-semibold">{searchTerm}</span>&quot;
               </p>
               <button
                 onClick={() => setSearchTerm('')}
@@ -975,3 +975,4 @@ const cargarDatosExternos = async (fecha: string, hora: string, tipo: 'S' | 'I')
     );
 });
 
+TablaList.displayName = 'TablaList';
