@@ -47,30 +47,82 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   const unidadRef = useRef<HTMLDivElement>(null);
   const inputConductorRef = useRef<HTMLInputElement>(null);
   const inputUnidadRef = useRef<HTMLInputElement>(null);
+  const dropdownConductorRef = useRef<HTMLDivElement>(null);
+  const dropdownUnidadRef = useRef<HTMLDivElement>(null);
+
+  // Función para calcular posición del dropdown (SIEMPRE ARRIBA)
+// Función para calcular posición del dropdown (SIEMPRE ARRIBA)
+const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: number) => {
+  const rect = inputElement.getBoundingClientRect();
+  
+  // Calcular altura aproximada del dropdown
+  const headerHeight = 42;
+  const itemHeight = 60;
+  const maxVisibleItems = Math.min(itemsCount, 3.5); // Cambiado de 5 a 4 items máximo
+  const dropdownHeight = headerHeight + (itemHeight * maxVisibleItems);
+  
+  // SIEMPRE mostrar arriba del input
+  const top = rect.top + window.scrollY - dropdownHeight +8;
+
+  return {
+    top,
+    left: rect.left + window.scrollX
+  };
+};
 
   // Actualizar posición del dropdown de conductores
   useEffect(() => {
     if (mostrarConductores && inputConductorRef.current) {
-      const rect = inputConductorRef.current.getBoundingClientRect();
+      const conductoresFiltrados = getConductoresFiltrados();
+      const position = calcularPosicionDropdown(inputConductorRef.current, conductoresFiltrados.length);
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        ...position,
         width: 360
       });
     }
-  }, [mostrarConductores]);
+  }, [mostrarConductores, grupo.conductor]);
 
   // Actualizar posición del dropdown de unidades
   useEffect(() => {
     if (mostrarUnidades && inputUnidadRef.current) {
-      const rect = inputUnidadRef.current.getBoundingClientRect();
+      const unidadesFiltradas = getUnidadesFiltradas();
+      const position = calcularPosicionDropdown(inputUnidadRef.current, unidadesFiltradas.length);
       setDropdownUnidadPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        ...position,
         width: 280
       });
     }
-  }, [mostrarUnidades]);
+  }, [mostrarUnidades, grupo.unidad]);
+
+  // Cerrar dropdowns al hacer scroll (excepto scroll interno del dropdown)
+  useEffect(() => {
+    const handleScroll = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // No cerrar si el scroll es dentro del dropdown de conductores
+      if (dropdownConductorRef.current && dropdownConductorRef.current.contains(target)) {
+        return;
+      }
+      
+      // No cerrar si el scroll es dentro del dropdown de unidades
+      if (dropdownUnidadRef.current && dropdownUnidadRef.current.contains(target)) {
+        return;
+      }
+      
+      // Cerrar dropdowns si el scroll es en cualquier otro lugar
+      if (mostrarConductores) {
+        setMostrarConductores(false);
+        setSelectedIndex(-1);
+      }
+      if (mostrarUnidades) {
+        setMostrarUnidades(false);
+        setSelectedUnidadIndex(-1);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [mostrarConductores, mostrarUnidades]);
 
   // Cerrar dropdowns al hacer click fuera
   useEffect(() => {
@@ -154,7 +206,8 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
           {/* Dropdown de Conductores */}
           {mostrarConductores && conductores.length > 0 && conductoresFiltrados.length > 0 && createPortal(
             <div 
-              className="bg-white rounded-lg shadow-2xl max-h-80 overflow-hidden border border-gray-200"
+              ref={dropdownConductorRef}
+              className="bg-white rounded-lg shadow-2xl max-h-60 overflow-hidden border border-gray-200"
               style={{ 
                 position: 'absolute',
                 top: `${dropdownPosition.top}px`,
@@ -163,7 +216,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
                 zIndex: 99999
               }}
             >
-              <div className="sticky top-0 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-2 border-b border-orange-200">
+              <div className="sticky top-0 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-1 border-b border-orange-200">
                 <p className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
                   Conductores disponibles ({conductoresFiltrados.length})
                 </p>
@@ -189,7 +242,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
                           <User className="w-4 h-4 text-orange-600" />
                         </div>
                         <div>
-                          <p className={`text-sm font-medium ${selectedIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
+                          <p className={`text-[11px] font-medium ${selectedIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
                             {conductor.apepate.trim()}
                           </p>
                           <p className="text-xs text-gray-500">Código: {conductor.codigo}</p>
@@ -258,7 +311,8 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
           {/* Dropdown de Unidades */}
           {mostrarUnidades && unidades.length > 0 && unidadesFiltradas.length > 0 && createPortal(
             <div 
-              className="bg-white rounded-lg shadow-2xl max-h-80 overflow-hidden border border-gray-200"
+              ref={dropdownUnidadRef}
+              className="bg-white rounded-lg shadow-2xl max-h-60 overflow-hidden border border-gray-200"
               style={{ 
                 position: 'absolute',
                 top: `${dropdownUnidadPosition.top}px`,
@@ -292,7 +346,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
                         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
                           <Car className="w-4 h-4 text-orange-600" />
                         </div>
-                        <p className={`text-sm font-medium ${selectedUnidadIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
+                        <p className={`text-[11px] font-medium ${selectedUnidadIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
                           {unidad.codunidad}
                         </p>
                       </div>
@@ -378,7 +432,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
           </>
         )}
       </div>
-          </div>
+    </div>
   )
 }
 
