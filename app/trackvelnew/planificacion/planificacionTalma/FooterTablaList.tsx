@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { User, Car, Clock, Check, Users, Search } from 'lucide-react'
 import { Grupo } from './types'
+import ModalMapa from '../planificacionTep/ModalRuta';
+import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
+import ModalAgregarPasajero from '../planificacionTep/ModalAgregarPasajero';
 
 interface FooterTablaListProps {
   grupo: Grupo;
@@ -13,7 +16,15 @@ interface FooterTablaListProps {
   activarSeleccionMultiple: (grupoId: string) => void;
   conductores: Conductor[];
   unidades: Unidad[];
+  onRefrescarDatos?: () => void;
 }
+
+type MarkerData = {
+  wx: string;
+  wy: string;
+  nombre?: string;
+  direccion?: string;
+};
 
 interface Conductor {
   codigo: string;
@@ -34,7 +45,8 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   cancelarSeleccion, 
   activarSeleccionMultiple,
   conductores,
-  unidades
+  unidades,
+   onRefrescarDatos
 }) => {
   const [mostrarConductores, setMostrarConductores] = useState(false);
   const [mostrarUnidades, setMostrarUnidades] = useState(false);
@@ -42,7 +54,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   const [dropdownUnidadPosition, setDropdownUnidadPosition] = useState({ top: 0, left: 0, width: 0 });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedUnidadIndex, setSelectedUnidadIndex] = useState(-1);
-  
+  const [modalAgregarPasajeroAbierto, setModalAgregarPasajeroAbierto] = useState(false);
   const conductorRef = useRef<HTMLDivElement>(null);
   const unidadRef = useRef<HTMLDivElement>(null);
   const inputConductorRef = useRef<HTMLInputElement>(null);
@@ -50,27 +62,35 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   const dropdownConductorRef = useRef<HTMLDivElement>(null);
   const dropdownUnidadRef = useRef<HTMLDivElement>(null);
 
-  // Función para calcular posición del dropdown (SIEMPRE ARRIBA)
-// Función para calcular posición del dropdown (SIEMPRE ARRIBA)
-const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: number) => {
-  const rect = inputElement.getBoundingClientRect();
-  
-  // Calcular altura aproximada del dropdown
-  const headerHeight = 42;
-  const itemHeight = 60;
-  const maxVisibleItems = Math.min(itemsCount, 3.5); // Cambiado de 5 a 4 items máximo
-  const dropdownHeight = headerHeight + (itemHeight * maxVisibleItems);
-  
-  // SIEMPRE mostrar arriba del input
-  const top = rect.top + window.scrollY - dropdownHeight +8;
+  const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
+  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
 
-  return {
-    top,
-    left: rect.left + window.scrollX
+  // Memorizar coordenadas para evitar re-renders innecesarios
+  const coordenadas = useMemo(() => {
+    return grupo.pasajeros.map((p) => ({
+      wx: p._apiData?.direccionPasajero?.wx || '',
+      wy: p._apiData?.direccionPasajero?.wy || '',
+      nombre: p.nombre,
+      direccion: p.direccion
+    }));
+  }, [grupo.pasajeros]);
+
+  const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: number) => {
+    const rect = inputElement.getBoundingClientRect();
+    
+    const headerHeight = 42;
+    const itemHeight = 60;
+    const maxVisibleItems = Math.min(itemsCount, 3.5); 
+    const dropdownHeight = headerHeight + (itemHeight * maxVisibleItems);
+    
+    const top = rect.top + window.scrollY - dropdownHeight + 8;
+
+    return {
+      top,
+      left: rect.left + window.scrollX
+    };
   };
-};
 
-  // Actualizar posición del dropdown de conductores
   useEffect(() => {
     if (mostrarConductores && inputConductorRef.current) {
       const conductoresFiltrados = getConductoresFiltrados();
@@ -82,7 +102,6 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
     }
   }, [mostrarConductores, grupo.conductor]);
 
-  // Actualizar posición del dropdown de unidades
   useEffect(() => {
     if (mostrarUnidades && inputUnidadRef.current) {
       const unidadesFiltradas = getUnidadesFiltradas();
@@ -94,22 +113,18 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
     }
   }, [mostrarUnidades, grupo.unidad]);
 
-  // Cerrar dropdowns al hacer scroll (excepto scroll interno del dropdown)
   useEffect(() => {
     const handleScroll = (event: Event) => {
       const target = event.target as HTMLElement;
       
-      // No cerrar si el scroll es dentro del dropdown de conductores
       if (dropdownConductorRef.current && dropdownConductorRef.current.contains(target)) {
         return;
       }
       
-      // No cerrar si el scroll es dentro del dropdown de unidades
       if (dropdownUnidadRef.current && dropdownUnidadRef.current.contains(target)) {
         return;
       }
       
-      // Cerrar dropdowns si el scroll es en cualquier otro lugar
       if (mostrarConductores) {
         setMostrarConductores(false);
         setSelectedIndex(-1);
@@ -124,7 +139,6 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, [mostrarConductores, mostrarUnidades]);
 
-  // Cerrar dropdowns al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (conductorRef.current && !conductorRef.current.contains(event.target as Node)) {
@@ -141,7 +155,6 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filtrar conductores
   const getConductoresFiltrados = () => {
     if (!grupo.conductor || grupo.conductor.trim() === '') {
       return conductores;
@@ -151,7 +164,6 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
     );
   };
 
-  // Filtrar unidades
   const getUnidadesFiltradas = () => {
     if (!grupo.unidad || grupo.unidad.trim() === '') {
       return unidades;
@@ -164,14 +176,12 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
   const conductoresFiltrados = getConductoresFiltrados();
   const unidadesFiltradas = getUnidadesFiltradas();
 
-  // Seleccionar conductor
   const seleccionarConductor = (conductor: Conductor) => {
     actualizarGrupo(grupo.id, 'conductor', conductor.apepate.trim());
     setMostrarConductores(false);
     setSelectedIndex(-1);
   };
 
-  // Seleccionar unidad
   const seleccionarUnidad = (unidad: Unidad) => {
     actualizarGrupo(grupo.id, 'unidad', unidad.codunidad);
     setMostrarUnidades(false);
@@ -265,7 +275,7 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
               className="bg-white rounded-lg shadow-2xl border border-gray-200"
               style={{ 
                 position: 'absolute',
-                top: `${dropdownPosition.top}px`,
+                top: `${dropdownPosition.top - 170}px`,
                 left: `${dropdownPosition.left}px`,
                 width: `${dropdownPosition.width}px`,
                 zIndex: 99999
@@ -414,9 +424,26 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
           </>
         ) : (
           <>
-            <button className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5">
-              <span className="text-[12px]">+</span> Pasajero
-            </button>
+
+
+          {/* Modal Agregar Pasajero - ya tiene su propio botón */}
+<ModalAgregarPasajero
+  grupo={{
+    id: grupo.numero - 1,
+    tipo: grupo._tipoServicio || 'S',
+    empresa: grupo.empresa,
+    destinoGrupo: grupo.destino,
+    destinocodigo: grupo.destinocodigo,
+ fecha: grupo.inicio ? new Date(grupo.inicio).toLocaleString('sv-SE').replace(' ', 'T') : '',
+  horaprog: grupo.fin ? new Date(grupo.fin).toLocaleString('sv-SE').replace(' ', 'T') : '',
+    conductor: grupo.conductor,
+    unidad: grupo.unidad,
+    cantidadPasajeros: grupo.pasajeros.length -1 
+  }}
+  onRefrescarDatos={onRefrescarDatos}
+  usarApiTalma={true} 
+/>
+
             {grupo.pasajeros.length > 1 && (
               <button
                 onClick={() => activarSeleccionMultiple(grupo.id)}
@@ -426,10 +453,31 @@ const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: nu
                 Mover múltiples
               </button>
             )}
-            <button className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[12px] rounded font-semibold transition-colors">
+            
+            <button 
+              onClick={() => setModalMapaAbierto(true)}
+              className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[12px] rounded font-semibold transition-colors"
+            >
               Ruta
             </button>
-          </>
+
+            {/* Modal de Mapa */}
+            <ModalMapa
+              isOpen={modalMapaAbierto}
+              setIsOpen={setModalMapaAbierto}
+              grupo={grupo.numero}
+              coordenadas={coordenadas}
+              selectedMarker={selectedMarker}
+              setSelectedMarker={setSelectedMarker}
+              getMarkerSVG={getMarkerSVG}
+            />
+
+
+            
+
+
+
+     </>
         )}
       </div>
     </div>

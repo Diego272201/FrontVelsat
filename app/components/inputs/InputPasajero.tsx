@@ -5,24 +5,23 @@ import { FiAlertTriangle } from 'react-icons/fi';
 import { useUsername } from '@/hooks/useUsername';
 
 interface IPasajero {
-    apepate: string;
-    codlan: string;
-    codlugar: number;
-  }
+  apepate: string;
+  codlan: string;
+  codlugar: number;
+  codigo: string;
+}
 
 interface InputPasajeroProps {
-    onSelectPasajero: (pasajero: IPasajero) => void;
-    clearAfterSelect?: boolean; // Nueva prop opcional
-  }
+  onSelectPasajero: (pasajero: IPasajero) => void;
+  clearAfterSelect?: boolean;
+}
 
 export default function InputPasajero({ 
   onSelectPasajero, 
   clearAfterSelect = false 
 }: InputPasajeroProps) {
   const [pasajero, setPasajero] = useState('');
-  const [sugerencias, setSugerencias] = useState<
-    { apepate: string; codlan: string , codlugar:number}[]
-  >([]);
+  const [sugerencias, setSugerencias] = useState<IPasajero[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [seleccionado, setSeleccionado] = useState(false);
   const [pasajeroCodlan, setPasajeroCodlan] = useState<string | null>(null);
@@ -30,24 +29,24 @@ export default function InputPasajero({
 
   useEffect(() => {
     const fetchPasajeros = async () => {
-      if (!isReady || pasajero.length < 1) { // ✅ Agregar !isReady
-      setSugerencias([]);
-      return;
-    }
+      if (!isReady || pasajero.length < 1) { 
+        setSugerencias([]);
+        return;
+      }
 
       try {
         const response = await axios.get(
           `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
         );
 
-        const resultados = Array.isArray(response.data)
-        ? response.data.map((item: any) => ({
-            apepate: item.apepate,
-            codlan: item.codlan,
-            codlugar: item.lugar?.codlugar ?? 0, 
-          }))
-        : [];
-      
+        const resultados: IPasajero[] = Array.isArray(response.data)
+          ? response.data.map((item: any) => ({
+              apepate: item.apepate,
+              codlan: item.codlan,
+              codlugar: item.lugar?.codlugar ?? 0,
+              codigo: item.codigo ?? '',
+            }))
+          : [];
 
         setSugerencias(resultados);
       } catch (error) {
@@ -64,27 +63,22 @@ export default function InputPasajero({
     return () => clearTimeout(delayDebounce);
   }, [pasajero, seleccionado, username, isReady]);
 
-  const seleccionarPasajero = (
-    nombre: string,
-    codlan: string,
-    codlugar: number
-  ) => {
-    console.log('Pasajero seleccionado:', nombre, codlan, codlugar);
-    const nuevoPasajero = { apepate: nombre, codlan, codlugar };
+  const seleccionarPasajero = (pasajeroSeleccionado: IPasajero) => {
+    console.log('Pasajero seleccionado:', pasajeroSeleccionado);
   
     // Si clearAfterSelect es true, limpia el input, sino mantiene el nombre
     if (clearAfterSelect) {
       setPasajero('');
       setSeleccionado(false);
     } else {
-      setPasajero(nombre);
+      setPasajero(pasajeroSeleccionado.apepate);
       setSeleccionado(true);
     }
     
-    setPasajeroCodlan(codlan);
+    setPasajeroCodlan(pasajeroSeleccionado.codlan);
     setSugerencias([]);
     setMostrarSugerencias(false);
-    onSelectPasajero(nuevoPasajero);
+    onSelectPasajero(pasajeroSeleccionado);
   };
   
   return (
@@ -114,7 +108,7 @@ export default function InputPasajero({
           <FaUser color="#343a40" />
         </div>
         {mostrarSugerencias && (
-          <ul className="fixed z-[9999] mt-1 max-h-60  w-[400px] overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg ">
+          <ul className="fixed z-[9999] mt-1 max-h-60 w-[400px] overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">
             {sugerencias.length > 0 ? (
               sugerencias.map((item, index) => (
                 <li
@@ -122,7 +116,7 @@ export default function InputPasajero({
                   className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    seleccionarPasajero(item.apepate, item.codlan, item.codlugar);
+                    seleccionarPasajero(item);
 
                     setMostrarSugerencias(false);
                     setSugerencias([]);

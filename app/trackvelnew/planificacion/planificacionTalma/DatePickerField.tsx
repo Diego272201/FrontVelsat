@@ -22,7 +22,6 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   disabled = false
 }) => {
   useEffect(() => {
-    // Verificar si el estilo ya existe
     if (!document.getElementById('datepicker-custom-styles')) {
       const style = document.createElement('style');
       style.id = 'datepicker-custom-styles';

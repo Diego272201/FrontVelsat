@@ -257,9 +257,9 @@ useEffect(() => {
           const actualBatchNumber = i + batchIndex + 1;
 
           console.log(
-            `\n🚀 Enviando Lote ${actualBatchNumber}/${batches.length}`
+            `\nEnviando Lote ${actualBatchNumber}/${batches.length}`
           );
-          console.log('📝 Datos a enviar:', JSON.stringify(batch, null, 2));
+          console.log('Datos a enviar:', JSON.stringify(batch, null, 2));
 
           try {
             const response = await fetch(API_URL, {
@@ -312,14 +312,14 @@ useEffect(() => {
             } else {
               const errorText = await response.text();
               console.error(
-                `❌ Lote ${actualBatchNumber} - Error:`,
+                `Lote ${actualBatchNumber} - Error:`,
                 errorText
               );
               return { success: 0, failed: batch.length };
             }
           } catch (error) {
             console.error(
-              `❌ Lote ${actualBatchNumber} - Exception:`,
+              `Lote ${actualBatchNumber} - Exception:`,
               error
             );
             return { success: 0, failed: batch.length };
@@ -401,10 +401,10 @@ useEffect(() => {
 
       {/* Contenido colapsable */}
       {isExpanded && (
-        <div className="px-4 pt-2 pb-2">
+        <div className="px-4 pt-2 pb-0">
           {/* FILA 1: Carga + Controles + Filtros + Estadísticas */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_1fr_1fr_0.5fr] justify-between">
-            {' '}
+         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_2fr_1fr]">
+
             {/* Carga de Archivos */}
             <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
@@ -461,8 +461,8 @@ useEffect(() => {
             <ObtenerDatos tablaListRef={tablaListRef} />
              
             
-            {/* Filtros */}
-            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+          
+            {/* <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Filter className="h-4 w-4 text-blue-600" />
                 <h2 className="text-[12px] font-semibold text-slate-800">
@@ -514,7 +514,7 @@ useEffect(() => {
                   Grupo
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Estadísticas - En una sola columna */}
             <div className="flex flex-col gap-3 ">

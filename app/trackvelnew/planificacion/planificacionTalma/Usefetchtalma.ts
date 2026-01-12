@@ -42,7 +42,6 @@ export function useFetchTalma<T>(url: string | null, options: UseFetchOptions = 
   };
 
   useEffect(() => {
-    // Limpiar estados cuando cambia la URL
     setError(null);
     setData(null);
     

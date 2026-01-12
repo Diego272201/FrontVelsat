@@ -21,40 +21,45 @@ interface Grupo {
   tipo: string;
   empresa: string;
   destinoGrupo: string;
+  destinocodigo: string;
   fecha: string;
   horaprog: string;
   conductor: string;
   unidad: string;
+  cantidadPasajeros: number; 
 }
 
 interface Pasajero {
   apepate: string;
   codlan: string;
   codlugar: number;
+  codigo?: string;
+  destinocodigo?: string;
+  codcliente?: string;
+  hora?: string;
 }
 
 interface ModalAgregarPasajeroProps {
   grupo: Grupo;
   onRefrescarDatos?: () => void;
+  usarApiTalma?: boolean;
 }
 
 export default function App({
   grupo,
   onRefrescarDatos,
+  usarApiTalma = false,
 }: ModalAgregarPasajeroProps) {
   const { username, isReady } = useUsername();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<Pasajero | null>(null);
-  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<
-    Pasajero[]
-  >([]);
+  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Pasajero[]>([]);
   const [agregandoPasajeros, setAgregandoPasajeros] = useState(false);
 
   const handleSeleccionarPasajero = (pasajero: Pasajero) => {
     if (!pasajero) return;
 
-    // Verificar si el pasajero ya está en la lista
     const yaExiste = pasajerosSeleccionados.some(
       (p) => p.codlan === pasajero.codlan,
     );
@@ -76,7 +81,44 @@ export default function App({
     toast.success('Pasajero eliminado de la lista');
   };
 
+  // Función para convertir formato ISO a DD/MM/YYYY HH:mm
+  const formatearFechaHoraParaAPI = (fechaISO: string): { fecha: string; hora: string } => {
+    const date = new Date(fechaISO);
+    
+    const dia = String(date.getDate()).padStart(2, '0');
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const año = date.getFullYear();
+    const horas = String(date.getHours()).padStart(2, '0');
+    const minutos = String(date.getMinutes()).padStart(2, '0');
+    
+    return {
+      fecha: `${dia}/${mes}/${año}`,
+      hora: `${horas}:${minutos}`
+    };
+  };
+
+  // Función para formatear horaprog en formato DD/MM/YYYY HH:mm
+  const formatearHoraProg = (fechaISO: string): string => {
+    const date = new Date(fechaISO);
+    
+    const dia = String(date.getDate()).padStart(2, '0');
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const año = date.getFullYear();
+    const horas = String(date.getHours()).padStart(2, '0');
+    const minutos = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${dia}/${mes}/${año} ${horas}:${minutos}`;
+  };
+
   const handleAgregarTodos = async () => {
+    console.log('=== DATOS DEL GRUPO ===');
+    console.log('Fecha:', grupo.fecha);
+    console.log('Hora Programada:', grupo.horaprog);
+    console.log('Tipo:', grupo.tipo);
+    console.log('Grupo:', grupo.id);
+    console.log('Cantidad:', grupo.cantidadPasajeros);
+    console.log('---');
+
     if (!isReady) {
       return;
     }
@@ -89,70 +131,151 @@ export default function App({
     setAgregandoPasajeros(true);
 
     try {
-      let agregadosExitosamente = 0;
-      let errores = 0;
+      if (usarApiTalma) {
+        // Lógica para API de Talma
+        let fechaFinal: string;
+        let horaFinal: string;
+        let horaprogFinal: string;
 
-      for (const pasajero of pasajerosSeleccionados) {
-        const payload = {
-          arealan: grupo.empresa,
-          destinocodlugar: pasajero.codlugar.toString(),
-          distancia: 0,
-          empresa: grupo.empresa,
-          fecha: grupo.fecha,
-          horaprog: grupo.horaprog,
-          numero: (grupo.id - 1).toString(),
-          orden: '0',
-          pasajero: {
-            codlan: pasajero.codlan,
-            nombre: pasajero.apepate,
-          },
-          rol: 'Ninguno',
+        if (grupo.tipo === 'S') {
+          // SALIDA: fecha viene en grupo.fecha, horaprog viene en grupo.horaprog
+          const datosFecha = formatearFechaHoraParaAPI(grupo.fecha);
+          fechaFinal = datosFecha.fecha;
+          horaFinal = datosFecha.hora;
+          horaprogFinal = grupo.horaprog ? formatearHoraProg(grupo.horaprog) : '';
+        } else {
+          // ENTRADA (tipo 'I'): horaprog viene en grupo.horaprog y se desestructura en fecha/hora
+          const datosHoraProg = formatearFechaHoraParaAPI(grupo.horaprog);
+          fechaFinal = datosHoraProg.fecha;
+          horaFinal = datosHoraProg.hora;
+          horaprogFinal = grupo.fecha ? formatearHoraProg(grupo.fecha) : '';
+        }
+
+        const payload = pasajerosSeleccionados.map((pasajero, index) => ({
+          codcliente: pasajero.codigo,
+          codlan: pasajero.codlan,
+          nombre: pasajero.apepate,
+          fecha: fechaFinal,
+          hora: horaFinal,
           tipo: grupo.tipo,
-        };
+          horaprog: horaprogFinal,
+          orden: String(grupo.cantidadPasajeros + index + 1),
+          grupo: String(grupo.id),
+          empresa: grupo.empresa,
+          destinocodigo: grupo.destinocodigo || '',          
+          destinocodlugar: pasajero.codlugar.toString(),
+        }));
+
+        const url = `https://do.velsat.pe:2083/api/Talma/AgregarPasajero?usuario=${username}`;
+
+        console.log('=== API TALMA ===');
+        console.log('URL:', url);
+        console.log('Payload:', JSON.stringify(payload, null, 2));
 
         try {
-          const response = await fetch(
-            `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`,
-            {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+ if (response.ok) {
+  toast.success(
+    `${pasajerosSeleccionados.length} pasajero(s) agregado(s) correctamente`,
+  );
+  setPasajerosSeleccionados([]);
+  
+  if (onRefrescarDatos) {
+    await onRefrescarDatos();
+  }
+  
+  onOpenChange();
+} else {
+            toast.error('Error al agregar los pasajeros');
+            console.error('Error en la respuesta de la API');
+          }
+        } catch (error) {
+          console.error('Error en la solicitud:', error);
+          toast.error('Ocurrió un error al procesar los pasajeros');
+        }
+      } else {
+        // Lógica original para API de Preplan (envía uno por uno)
+        let agregadosExitosamente = 0;
+        let errores = 0;
+
+        console.log('=== API PREPLAN ===');
+        console.log(`Total de pasajeros a agregar: ${pasajerosSeleccionados.length}`);
+
+        for (const pasajero of pasajerosSeleccionados) {
+          const payload = {
+            arealan: grupo.empresa,
+            destinocodlugar: pasajero.codlugar.toString(),
+            distancia: 0,
+            empresa: grupo.empresa,
+            fecha: grupo.fecha,
+            horaprog: grupo.horaprog,
+            numero: (grupo.id - 1).toString(),
+            orden: '0',
+            pasajero: {
+              codlan: pasajero.codlan,
+              nombre: pasajero.apepate,
+            },
+            rol: 'Ninguno',
+            tipo: grupo.tipo,
+          };
+
+          const url = `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`;
+
+          console.log(`\n--- Pasajero: ${pasajero.apepate} ---`);
+          console.log('URL:', url);
+          console.log('Payload:', JSON.stringify(payload, null, 2));
+
+          try {
+            const response = await fetch(url, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify(payload),
-            },
-          );
+            });
 
-          if (response.ok) {
-            agregadosExitosamente++;
-          } else {
+            if (response.ok) {
+              agregadosExitosamente++;
+              console.log(`✓ ${pasajero.apepate} agregado exitosamente`);
+            } else {
+              errores++;
+              console.error(`✗ Error al agregar pasajero ${pasajero.apepate}`);
+            }
+          } catch (error) {
             errores++;
-            console.error(`Error al agregar pasajero ${pasajero.apepate}`);
+            console.error(`✗ Error en solicitud para ${pasajero.apepate}:`, error);
           }
-        } catch (error) {
-          errores++;
-          console.error(`Error en solicitud para ${pasajero.apepate}:`, error);
         }
-      }
 
-      // Mostrar resultado
-      if (agregadosExitosamente > 0) {
-        toast.success(
-          `${agregadosExitosamente} pasajero(s) agregado(s) correctamente`,
-        );
-      }
+        console.log('\n=== RESUMEN ===');
+        console.log(`Exitosos: ${agregadosExitosamente}`);
+        console.log(`Errores: ${errores}`);
 
-      if (errores > 0) {
-        toast.error(`${errores} pasajero(s) no se pudieron agregar`);
-      }
-
-      // Limpiar lista y actualizar datos
-      if (agregadosExitosamente > 0) {
-        setPasajerosSeleccionados([]);
-        if (onRefrescarDatos) {
-          onRefrescarDatos();
+        if (agregadosExitosamente > 0) {
+          toast.success(
+            `${agregadosExitosamente} pasajero(s) agregado(s) correctamente`,
+          );
         }
-        if (errores === 0) {
-          onOpenChange(); // Cerrar modal solo si todos se agregaron exitosamente
+
+        if (errores > 0) {
+          toast.error(`${errores} pasajero(s) no se pudieron agregar`);
+        }
+
+        if (agregadosExitosamente > 0) {
+          setPasajerosSeleccionados([]);
+          if (onRefrescarDatos) {
+            onRefrescarDatos();
+          }
+          if (errores === 0) {
+            onOpenChange();
+          }
         }
       }
     } catch (error) {
@@ -234,6 +357,9 @@ export default function App({
                             <p className="text-xs text-gray-600">
                               Código: {pasajero.codlan} | Lugar:{' '}
                               {pasajero.codlugar}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              Cliente: {pasajero.codigo}
                             </p>
                           </div>
                           <button
