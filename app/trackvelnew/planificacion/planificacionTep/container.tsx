@@ -39,10 +39,12 @@ interface Grupo {
   tipo: string;
   empresa: string;
   destinoGrupo: string;
+  destinocodigo?: string;  
   fecha: string;
   horaprog: string;
   conductor: string;
   unidad: string;
+  cantidadPasajeros?: number;
 }
 
 interface ContainerProps {

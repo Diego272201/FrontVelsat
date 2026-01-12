@@ -21,12 +21,13 @@ interface Grupo {
   tipo: string;
   empresa: string;
   destinoGrupo: string;
-  destinocodigo: string;
+destinocodigo?: string; 
   fecha: string;
   horaprog: string;
   conductor: string;
+  
   unidad: string;
-  cantidadPasajeros: number;
+  cantidadPasajeros?: number;
 }
 
 interface Pasajero {
@@ -165,7 +166,7 @@ export default function App({
           hora: horaFinal,
           tipo: grupo.tipo,
           horaprog: horaprogFinal,
-          orden: String(grupo.cantidadPasajeros + index + 1),
+          orden: String((grupo.cantidadPasajeros || 0) + index + 1),
           grupo: String(grupo.id),
           empresa: grupo.empresa,
           destinocodigo: grupo.destinocodigo || '',
@@ -207,7 +208,6 @@ export default function App({
           toast.error('Ocurrió un error al procesar los pasajeros');
         }
       } else {
-        // Lógica original para API de Preplan (envía uno por uno)
         let agregadosExitosamente = 0;
         let errores = 0;
 
