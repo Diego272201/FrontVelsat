@@ -504,7 +504,7 @@ const Tollbar: React.FC = () => {
     'talma',
     'aloremisse',
   ];
-  const VIEWERS = ['aremyscontrol1', 'aremyscontrol2', 'mitsubishi'];
+  const VIEWERS = ['aremyscontrol1', 'aremyscontrol2', 'mitsubishi', 'b4t125'];
   const isTalmav = useMemo(
     () => TALMAV_LIKE_USERS.includes(username),
     [username],
