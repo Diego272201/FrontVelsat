@@ -55,6 +55,7 @@ export default function GrupoEliminados({
 
       {/* Contenido del grupo */}
       {items.length === 0 ? (
+        
         <div className="text-center">
           <div className="mx-auto mb-1 flex h-5  w-5 items-center justify-center">
             <svg
