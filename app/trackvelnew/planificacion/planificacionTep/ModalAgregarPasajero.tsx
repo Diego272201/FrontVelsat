@@ -26,7 +26,7 @@ interface Grupo {
   horaprog: string;
   conductor: string;
   unidad: string;
-  cantidadPasajeros: number; 
+  cantidadPasajeros: number;
 }
 
 interface Pasajero {
@@ -54,7 +54,9 @@ export default function App({
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [pasajeroSeleccionado, setPasajeroSeleccionado] =
     useState<Pasajero | null>(null);
-  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<Pasajero[]>([]);
+  const [pasajerosSeleccionados, setPasajerosSeleccionados] = useState<
+    Pasajero[]
+  >([]);
   const [agregandoPasajeros, setAgregandoPasajeros] = useState(false);
 
   const handleSeleccionarPasajero = (pasajero: Pasajero) => {
@@ -82,31 +84,33 @@ export default function App({
   };
 
   // Función para convertir formato ISO a DD/MM/YYYY HH:mm
-  const formatearFechaHoraParaAPI = (fechaISO: string): { fecha: string; hora: string } => {
+  const formatearFechaHoraParaAPI = (
+    fechaISO: string,
+  ): { fecha: string; hora: string } => {
     const date = new Date(fechaISO);
-    
+
     const dia = String(date.getDate()).padStart(2, '0');
     const mes = String(date.getMonth() + 1).padStart(2, '0');
     const año = date.getFullYear();
     const horas = String(date.getHours()).padStart(2, '0');
     const minutos = String(date.getMinutes()).padStart(2, '0');
-    
+
     return {
       fecha: `${dia}/${mes}/${año}`,
-      hora: `${horas}:${minutos}`
+      hora: `${horas}:${minutos}`,
     };
   };
 
   // Función para formatear horaprog en formato DD/MM/YYYY HH:mm
   const formatearHoraProg = (fechaISO: string): string => {
     const date = new Date(fechaISO);
-    
+
     const dia = String(date.getDate()).padStart(2, '0');
     const mes = String(date.getMonth() + 1).padStart(2, '0');
     const año = date.getFullYear();
     const horas = String(date.getHours()).padStart(2, '0');
     const minutos = String(date.getMinutes()).padStart(2, '0');
-    
+
     return `${dia}/${mes}/${año} ${horas}:${minutos}`;
   };
 
@@ -142,7 +146,9 @@ export default function App({
           const datosFecha = formatearFechaHoraParaAPI(grupo.fecha);
           fechaFinal = datosFecha.fecha;
           horaFinal = datosFecha.hora;
-          horaprogFinal = grupo.horaprog ? formatearHoraProg(grupo.horaprog) : '';
+          horaprogFinal = grupo.horaprog
+            ? formatearHoraProg(grupo.horaprog)
+            : '';
         } else {
           // ENTRADA (tipo 'I'): horaprog viene en grupo.horaprog y se desestructura en fecha/hora
           const datosHoraProg = formatearFechaHoraParaAPI(grupo.horaprog);
@@ -162,7 +168,7 @@ export default function App({
           orden: String(grupo.cantidadPasajeros + index + 1),
           grupo: String(grupo.id),
           empresa: grupo.empresa,
-          destinocodigo: grupo.destinocodigo || '',          
+          destinocodigo: grupo.destinocodigo || '',
           destinocodlugar: pasajero.codlugar.toString(),
         }));
 
@@ -181,18 +187,18 @@ export default function App({
             body: JSON.stringify(payload),
           });
 
- if (response.ok) {
-  toast.success(
-    `${pasajerosSeleccionados.length} pasajero(s) agregado(s) correctamente`,
-  );
-  setPasajerosSeleccionados([]);
-  
-  if (onRefrescarDatos) {
-    await onRefrescarDatos();
-  }
-  
-  onOpenChange();
-} else {
+          if (response.ok) {
+            toast.success(
+              `${pasajerosSeleccionados.length} pasajero(s) agregado(s) correctamente`,
+            );
+            setPasajerosSeleccionados([]);
+
+            if (onRefrescarDatos) {
+              await onRefrescarDatos();
+            }
+
+            onOpenChange();
+          } else {
             toast.error('Error al agregar los pasajeros');
             console.error('Error en la respuesta de la API');
           }
@@ -206,7 +212,9 @@ export default function App({
         let errores = 0;
 
         console.log('=== API PREPLAN ===');
-        console.log(`Total de pasajeros a agregar: ${pasajerosSeleccionados.length}`);
+        console.log(
+          `Total de pasajeros a agregar: ${pasajerosSeleccionados.length}`,
+        );
 
         for (const pasajero of pasajerosSeleccionados) {
           const payload = {
@@ -250,7 +258,10 @@ export default function App({
             }
           } catch (error) {
             errores++;
-            console.error(`✗ Error en solicitud para ${pasajero.apepate}:`, error);
+            console.error(
+              `✗ Error en solicitud para ${pasajero.apepate}:`,
+              error,
+            );
           }
         }
 
