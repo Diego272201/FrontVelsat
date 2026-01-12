@@ -35,7 +35,7 @@ import FooterTablaList, {
 import ButtonEliminarPasajero from './ButtonEliminarPasajero';
 import { PapeleraGrupos } from './PapeleraGrupos';
 import ModalDireccion from './ModalDireccion';
-import ModalDirecciones from '../planificacionTep/ModalDirecciones';
+import ModalDirecciones from './ModalDirecciones';
 
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
