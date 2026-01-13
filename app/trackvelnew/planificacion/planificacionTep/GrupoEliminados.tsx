@@ -73,6 +73,7 @@ export default function GrupoEliminados({
           </div>
           <p className="text-[12px] text-gray-500">No hay elementos eliminados</p>
         </div>
+        
       ) : (
         <div className="space-y-0">
           {items.map((item) => (
