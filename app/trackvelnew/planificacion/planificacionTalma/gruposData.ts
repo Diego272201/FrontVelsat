@@ -1,9 +1,8 @@
-// gruposData.ts
-
 import { Grupo, Pasajero } from './types';
 
 interface ApiPasajero {
   codigo: string;
+  codcliente: string; 
   codlan: string;
   nombre: string;
   fecha: string;
@@ -252,20 +251,11 @@ export const guardarGruposEnAPI = async (
     const payload: any[] = [];
 
     grupos.forEach((grupo) => {
-      let horaprog: string | null = null;
-
-      if (grupo._tipoServicio === 'S') {
-        horaprog = formatearFechaParaAPI(grupo.fin);
-      } else if (grupo._tipoServicio === 'I') {
-        horaprog = formatearFechaParaAPI(grupo.inicio);
-      }
-
-      if (!horaprog) {
-        throw new Error(
-          `El grupo ${grupo.numero} no tiene la fecha ${
-            grupo._tipoServicio === 'S' ? 'FIN' : 'INICIO'
-          } configurada. Por favor complétala antes de guardar.`,
-        );
+      let horaprog: string = '';
+      if (grupo._tipoServicio === 'S' && grupo.fin) {
+        horaprog = formatearFechaParaAPI(grupo.fin) || '';
+      } else if (grupo._tipoServicio === 'I' && grupo.inicio) {
+        horaprog = formatearFechaParaAPI(grupo.inicio) || '';
       }
 
       grupo.pasajeros.forEach((pasajero, index) => {
@@ -294,11 +284,15 @@ export const guardarGruposEnAPI = async (
 
         const pasajeroPayload = {
           codigo: apiData.codigo,
-          horaprog: horaprog!,
+          horaprog: horaprog,
           orden: String(index),
           grupo: String(grupo.numero - 1),
-          codconductor: codconductorEncontrado,
-          codunidad: grupo.unidad || apiData.codunidad || null,
+          codconductor:
+            grupo.conductor && grupo.conductor.trim() !== ''
+              ? codconductorEncontrado
+              : null,
+          codunidad:
+            grupo.unidad && grupo.unidad.trim() !== '' ? grupo.unidad : null,
           destinocodigo: apiData.destino?.codlugar
             ? String(apiData.destino.codlugar)
             : null,
@@ -338,6 +332,130 @@ export const guardarGruposEnAPI = async (
     return true;
   } catch (error) {
     console.error('Error al guardar grupos:', error);
+    throw error;
+  }
+};
+
+
+
+export const publicarGruposEnAPI = async (
+  grupos: Grupo[],
+): Promise<{ success: boolean; gruposPublicados: number[]; gruposOmitidos: number[] }> => {
+  try {
+    const payload: any[] = [];
+    const gruposConErrores: number[] = [];
+    const gruposValidos: number[] = [];
+
+    grupos.forEach((grupo) => {
+      // Determinar la fecha del grupo según el tipo
+      let fechaGrupo: string = '';
+      if (grupo._tipoServicio === 'S' && grupo.inicio) {
+        fechaGrupo = formatearFechaParaAPI(grupo.inicio) || '';
+      } else if (grupo._tipoServicio === 'I' && grupo.fin) {
+        fechaGrupo = formatearFechaParaAPI(grupo.fin) || '';
+      }
+
+      // Determinar la fecha de los subservicios (opuesta a la del grupo)
+      let fechaSubservicios: string = '';
+      if (grupo._tipoServicio === 'S' && grupo.fin) {
+        fechaSubservicios = formatearFechaParaAPI(grupo.fin) || '';
+      } else if (grupo._tipoServicio === 'I' && grupo.inicio) {
+        fechaSubservicios = formatearFechaParaAPI(grupo.inicio) || '';
+      }
+
+      // VALIDACIÓN: Si fechaSubservicios está vacía, marcar grupo con error
+      if (!fechaSubservicios || fechaSubservicios.trim() === '') {
+        gruposConErrores.push(grupo.numero);
+        return; // Saltar este grupo
+      }
+
+      // Si llegamos aquí, el grupo es válido
+      gruposValidos.push(grupo.numero);
+
+      const subservicios: any[] = [];
+
+      // Primer subservicio (siempre el destino con orden 0)
+      subservicios.push({
+        codubicli: grupo.destinocodigo,
+        fecha: fechaSubservicios,
+        codcliente: grupo.destinocodigo,
+        orden: '0',
+        codigo: '0',
+      });
+
+      // Agregar los pasajeros del grupo (empiezan desde orden 1)
+      grupo.pasajeros.forEach((pasajero, index) => {
+        if (!pasajero._apiData) {
+          console.error(
+            `Pasajero ${pasajero.nombre} (${pasajero.id}) no tiene _apiData`,
+          );
+          throw new Error(
+            `El pasajero "${pasajero.nombre}" no tiene datos de la API.`,
+          );
+        }
+
+        const apiData = pasajero._apiData;
+
+        subservicios.push({
+          codubicli: String(apiData.direccionPasajero.codlugar),
+          fecha: fechaSubservicios,
+          codcliente: apiData.codcliente,
+          orden: String(index + 1),
+          codigo: apiData.codigo,
+        });
+      });
+
+      // Agregar el grupo completo al payload
+      payload.push({
+        tipo: grupo._tipoServicio,
+        codusuario: 'cgacela',
+        fecha: fechaGrupo,
+        subservicios: subservicios,
+      });
+    });
+
+    // VALIDACIONES ANTES DE ENVIAR
+    if (gruposConErrores.length > 0 && payload.length === 0) {
+      // Todos los grupos tienen errores
+      const mensajeGrupos = gruposConErrores.length === 1 
+        ? `el Grupo ${gruposConErrores[0]}` 
+        : `los Grupos ${gruposConErrores.join(', ')}`;
+      throw new Error(`Rellena el campo fecha  en ${mensajeGrupos} para poder publicar.`);
+    }
+
+    if (payload.length === 0) {
+      throw new Error('No hay grupos válidos para publicar.');
+    }
+
+    console.log('PAYLOAD COMPLETO:');
+    console.log(JSON.stringify(payload, null, 2));
+
+    const response = await fetch(
+      'https://do.velsat.pe:2083/api/Talma/CreateServicios',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Respuesta de la API:', result);
+
+    return { 
+      success: true, 
+      gruposPublicados: gruposValidos, 
+      gruposOmitidos: gruposConErrores 
+    };
+  } catch (error) {
+    console.error('Error al publicar grupos:', error);
     throw error;
   }
 };

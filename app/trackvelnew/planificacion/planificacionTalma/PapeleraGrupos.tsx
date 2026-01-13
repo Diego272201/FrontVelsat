@@ -41,13 +41,13 @@ export const PapeleraGrupos: React.FC<PapeleraGruposProps> = ({
       
       const url = `https://do.velsat.pe:2083/api/Talma/PreplanTalmaEliminados?tipo=${tipo}&fecha=${fechaFormateada}&hora=${horaFormateada}`;
       
-      console.log('🗑️ Cargando eliminados desde:', url);
+      console.log('Cargando eliminados desde:', url);
 
       const response = await fetch(url);
 
-      // 🔥 MANEJAR 404 COMO "NO HAY DATOS" (NO ES ERROR)
+      
       if (response.status === 404) {
-        console.log('ℹ️ No hay pasajeros eliminados (404)');
+        console.log('ℹNo hay pasajeros eliminados (404)');
         setPasajerosEliminados([]);
         setCargando(false);
         return;
@@ -58,17 +58,17 @@ export const PapeleraGrupos: React.FC<PapeleraGruposProps> = ({
       }
 
       const data = await response.json();
-      console.log('✅ Eliminados cargados:', data);
+      console.log('Eliminados cargados:', data);
 
       const pasajerosMapeados = data.map((item: any) => ({
         id: item.codigo || item.id || item.ID,
         nombre: item.nombre || item.Nombre || '',
         distrito: item.direccionPasajero?.distrito || item.distrito || item.Distrito || '',
         direccion: item.direccionPasajero?.direccion || item.direccion || item.Direccion || '',
-        fecha: `${item.fecha || item.Fecha || ''} ${item.hora || ''}`.trim(), // 🔥 Concatenar fecha y hora
+        fecha: `${item.fecha || item.Fecha || ''} ${item.hora || ''}`.trim(),
         area: item.empresa || item.area || item.Area || '',
-        grupoOriginalId: item.grupo, // 🔥 Usar el campo "grupo" de la API (0, 1, 2, etc.)
-        _apiData: item // 🔥 Guardar todos los datos de la API
+        grupoOriginalId: item.grupo, 
+        _apiData: item 
       }));
 
       setPasajerosEliminados(pasajerosMapeados);
@@ -82,7 +82,6 @@ export const PapeleraGrupos: React.FC<PapeleraGruposProps> = ({
     }
   };
 
-  // Cargar automáticamente cuando cambien los parámetros
   useEffect(() => {
     cargarEliminados();
   }, [fecha, hora, tipo, triggerRecarga]); 
@@ -126,10 +125,8 @@ export const PapeleraGrupos: React.FC<PapeleraGruposProps> = ({
     );
   }
 
-  // 🔥 Filtrar pasajeros que fueron restaurados localmente
   const pasajerosVisibles = pasajerosEliminados.filter(p => !pasajerosRestaurados.has(p.id));
 
-  // Si no hay eliminados visibles
   if (pasajerosVisibles.length === 0) {
     return null;
   }

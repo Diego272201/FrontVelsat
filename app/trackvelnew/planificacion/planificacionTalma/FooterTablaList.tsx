@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { createPortal } from 'react-dom'
-import { User, Car, Clock, Check, Users, Search } from 'lucide-react'
-import { Grupo } from './types'
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { User, Car, Check, Users, Search } from 'lucide-react';
+import { Grupo } from './types';
 import ModalMapa from '../planificacionTep/ModalRuta';
 import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 import ModalAgregarPasajero from '../planificacionTep/ModalAgregarPasajero';
@@ -36,25 +36,34 @@ interface Unidad {
   codunidad: string;
 }
 
-const FooterTablaList: React.FC<FooterTablaListProps> = ({ 
-  grupo, 
-  actualizarGrupo, 
-  grupoEnSeleccion, 
-  abrirModalMover, 
-  pasajerosSeleccionados, 
-  cancelarSeleccion, 
+const FooterTablaList: React.FC<FooterTablaListProps> = ({
+  grupo,
+  actualizarGrupo,
+  grupoEnSeleccion,
+  abrirModalMover,
+  pasajerosSeleccionados,
+  cancelarSeleccion,
   activarSeleccionMultiple,
   conductores,
   unidades,
-   onRefrescarDatos
+  onRefrescarDatos,
 }) => {
   const [mostrarConductores, setMostrarConductores] = useState(false);
   const [mostrarUnidades, setMostrarUnidades] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-  const [dropdownUnidadPosition, setDropdownUnidadPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+  const [dropdownUnidadPosition, setDropdownUnidadPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [selectedUnidadIndex, setSelectedUnidadIndex] = useState(-1);
-  const [modalAgregarPasajeroAbierto, setModalAgregarPasajeroAbierto] = useState(false);
+  const [modalAgregarPasajeroAbierto, setModalAgregarPasajeroAbierto] =
+    useState(false);
   const conductorRef = useRef<HTMLDivElement>(null);
   const unidadRef = useRef<HTMLDivElement>(null);
   const inputConductorRef = useRef<HTMLInputElement>(null);
@@ -71,33 +80,39 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
       wx: p._apiData?.direccionPasajero?.wx || '',
       wy: p._apiData?.direccionPasajero?.wy || '',
       nombre: p.nombre,
-      direccion: p.direccion
+      direccion: p.direccion,
     }));
   }, [grupo.pasajeros]);
 
-  const calcularPosicionDropdown = (inputElement: HTMLInputElement, itemsCount: number) => {
+  const calcularPosicionDropdown = (
+    inputElement: HTMLInputElement,
+    itemsCount: number,
+  ) => {
     const rect = inputElement.getBoundingClientRect();
-    
+
     const headerHeight = 42;
     const itemHeight = 60;
-    const maxVisibleItems = Math.min(itemsCount, 3.5); 
-    const dropdownHeight = headerHeight + (itemHeight * maxVisibleItems);
-    
+    const maxVisibleItems = Math.min(itemsCount, 3.5);
+    const dropdownHeight = headerHeight + itemHeight * maxVisibleItems;
+
     const top = rect.top + window.scrollY - dropdownHeight + 8;
 
     return {
       top,
-      left: rect.left + window.scrollX
+      left: rect.left + window.scrollX,
     };
   };
 
   useEffect(() => {
     if (mostrarConductores && inputConductorRef.current) {
       const conductoresFiltrados = getConductoresFiltrados();
-      const position = calcularPosicionDropdown(inputConductorRef.current, conductoresFiltrados.length);
+      const position = calcularPosicionDropdown(
+        inputConductorRef.current,
+        conductoresFiltrados.length,
+      );
       setDropdownPosition({
         ...position,
-        width: 360
+        width: 360,
       });
     }
   }, [mostrarConductores, grupo.conductor]);
@@ -105,10 +120,13 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   useEffect(() => {
     if (mostrarUnidades && inputUnidadRef.current) {
       const unidadesFiltradas = getUnidadesFiltradas();
-      const position = calcularPosicionDropdown(inputUnidadRef.current, unidadesFiltradas.length);
+      const position = calcularPosicionDropdown(
+        inputUnidadRef.current,
+        unidadesFiltradas.length,
+      );
       setDropdownUnidadPosition({
         ...position,
-        width: 280
+        width: 280,
       });
     }
   }, [mostrarUnidades, grupo.unidad]);
@@ -116,15 +134,21 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
   useEffect(() => {
     const handleScroll = (event: Event) => {
       const target = event.target as HTMLElement;
-      
-      if (dropdownConductorRef.current && dropdownConductorRef.current.contains(target)) {
+
+      if (
+        dropdownConductorRef.current &&
+        dropdownConductorRef.current.contains(target)
+      ) {
         return;
       }
-      
-      if (dropdownUnidadRef.current && dropdownUnidadRef.current.contains(target)) {
+
+      if (
+        dropdownUnidadRef.current &&
+        dropdownUnidadRef.current.contains(target)
+      ) {
         return;
       }
-      
+
       if (mostrarConductores) {
         setMostrarConductores(false);
         setSelectedIndex(-1);
@@ -141,11 +165,17 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (conductorRef.current && !conductorRef.current.contains(event.target as Node)) {
+      if (
+        conductorRef.current &&
+        !conductorRef.current.contains(event.target as Node)
+      ) {
         setMostrarConductores(false);
         setSelectedIndex(-1);
       }
-      if (unidadRef.current && !unidadRef.current.contains(event.target as Node)) {
+      if (
+        unidadRef.current &&
+        !unidadRef.current.contains(event.target as Node)
+      ) {
         setMostrarUnidades(false);
         setSelectedUnidadIndex(-1);
       }
@@ -159,8 +189,8 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
     if (!grupo.conductor || grupo.conductor.trim() === '') {
       return conductores;
     }
-    return conductores.filter(c => 
-      c.apepate.toLowerCase().includes(grupo.conductor.toLowerCase())
+    return conductores.filter((c) =>
+      c.apepate.toLowerCase().includes(grupo.conductor.toLowerCase()),
     );
   };
 
@@ -168,8 +198,8 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
     if (!grupo.unidad || grupo.unidad.trim() === '') {
       return unidades;
     }
-    return unidades.filter(u => 
-      u.codunidad.toLowerCase().includes(grupo.unidad.toLowerCase())
+    return unidades.filter((u) =>
+      u.codunidad.toLowerCase().includes(grupo.unidad.toLowerCase()),
     );
   };
 
@@ -188,14 +218,29 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
     setSelectedUnidadIndex(-1);
   };
 
+  const calcularDuracion = (inicio: Date | null, fin: Date | null): string => {
+    if (!inicio || !fin) return '0h 0min';
+
+    const diffMs = fin.getTime() - inicio.getTime();
+
+    if (diffMs < 0) return '0h 0min';
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+
+    return `${hours}h ${minutes}min`;
+  };
+
   return (
-    <div className="bg-[#ffd29d] px-4 py-1 flex items-center justify-between border-t-2 border-orange-300">
-      
+    <div className="flex items-center justify-between border-t-2 border-orange-300 bg-[#ffd29d] px-4 py-1">
       <div className="flex items-center gap-6">
         {/* Input de Conductor con Autocompletado */}
         <div className="flex items-center gap-2" ref={conductorRef}>
-          <User className="w-4 h-4 text-orange-700" />
-          <span className="text-[12px] font-semibold text-gray-800">Conductor</span>
+          <User className="h-4 w-4 text-orange-700" />
+          <span className="text-[12px] font-semibold text-gray-800">
+            Conductor
+          </span>
           <div className="relative">
             <input
               ref={inputConductorRef}
@@ -207,100 +252,112 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
                 setSelectedIndex(-1);
               }}
               onFocus={() => setMostrarConductores(true)}
-              className="px-3 py-1.5 text-sm text-gray-800 bg-white border-1 border-gray-300 rounded-lg focus:ring-0.5 focus:ring-orange-400 focus:border-orange-400 transition-all w-[350px]"
+              className="focus:ring-0.5 w-[350px] rounded-lg border-1 border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 transition-all focus:border-orange-400 focus:ring-orange-400"
               placeholder="Buscar Conductor"
             />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
-          
+
           {/* Dropdown de Conductores */}
-          {mostrarConductores && conductores.length > 0 && conductoresFiltrados.length > 0 && createPortal(
-            <div 
-              ref={dropdownConductorRef}
-              className="bg-white rounded-lg shadow-2xl max-h-60 overflow-hidden border border-gray-200"
-              style={{ 
-                position: 'absolute',
-                top: `${dropdownPosition.top}px`,
-                left: `${dropdownPosition.left}px`,
-                width: `${dropdownPosition.width}px`,
-                zIndex: 99999
-              }}
-            >
-              <div className="sticky top-0 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-1 border-b border-orange-200">
-                <p className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
-                  Conductores disponibles ({conductoresFiltrados.length})
-                </p>
-              </div>
-              <div className="overflow-y-auto max-h-64 scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-gray-100">
-                {conductoresFiltrados.map((conductor, index) => (
-                  <div
-                    key={conductor.codigo}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      seleccionarConductor(conductor);
-                    }}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    className={`px-4 py-3 cursor-pointer transition-all duration-150 border-b border-gray-100 last:border-b-0 ${
-                      selectedIndex === index 
-                        ? 'bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-l-orange-500' 
-                        : 'hover:bg-gray-50 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                          <User className="w-4 h-4 text-orange-600" />
+          {mostrarConductores &&
+            conductores.length > 0 &&
+            conductoresFiltrados.length > 0 &&
+            createPortal(
+              <div
+                ref={dropdownConductorRef}
+                className="max-h-60 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-2xl"
+                style={{
+                  position: 'absolute',
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`,
+                  width: `${dropdownPosition.width}px`,
+                  zIndex: 99999,
+                }}
+              >
+                <div className="sticky top-0 border-b border-orange-200 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-800">
+                    Conductores disponibles ({conductoresFiltrados.length})
+                  </p>
+                </div>
+                <div className="scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-gray-100 max-h-64 overflow-y-auto">
+                  {conductoresFiltrados.map((conductor, index) => (
+                    <div
+                      key={conductor.codigo}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        seleccionarConductor(conductor);
+                      }}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={`cursor-pointer border-b border-gray-100 px-4 py-3 transition-all duration-150 last:border-b-0 ${
+                        selectedIndex === index
+                          ? 'border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50 to-orange-100'
+                          : 'border-l-4 border-l-transparent hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
+                            <User className="h-4 w-4 text-orange-600" />
+                          </div>
+                          <div>
+                            <p
+                              className={`text-[11px] font-medium ${selectedIndex === index ? 'text-orange-900' : 'text-gray-900'}`}
+                            >
+                              {conductor.apepate.trim()}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Código: {conductor.codigo}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className={`text-[11px] font-medium ${selectedIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
-                            {conductor.apepate.trim()}
-                          </p>
-                          <p className="text-xs text-gray-500">Código: {conductor.codigo}</p>
-                        </div>
+                        {selectedIndex === index && (
+                          <Check className="h-4 w-4 text-orange-600" />
+                        )}
                       </div>
-                      {selectedIndex === index && (
-                        <Check className="w-4 h-4 text-orange-600" />
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>,
-            document.body
-          )}
+                  ))}
+                </div>
+              </div>,
+              document.body,
+            )}
 
           {/* Mensaje cuando no hay resultados */}
-          {mostrarConductores && conductores.length > 0 && conductoresFiltrados.length === 0 && createPortal(
-            <div 
-              className="bg-white rounded-lg shadow-2xl border border-gray-200"
-              style={{ 
-                position: 'absolute',
-                top: `${dropdownPosition.top - 170}px`,
-                left: `${dropdownPosition.left}px`,
-                width: `${dropdownPosition.width}px`,
-                zIndex: 99999
-              }}
-            >
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Search className="w-8 h-8 text-gray-400" />
+          {mostrarConductores &&
+            conductores.length > 0 &&
+            conductoresFiltrados.length === 0 &&
+            createPortal(
+              <div
+                className="rounded-lg border border-gray-200 bg-white shadow-2xl"
+                style={{
+                  position: 'absolute',
+                  top: `${dropdownPosition.top - 170}px`,
+                  left: `${dropdownPosition.left}px`,
+                  width: `${dropdownPosition.width}px`,
+                  zIndex: 99999,
+                }}
+              >
+                <div className="p-8 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                    <Search className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="mb-1 text-sm font-medium text-gray-700">
+                    No se encontraron conductores
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    No hay coincidencias con &quot;{grupo.conductor}&quot;
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  No se encontraron conductores
-                </p>
-                <p className="text-xs text-gray-500">
-                  No hay coincidencias con &quot;{grupo.conductor}&quot;
-                </p>
-              </div>
-            </div>,
-            document.body
-          )}
+              </div>,
+              document.body,
+            )}
         </div>
 
         {/* Input de Unidad con Autocompletado */}
         <div className="flex items-center gap-2" ref={unidadRef}>
-          <Car className="w-4 h-4 text-orange-700" />
-          <span className="text-[12px] font-semibold text-gray-800">Unidad</span>
+          <Car className="h-4 w-4 text-orange-700" />
+          <span className="text-[12px] font-semibold text-gray-800">
+            Unidad
+          </span>
           <div className="relative">
             <input
               ref={inputUnidadRef}
@@ -312,97 +369,104 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
                 setSelectedUnidadIndex(-1);
               }}
               onFocus={() => setMostrarUnidades(true)}
-              className="px-3 py-1.5 text-sm text-gray-800 bg-white border-1 border-gray-300 rounded-lg focus:ring-0.5 focus:ring-orange-400 focus:border-orange-400 transition-all w-[180px] shadow-sm"
+              className="focus:ring-0.5 w-[180px] rounded-lg border-1 border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-800 shadow-sm transition-all focus:border-orange-400 focus:ring-orange-400"
               placeholder="Placa"
             />
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
-          
+
           {/* Dropdown de Unidades */}
-          {mostrarUnidades && unidades.length > 0 && unidadesFiltradas.length > 0 && createPortal(
-            <div 
-              ref={dropdownUnidadRef}
-              className="bg-white rounded-lg shadow-2xl max-h-60 overflow-hidden border border-gray-200"
-              style={{ 
-                position: 'absolute',
-                top: `${dropdownUnidadPosition.top}px`,
-                left: `${dropdownUnidadPosition.left}px`,
-                width: `${dropdownUnidadPosition.width}px`,
-                zIndex: 99999
-              }}
-            >
-              <div className="sticky top-0 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-2 border-b border-orange-200">
-                <p className="text-xs font-semibold text-orange-800 uppercase tracking-wide">
-                  Unidades disponibles ({unidadesFiltradas.length})
-                </p>
-              </div>
-              <div className="overflow-y-auto max-h-64 scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-gray-100">
-                {unidadesFiltradas.map((unidad, index) => (
-                  <div
-                    key={unidad.id}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      seleccionarUnidad(unidad);
-                    }}
-                    onMouseEnter={() => setSelectedUnidadIndex(index)}
-                    className={`px-4 py-3 cursor-pointer transition-all duration-150 border-b border-gray-100 last:border-b-0 ${
-                      selectedUnidadIndex === index 
-                        ? 'bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-l-orange-500' 
-                        : 'hover:bg-gray-50 border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                          <Car className="w-4 h-4 text-orange-600" />
+          {mostrarUnidades &&
+            unidades.length > 0 &&
+            unidadesFiltradas.length > 0 &&
+            createPortal(
+              <div
+                ref={dropdownUnidadRef}
+                className="max-h-60 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-2xl"
+                style={{
+                  position: 'absolute',
+                  top: `${dropdownUnidadPosition.top}px`,
+                  left: `${dropdownUnidadPosition.left}px`,
+                  width: `${dropdownUnidadPosition.width}px`,
+                  zIndex: 99999,
+                }}
+              >
+                <div className="sticky top-0 border-b border-orange-200 bg-gradient-to-r from-orange-50 to-orange-100 px-4 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-orange-800">
+                    Unidades disponibles ({unidadesFiltradas.length})
+                  </p>
+                </div>
+                <div className="scrollbar-thin scrollbar-thumb-orange-300 scrollbar-track-gray-100 max-h-64 overflow-y-auto">
+                  {unidadesFiltradas.map((unidad, index) => (
+                    <div
+                      key={unidad.id}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        seleccionarUnidad(unidad);
+                      }}
+                      onMouseEnter={() => setSelectedUnidadIndex(index)}
+                      className={`cursor-pointer border-b border-gray-100 px-4 py-3 transition-all duration-150 last:border-b-0 ${
+                        selectedUnidadIndex === index
+                          ? 'border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50 to-orange-100'
+                          : 'border-l-4 border-l-transparent hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100">
+                            <Car className="h-4 w-4 text-orange-600" />
+                          </div>
+                          <p
+                            className={`text-[11px] font-medium ${selectedUnidadIndex === index ? 'text-orange-900' : 'text-gray-900'}`}
+                          >
+                            {unidad.codunidad}
+                          </p>
                         </div>
-                        <p className={`text-[11px] font-medium ${selectedUnidadIndex === index ? 'text-orange-900' : 'text-gray-900'}`}>
-                          {unidad.codunidad}
-                        </p>
+                        {selectedUnidadIndex === index && (
+                          <Check className="h-4 w-4 text-orange-600" />
+                        )}
                       </div>
-                      {selectedUnidadIndex === index && (
-                        <Check className="w-4 h-4 text-orange-600" />
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>,
-            document.body
-          )}
+                  ))}
+                </div>
+              </div>,
+              document.body,
+            )}
 
           {/* Mensaje cuando no hay resultados */}
-          {mostrarUnidades && unidades.length > 0 && unidadesFiltradas.length === 0 && createPortal(
-            <div 
-              className="bg-white rounded-lg shadow-2xl border border-gray-200"
-              style={{ 
-                position: 'absolute',
-                top: `${dropdownUnidadPosition.top}px`,
-                left: `${dropdownUnidadPosition.left}px`,
-                width: `${dropdownUnidadPosition.width}px`,
-                zIndex: 99999
-              }}
-            >
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Search className="w-8 h-8 text-gray-400" />
+          {mostrarUnidades &&
+            unidades.length > 0 &&
+            unidadesFiltradas.length === 0 &&
+            createPortal(
+              <div
+                className="rounded-lg border border-gray-200 bg-white shadow-2xl"
+                style={{
+                  position: 'absolute',
+                  top: `${dropdownUnidadPosition.top}px`,
+                  left: `${dropdownUnidadPosition.left}px`,
+                  width: `${dropdownUnidadPosition.width}px`,
+                  zIndex: 99999,
+                }}
+              >
+                <div className="p-8 text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                    <Search className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="mb-1 text-sm font-medium text-gray-700">
+                    No se encontraron unidades
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    No hay coincidencias con &quot;{grupo.unidad}&quot;
+                  </p>
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  No se encontraron unidades
-                </p>
-                <p className="text-xs text-gray-500">
-                  No hay coincidencias con &quot;{grupo.unidad}&quot;
-                </p>
-              </div>
-            </div>,
-            document.body
-          )}
+              </div>,
+              document.body,
+            )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-orange-700" />
-          <span className="text-[12px] font-semibold text-gray-800">Duración: {grupo.duracion}</span>
-        </div>
+        <span className="text-[12px] font-semibold text-gray-800">
+          Duración: {calcularDuracion(grupo.inicio, grupo.fin)}
+        </span>
       </div>
 
       <div className="flex gap-2">
@@ -410,53 +474,59 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
           <>
             <button
               onClick={() => abrirModalMover(grupo.id)}
-              className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
+              className="flex items-center gap-1.5 rounded bg-blue-500 px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-blue-600"
             >
-              <Check className="w-4 h-4" />
+              <Check className="h-4 w-4" />
               Mover seleccionados ({pasajerosSeleccionados.size})
             </button>
             <button
               onClick={cancelarSeleccion}
-              className="px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white text-sm rounded font-semibold transition-colors"
+              className="rounded bg-gray-500 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-gray-600"
             >
               Cancelar
             </button>
           </>
         ) : (
           <>
-
-
-          {/* Modal Agregar Pasajero - ya tiene su propio botón */}
-<ModalAgregarPasajero
-  grupo={{
-    id: grupo.numero - 1,
-    tipo: grupo._tipoServicio || 'S',
-    empresa: grupo.empresa,
-    destinoGrupo: grupo.destino,
-    destinocodigo: grupo.destinocodigo,
- fecha: grupo.inicio ? new Date(grupo.inicio).toLocaleString('sv-SE').replace(' ', 'T') : '',
-  horaprog: grupo.fin ? new Date(grupo.fin).toLocaleString('sv-SE').replace(' ', 'T') : '',
-    conductor: grupo.conductor,
-    unidad: grupo.unidad,
-    cantidadPasajeros: grupo.pasajeros.length -1 
-  }}
-  onRefrescarDatos={onRefrescarDatos}
-  usarApiTalma={true} 
-/>
+            {/* Modal Agregar Pasajero */}
+            <ModalAgregarPasajero
+              grupo={{
+                id: grupo.numero - 1,
+                tipo: grupo._tipoServicio || 'S',
+                empresa: grupo.empresa,
+                destinoGrupo: grupo.destino,
+                destinocodigo: grupo.destinocodigo,
+                fecha: grupo.inicio
+                  ? new Date(grupo.inicio)
+                      .toLocaleString('sv-SE')
+                      .replace(' ', 'T')
+                  : '',
+                horaprog: grupo.fin
+                  ? new Date(grupo.fin)
+                      .toLocaleString('sv-SE')
+                      .replace(' ', 'T')
+                  : '',
+                conductor: grupo.conductor,
+                unidad: grupo.unidad,
+                cantidadPasajeros: grupo.pasajeros.length - 1,
+              }}
+              onRefrescarDatos={onRefrescarDatos}
+              usarApiTalma={true}
+            />
 
             {grupo.pasajeros.length > 1 && (
               <button
                 onClick={() => activarSeleccionMultiple(grupo.id)}
-                className="px-4 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-[12px] rounded font-semibold transition-colors flex items-center gap-1.5"
+                className="flex items-center gap-1.5 rounded bg-purple-500 px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-purple-600"
               >
-                <Users className="w-3 h-3" />
+                <Users className="h-3 w-3" />
                 Mover múltiples
               </button>
             )}
-            
-            <button 
+
+            <button
               onClick={() => setModalMapaAbierto(true)}
-              className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[12px] rounded font-semibold transition-colors"
+              className="rounded bg-orange-500 px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600"
             >
               Ruta
             </button>
@@ -471,18 +541,12 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
               setSelectedMarker={setSelectedMarker}
               getMarkerSVG={getMarkerSVG}
             />
-
-
-            
-
-
-
-     </>
+          </>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 export { type Conductor, type Unidad };
-export default FooterTablaList
+export default FooterTablaList;

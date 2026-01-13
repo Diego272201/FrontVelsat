@@ -17,6 +17,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
   const [selectedService, setSelectedService] = useState('Salida'); 
   const [selectedTime, setSelectedTime] = useState('');
   const [cargandoDatos, setCargandoDatos] = useState(false); 
+  const [eliminandoDatos, setEliminandoDatos] = useState(false);
 
   // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY para la API
   const formatDateForAPI = (date: string): string => {
@@ -58,7 +59,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
       // Determinar tipo: 'S' para Salida, 'I' para Entrada
       const tipo: 'S' | 'I' = selectedService === 'Salida' ? 'S' : 'I';
       
-      console.log('📊 Parámetros a enviar:', {
+      console.log('Parámetros a enviar:', {
         fecha: fechaFormateada,
         hora: selectedTime,
         tipo: tipo,
@@ -80,21 +81,65 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
     }
   };
 
-  // ✅ FUNCIÓN MODIFICADA - Ahora también limpia los datos de la tabla
-  const handleEliminarDatos = () => {
-    // Limpiar datos de la tabla
-    if (tablaListRef.current) {
-      tablaListRef.current.limpiarDatos();
+
+  const handleEliminarDatos = async () => {
+  if (!selectedDate) {
+    toast.warning('Por favor, selecciona una fecha para eliminar la carga');
+    return;
+  }
+
+  setEliminandoDatos(true);
+
+  try {
+    // Convertir fecha a formato DD/MM/YYYY
+    const fechaFormateada = formatDateForAPI(selectedDate);
+    
+    // Construir URL con parámetros
+    const deleteUrl = `https://do.velsat.pe:2083/api/Talma/eliminarCarga?fecha=${encodeURIComponent(fechaFormateada)}&usuario=cgacela&empresa=TALMA`;
+    
+    console.log('🗑️ Eliminando carga:', {
+      fecha: fechaFormateada,
+      usuario: 'cgacela',
+      empresa: 'TALMA',
+      url: deleteUrl
+    });
+
+    // Realizar petición DELETE
+    const response = await fetch(deleteUrl, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la petición: ${response.status} ${response.statusText}`);
+    }
+
+    // Obtener respuesta (si la hay)
+    const data = await response.json().catch(() => null);
+    console.log('✅ Respuesta del servidor:', data);
+
+    toast.success('Carga eliminada correctamente');
+    
+    if (tablaListRef.current?.refrescarDatos) {
+      console.log('🔄 Refrescando datos de la tabla...');
+      await tablaListRef.current.refrescarDatos();
+      console.log('✅ Datos refrescados');
     }
     
-    toast.success('Datos eliminados');
-    console.log('Eliminar datos');
-    
     // Resetear los valores del formulario
-    setSelectedDate('');
-    setSelectedService('Salida');
-    setSelectedTime('');
-  };
+    // setSelectedDate('');
+    // setSelectedService('Salida');
+    // setSelectedTime('');
+
+  } catch (error) {
+    console.error('❌ Error al eliminar carga:', error);
+    toast.error('Error al eliminar la carga');
+  } finally {
+    setEliminandoDatos(false);
+  }
+};
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
@@ -150,7 +195,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
                 : loadingHoras
                 ? 'Cargando horas...'
                 : errorHoras && !loadingHoras
-                ? 'Error al cargar horas'
+                ? 'No hay horas disponibles'
                 : horas && horas.length === 0
                 ? 'No hay horas disponibles'
                 : 'Selecciona una hora'}
@@ -171,7 +216,6 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {/* ✅ BOTÓN MODIFICADO - Muestra loading mientras carga */}
         <button
           onClick={handleCargarDatos}
           disabled={!selectedDate || !selectedTime || cargandoDatos}
@@ -179,8 +223,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
         >
           {cargandoDatos ? (
             <>
-                    <Spinner color="default" size='sm'/>
-
+              <Spinner color="default" size='sm'/>
               Cargando
             </>
           ) : (
@@ -192,10 +235,20 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
         </button>
         <button
           onClick={handleEliminarDatos}
-          className="flex items-center justify-center gap-1 rounded-md bg-red-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
+          disabled={!selectedDate || eliminandoDatos}
+          className="flex items-center justify-center gap-1 rounded-md bg-red-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <X className="h-3 w-3" />
-          Eliminar
+          {eliminandoDatos ? (
+            <>
+              <Spinner color="default" size='sm'/>
+              Eliminando
+            </>
+          ) : (
+            <>
+              <X className="h-3 w-3" />
+              Eliminar Carga
+            </>
+          )}
         </button>
       </div>
     </div>

@@ -3,11 +3,8 @@ import React, { useEffect, useState } from 'react';
 import {
   Upload,
   X,
-  Filter,
   Users,
   Briefcase,
-  Trash2,
-  Plus,
   ChevronDown,
   ChevronUp,
   Send,
@@ -110,7 +107,6 @@ useEffect(() => {
       return '';
     }
 
-    // Si es un número serial de Excel
     if (typeof serial === 'number') {
       const excelEpoch = new Date(1900, 0, 1);
       const daysOffset = serial - 2;
@@ -123,7 +119,6 @@ useEffect(() => {
       return `${day}/${month}/${year}`;
     }
 
-    // Si ya es un objeto Date
     if (serial instanceof Date && !isNaN(serial.getTime())) {
       const day = String(serial.getDate()).padStart(2, '0');
       const month = String(serial.getMonth() + 1).padStart(2, '0');
@@ -133,11 +128,9 @@ useEffect(() => {
 
     return '';
   };
-  // Convertir hora de Excel a HH:MM
   const excelTimeToString = (time: any): string => {
     if (typeof time === 'string') return time;
 
-    // Si es un número decimal (0.5 = 12:00 PM)
     if (typeof time === 'number') {
       const totalMinutes = Math.round(time * 24 * 60);
       const hours = Math.floor(totalMinutes / 60);
@@ -160,7 +153,6 @@ useEffect(() => {
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
 
-      // Leer la Hoja 2 (índice 1)
       const sheetName = workbook.SheetNames[1];
 
       if (!sheetName) {
@@ -240,13 +232,13 @@ useEffect(() => {
       }
 
       console.log('========================================');
-      console.log('📊 INICIANDO ENVÍO A LA API');
+      console.log('INICIANDO ENVÍO A LA API');
       console.log('========================================');
-      console.log('🔗 URL:', API_URL);
-      console.log('📦 Total de registros:', processedData.length);
-      console.log('📋 Número de lotes:', batches.length);
-      console.log('⚙️ Tamaño de cada lote:', BATCH_SIZE);
-      console.log('⚡ Requests concurrentes:', CONCURRENT_REQUESTS);
+      console.log('URL:', API_URL);
+      console.log('Total de registros:', processedData.length);
+      console.log('Número de lotes:', batches.length);
+      console.log('Tamaño de cada lote:', BATCH_SIZE);
+      console.log('Requests concurrentes:', CONCURRENT_REQUESTS);
       console.log('========================================\n');
 
       // Procesar lotes con concurrencia limitada
@@ -345,16 +337,16 @@ useEffect(() => {
         });
 
         console.log(
-          `\n📊 Progreso: ${processedCount}/${processedData.length} registros procesados (✅ ${successCount} exitosos, ❌ ${failedCount} fallidos)`
+          `\nProgreso: ${processedCount}/${processedData.length} registros procesados (✅ ${successCount} exitosos, ❌ ${failedCount} fallidos)`
         );
       }
 
       console.log('\n========================================');
-      console.log('✅ ENVÍO COMPLETADO');
+      console.log('ENVÍO COMPLETADO');
       console.log('========================================');
-      console.log('✔️ Exitosos:', successCount);
-      console.log('❌ Fallidos:', failedCount);
-      console.log('📊 Total:', successCount + failedCount);
+      console.log('Exitosos:', successCount);
+      console.log('Fallidos:', failedCount);
+      console.log('Total:', successCount + failedCount);
       console.log('========================================\n');
 
       if (failedCount > 0) {
@@ -363,7 +355,7 @@ useEffect(() => {
       setIsSending(false);
       setShowResultModal(true);
     } catch (error) {
-      console.error('💥 ERROR GENERAL:', error);
+      console.error('ERROR GENERAL:', error);
       toast.error('Hubo un error al enviar los datos a la API');
       setIsSending(false);
     }
@@ -460,61 +452,7 @@ useEffect(() => {
 
             <ObtenerDatos tablaListRef={tablaListRef} />
              
-            
-          
-            {/* <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <Filter className="h-4 w-4 text-blue-600" />
-                <h2 className="text-[12px] font-semibold text-slate-800">
-                  Filtrar Datos
-                </h2>
-              </div>
 
-              <div className="mb-2 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">
-                    Tipo
-                  </label>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  >
-                    <option>Todos</option>
-                    <option>VIP</option>
-                    <option>Regular</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-700">
-                    Pasajero
-                  </label>
-                  <input
-                    type="text"
-                    value={passengerFilter}
-                    onChange={(e) => setPassengerFilter(e.target.value)}
-                    placeholder="Buscar..."
-                    className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1">
-                <button className="flex items-center justify-center gap-1 rounded-md bg-red-100 px-2 py-1.5 text-xs font-medium text-red-700 transition-all hover:bg-red-200 active:scale-95">
-                  <Trash2 className="h-3 w-3" />
-                  Elim.
-                </button>
-                <button className="flex items-center justify-center gap-1 rounded-md bg-amber-100 px-2 py-1.5 text-xs font-medium text-amber-700 transition-all hover:bg-amber-200 active:scale-95">
-                  <X className="h-3 w-3" />
-                  Limpiar
-                </button>
-                <button className="flex items-center justify-center gap-1 rounded-md bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95">
-                  <Plus className="h-3 w-3" />
-                  Grupo
-                </button>
-              </div>
-            </div> */}
 
             {/* Estadísticas - En una sola columna */}
             <div className="flex flex-col gap-3 ">
@@ -665,6 +603,7 @@ useEffect(() => {
                       width: `${(sendProgress.current / sendProgress.total) * 100}%`,
                     }}
                   ></div>
+
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   {Math.round(
@@ -683,7 +622,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-2xl">
             {/* Header */}
-            <div className="border-b border-slate-200 bg-[#ffb703]
+            <div className="border-b border-slate-200 bg-[#e7ecef]
            px-6 py-4">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-6 w-6 text-black" />

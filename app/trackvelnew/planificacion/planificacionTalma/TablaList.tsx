@@ -8,23 +8,16 @@ import React, {
 import {
   Search,
   Users,
-  Clock,
-  MapPin,
-  Trash2,
   ArrowRight,
-  Car,
-  User,
-  Edit,
-  Check,
   Plus,
   AlertTriangle,
-  RotateCcw,
   ChevronUp,
   ChevronDown,
   Save,
+  Send,
 } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
-import { cargarGruposDesdeAPI, guardarGruposEnAPI } from './gruposData';
+import { cargarGruposDesdeAPI, guardarGruposEnAPI, publicarGruposEnAPI } from './gruposData';
 import { Pasajero, Grupo } from './types';
 import { Spinner } from '@nextui-org/react';
 import { toast } from 'sonner';
@@ -40,6 +33,7 @@ import ModalDirecciones from './ModalDirecciones';
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
   getEstadisticas: () => { totalGrupos: number; totalPasajeros: number };
+  refrescarDatos: () => Promise<void>; 
 }
 
 export const TablaList = forwardRef<TablaListRef>((props, ref) => {
@@ -47,6 +41,7 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
   const [cargando, setCargando] = useState(false);
   const [datosIntentadosCargar, setDatosIntentadosCargar] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [confirmacionPublicar, setConfirmacionPublicar] = useState(false);
 
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [unidades, setUnidades] = useState<Unidad[]>([]);
@@ -60,6 +55,7 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
   const [modalDireccionAbierto, setModalDireccionAbierto] = useState(false);
 const [pasajeroSeleccionadoDireccion, setPasajeroSeleccionadoDireccion] = useState<Pasajero | null>(null);
   const [shouldRefetch, setShouldRefetch] = useState(false);
+const [publicando, setPublicando] = useState(false);
 
   const [parametrosCarga, setParametrosCarga] = useState<{
     fecha: string;
@@ -120,18 +116,6 @@ useEffect(() => {
         return;
       }
 
-      for (const grupo of grupos) {
-        if (grupo._tipoServicio === 'S' && !grupo.fin) {
-          alert(`El grupo ${grupo.numero} (Salida) necesita una fecha de fin`);
-          return;
-        }
-        if (grupo._tipoServicio === 'I' && !grupo.inicio) {
-          alert(
-            `El grupo ${grupo.numero} (Entrada) necesita una fecha de inicio`,
-          );
-          return;
-        }
-      }
 
       setGuardando(true);
       await guardarGruposEnAPI(grupos, conductores);
@@ -143,30 +127,100 @@ useEffect(() => {
     }
   };
 
-  useImperativeHandle(ref, () => ({
-    cargarDatos: async (fecha: string, hora: string, tipo: 'S' | 'I') => {
+  
+
+
+const abrirModalPublicar = () => {
+  if (grupos.length === 0) {
+    alert('No hay grupos para publicar');
+    return;
+  }
+  setConfirmacionPublicar(true);
+};
+
+
+const confirmarPublicar = async () => {
+  try {
+    setPublicando(true);
+    setConfirmacionPublicar(false);
+    
+    const resultado = await publicarGruposEnAPI(grupos);
+    
+    // Mostrar mensajes según el resultado
+    if (resultado.gruposOmitidos.length > 0) {
+      // Algunos grupos se omitieron
+      const mensajeOmitidos = resultado.gruposOmitidos.length === 1
+        ? `El Grupo ${resultado.gruposOmitidos[0]} no se publicó (falta fecha)`
+        : `Los Grupos ${resultado.gruposOmitidos.join(', ')} no se publicaron (falta fecha)`;
+      
+      const mensajePublicados = resultado.gruposPublicados.length === 1
+        ? `Solo se publicó el Grupo ${resultado.gruposPublicados[0]}`
+        : `Solo se publicaron los Grupos ${resultado.gruposPublicados.join(', ')}`;
+      
+      toast.warning(`${mensajePublicados}. ${mensajeOmitidos}`);
+    } else {
+      // Todos los grupos se publicaron
+      toast.success('Todos los grupos se publicaron exitosamente');
+    }
+    
+    if (parametrosCarga.fecha && parametrosCarga.hora) {
+      await cargarDatosExternos(
+        parametrosCarga.fecha,
+        parametrosCarga.hora,
+        parametrosCarga.tipo
+      );
+    }
+  } catch (error: any) {
+    toast.error(`Error al publicar: ${error.message}`);
+  } finally {
+    setPublicando(false);
+  }
+};
+
+
+useImperativeHandle(ref, () => ({
+  cargarDatos: async (fecha: string, hora: string, tipo: 'S' | 'I') => {
+    setCargando(true);
+    setDatosIntentadosCargar(true);
+
+    setParametrosCarga({ fecha, hora, tipo });
+
+    setPasajerosRestaurados(new Set());
+
+    setTriggerRecargaPapelera((prev) => prev + 1);
+
+    const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
+    setGrupos(gruposCargados);
+    setCargando(false);
+  },
+  getEstadisticas: () => {
+    const totalGrupos = grupos.length;
+    const totalPasajeros = grupos.reduce(
+      (total, grupo) => total + grupo.pasajeros.length,
+      0,
+    );
+    return { totalGrupos, totalPasajeros };
+  },
+
+  refrescarDatos: async () => {
+    if (parametrosCarga.fecha && parametrosCarga.hora) {
       setCargando(true);
-      setDatosIntentadosCargar(true);
-
-      setParametrosCarga({ fecha, hora, tipo });
-
       setPasajerosRestaurados(new Set());
-
       setTriggerRecargaPapelera((prev) => prev + 1);
-
-      const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
+      
+      const gruposCargados = await cargarGruposDesdeAPI(
+        parametrosCarga.fecha,
+        parametrosCarga.hora,
+        parametrosCarga.tipo
+      );
       setGrupos(gruposCargados);
       setCargando(false);
-    },
-    getEstadisticas: () => {
-      const totalGrupos = grupos.length;
-      const totalPasajeros = grupos.reduce(
-        (total, grupo) => total + grupo.pasajeros.length,
-        0,
-      );
-      return { totalGrupos, totalPasajeros };
-    },
-  }));
+    }
+  },
+}));
+
+
+
 
   const cargarDatosExternos = async (
     fecha: string,
@@ -234,7 +288,6 @@ useEffect(() => {
     campo: 'inicio' | 'fin',
     fecha: Date | null,
   ) => {
-    if (!fecha) return;
 
     setGrupos((prevGrupos) =>
       prevGrupos.map((grupo) =>
@@ -680,7 +733,7 @@ const restaurarPasajero = (
           />
         </div>
 
-        <div>
+        <div className='flex gap-3'>
           <button
             onClick={handleGuardar}
             disabled={guardando || grupos.length === 0}
@@ -698,7 +751,30 @@ const restaurarPasajero = (
               </>
             )}
           </button>
+
+
+<button
+  onClick={abrirModalPublicar} 
+  disabled={publicando || grupos.length === 0}
+  className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {publicando ? (
+    <>
+      <Spinner size="sm" color="white" />
+      Publicando...
+    </>
+  ) : (
+    <>
+      <Send className="h-4 w-4" />
+      Publicar
+    </>
+  )}
+</button>
+
+
         </div>
+
+        
       </div>
 
       {/* Modal de confirmación de eliminación */}
@@ -743,6 +819,52 @@ const restaurarPasajero = (
           </div>
         </div>
       )}
+
+
+      {confirmacionPublicar && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+      <div className="p-6">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="rounded-full bg-green-100 p-3">
+            <Send className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            ¿Publicar grupos?
+          </h3>
+        </div>
+
+        <p className="mb-4 text-gray-700">
+          Estás por publicar <span className="font-semibold">{grupos.length} grupo{grupos.length > 1 ? 's' : ''}</span> con un total de{' '}
+          <span className="font-semibold">
+            {grupos.reduce((total, g) => total + g.pasajeros.length, 0)} pasajero{grupos.reduce((total, g) => total + g.pasajeros.length, 0) > 1 ? 's' : ''}
+          </span>.
+        </p>
+
+        <p className="mb-6 text-sm text-gray-600">
+          Esta acción creará los servicios en el sistema. ¿Deseas continuar?
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => setConfirmacionPublicar(false)}
+            className="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={confirmarPublicar}
+            className="flex-1 rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition-colors hover:bg-green-600"
+          >
+            Publicar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       {/* Modal de selección de grupo destino */}
       {selectedPasajeros && (
@@ -930,9 +1052,7 @@ const restaurarPasajero = (
                     <span className="text-sm text-gray-700">
                       Destino: {grupo.destino}
                     </span>
-                    <button className="rounded bg-blue-500 p-1.5 text-white transition-colors hover:bg-blue-600">
-                      <Edit className="h-4 w-4" />
-                    </button>
+               
                   </div>
 
                   <DatePickerField
@@ -946,7 +1066,6 @@ const restaurarPasajero = (
                     disabled={grupo._bloqueaInicio}
                   />
 
-                  {/* DatePicker de Fin - 🔥 CON BLOQUEO */}
                   <DatePickerField
                     label="Fin"
                     selected={grupo.fin}
@@ -958,9 +1077,7 @@ const restaurarPasajero = (
                     disabled={grupo._bloqueaFin}
                   />
 
-                  <span className="text-sm text-gray-700">
-                    Tarifa: {grupo.tarifa}
-                  </span>
+             
                 </div>
               </div>
 
@@ -1162,12 +1279,12 @@ const restaurarPasajero = (
                 activarSeleccionMultiple={activarSeleccionMultiple}
                 conductores={conductores}
                 unidades={unidades}
-         onRefrescarDatos={async () => {
-    await cargarDatosExternos(
-      parametrosCarga.fecha,
-      parametrosCarga.hora,
-      parametrosCarga.tipo
-    );
+                onRefrescarDatos={async () => {
+                await cargarDatosExternos(
+                  parametrosCarga.fecha,
+                  parametrosCarga.hora,
+                  parametrosCarga.tipo
+                );
   }}
               />
             </div>
