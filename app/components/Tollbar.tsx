@@ -489,10 +489,7 @@ const Tollbar: React.FC = () => {
   const { modals, openModal, closeModal } = useModalState();
 
   const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
-  const isSedapal = useMemo(
-    () => baseUrl === 'https://sub.velsat.pe:2096',
-    [baseUrl],
-  );
+  const isSedapal = useMemo(() => baseUrl === 'https://sub.velsat.pe:2096', [baseUrl]);
 
   const TALMAV_LIKE_USERS = [
     'talmav',
