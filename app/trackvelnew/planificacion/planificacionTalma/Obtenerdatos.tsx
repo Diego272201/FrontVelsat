@@ -118,14 +118,14 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
 
     // Obtener respuesta (si la hay)
     const data = await response.json().catch(() => null);
-    console.log('✅ Respuesta del servidor:', data);
+    console.log('Respuesta del servidor:', data);
 
     toast.success('Carga eliminada correctamente');
     
     if (tablaListRef.current?.refrescarDatos) {
-      console.log('🔄 Refrescando datos de la tabla...');
+      console.log('Refrescando datos de la tabla...');
       await tablaListRef.current.refrescarDatos();
-      console.log('✅ Datos refrescados');
+      console.log('Datos refrescados');
     }
     
     // Resetear los valores del formulario
@@ -134,7 +134,7 @@ export default function ObtenerDatos({ tablaListRef }: ObtenerDatosProps) {
     // setSelectedTime('');
 
   } catch (error) {
-    console.error('❌ Error al eliminar carga:', error);
+    console.error('Error al eliminar carga:', error);
     toast.error('Error al eliminar la carga');
   } finally {
     setEliminandoDatos(false);

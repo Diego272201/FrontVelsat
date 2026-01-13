@@ -153,7 +153,7 @@ useEffect(() => {
       const data = await selectedFile.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
 
-      const sheetName = workbook.SheetNames[1];
+      const sheetName = workbook.SheetNames[0];
 
       if (!sheetName) {
         toast.error('El archivo no tiene una segunda hoja');
