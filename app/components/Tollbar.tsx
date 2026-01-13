@@ -481,7 +481,6 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
 const Tollbar: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
-
   const { baseUrl } = useApi();
   const pathname = usePathname();
 
