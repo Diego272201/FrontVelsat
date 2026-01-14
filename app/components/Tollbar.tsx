@@ -31,7 +31,7 @@ import { SquareCheck } from 'lucide-react';
 import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
 import AppModalUnidadesCercanas from '../trackvelnew/unidadescercanas/ModalUnidadesCercanas';
-import AppModalCargaDatos from '../trackvelnew/programacion/cargalatam/ModalCargaLatam';
+import AppModalCargaLatam from './ModalCargaLatam';
 
 // Tipos TypeScript
 type IconType =
@@ -192,7 +192,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
             title: 'Asignar Conductor/Unidad',
             href: '/trackvelnew/programacion', // ← Agregar esta línea
           },
-          { id: 'archivo', title: 'Carga LATAM', modalType: 'cargaLatam' }, // ← Agregar modalType
+          { id: 'archivo', title: 'Carga Latam', modalType: 'cargaLatam' }, // ← Agregar modalType
         ],
       },
 
@@ -213,6 +213,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Duración de Servicios',
         icon: 'chart',
         modalType: 'duracionservicios', // Agrega esta línea
+      },
+      {
+        id: 'carga-latam',
+        title: 'Carga Latam',
+        modalType: 'cargaLatam',
+        icon: 'document',
+        allowedUsers: ['movilbus'],
       },
     ],
   },
@@ -958,7 +965,7 @@ const Tollbar: React.FC = () => {
                 {
                   ...MENU_CONFIG.SERVICIOS,
                   items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
-                    ['conductores', 'unidades', 'control', 'latam'].includes(
+                    ['conductores', 'unidades', 'control', 'carga-latam'].includes(
                       item.id,
                     ),
                   ),
@@ -1245,13 +1252,13 @@ const Tollbar: React.FC = () => {
         icono={<RiGpsFill size={25} />}
       />
 
-      <AppModalCargaDatos
-        isOpen={modals.cargaLatam}
-        onClose={() => closeModal('cargaLatam')}
-        titulo="CARGA DATOS LATAM"
-        useSelectAll={true}
-        icono={<SiGoogledocs size={25} />}
-      />
+<AppModalCargaLatam
+  isOpen={modals.cargaLatam}
+  onClose={() => closeModal('cargaLatam')}
+  titulo="CARGA DATOS LATAM"
+  useSelectAll={true}
+  icono={<SiGoogledocs size={25} />}
+/>
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
@@ -1334,7 +1341,7 @@ const Tollbar: React.FC = () => {
               {
                 ...MENU_CONFIG.SERVICIOS,
                 items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
-                  ['conductores', 'unidades', 'control', 'latam'].includes(
+                  ['conductores', 'unidades', 'control', 'carga-latam'].includes(
                     item.id,
                   ),
                 ),
