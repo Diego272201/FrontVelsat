@@ -45,6 +45,7 @@ interface ConductorAPI {
   dni: string;
   turno: string;
   horainicio: string;
+  unidadasig: string | null;
   email: string;
   brevete: string | null;
   sctr: string | null;
