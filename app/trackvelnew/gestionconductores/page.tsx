@@ -43,6 +43,8 @@ interface ConductorAPI {
   clave: string;
   telefono: string;
   dni: string;
+  turno: string;
+  horainicio: string;
   email: string;
   brevete: string | null;
   sctr: string | null;
