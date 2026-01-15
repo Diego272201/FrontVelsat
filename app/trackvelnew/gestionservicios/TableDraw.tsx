@@ -10,7 +10,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-
 import { CSS } from '@dnd-kit/utilities';
 import {
   Dropdown,
@@ -38,6 +37,8 @@ interface RowData {
   fechafin: string;
   feccancelpas: string;
   codlugar: string;
+  vuelo: string | null;
+  telefono: string | null;
 }
 
 interface Props {
@@ -71,7 +72,11 @@ const SortableRow = ({
   index: number;
   onUbicar: (coords: { lat: number; lng: number }) => void;
   onCancelar: (codigo: number) => void;
-  onDireccion: (codCliente: string, nombrePasajero: string, codigo: string) => void;
+  onDireccion: (
+    codCliente: string,
+    nombrePasajero: string,
+    codigo: string,
+  ) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
@@ -119,7 +124,9 @@ const SortableRow = ({
 
               <DropdownItem
                 key="direccion"
-                onPress={() => onDireccion(row.lugar, row.nombre, row.codigo.toString())}
+                onPress={() =>
+                  onDireccion(row.lugar, row.nombre, row.codigo.toString())
+                }
                 startContent={<Home className="h-4 w-4 text-green-600" />}
               >
                 Dirección
@@ -138,9 +145,25 @@ const SortableRow = ({
           </Dropdown>
         </div>
       </td>
-
-      <td className="border p-1">{row.area}</td>
-      <td className="border p-1">{row.nombre}</td>
+      <td className="border p-1">
+        <div className="flex flex-col items-center">
+          <span>{row.area}</span>
+          {row.vuelo && (
+            <span className="mt-1 text-xs font-semibold text-blue-600">
+              Vuelo: {row.vuelo}
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="border p-1">
+        {row.nombre}
+        {row.telefono && (
+          <span className="text-xs font-semibold text-gray-600">
+            {' '}
+            - {row.telefono}
+          </span>
+        )}
+      </td>
       <td className="border p-1">{row.direccion}</td>
       <td className="border p-1">{row.distrito}</td>
       <td className="border p-1">{row.estado}</td>
@@ -169,7 +192,7 @@ const DragAndDropTable = forwardRef(
     const [loading, setLoading] = useState(true);
     const [tempData, setTempData] = useState<typeof dataAgregada>([]);
     const [shouldRefetch, setShouldRefetch] = useState(false);
-    
+
     // Estado para el modal de direcciones
     const [modalData, setModalData] = useState<{
       codCliente: string;
@@ -226,6 +249,7 @@ const DragAndDropTable = forwardRef(
             area: areaLan,
             codigo: Number(item.codigo),
             nombre: item.nombre,
+            telefono: null,
             direccion: item.direccion,
             distrito: item.distrito,
             estado: 'NW',
@@ -235,6 +259,7 @@ const DragAndDropTable = forwardRef(
             feccancelpas: null,
             codlugar: item.codlugar,
             lugar: item.codlugar.toString(), // Agregamos el lugar basado en codlugar
+            vuelo: null,
           }));
 
           return [...prevData, ...nuevosItems];
@@ -288,7 +313,11 @@ const DragAndDropTable = forwardRef(
     };
 
     // Nueva función para manejar la apertura del modal de direcciones
-    const handleDireccion = (codCliente: string, nombrePasajero: string, codigo: string) => {
+    const handleDireccion = (
+      codCliente: string,
+      nombrePasajero: string,
+      codigo: string,
+    ) => {
       setModalData({
         codCliente,
         nombrePasajero,
@@ -330,6 +359,7 @@ const DragAndDropTable = forwardRef(
               orden: item.orden.toString(),
               area: item.arealan || 'N/A',
               nombre: item?.pasajero?.nombre || 'N/A',
+              telefono: item?.pasajero?.telefono || null,
               lugar: item?.codlugar || 'N/A',
               direccion: item?.lugar?.direccion || 'N/A',
               distrito: item?.lugar?.distrito || 'N/A',
@@ -339,6 +369,7 @@ const DragAndDropTable = forwardRef(
               codigo: item.codigo,
               fechafin: item.fechafin,
               feccancelpas: item.feccancelpas,
+              vuelo: item.vuelo || null,
             };
           });
 
@@ -448,7 +479,10 @@ const DragAndDropTable = forwardRef(
 
     return (
       <>
-        <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
           <SortableContext
             items={data.map((item) => ({ id: item.orden }))}
             strategy={verticalListSortingStrategy}
@@ -474,7 +508,10 @@ const DragAndDropTable = forwardRef(
                             <div className="h-4 w-8 rounded bg-gray-300"></div>
                           </td>
                           <td className="border p-2">
-                            <div className="h-4 w-20 rounded bg-gray-300"></div>
+                            <div className="flex flex-col gap-1">
+                              <div className="h-4 w-20 rounded bg-gray-300"></div>
+                              <div className="h-3 w-16 rounded bg-gray-300"></div>
+                            </div>
                           </td>
                           <td className="border p-2">
                             <div className="h-4 w-24 rounded bg-gray-300"></div>
