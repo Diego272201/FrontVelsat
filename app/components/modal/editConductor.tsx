@@ -32,6 +32,7 @@ import {
   EyeOff,
   Clock,
   Calendar,
+  Truck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUsername } from '@/hooks/useUsername';
@@ -45,7 +46,8 @@ type FormField =
   | 'telefono'
   | 'email'
   | 'turno'
-  | 'horainicio';
+  | 'horainicio'
+  | 'unidadasig';
 
 type FieldConfig = {
   id: FormField;
@@ -75,6 +77,7 @@ interface ConductorAPI {
   sexo: string;
   unidadActual: string | null;
   habilitado: string;
+  unidadasig: string | null;
 }
 
 interface ConductorDialogProps {
@@ -101,6 +104,7 @@ export default function ConductorDialogModificar({
     email: '',
     turno: '',
     horainicio: '',
+    unidadasig: '',
   });
 
   // Cargar datos del conductor cuando se abre el modal
@@ -141,6 +145,7 @@ export default function ConductorDialogModificar({
       email: '',
       turno: '',
       horainicio: '',
+      unidadasig: '',
     });
     setShowPassword(false);
   };
@@ -176,6 +181,7 @@ export default function ConductorDialogModificar({
       email: 'Email',
       turno: 'Turno',
       horainicio: 'Hora de Inicio',
+      unidadasig: 'Unidad Asignada',
     };
     return labels[field];
   };
@@ -230,6 +236,7 @@ export default function ConductorDialogModificar({
               : 'D';
         payload.turno = turnoAPI;
         payload.horainicio = formData.horainicio.trim();
+        payload.unidadasig = formData.unidadasig.trim();
       }
 
       const response = await fetch(
@@ -274,6 +281,7 @@ export default function ConductorDialogModificar({
               : 'D';
         updatedConductor.turno = turnoAPI;
         updatedConductor.horainicio = formData.horainicio.trim();
+        updatedConductor.unidadasig = formData.unidadasig.trim();
       }
 
       setIsOpen(false);
@@ -334,6 +342,7 @@ export default function ConductorDialogModificar({
       email: conductorData.email || '',
       turno: turnoFormato,
       horainicio: conductorData.horainicio || '',
+      unidadasig: conductorData.unidadasig || '',
     });
 
     setIsOpen(true);
@@ -499,6 +508,33 @@ export default function ConductorDialogModificar({
                       </div>
                     </div>
                   ))}
+
+                {/* ⭐ Campo de Unidad Asignada */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="unidadasig"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Truck className="h-4 w-4 text-green-500" />
+                    Unidad Asignada
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="unidadasig"
+                      type="text"
+                      value={formData.unidadasig}
+                      onChange={(e) =>
+                        handleInputChange('unidadasig', e.target.value)
+                      }
+                      disabled={loading}
+                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                      placeholder="Ingrese unidad asignada"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center">
+                      <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
