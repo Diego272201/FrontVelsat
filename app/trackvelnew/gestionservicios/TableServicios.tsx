@@ -275,7 +275,6 @@ export default function App({
         : `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
 
       const response = await axios.get(apiUrl);
-
       const resultados = response.data.map((item: any) => ({
         apepate: item.apepate,
         codigo: item.codigo,
