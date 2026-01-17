@@ -95,7 +95,7 @@ interface PasajeroConCoordenadas extends ApiPasajero {
 // Agrupar pasajeros por proximidad geográfica
 const agruparPorCercania = (
   pasajeros: ApiPasajero[],
-  distanciaMaxima: number = 3, // 3 km por defecto
+  distanciaMaxima: number = 5, // 3 km por defecto
 ): ApiPasajero[][] => {
   // Filtrar pasajeros con coordenadas válidas
   const pasajerosConCoordenadas: PasajeroConCoordenadas[] = pasajeros
@@ -335,7 +335,7 @@ export const cargarGruposDesdeAPI = async (
       console.log('🔍 Datos sin orden/grupo definidos - Aplicando agrupamiento por cercanía...');
 
       // Aplicar algoritmo de clustering por proximidad
-      const clustersGenerados = agruparPorCercania(data, 3); // 3 km de distancia máxima
+      const clustersGenerados = agruparPorCercania(data, 5); // 3 km de distancia máxima
 
       const gruposGenerados: Grupo[] = clustersGenerados.map((cluster, clusterIndex) => {
         const primerPasajero = cluster[0];

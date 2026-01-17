@@ -514,7 +514,7 @@ const FooterTablaList: React.FC<FooterTablaListProps> = ({
               usarApiTalma={true}
             />
 
-            {grupo.pasajeros.length > 1 && (
+            {grupo.pasajeros.length >= 1 && (
               <button
                 onClick={() => activarSeleccionMultiple(grupo.id)}
                 className="flex items-center gap-1.5 rounded bg-purple-500 px-4 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-purple-600"

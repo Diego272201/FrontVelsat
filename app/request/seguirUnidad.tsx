@@ -2,14 +2,13 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import * as signalR from '@microsoft/signalr';
-import { X } from 'lucide-react';
+import { Check, Clock, Copy, Link2, X } from 'lucide-react';
 import GoogleMapComponent from '../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 import '@/app/styles/popup.css';
-
+import { toast, Toaster } from 'sonner';
 const initialCenter = {
   lat: -12.046591525826495,
   lng: -77.04689047482863,
@@ -83,7 +82,11 @@ export default function SeguirUnidadPage({
   const servidorUrl = localStorage.getItem('servidorUrl');
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
 
-  // Manejo del fullscreen
+
+const [shareHours, setShareHours] = useState(4);
+const [generatedLink, setGeneratedLink] = useState('');
+const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -192,7 +195,6 @@ useEffect(() => {
 
       if (!isComponentMounted) return;
 
-      // ✅ Extraer datosDevice del objeto de respuesta
       const datosDevice = data.datosDevice;
 
       // Buscar el dispositivo específico en el array
@@ -735,6 +737,61 @@ useEffect(() => {
     return;
   }
 
+const handleGenerateLink = async () => {
+  if (!device || !session?.user?.username) {
+      toast.error('No hay datos del dispositivo');
+
+    return;
+  }
+
+  setIsGeneratingLink(true);
+  
+  try {
+    // Generar token único usando timestamp + random + deviceId
+    const timestamp = Date.now(); // Milisegundos desde 1970
+    const randomPart = Math.random().toString(36).substring(2, 10); // 8 caracteres aleatorios
+    const devicePart = device.deviceId.substring(0, 4).replace(/[^a-zA-Z0-9]/g, ''); // Primeros 4 chars del device
+    const uniqueToken = `${devicePart}-${timestamp}-${randomPart}`;
+    
+    // Convertir horas a minutos
+    const duracionMinutos = shareHours * 60;
+    
+    const response = await fetch('https://do.velsat.pe:2083/api/Preplan/Generarlink', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: uniqueToken,
+        deviceId: device.deviceId,
+        username: session.user.username,
+        duracionMinutos: duracionMinutos,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Generar el link con el token único
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/trackvelnew/seguimientounidad?token=${uniqueToken}`;
+    setGeneratedLink(link);
+    
+    console.log('✅ Link generado:', {
+      token: uniqueToken,
+      duracionMinutos,
+      expiresAt: new Date(Date.now() + duracionMinutos * 60000).toISOString()
+    });
+    
+  } catch (error) {
+
+      toast.error('Error generando el link de seguimiento');
+
+  } finally {
+    setIsGeneratingLink(false);
+  }
+};
   return (
     <div
       id="map-container"
@@ -747,6 +804,12 @@ useEffect(() => {
     >
       {/* Botón fullscreen */}
       <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-2">
+
+
+    <Toaster  richColors />
+
+
+
         <button
           onClick={toggleFullscreen}
           className="rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
@@ -783,6 +846,105 @@ useEffect(() => {
           )}
         </button>
       </div>
+
+
+
+{/* Panel de Compartir Seguimiento - SUPERIOR IZQUIERDA FIJO */}
+<div className="absolute left-4 top-4 z-[1000] bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-2xl overflow-hidden w-80">
+  {/* Header con gradiente */}
+  <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+      <Link2 size={18} className="text-blue-200" />
+      Compartir Seguimiento
+    </h3>
+  </div>
+  
+  <div className="p-4 space-y-4">
+    {/* Input de horas con icono - SOLO FLECHITAS */}
+    <div>
+      <label className="flex text-xs font-semibold text-gray-700 mb-2 items-center gap-1">
+        <Clock size={14} className="text-gray-500" />
+        Duración del enlace
+      </label>
+      <div className="relative">
+        <input
+          type="number"
+          value={shareHours}
+          onChange={(e) => setShareHours(Number(e.target.value))}
+          onKeyDown={(e) => e.preventDefault()} 
+          min="1"
+          max="24"
+          className="w-full px-4 py-2.5 pr-16 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer select-none"
+          placeholder="4"
+          readOnly={false} 
+        />
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none">
+          horas
+        </span>
+      </div>
+      <p className="text-xs text-gray-500 mt-1 ml-1">
+        Máximo: 24 horas (1 día) 
+      </p>
+
+    </div>
+
+    {/* Botón generar con animación */}
+    <button
+      onClick={handleGenerateLink}
+      disabled={isGeneratingLink || !device}
+      className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 group"
+    >
+      {isGeneratingLink ? (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          Generando...
+        </>
+      ) : (
+        <>
+          <Link2 size={16} className="group-hover:rotate-12 transition-transform" />
+          Generar Enlace
+        </>
+      )}
+    </button>
+
+    {/* Link generado con animación */}
+    {generatedLink && (
+      <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200 animate-fadeIn">
+        <label className="flex text-xs font-semibold text-green-800 mb-2 items-center gap-1">
+          <Check size={14} className="text-green-600" />
+          Enlace generado exitosamente
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={generatedLink}
+            readOnly
+            className="flex-1 px-3 py-2 text-xs bg-white border border-green-300 rounded-lg font-mono text-gray-700 focus:outline-none"
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(generatedLink);
+                toast.success('¡Link copiado al portapapeles!');
+
+            }}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1.5 group"
+            title="Copiar enlace"
+          >
+            <Copy size={14} className="group-hover:scale-110 transition-transform" />
+            Copiar
+          </button>
+        </div>
+        <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
+          <Clock size={12} />
+          Expira en {shareHours} {shareHours === 1 ? 'hora' : 'horas'}
+        </p>
+      </div>
+    )}
+  </div>
+</div>
+
+
+
 
       <GoogleMapComponent
         onLoad={handleMapLoad}

@@ -18,7 +18,11 @@ import {
   MapPin,
 } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
-import { cargarGruposDesdeAPI, guardarGruposEnAPI, publicarGruposEnAPI } from './gruposData';
+import {
+  cargarGruposDesdeAPI,
+  guardarGruposEnAPI,
+  publicarGruposEnAPI,
+} from './gruposData';
 import { Pasajero, Grupo } from './types';
 import { Spinner } from '@nextui-org/react';
 import { toast } from 'sonner';
@@ -35,7 +39,7 @@ import { ModalMapaAgrupamiento } from './ModalMapaAgrupamiento';
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
   getEstadisticas: () => { totalGrupos: number; totalPasajeros: number };
-  refrescarDatos: () => Promise<void>; 
+  refrescarDatos: () => Promise<void>;
 }
 
 export const TablaList = forwardRef<TablaListRef>((props, ref) => {
@@ -54,13 +58,16 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
     new Set(),
   );
 
+  const [yaAutoGuardado, setYaAutoGuardado] = useState(false);
+
+
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
 
-
   const [modalDireccionAbierto, setModalDireccionAbierto] = useState(false);
-const [pasajeroSeleccionadoDireccion, setPasajeroSeleccionadoDireccion] = useState<Pasajero | null>(null);
+  const [pasajeroSeleccionadoDireccion, setPasajeroSeleccionadoDireccion] =
+    useState<Pasajero | null>(null);
   const [shouldRefetch, setShouldRefetch] = useState(false);
-const [publicando, setPublicando] = useState(false);
+  const [publicando, setPublicando] = useState(false);
 
   const [parametrosCarga, setParametrosCarga] = useState<{
     fecha: string;
@@ -68,20 +75,31 @@ const [publicando, setPublicando] = useState(false);
     tipo: 'S' | 'I';
   }>({ fecha: '', hora: '', tipo: 'S' });
 
-  
-useEffect(() => {
-  if (shouldRefetch && parametrosCarga.fecha && parametrosCarga.hora) {
-    // Recargar los datos cuando shouldRefetch es true
-    cargarDatosExternos(
-      parametrosCarga.fecha,
-      parametrosCarga.hora,
-      parametrosCarga.tipo
-    );
-    
-    // Resetear el flag
-    setShouldRefetch(false);
-  }
-}, [shouldRefetch, parametrosCarga]);
+  // Agregar al inicio del archivo TablaList.tsx, después de los imports
+  const parsearFecha = (fechaStr: string, horaStr: string): Date => {
+    const [dia, mes, año] = fechaStr.split('/').map(Number);
+    const [hora, minuto] = horaStr.split(':').map(Number);
+    return new Date(año, mes - 1, dia, hora, minuto);
+  };
+
+  const parsearFechaCompleta = (fechaCompleta: string): Date => {
+    const [fechaPart, horaPart] = fechaCompleta.split(' ');
+    return parsearFecha(fechaPart, horaPart);
+  };
+
+  useEffect(() => {
+    if (shouldRefetch && parametrosCarga.fecha && parametrosCarga.hora) {
+      // Recargar los datos cuando shouldRefetch es true
+      cargarDatosExternos(
+        parametrosCarga.fecha,
+        parametrosCarga.hora,
+        parametrosCarga.tipo,
+      );
+
+      // Resetear el flag
+      setShouldRefetch(false);
+    }
+  }, [shouldRefetch, parametrosCarga]);
 
   useEffect(() => {
     const cargarConductores = async () => {
@@ -114,13 +132,63 @@ useEffect(() => {
     cargarUnidades();
   }, []);
 
+
+  useEffect(() => {
+  const autoGuardar = async () => {
+    if (grupos.length === 0 || yaAutoGuardado || guardando) return;
+
+    // Verificar si los datos vienen sin orden/grupo (son null)
+    const todosSinOrdenGrupo = grupos.every(grupo => 
+      grupo.pasajeros.every(pasajero => {
+        const apiData = pasajero._apiData;
+        return apiData && (
+          apiData.orden === null && 
+          apiData.grupo === null
+        );
+      })
+    );
+
+    if (todosSinOrdenGrupo) {
+      console.log('🔄 Auto-guardando datos agrupados por cercanía...');
+      setGuardando(true);
+      setYaAutoGuardado(true); // Marcar como ya guardado
+      
+      try {
+        await guardarGruposEnAPI(grupos, conductores);
+        toast.success('Datos guardados automáticamente');
+        
+        // Recargar datos para obtener orden/grupo actualizados
+        if (parametrosCarga.fecha && parametrosCarga.hora) {
+          await cargarDatosExternos(
+            parametrosCarga.fecha,
+            parametrosCarga.hora,
+            parametrosCarga.tipo
+          );
+        }
+      } catch (error: any) {
+        toast.error(`Error al guardar: ${error.message}`);
+        setYaAutoGuardado(false); // Resetear si hay error
+      } finally {
+        setGuardando(false);
+      }
+    }
+  };
+
+  autoGuardar();
+}, [grupos]); // Solo depende de grupos
+
+
+
+
+
+  
+
   const handleGuardar = async () => {
     try {
       if (grupos.length === 0) {
         alert('No hay grupos para guardar');
         return;
       }
-
 
       setGuardando(true);
       await guardarGruposEnAPI(grupos, conductores);
@@ -132,100 +200,94 @@ useEffect(() => {
     }
   };
 
-  
-
-
-const abrirModalPublicar = () => {
-  if (grupos.length === 0) {
-    alert('No hay grupos para publicar');
-    return;
-  }
-  setConfirmacionPublicar(true);
-};
-
-
-const confirmarPublicar = async () => {
-  try {
-    setPublicando(true);
-    setConfirmacionPublicar(false);
-    
-    const resultado = await publicarGruposEnAPI(grupos);
-    
-    // Mostrar mensajes según el resultado
-    if (resultado.gruposOmitidos.length > 0) {
-      // Algunos grupos se omitieron
-      const mensajeOmitidos = resultado.gruposOmitidos.length === 1
-        ? `El Grupo ${resultado.gruposOmitidos[0]} no se publicó (falta fecha)`
-        : `Los Grupos ${resultado.gruposOmitidos.join(', ')} no se publicaron (falta fecha)`;
-      
-      const mensajePublicados = resultado.gruposPublicados.length === 1
-        ? `Solo se publicó el Grupo ${resultado.gruposPublicados[0]}`
-        : `Solo se publicaron los Grupos ${resultado.gruposPublicados.join(', ')}`;
-      
-      toast.warning(`${mensajePublicados}. ${mensajeOmitidos}`);
-    } else {
-      // Todos los grupos se publicaron
-      toast.success('Todos los grupos se publicaron exitosamente');
+  const abrirModalPublicar = () => {
+    if (grupos.length === 0) {
+      alert('No hay grupos para publicar');
+      return;
     }
-    
-    if (parametrosCarga.fecha && parametrosCarga.hora) {
-      await cargarDatosExternos(
-        parametrosCarga.fecha,
-        parametrosCarga.hora,
-        parametrosCarga.tipo
-      );
+    setConfirmacionPublicar(true);
+  };
+
+  const confirmarPublicar = async () => {
+    try {
+      setPublicando(true);
+      setConfirmacionPublicar(false);
+
+      const resultado = await publicarGruposEnAPI(grupos);
+
+      // Mostrar mensajes según el resultado
+      if (resultado.gruposOmitidos.length > 0) {
+        // Algunos grupos se omitieron
+        const mensajeOmitidos =
+          resultado.gruposOmitidos.length === 1
+            ? `El Grupo ${resultado.gruposOmitidos[0]} no se publicó (falta fecha)`
+            : `Los Grupos ${resultado.gruposOmitidos.join(', ')} no se publicaron (falta fecha)`;
+
+        const mensajePublicados =
+          resultado.gruposPublicados.length === 1
+            ? `Solo se publicó el Grupo ${resultado.gruposPublicados[0]}`
+            : `Solo se publicaron los Grupos ${resultado.gruposPublicados.join(', ')}`;
+
+        toast.warning(`${mensajePublicados}. ${mensajeOmitidos}`);
+      } else {
+        // Todos los grupos se publicaron
+        toast.success('Todos los grupos se publicaron exitosamente');
+      }
+
+      if (parametrosCarga.fecha && parametrosCarga.hora) {
+        await cargarDatosExternos(
+          parametrosCarga.fecha,
+          parametrosCarga.hora,
+          parametrosCarga.tipo,
+        );
+      }
+    } catch (error: any) {
+      toast.error(`Error al publicar: ${error.message}`);
+    } finally {
+      setPublicando(false);
     }
-  } catch (error: any) {
-    toast.error(`Error al publicar: ${error.message}`);
-  } finally {
-    setPublicando(false);
-  }
-};
+  };
 
-
-useImperativeHandle(ref, () => ({
-  cargarDatos: async (fecha: string, hora: string, tipo: 'S' | 'I') => {
-    setCargando(true);
-    setDatosIntentadosCargar(true);
-
-    setParametrosCarga({ fecha, hora, tipo });
-
-    setPasajerosRestaurados(new Set());
-
-    setTriggerRecargaPapelera((prev) => prev + 1);
-
-    const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
-    setGrupos(gruposCargados);
-    setCargando(false);
-  },
-  getEstadisticas: () => {
-    const totalGrupos = grupos.length;
-    const totalPasajeros = grupos.reduce(
-      (total, grupo) => total + grupo.pasajeros.length,
-      0,
-    );
-    return { totalGrupos, totalPasajeros };
-  },
-
-  refrescarDatos: async () => {
-    if (parametrosCarga.fecha && parametrosCarga.hora) {
+  useImperativeHandle(ref, () => ({
+    cargarDatos: async (fecha: string, hora: string, tipo: 'S' | 'I') => {
       setCargando(true);
+      setDatosIntentadosCargar(true);
+setYaAutoGuardado(false); 
+      setParametrosCarga({ fecha, hora, tipo });
+
       setPasajerosRestaurados(new Set());
+
       setTriggerRecargaPapelera((prev) => prev + 1);
-      
-      const gruposCargados = await cargarGruposDesdeAPI(
-        parametrosCarga.fecha,
-        parametrosCarga.hora,
-        parametrosCarga.tipo
-      );
+
+      const gruposCargados = await cargarGruposDesdeAPI(fecha, hora, tipo);
       setGrupos(gruposCargados);
       setCargando(false);
-    }
-  },
-}));
+    },
+    getEstadisticas: () => {
+      const totalGrupos = grupos.length;
+      const totalPasajeros = grupos.reduce(
+        (total, grupo) => total + grupo.pasajeros.length,
+        0,
+      );
+      return { totalGrupos, totalPasajeros };
+    },
 
+    refrescarDatos: async () => {
+      if (parametrosCarga.fecha && parametrosCarga.hora) {
+        setCargando(true);
+        setPasajerosRestaurados(new Set());
+        setTriggerRecargaPapelera((prev) => prev + 1);
 
-
+        const gruposCargados = await cargarGruposDesdeAPI(
+          parametrosCarga.fecha,
+          parametrosCarga.hora,
+          parametrosCarga.tipo,
+        );
+        setGrupos(gruposCargados);
+        setCargando(false);
+      }
+    },
+  }));
 
   const cargarDatosExternos = async (
     fecha: string,
@@ -245,7 +307,7 @@ useImperativeHandle(ref, () => ({
     numero: 0,
     tipoSalida: 'Eliminados',
     empresa: '-',
-     destinocodigo: '0',
+    destinocodigo: '0',
     destino: 'Papelera',
     inicio: new Date(),
     fin: new Date(),
@@ -293,7 +355,6 @@ useImperativeHandle(ref, () => ({
     campo: 'inicio' | 'fin',
     fecha: Date | null,
   ) => {
-
     setGrupos((prevGrupos) =>
       prevGrupos.map((grupo) =>
         grupo.id === grupoId ? { ...grupo, [campo]: fecha } : grupo,
@@ -357,9 +418,9 @@ useImperativeHandle(ref, () => ({
 
       console.log('Pasajero eliminado de la API');
 
-      // Continuar con la lógica existente
-      setGrupos((prevGrupos) =>
-        prevGrupos.map((grupo) => {
+      // Actualizar grupos y ELIMINAR grupos vacíos
+      setGrupos((prevGrupos) => {
+        const gruposActualizados = prevGrupos.map((grupo) => {
           if (grupo.id === grupoId) {
             return {
               ...grupo,
@@ -367,8 +428,11 @@ useImperativeHandle(ref, () => ({
             };
           }
           return grupo;
-        }),
-      );
+        });
+
+        // 🔥 FILTRAR GRUPOS VACÍOS
+        return gruposActualizados.filter((grupo) => grupo.pasajeros.length > 0);
+      });
 
       setGrupoEliminados((prev) => ({
         ...prev,
@@ -379,7 +443,6 @@ useImperativeHandle(ref, () => ({
       }));
 
       setConfirmacionEliminar(null);
-
       toast.success('Pasajero eliminado exitosamente');
       setTriggerRecargaPapelera((prev) => prev + 1);
 
@@ -391,9 +454,8 @@ useImperativeHandle(ref, () => ({
       toast.error(`Error al eliminar: ${error.message}`);
     }
   };
-  // Restaurar pasajero desde eliminados
 
-const restaurarPasajero = (
+  const restaurarPasajero = (
     pasajero: Pasajero & { grupoOriginalId?: string; _apiData?: any },
   ) => {
     // Validar que tenga los datos originales de la API
@@ -402,16 +464,78 @@ const restaurarPasajero = (
       return;
     }
 
-    // Si no tiene grupoOriginalId, usar grupo 0 por defecto
     const grupoOriginalId = pasajero.grupoOriginalId ?? '0';
     const numeroGrupoDestino = Number(grupoOriginalId) + 1;
     const grupoDestino = grupos.find((g) => g.numero === numeroGrupoDestino);
 
     if (!grupoDestino) {
-      toast.error(`No se encontró el grupo ${numeroGrupoDestino}`);
+      console.log(`Grupo ${numeroGrupoDestino} no existe, creándolo...`);
+
+      const apiData = pasajero._apiData;
+      const tipoServicio: 'S' | 'I' = apiData.tipo as 'S' | 'I';
+
+      let fechaInicio: Date | null = null;
+      let fechaFin: Date | null = null;
+
+      if (tipoServicio === 'S') {
+        // Para Salida: inicio es la fecha/hora del pasajero
+        fechaInicio = parsearFecha(apiData.fecha, apiData.hora);
+
+        // fin viene de horaprog (formato "dd/MM/yyyy HH:mm")
+        if (apiData.horaprog) {
+          fechaFin = parsearFechaCompleta(apiData.horaprog); 
+        } else {
+          fechaFin = null;
+        }
+      } else {
+        // Para Ingreso: inicio viene de horaprog
+        if (apiData.horaprog) {
+          fechaInicio = parsearFechaCompleta(apiData.horaprog);
+        } else {
+          fechaInicio = null;
+        }
+
+        // fin es la fecha/hora del pasajero
+        fechaFin = parsearFecha(apiData.fecha, apiData.hora);
+      }
+
+      const { grupoOriginalId: _unused, ...pasajeroConApiData } = pasajero;
+
+      const nuevoGrupo: Grupo = {
+        id: `grupo-${numeroGrupoDestino}-${Date.now()}`,
+        numero: numeroGrupoDestino,
+        tipoSalida: tipoServicio === 'S' ? 'Salida' : 'Entrada',
+        empresa: apiData.empresa,
+        destinocodigo: String(apiData.destino.codlugar),
+        destino: apiData.destino.direccion,
+        inicio: fechaInicio,
+        fin: fechaFin,
+        tarifa: 'Por definir',
+        conductor: apiData.conductor?.apellidos?.trim() || '',
+        unidad: apiData.codunidad || '',
+        duracion: '0h 0min',
+        pasajeros: [pasajeroConApiData],
+        _tipoServicio: tipoServicio,
+        _bloqueaInicio: tipoServicio === 'S',
+        _bloqueaFin: tipoServicio === 'I',
+      };
+
+      setGrupos((prevGrupos) => {
+        const gruposOrdenados = [...prevGrupos, nuevoGrupo].sort(
+          (a, b) => a.numero - b.numero,
+        );
+        return gruposOrdenados;
+      });
+
+      setPasajerosRestaurados((prev) => new Set(prev).add(pasajero.id));
+
+      toast.success(
+        `Grupo ${numeroGrupoDestino} recreado con el pasajero restaurado (presiona Guardar para confirmar)`,
+      );
       return;
     }
 
+    // Si el grupo existe, agregarlo normalmente
     setGrupos((prevGrupos) =>
       prevGrupos.map((grupo) => {
         if (grupo.id === grupoDestino.id) {
@@ -460,10 +584,10 @@ const restaurarPasajero = (
       return;
     }
 
-    if (grupo.pasajeros.length - pasajerosAMover.length < 1) {
-      alert('Debes dejar al menos 1 pasajero en el grupo');
-      return;
-    }
+    // if (grupo.pasajeros.length - pasajerosAMover.length < 1) {
+    //   alert('Debes dejar al menos 1 pasajero en el grupo');
+    //   return;
+    // }
 
     setSelectedPasajeros({
       pasajeros: pasajerosAMover,
@@ -478,87 +602,94 @@ const restaurarPasajero = (
   };
 
   // Mover pasajeros a grupo existente
-  const moverPasajerosAGrupo = (grupoDestinoId: string) => {
-    if (!selectedPasajeros) return;
+const moverPasajerosAGrupo = (grupoDestinoId: string) => {
+  if (!selectedPasajeros) return;
 
-    setGrupos((prevGrupos) => {
-      return prevGrupos.map((grupo) => {
-        // Remover del grupo origen
-        if (grupo.id === selectedPasajeros.grupoOrigenId) {
-          return {
-            ...grupo,
-            pasajeros: grupo.pasajeros.filter(
-              (p) => !selectedPasajeros.pasajeros.some((sp) => sp.id === p.id),
-            ),
-          };
-        }
+  setGrupos((prevGrupos) => {
+    const gruposActualizados = prevGrupos.map((grupo) => {
+      // Remover del grupo origen
+      if (grupo.id === selectedPasajeros.grupoOrigenId) {
+        return {
+          ...grupo,
+          pasajeros: grupo.pasajeros.filter(
+            (p) => !selectedPasajeros.pasajeros.some((sp) => sp.id === p.id),
+          ),
+        };
+      }
 
-        // Agregar al grupo destino
-        if (grupo.id === grupoDestinoId) {
-          return {
-            ...grupo,
-            pasajeros: [...grupo.pasajeros, ...selectedPasajeros.pasajeros],
-          };
-        }
+      // Agregar al grupo destino
+      if (grupo.id === grupoDestinoId) {
+        return {
+          ...grupo,
+          pasajeros: [...grupo.pasajeros, ...selectedPasajeros.pasajeros],
+        };
+      }
 
-        return grupo;
-      });
+      return grupo;
     });
 
-    setSelectedPasajeros(null);
-    setPasajerosSeleccionados(new Set());
-    setGrupoEnSeleccion(null);
-  };
+    // 🔥 FILTRAR GRUPOS VACÍOS
+    return gruposActualizados.filter((grupo) => grupo.pasajeros.length > 0);
+  });
+
+  setSelectedPasajeros(null);
+  setPasajerosSeleccionados(new Set());
+  setGrupoEnSeleccion(null);
+};
+
+
   // Crear nuevo grupo con los pasajeros seleccionados
+
   const crearNuevoGrupo = () => {
-    if (!selectedPasajeros) return;
+  if (!selectedPasajeros) return;
 
-    const nuevoNumero = Math.max(...grupos.map((g) => g.numero)) + 1;
-    const grupoOrigen = grupos.find(
-      (g) => g.id === selectedPasajeros.grupoOrigenId,
-    );
+  const nuevoNumero = Math.max(...grupos.map((g) => g.numero)) + 1;
+  const grupoOrigen = grupos.find(
+    (g) => g.id === selectedPasajeros.grupoOrigenId,
+  );
 
-    const nuevoGrupo: Grupo = {
-      id: `grupo-${Date.now()}`,
-      numero: nuevoNumero,
-      tipoSalida: grupoOrigen?.tipoSalida || 'Salida',
-      empresa: grupoOrigen?.empresa || 'Rep',
-      destinocodigo: grupoOrigen?.destinocodigo || '0',
-      destino: grupoOrigen?.destino || '',
-      inicio: grupoOrigen?.inicio || null,
-      fin: grupoOrigen?.fin || null,
-      tarifa: grupoOrigen?.tarifa || 'Latam',
-      conductor: '',
-      unidad: '',
-      duracion: '0h 0min',
-      pasajeros: selectedPasajeros.pasajeros,
-      _tipoServicio: grupoOrigen?._tipoServicio || 'S',
-      _bloqueaInicio: grupoOrigen?._bloqueaInicio || false,
-      _bloqueaFin: grupoOrigen?._bloqueaFin || false,
-    };
+  const nuevoGrupo: Grupo = {
+    id: `grupo-${Date.now()}`,
+    numero: nuevoNumero,
+    tipoSalida: grupoOrigen?.tipoSalida || 'Salida',
+    empresa: grupoOrigen?.empresa || 'Rep',
+    destinocodigo: grupoOrigen?.destinocodigo || '0',
+    destino: grupoOrigen?.destino || '',
+    inicio: grupoOrigen?.inicio || null,
+    fin: grupoOrigen?.fin || null,
+    tarifa: grupoOrigen?.tarifa || 'Latam',
+    conductor: '',
+    unidad: '',
+    duracion: '0h 0min',
+    pasajeros: selectedPasajeros.pasajeros,
+    _tipoServicio: grupoOrigen?._tipoServicio || 'S',
+    _bloqueaInicio: grupoOrigen?._bloqueaInicio || false,
+    _bloqueaFin: grupoOrigen?._bloqueaFin || false,
+  };
 
-    setGrupos((prevGrupos) => {
-      // Remover pasajeros del grupo origen
-      const gruposActualizados = prevGrupos.map((grupo) => {
-        if (grupo.id === selectedPasajeros.grupoOrigenId) {
-          return {
-            ...grupo,
-            pasajeros: grupo.pasajeros.filter(
-              (p) => !selectedPasajeros.pasajeros.some((sp) => sp.id === p.id),
-            ),
-          };
-        }
-        return grupo;
-      });
-
-      // Agregar nuevo grupo
-      return [...gruposActualizados, nuevoGrupo];
+  setGrupos((prevGrupos) => {
+    const gruposActualizados = prevGrupos.map((grupo) => {
+      if (grupo.id === selectedPasajeros.grupoOrigenId) {
+        return {
+          ...grupo,
+          pasajeros: grupo.pasajeros.filter(
+            (p) => !selectedPasajeros.pasajeros.some((sp) => sp.id === p.id),
+          ),
+        };
+      }
+      return grupo;
     });
 
-    setSelectedPasajeros(null);
-    setPasajerosSeleccionados(new Set());
-    setGrupoEnSeleccion(null);
-  };
+    const gruposSinVacios = gruposActualizados.filter((grupo) => grupo.pasajeros.length > 0);
+
+    return [...gruposSinVacios, nuevoGrupo];
+  });
+
+  setSelectedPasajeros(null);
+  setPasajerosSeleccionados(new Set());
+  setGrupoEnSeleccion(null);
+};
+
 
   // Mover pasajero arriba
   const moverPasajeroArriba = (grupoId: string, index: number) => {
@@ -736,27 +867,24 @@ const restaurarPasajero = (
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-[7px] pl-10 pr-4 shadow-sm placeholder:text-sm placeholder:text-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0"
           />
-
-
-
         </div>
 
+
+        <div className="flex gap-3">
+
+          
         <div>
-                      <button
-      onClick={() => setModalMapaAbierto(true)}
-      disabled={grupos.length === 0}
-      className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
-      title="Ver agrupamiento por cercanía"
-    >
-      <MapPin className="h-4 w-4" />
-      Ver Mapa
-    </button>
+          <button
+            onClick={() => setModalMapaAbierto(true)}
+            disabled={grupos.length === 0}
+            className="flex items-center gap-2 whitespace-nowrap rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Ver agrupamiento por cercanía"
+          >
+            <MapPin className="h-4 w-4" />
+            Ver Mapa 
+          </button>
         </div>
 
-
-
-
-        <div className='flex gap-3'>
           <button
             onClick={handleGuardar}
             disabled={guardando || grupos.length === 0}
@@ -775,29 +903,24 @@ const restaurarPasajero = (
             )}
           </button>
 
-
-<button
-  onClick={abrirModalPublicar} 
-  disabled={publicando || grupos.length === 0}
-  className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {publicando ? (
-    <>
-      <Spinner size="sm" color="white" />
-      Publicando...
-    </>
-  ) : (
-    <>
-      <Send className="h-4 w-4" />
-      Publicar
-    </>
-  )}
-</button>
-
-
+          <button
+            onClick={abrirModalPublicar}
+            disabled={publicando || grupos.length === 0}
+            className="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {publicando ? (
+              <>
+                <Spinner size="sm" color="white" />
+                Publicando...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Publicar
+              </>
+            )}
+          </button>
         </div>
-
-        
       </div>
 
       {/* Modal de confirmación de eliminación */}
@@ -843,51 +966,59 @@ const restaurarPasajero = (
         </div>
       )}
 
-
       {confirmacionPublicar && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-    <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-      <div className="p-6">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="rounded-full bg-green-100 p-3">
-            <Send className="h-6 w-6 text-green-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-full bg-green-100 p-3">
+                  <Send className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  ¿Publicar grupos?
+                </h3>
+              </div>
+
+              <p className="mb-4 text-gray-700">
+                Estás por publicar{' '}
+                <span className="font-semibold">
+                  {grupos.length} grupo{grupos.length > 1 ? 's' : ''}
+                </span>{' '}
+                con un total de{' '}
+                <span className="font-semibold">
+                  {grupos.reduce((total, g) => total + g.pasajeros.length, 0)}{' '}
+                  pasajero
+                  {grupos.reduce((total, g) => total + g.pasajeros.length, 0) >
+                  1
+                    ? 's'
+                    : ''}
+                </span>
+                .
+              </p>
+
+              <p className="mb-6 text-sm text-gray-600">
+                Esta acción creará los servicios en el sistema. ¿Deseas
+                continuar?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmacionPublicar(false)}
+                  className="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarPublicar}
+                  className="flex-1 rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition-colors hover:bg-green-600"
+                >
+                  Publicar
+                </button>
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            ¿Publicar grupos?
-          </h3>
         </div>
-
-        <p className="mb-4 text-gray-700">
-          Estás por publicar <span className="font-semibold">{grupos.length} grupo{grupos.length > 1 ? 's' : ''}</span> con un total de{' '}
-          <span className="font-semibold">
-            {grupos.reduce((total, g) => total + g.pasajeros.length, 0)} pasajero{grupos.reduce((total, g) => total + g.pasajeros.length, 0) > 1 ? 's' : ''}
-          </span>.
-        </p>
-
-        <p className="mb-6 text-sm text-gray-600">
-          Esta acción creará los servicios en el sistema. ¿Deseas continuar?
-        </p>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => setConfirmacionPublicar(false)}
-            className="flex-1 rounded-lg bg-gray-200 px-4 py-2 font-medium transition-colors hover:bg-gray-300"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={confirmarPublicar}
-            className="flex-1 rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition-colors hover:bg-green-600"
-          >
-            Publicar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
+      )}
 
       {/* Modal de selección de grupo destino */}
       {selectedPasajeros && (
@@ -1075,7 +1206,6 @@ const restaurarPasajero = (
                     <span className="text-sm text-gray-700">
                       Destino: {grupo.destino}
                     </span>
-               
                   </div>
 
                   <DatePickerField
@@ -1099,8 +1229,6 @@ const restaurarPasajero = (
                     }}
                     disabled={grupo._bloqueaFin}
                   />
-
-             
                 </div>
               </div>
 
@@ -1268,15 +1396,13 @@ const restaurarPasajero = (
                                 onEliminar={solicitarEliminarPasajero}
                               />
 
-<ModalDirecciones
-  codCliente={pasajero.codlan || ''}
-  nombrePasajero={pasajero.nombre}
-  codigo={pasajero.id}
-  setShouldRefetch={setShouldRefetch}
-  useTalmaEndpoint={true}
-/>
-
-
+                              <ModalDirecciones
+                                codCliente={pasajero.codlan || ''}
+                                nombrePasajero={pasajero.nombre}
+                                codigo={pasajero.id}
+                                setShouldRefetch={setShouldRefetch}
+                                useTalmaEndpoint={true}
+                              />
                             </div>
                           </td>
                         </tr>
@@ -1303,12 +1429,12 @@ const restaurarPasajero = (
                 conductores={conductores}
                 unidades={unidades}
                 onRefrescarDatos={async () => {
-                await cargarDatosExternos(
-                  parametrosCarga.fecha,
-                  parametrosCarga.hora,
-                  parametrosCarga.tipo
-                );
-  }}
+                  await cargarDatosExternos(
+                    parametrosCarga.fecha,
+                    parametrosCarga.hora,
+                    parametrosCarga.tipo,
+                  );
+                }}
               />
             </div>
           ))
@@ -1325,14 +1451,12 @@ const restaurarPasajero = (
         onEliminarPermanentemente={eliminarPermanentemente}
       />
 
-<ModalMapaAgrupamiento
-  isOpen={modalMapaAbierto}
-  onClose={() => setModalMapaAbierto(false)}
-  grupos={grupos}
-  distanciaMaxima={3}
-/>
-
-
+      <ModalMapaAgrupamiento
+        isOpen={modalMapaAbierto}
+        onClose={() => setModalMapaAbierto(false)}
+        grupos={grupos}
+        distanciaMaxima={5}
+      />
     </div>
   );
 });
