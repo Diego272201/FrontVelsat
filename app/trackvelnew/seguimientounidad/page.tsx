@@ -1,10 +1,10 @@
 'use client';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef,Suspense  } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { X, AlertCircle, Clock8 } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { Spinner } from '@nextui-org/react';
-const POLLING_INTERVAL = 10000; // 10 segundos
+const POLLING_INTERVAL = 10000; 
 
 interface Device {
   deviceId: string;
@@ -39,7 +39,7 @@ interface TokenData {
   expirationdate: string;
 }
 
-const SeguimientoUnidad = () => {
+const SeguimientoUnidadContent = () => {
   const searchParams = useSearchParams();
   const [device, setDevice] = useState<Device | null>(null);
   const [currentDateTime, setCurrentDateTime] = useState<string>('');
@@ -53,7 +53,7 @@ const SeguimientoUnidad = () => {
   const markerDataRef = useRef<MarkerData | null>(null);
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
 
-  // Validar token al cargar
+ 
   useEffect(() => {
     const validateToken = async () => {
       const token = searchParams.get('token');
@@ -76,7 +76,6 @@ const SeguimientoUnidad = () => {
 
         const data: TokenData = await response.json();
         
-        // Verificar si el token ha expirado
         const expirationDate = new Date(data.expirationdate);
         const now = new Date();
 
@@ -86,7 +85,6 @@ const SeguimientoUnidad = () => {
           return;
         }
 
-        // Token válido
         setTokenData(data);
         setTokenError(null);
         setIsValidatingToken(false);
@@ -101,7 +99,7 @@ const SeguimientoUnidad = () => {
     validateToken();
   }, [searchParams]);
 
-  // Calcular tiempo restante
+
   useEffect(() => {
     if (!tokenData) return;
 
@@ -697,6 +695,19 @@ const SeguimientoUnidad = () => {
         }
       `}</style>
     </div>
+  );
+};
+
+
+const SeguimientoUnidad = () => {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+        <Spinner size="lg" color="primary" />
+      </div>
+    }>
+      <SeguimientoUnidadContent />
+    </Suspense>
   );
 };
 

@@ -33,8 +33,6 @@ interface PassengerRecord {
 export default function Header({ tablaListRef }: HeaderProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const [filterType, setFilterType] = useState('Todos');
-  const [passengerFilter, setPassengerFilter] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -697,7 +695,7 @@ useEffect(() => {
                 <div className="space-y-2">
                   <button
                     onClick={() => {
-                      // Redirigir a la página de errores
+                   
                       window.open('/trackvelnew/planificacion/planificacionTalma/erroresTalma', '_blank');
                     }}
                     className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95 flex items-center justify-center gap-2"
