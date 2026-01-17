@@ -1,8 +1,18 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { X, MapPin, Users, TrendingUp, Ruler, BarChart3, Navigation, Home } from 'lucide-react';
+import {
+  X,
+  MapPin,
+  Users,
+  TrendingUp,
+  Ruler,
+  BarChart3,
+  Navigation,
+  Home,
+} from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { BsFillGeoAltFill } from 'react-icons/bs';
 
 interface Pasajero {
   id: string;
@@ -69,10 +79,13 @@ export const ModalMapaAgrupamiento: React.FC<ModalMapaAgrupamientoProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const [pasajerosProcesados, setPasajerosProcesados] = useState<Pasajero[]>([]);
+  const [pasajerosProcesados, setPasajerosProcesados] = useState<Pasajero[]>(
+    [],
+  );
 
-  const [modoMapa, setModoMapa] = useState<'calles' | 'oscuro' | 'satelite'>('calles');
-
+  const [modoMapa, setModoMapa] = useState<'calles' | 'oscuro' | 'satelite'>(
+    'calles',
+  );
 
   // Procesar pasajeros con coordenadas
   useEffect(() => {
@@ -80,7 +93,7 @@ export const ModalMapaAgrupamiento: React.FC<ModalMapaAgrupamientoProps> = ({
 
     const procesados: Pasajero[] = [];
     let numeroSecuencial = 1;
-    
+
     grupos.forEach((grupo) => {
       grupo.pasajeros.forEach((pasajero) => {
         if (pasajero._apiData?.direccionPasajero) {
@@ -120,7 +133,11 @@ export const ModalMapaAgrupamiento: React.FC<ModalMapaAgrupamientoProps> = ({
 
   // Inicializar y dibujar mapa
   useEffect(() => {
-    if (!isOpen || !mapContainerRef.current || pasajerosProcesados.length === 0) {
+    if (
+      !isOpen ||
+      !mapContainerRef.current ||
+      pasajerosProcesados.length === 0
+    ) {
       return;
     }
 
@@ -135,16 +152,18 @@ export const ModalMapaAgrupamiento: React.FC<ModalMapaAgrupamientoProps> = ({
     const map = L.map(mapContainerRef.current).setView([-12.05, -77.03], 11);
     mapRef.current = map;
 
-const tileUrls = {
-  calles: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-oscuro: 'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
-  satelite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-};
+    const tileUrls = {
+      calles: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      oscuro:
+        'https://cartodb-basemaps-{s}.global.ssl.fastly.net/dark_all/{z}/{x}/{y}.png',
+      satelite:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    };
 
-L.tileLayer(tileUrls[modoMapa], {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map);
+    L.tileLayer(tileUrls[modoMapa], {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
 
     // Agrupar pasajeros por grupo
     const gruposPorNumero = new Map<number, Pasajero[]>();
@@ -161,7 +180,6 @@ L.tileLayer(tileUrls[modoMapa], {
       const color = colores[grupoIndex % colores.length];
 
       pasajeros.forEach((pasajero) => {
-        // ✅ Icono mejorado con mejor contraste
         const icon = L.divIcon({
           html: `
             <div style="position: relative; width: 40px; height: 40px;">
@@ -209,12 +227,13 @@ L.tileLayer(tileUrls[modoMapa], {
         });
 
         // Crear marcador
-        const marker = L.marker([pasajero.lat, pasajero.lng], { icon }).addTo(map);
+        const marker = L.marker([pasajero.lat, pasajero.lng], { icon }).addTo(
+          map,
+        );
 
         // Guardar referencia al marcador
         markersRef.current.set(pasajero.id, marker);
 
-        // ✅ Popup mejorado
         marker.bindPopup(`
           <div style="min-width: 250px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -307,57 +326,57 @@ L.tileLayer(tileUrls[modoMapa], {
       <div className="flex h-[90vh] w-[95vw] max-w-[1600px] flex-col overflow-hidden rounded-lg bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between bg-blue-800 px-4 py-3 text-white">
-
           <div>
             <div className="flex items-center gap-3">
-              <Users className="h-6 w-6" />
+              <BsFillGeoAltFill className="h-6 w-6" />
               <h2 className="text-[15px] font-bold">
                 Agrupamiento por Proximidad Geográfica
               </h2>
             </div>
-            <p className="text-sm opacity-90 mt-1">
+            <p className="mt-1 text-sm opacity-90">
               Visualización de grupos formados automáticamente por cercanía
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-  <button
-    onClick={() => setModoMapa('calles')}
-    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-      modoMapa === 'calles' 
-        ? 'bg-white text-blue-800' 
-        : 'bg-blue-700 text-white hover:bg-blue-600'
-    }`}
-  >
-    Calles
-  </button>
-  <button
-    onClick={() => setModoMapa('oscuro')}
-    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-      modoMapa === 'oscuro' 
-        ? 'bg-white text-blue-800' 
-        : 'bg-blue-700 text-white hover:bg-blue-600'
-    }`}
-  >
-    Oscuro
-  </button>
-  <button
-    onClick={() => setModoMapa('satelite')}
-    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-      modoMapa === 'satelite' 
-        ? 'bg-white text-blue-800' 
-        : 'bg-blue-700 text-white hover:bg-blue-600'
-    }`}
-  >
-    Satélite
-  </button>
-</div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 transition-colors hover:bg-white hover:bg-opacity-20"
-          >
-            <X className="h-6 w-6" />
-          </button>
+            <button
+              onClick={() => setModoMapa('calles')}
+              className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                modoMapa === 'calles'
+                  ? 'bg-white text-blue-800'
+                  : 'bg-blue-700 text-white hover:bg-blue-600'
+              }`}
+            >
+              Calles
+            </button>
+            <button
+              onClick={() => setModoMapa('oscuro')}
+              className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                modoMapa === 'oscuro'
+                  ? 'bg-white text-blue-800'
+                  : 'bg-blue-700 text-white hover:bg-blue-600'
+              }`}
+            >
+              Oscuro
+            </button>
+            <button
+              onClick={() => setModoMapa('satelite')}
+              className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                modoMapa === 'satelite'
+                  ? 'bg-white text-blue-800'
+                  : 'bg-blue-700 text-white hover:bg-blue-600'
+              }`}
+            >
+              Satélite
+            </button>
+
+            <button
+              onClick={onClose}
+              className="rounded-full p-2 transition-colors hover:bg-white hover:bg-opacity-20"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Contenido */}
@@ -381,21 +400,29 @@ L.tileLayer(tileUrls[modoMapa], {
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-600" />
-                    <span className="text-gray-600 text-[12px] ">Total de pasajeros:</span>
+                    <span className="text-[12px] text-gray-600 ">
+                      Total de pasajeros:
+                    </span>
                   </div>
-                  <span className="font-bold text-blue-600">{totalPasajeros}</span>
+                  <span className="font-bold text-blue-600">
+                    {totalPasajeros}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-2">
                     <Navigation className="h-4 w-4 text-gray-600" />
-                    <span className="text-gray-600 text-[12px] ">Grupos formados:</span>
+                    <span className="text-[12px] text-gray-600 ">
+                      Grupos formados:
+                    </span>
                   </div>
                   <span className="font-bold text-blue-600">{totalGrupos}</span>
                 </div>
                 <div className="flex items-center justify-between border-b pb-2">
                   <div className="flex items-center gap-2">
                     <Ruler className="h-4 w-4 text-gray-600" />
-                    <span className="text-gray-600 text-[12px] ">Distancia máxima:</span>
+                    <span className="text-[12px] text-gray-600 ">
+                      Distancia máxima:
+                    </span>
                   </div>
                   <span className="font-bold text-blue-600">
                     {distanciaMaxima} km
@@ -404,7 +431,9 @@ L.tileLayer(tileUrls[modoMapa], {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-gray-600" />
-                    <span className="text-gray-600 text-[12px] ">Pasajeros por grupo:</span>
+                    <span className="text-[12px] text-gray-600 ">
+                      Pasajeros por grupo:
+                    </span>
                   </div>
                   <span className="font-bold text-blue-600">
                     {promedioPorGrupo.toFixed(1)}
@@ -422,7 +451,10 @@ L.tileLayer(tileUrls[modoMapa], {
                 );
 
                 return (
-                  <div key={grupo.id} className="rounded-lg bg-white p-4 shadow">
+                  <div
+                    key={grupo.id}
+                    className="rounded-lg bg-white p-4 shadow"
+                  >
                     <div className="mb-3 flex items-center gap-3">
                       <div
                         className="h-6 w-6 rounded-full border-2 border-gray-200 shadow-md"
@@ -442,22 +474,24 @@ L.tileLayer(tileUrls[modoMapa], {
                           className="cursor-pointer rounded border-l-4 bg-gray-50 p-3 text-sm transition-all hover:bg-gray-100 hover:shadow-md"
                           style={{ borderLeftColor: color }}
                         >
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="mb-2 flex items-center gap-2">
                             <div
                               className="flex h-6 w-6 items-center justify-center rounded-full text-xs font-black text-white shadow-sm"
                               style={{ backgroundColor: color }}
                             >
                               {p.numeroEnMapa}
                             </div>
-                            <strong className="text-[11px] text-gray-800">{p.nombre}</strong>
+                            <strong className="text-[11px] text-gray-800">
+                              {p.nombre}
+                            </strong>
                           </div>
-                   <div className="flex items-start gap-2 ml-8 mb-1">
-  <MapPin className="h-4 w-4 text-gray-600 flex-shrink-0 mt-0.5" />
-  <small className="text-gray-600 leading-tight">
-    {p.direccion}
-  </small>
-</div>
-                          <div className="flex items-center gap-2 ml-8">
+                          <div className="mb-1 ml-8 flex items-start gap-2">
+                            <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-600" />
+                            <small className="leading-tight text-gray-600">
+                              {p.direccion}
+                            </small>
+                          </div>
+                          <div className="ml-8 flex items-center gap-2">
                             <Home className="h-3 w-3 text-gray-500" />
                             <small className="text-gray-500">
                               {p.distrito}
