@@ -280,8 +280,8 @@ export default function App({
         apepate: item.apepate,
         codigo: item.codigo,
         codlugar: item.lugar?.codlugar || 0,
-        direccion: item.lugar?.direccion || 'No disponible',
-        distrito: item.lugar?.distrito || 'No disponible',
+        direccion: item.lugar?.direccion || 'NO Disponible',
+        distrito: item.lugar?.distrito || 'NO Disponible',
         wx: item.lugar?.wx || '',
         wy: item.lugar?.wy || '',
       }));
