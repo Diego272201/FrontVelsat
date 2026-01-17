@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { MapPin, X, Trash2, Plus, Loader2 } from 'lucide-react';
 import { useFetchTalma } from './Usefetchtalma';

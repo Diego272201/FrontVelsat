@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useRef, useState } from 'react';
 import { X, MapPin, Users, TrendingUp, Ruler, BarChart3, Navigation, Home } from 'lucide-react';
 import L from 'leaflet';

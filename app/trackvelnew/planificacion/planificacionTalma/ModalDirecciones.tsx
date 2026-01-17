@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState } from 'react';
 import { TbGps, TbTrash, TbMapPin, TbPlus, TbX } from 'react-icons/tb';
 import axios from 'axios';

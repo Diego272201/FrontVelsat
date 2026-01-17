@@ -1,3 +1,4 @@
+'use client';
 import React, {
   useState,
   useMemo,
@@ -32,9 +33,13 @@ import FooterTablaList, {
 } from './FooterTablaList';
 import ButtonEliminarPasajero from './ButtonEliminarPasajero';
 import { PapeleraGrupos } from './PapeleraGrupos';
-import ModalDireccion from './ModalDireccion';
 import ModalDirecciones from './ModalDirecciones';
-import { ModalMapaAgrupamiento } from './ModalMapaAgrupamiento';
+import dynamic from 'next/dynamic';
+
+const ModalMapaAgrupamiento = dynamic(
+  () => import('./ModalMapaAgrupamiento').then((mod) => mod.ModalMapaAgrupamiento),
+  { ssr: false }
+);
 
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
