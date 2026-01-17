@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Save,
   Send,
+  MapPin,
 } from 'lucide-react';
 import { DatePickerField } from './DatePickerField';
 import { cargarGruposDesdeAPI, guardarGruposEnAPI, publicarGruposEnAPI } from './gruposData';
@@ -29,6 +30,7 @@ import ButtonEliminarPasajero from './ButtonEliminarPasajero';
 import { PapeleraGrupos } from './PapeleraGrupos';
 import ModalDireccion from './ModalDireccion';
 import ModalDirecciones from './ModalDirecciones';
+import { ModalMapaAgrupamiento } from './ModalMapaAgrupamiento';
 
 export interface TablaListRef {
   cargarDatos: (fecha: string, hora: string, tipo: 'S' | 'I') => Promise<void>;
@@ -51,6 +53,9 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
   const [pasajerosRestaurados, setPasajerosRestaurados] = useState<Set<string>>(
     new Set(),
   );
+
+  const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
+
 
   const [modalDireccionAbierto, setModalDireccionAbierto] = useState(false);
 const [pasajeroSeleccionadoDireccion, setPasajeroSeleccionadoDireccion] = useState<Pasajero | null>(null);
@@ -731,7 +736,25 @@ const restaurarPasajero = (
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-[7px] pl-10 pr-4 shadow-sm placeholder:text-sm placeholder:text-gray-400 focus:border-gray-400 focus:outline-none focus:ring-0"
           />
+
+
+
         </div>
+
+        <div>
+                      <button
+      onClick={() => setModalMapaAbierto(true)}
+      disabled={grupos.length === 0}
+      className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+      title="Ver agrupamiento por cercanía"
+    >
+      <MapPin className="h-4 w-4" />
+      Ver Mapa
+    </button>
+        </div>
+
+
+
 
         <div className='flex gap-3'>
           <button
@@ -1302,6 +1325,12 @@ const restaurarPasajero = (
         onEliminarPermanentemente={eliminarPermanentemente}
       />
 
+<ModalMapaAgrupamiento
+  isOpen={modalMapaAbierto}
+  onClose={() => setModalMapaAbierto(false)}
+  grupos={grupos}
+  distanciaMaxima={3}
+/>
 
 
     </div>

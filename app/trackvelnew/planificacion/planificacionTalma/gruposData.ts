@@ -61,6 +61,147 @@ const formatearFechaParaAPI = (fecha: Date | null): string | null => {
   return `${dia}/${mes}/${año} ${hora}:${minuto}`;
 };
 
+// ============================================
+// ALGORITMO DE AGRUPAMIENTO POR CERCANÍA
+// ============================================
+
+// Calcular distancia entre dos puntos usando la fórmula de Haversine
+const calcularDistancia = (
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number => {
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distancia en kilómetros
+};
+
+interface PasajeroConCoordenadas extends ApiPasajero {
+  lat: number;
+  lng: number;
+}
+
+// Agrupar pasajeros por proximidad geográfica
+const agruparPorCercania = (
+  pasajeros: ApiPasajero[],
+  distanciaMaxima: number = 3, // 3 km por defecto
+): ApiPasajero[][] => {
+  // Filtrar pasajeros con coordenadas válidas
+  const pasajerosConCoordenadas: PasajeroConCoordenadas[] = pasajeros
+    .map((p) => ({
+      ...p,
+      lat: parseFloat(p.direccionPasajero.wy),
+      lng: parseFloat(p.direccionPasajero.wx),
+    }))
+    .filter((p) => !isNaN(p.lat) && !isNaN(p.lng));
+
+  if (pasajerosConCoordenadas.length === 0) {
+    console.warn('⚠️ No hay pasajeros con coordenadas válidas');
+    return [pasajeros]; // Si no hay coordenadas válidas, devolver todos en un grupo
+  }
+
+  const clusters: ApiPasajero[][] = [];
+  const procesados = new Set<number>();
+
+  pasajerosConCoordenadas.forEach((punto, index) => {
+    if (procesados.has(index)) return;
+
+    const cluster: ApiPasajero[] = [punto];
+    procesados.add(index);
+
+    // Buscar vecinos y ordenarlos por distancia (más cercano primero)
+    const vecinos: Array<{
+      punto: PasajeroConCoordenadas;
+      index: number;
+      distancia: number;
+    }> = [];
+
+    pasajerosConCoordenadas.forEach((otroPunto, otroIndex) => {
+      if (index !== otroIndex && !procesados.has(otroIndex)) {
+        const distancia = calcularDistancia(
+          punto.lat,
+          punto.lng,
+          otroPunto.lat,
+          otroPunto.lng,
+        );
+        if (distancia <= distanciaMaxima) {
+          vecinos.push({
+            punto: otroPunto,
+            index: otroIndex,
+            distancia: distancia,
+          });
+        }
+      }
+    });
+
+    // Ordenar por distancia (más cercano primero)
+    vecinos.sort((a, b) => a.distancia - b.distancia);
+
+    // Expandir cluster procesando primero los más cercanos
+    let i = 0;
+    while (i < vecinos.length) {
+      const vecino = vecinos[i];
+      if (!procesados.has(vecino.index)) {
+        cluster.push(vecino.punto);
+        procesados.add(vecino.index);
+
+        // Buscar vecinos del vecino (también ordenados por distancia)
+        const nuevosVecinos: Array<{
+          punto: PasajeroConCoordenadas;
+          index: number;
+          distancia: number;
+        }> = [];
+
+        pasajerosConCoordenadas.forEach((p, pIndex) => {
+          if (!procesados.has(pIndex)) {
+            const dist = calcularDistancia(
+              vecino.punto.lat,
+              vecino.punto.lng,
+              p.lat,
+              p.lng,
+            );
+            if (dist <= distanciaMaxima) {
+              const existe = vecinos.find((v) => v.index === pIndex);
+              if (!existe) {
+                nuevosVecinos.push({
+                  punto: p,
+                  index: pIndex,
+                  distancia: dist,
+                });
+              }
+            }
+          }
+        });
+
+        // Ordenar los nuevos vecinos por distancia
+        nuevosVecinos.sort((a, b) => a.distancia - b.distancia);
+        vecinos.push(...nuevosVecinos);
+      }
+      i++;
+    }
+
+    clusters.push(cluster);
+  });
+
+  console.log(`✅ ${clusters.length} grupos formados por cercanía geográfica (distancia máx: ${distanciaMaxima}km)`);
+  clusters.forEach((cluster, idx) => {
+    console.log(`   Grupo ${idx + 1}: ${cluster.length} pasajeros`);
+  });
+
+  return clusters;
+};
+
 export const cargarGruposDesdeAPI = async (
   fecha: string,
   hora: string,
@@ -91,7 +232,10 @@ export const cargarGruposDesdeAPI = async (
     );
 
     if (tieneOrdenYGrupo) {
-      console.log('Datos con orden y grupo definidos - Agrupando...');
+      // ========================================
+      // CASO 1: DATOS CON ORDEN Y GRUPO DEFINIDOS
+      // ========================================
+      console.log('✅ Datos con orden y grupo definidos - Agrupando...');
 
       const gruposPorNumero = new Map<string, ApiPasajero[]>();
 
@@ -185,57 +329,74 @@ export const cargarGruposDesdeAPI = async (
 
       return gruposOrdenados;
     } else {
-      const primerPasajero = data[0];
-      const tipoServicio: 'S' | 'I' = primerPasajero.tipo as 'S' | 'I';
+      // ========================================
+      // CASO 2: DATOS SIN ORDEN/GRUPO → AGRUPAR POR CERCANÍA
+      // ========================================
+      console.log('🔍 Datos sin orden/grupo definidos - Aplicando agrupamiento por cercanía...');
 
-      let fechaInicio: Date | null = null;
-      let fechaFin: Date | null = null;
+      // Aplicar algoritmo de clustering por proximidad
+      const clustersGenerados = agruparPorCercania(data, 3); // 3 km de distancia máxima
 
-      if (tipoServicio === 'S') {
-        fechaInicio = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
-        fechaFin = null;
-      } else if (tipoServicio === 'I') {
-        fechaInicio = null;
-        fechaFin = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
-      }
+      const gruposGenerados: Grupo[] = clustersGenerados.map((cluster, clusterIndex) => {
+        const primerPasajero = cluster[0];
+        const tipoServicio: 'S' | 'I' = primerPasajero.tipo as 'S' | 'I';
 
-      let conductorNombre = '';
-      if (primerPasajero.conductor) {
-        const { apellidos } = primerPasajero.conductor;
-        conductorNombre = apellidos.trim();
-      }
+        let fechaInicio: Date | null = null;
+        let fechaFin: Date | null = null;
 
-      const pasajeros: Pasajero[] = data.map((apiPasajero) => ({
-        id: apiPasajero.codigo,
-        nombre: apiPasajero.nombre,
-        distrito: apiPasajero.direccionPasajero.distrito,
-        direccion: apiPasajero.direccionPasajero.direccion,
-        fecha: `${apiPasajero.fecha} ${apiPasajero.hora}`,
-        area: apiPasajero.empresa,
-        codlan: apiPasajero.codlan,
-        _apiData: apiPasajero,
-      }));
+        if (tipoServicio === 'S') {
+          fechaInicio = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
+          fechaFin = null;
+        } else if (tipoServicio === 'I') {
+          fechaInicio = null;
+          fechaFin = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
+        }
 
-      const grupoUnico: Grupo = {
-        id: `grupo-1-${Date.now()}`,
-        numero: 1,
-        tipoSalida: tipoServicio === 'S' ? 'Salida' : 'Entrada',
-        empresa: primerPasajero.empresa,
-        destinocodigo: String(primerPasajero.destino.codlugar),
-        destino: primerPasajero.destino.direccion,
-        inicio: fechaInicio,
-        fin: fechaFin,
-        tarifa: 'Por definir',
-        conductor: conductorNombre,
-        unidad: primerPasajero.codunidad || '',
-        duracion: '0h 0min',
-        pasajeros: pasajeros,
-        _tipoServicio: tipoServicio,
-        _bloqueaInicio: tipoServicio === 'S',
-        _bloqueaFin: tipoServicio === 'I',
-      };
+        let conductorNombre = '';
+        if (primerPasajero.conductor) {
+          const { apellidos } = primerPasajero.conductor;
+          conductorNombre = apellidos.trim();
+        }
 
-      return [grupoUnico];
+        const pasajeros: Pasajero[] = cluster.map((apiPasajero) => ({
+          id: apiPasajero.codigo,
+          nombre: apiPasajero.nombre,
+          distrito: apiPasajero.direccionPasajero.distrito,
+          direccion: apiPasajero.direccionPasajero.direccion,
+          fecha: `${apiPasajero.fecha} ${apiPasajero.hora}`,
+          area: apiPasajero.empresa,
+          codlan: apiPasajero.codlan,
+          _apiData: apiPasajero,
+        }));
+
+        const grupo: Grupo = {
+          id: `grupo-${clusterIndex + 1}-${Date.now()}`,
+          numero: clusterIndex + 1,
+          tipoSalida: tipoServicio === 'S' ? 'Salida' : 'Entrada',
+          empresa: primerPasajero.empresa,
+          destinocodigo: String(primerPasajero.destino.codlugar),
+          destino: primerPasajero.destino.direccion,
+          inicio: fechaInicio,
+          fin: fechaFin,
+          tarifa: 'Por definir',
+          conductor: conductorNombre,
+          unidad: primerPasajero.codunidad || '',
+          duracion: '0h 0min',
+          pasajeros: pasajeros,
+          _tipoServicio: tipoServicio,
+          _bloqueaInicio: tipoServicio === 'S',
+          _bloqueaFin: tipoServicio === 'I',
+        };
+
+        return grupo;
+      });
+
+      console.log(`📦 ${gruposGenerados.length} grupos generados automáticamente por proximidad`);
+      gruposGenerados.forEach((g) => {
+        console.log(`   Grupo ${g.numero}: ${g.pasajeros.length} pasajeros`);
+      });
+
+      return gruposGenerados;
     }
   } catch (error) {
     console.error('Error al cargar grupos desde API:', error);
@@ -335,8 +496,6 @@ export const guardarGruposEnAPI = async (
     throw error;
   }
 };
-
-
 
 export const publicarGruposEnAPI = async (
   grupos: Grupo[],
