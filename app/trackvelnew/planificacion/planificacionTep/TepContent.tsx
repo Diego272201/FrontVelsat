@@ -6,10 +6,10 @@ import * as xlsx from 'xlsx';
 import { tiposArchivos, empresa } from './tiposArchivo';
 import { Toaster, toast } from 'sonner';
 import '@/app/styles/planiTep.css';
-import { FaDatabase, FaFileAlt, FaFileExcel } from 'react-icons/fa';
+import { FaFileExcel } from 'react-icons/fa';
 import Servicios from './Servicios';
 import axios from 'axios';
-import { MdAdd, MdDelete, MdFilterAlt } from 'react-icons/md';
+import { MdAdd, MdDelete } from 'react-icons/md';
 import ModalObtenerServicios from './ModalObtenerServicios';
 import ProgressBar from '@/app/components/ui/ProgressBar';
 import { IoSave } from 'react-icons/io5';
@@ -24,7 +24,7 @@ import {
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import Swal from 'sweetalert2';
 import ModalNuevoGrupo from './ModalNuevoGrupo';
-import { ArchiveRestore, Database, DatabaseZap, Funnel } from 'lucide-react';
+import { ArchiveRestore, Database, Funnel } from 'lucide-react';
 import { useUsername } from '@/hooks/useUsername';
 
 const FiltroHoras = ({
@@ -38,7 +38,7 @@ const FiltroHoras = ({
     type="text"
     value={filtroHora}
     onChange={(e) => setFiltroHora(e.target.value)}
-    className="border border-gray-300 bg-gray-200 p-[6px] text-[11px] focus:border-gray-400 focus:outline-none focus:ring-0"
+    className="border border-gray-300 rounded bg-white p-[6px] text-[11px] focus:border-gray-400 focus:outline-none focus:ring-0"
     style={{ width: '100px' }}
     placeholder="Ej: 08:30"
   />
@@ -524,7 +524,7 @@ export default function TepContent() {
   }
 
   return (
-    <div className="containerTep">
+    <div className="containerTep bg-blue-50">
       <Toaster richColors />
       <div>
         <div className="cabecera sticky top-0 z-50 py-1">
@@ -557,28 +557,30 @@ export default function TepContent() {
         {isVisible && (
           <div
             id="contenido"
-            className="mx-2 border-b-1 border-gray-300 bg-gray-50"
+            className="mx-2 border-b-1 border-gray-300 bg-blue-50"
           >
             <div className="fristFileT">
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2">
-                  <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-900 ">
+                  <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-800 ">
                     <ArchiveRestore size={15} /> Carga de Archivos
                   </span>
                 </div>
 
                 <div className="cabeceraArchivos">
                   <div>
-                    <div className="flex w-full border border-gray-300 bg-gray-200 p-0 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0">
+
+                    <div className=" flex w-full border border-gray-300 rounded bg-white p-0 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0">
                       <div className="flex items-center px-4">
                         <FaFileExcel size={20} color="#307750" />
                         <p className="ml-3 text-[12px]">
                           {fileName || 'Ningún archivo seleccionado'}
                         </p>
                       </div>
+
                       <label
                         htmlFor="uploadExcel"
-                        className="ml-auto block w-max cursor-pointer  bg-[#d62828] px-3 py-2 text-[12px] text-white outline-none hover:bg-gray-700"
+                        className="ml-auto block w-max cursor-pointer rounded-r  bg-[#d62828] px-3 py-2 text-[12px] text-white outline-none hover:bg-gray-700"
                       >
                         Subir
                       </label>
@@ -590,6 +592,7 @@ export default function TepContent() {
                         onChange={handleFileChange}
                       />
                     </div>
+                    
                   </div>
 
                   <div>
@@ -609,13 +612,13 @@ export default function TepContent() {
                         );
                         setSelectedDate(selectedDate);
                       }}
-                      className="w-full border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border rounded border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                     />
                   </div>
 
                   <div className="selectTipoA">
                     <select
-                      className="w-full border border-gray-300 bg-gray-200 p-[8.2px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full border border-gray-300 rounded bg-white p-[8.2px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={selectedEmpresa}
                       onChange={(event) =>
                         setSelectedEmpresa(event.target.value)
@@ -633,9 +636,9 @@ export default function TepContent() {
                     </select>
                   </div>
 
-                  <div className="flex gap-2 text-[12px]">
+                  <div className="flex gap-2 text-[12px] rounded">
                     <button
-                      className="container-btn-file"
+                      className="container-btn-file rounded"
                       onClick={handleReadExcel}
                     >
                       <svg
@@ -676,7 +679,7 @@ export default function TepContent() {
                     />
                     <button
                       onClick={handleDeleteCarga}
-                      className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
+                      className="flex rounded items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-2  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
                     >
                       <MdDelete size={14} />
                       <span>Eliminar Carga</span>
@@ -687,7 +690,7 @@ export default function TepContent() {
 
               <div className="cargaArchivos">
                 <div className="relative flex items-center pb-2.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-900">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
                     <Database size={15} /> Obtener Datos
                   </span>
                 </div>
@@ -696,7 +699,7 @@ export default function TepContent() {
                   <div className="selectTipoA">
                     <select
                       id="countries"
-                      className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                      className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       value={empresaSeleccionada}
                       onChange={handleEmpresaChange}
                     >
@@ -714,7 +717,7 @@ export default function TepContent() {
 
                   <div className="buttonsTep">
                     <button
-                      className="flex items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex rounded items-center gap-2  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
                       onClick={() => {
                         onOpen();
                       }}
@@ -724,7 +727,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center gap-2  bg-[#348357] p-[7px] text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
+                      className="flex rounded items-center gap-2  bg-[#348357] p-[7px] text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
                       onClick={() => guardar(false)}
                     >
                       Guardar
@@ -738,7 +741,7 @@ export default function TepContent() {
                     />
 
                     <button
-                      className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-2  text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-purple-600 hover:to-purple-700"
+                      className="flex rounded items-center space-x-2 bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-2  text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-purple-600 hover:to-purple-700"
                       onClick={handlePublicar}
                     >
                       <span>Publicar</span>
@@ -747,6 +750,7 @@ export default function TepContent() {
                 </div>
               </div>
             </div>
+
 
             <div className="fristFileT">
               <div className="cargaArchivos">
@@ -762,7 +766,7 @@ export default function TepContent() {
                       <select
                         onChange={handleFiltrar}
                         id="countries"
-                        className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
+                        className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
                       >
                         <option value="all">Todos</option>
                         {cabeceras.map((cabecera, index) => (
@@ -780,7 +784,7 @@ export default function TepContent() {
                       <input
                         type="text"
                         id="input-label"
-                        className="w-full  border border-gray-300 bg-gray-200 p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
+                        className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
                         placeholder="Nombre del pasajero"
                         style={{ width: '280px' }}
                         value={nombrePasajero}
@@ -800,7 +804,7 @@ export default function TepContent() {
                       {filtroHora && (
                         <button
                           onClick={() => setFiltroHora('')}
-                          className="bg-gray-500 px-2 py-1 text-[10px] text-white hover:bg-gray-600"
+                          className="rounded bg-red-500 px-2 py-1.5 text-[10px] text-white hover:bg-gray-600"
                         >
                           ✕
                         </button>
@@ -809,7 +813,7 @@ export default function TepContent() {
 
                     <button
                       onClick={alternarEstado}
-                      className={`px-4 py-[8px]  text-[12px] font-medium shadow-sm transition-all duration-200 ${
+                      className={`px-4 py-[6px] text-[12px] rounded font-medium shadow-sm transition-all duration-200 ${
                         modoVista === 'Eliminados'
                           ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
                           : 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-600 hover:to-green-700'
@@ -819,7 +823,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-[8px]  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
+                      className="flex items-center rounded space-x-2 bg-gradient-to-r from-red-500 to-red-600 px-4 py-[6px]  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
                       onClick={() => {
                         if (ejecutarGrupoCeroRef.current) {
                           ejecutarGrupoCeroRef.current();
@@ -830,7 +834,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center gap-2 bg-green-700 p-[8px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
+                      className="flex rounded items-center gap-2 bg-green-700 p-[6px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
                       onClick={() => setModalNuevoGrupoOpen(true)}
                       disabled={!empresaConfirmada || !dato}
                       title={
@@ -849,8 +853,8 @@ export default function TepContent() {
               <div className="cargaArchivos">
                 <div className="grid grid-cols-2 gap-2">
                   {/* Card Total Servicios - Compacta con fondo azul claro */}
-                  <div className="flex items-center justify-center border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm">
-                    <div className="flex items-center space-x-2">
+                  <div className=" rounded flex items-center justify-center border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm">
+                    <div className="flex items-center space-x-2 ">
                       <div className="rounded-lg bg-blue-600 p-2 shadow-sm">
                         <MdHomeRepairService size={14} className="text-white" />
                       </div>
@@ -866,7 +870,7 @@ export default function TepContent() {
                   </div>
 
                   {/* Card Total Pasajeros - Compacta con fondo verde claro */}
-                  <div className="border border-green-200 bg-gradient-to-r from-green-50 to-emerald-100 p-1 shadow-sm">
+                  <div className="rounded border border-green-200 bg-gradient-to-r from-green-50 to-emerald-100 p-1 shadow-sm">
                     <div className="flex items-center space-x-2">
                       <div className="rounded-lg bg-green-600 p-2 shadow-sm">
                         <FaUsers size={14} className="text-white" />
@@ -885,6 +889,9 @@ export default function TepContent() {
               </div>
             </div>
           </div>
+
+
+
         )}
         <div className="mx-2 bg-gray-100 py-1 text-xs shadow-sm">
           <div className="flex max-w-full items-center space-x-2 overflow-x-auto">
@@ -972,7 +979,7 @@ export default function TepContent() {
               onActualizarCabeceras={actualizarCabeceras}
               onActualizarFechas={actualizarFechas}
               filtro={filtro}
-              filtroHora={filtroHora} // Ahora es un string simple
+              filtroHora={filtroHora} 
               nombrePasajero={nombrePasajero}
               modoVista={modoVista}
               onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
@@ -984,10 +991,10 @@ export default function TepContent() {
             <ModalNuevoGrupo
               isOpen={modalNuevoGrupoOpen}
               onClose={() => setModalNuevoGrupoOpen(false)}
-              onRefrescarDatos={handleRefrescarDatos} // Nueva función
+              onRefrescarDatos={handleRefrescarDatos} 
               empresaActual={empresaConfirmada || ''}
               fechaActual={selectedDate ? formatFechaDMY(selectedDate) : ''}
-              totalGruposActuales={datosServicios.totalGrupos} // Pasar el total de grupos actuales
+              totalGruposActuales={datosServicios.totalGrupos} 
             />
           </div>
         )}

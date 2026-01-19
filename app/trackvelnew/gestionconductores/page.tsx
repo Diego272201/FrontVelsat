@@ -26,6 +26,7 @@ import {
 } from '@/app/components/ui/alert-dialog';
 import { useUsername } from '@/hooks/useUsername';
 import { Spinner } from '@nextui-org/react';
+import { Toaster } from 'sonner';
 
 // Definir tipos
 interface Conductor {
@@ -72,7 +73,7 @@ export default function Page() {
   const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(
     null,
   );
-  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
+  const { username, isReady } = useUsername(); 
 
   // Función para obtener datos de la API
   const fetchConductores = async () => {
@@ -346,6 +347,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <Toaster richColors />
       {/* Header moderno */}
       <div className="border-b border-gray-200 bg-[#113EB9] shadow-lg">
         <div className="px-4 py-1.5">
@@ -418,21 +420,21 @@ export default function Page() {
             <div className="overflow-x-auto">
               <div className="max-h-[calc(100vh-150px)] overflow-y-auto">
                 <table className="w-full">
-                  <thead className="sticky top-0 z-10 bg-gradient-to-r from-[#33415c] to-[#33415c] shadow-sm">
+                  <thead className="sticky top-0 z-10 bg-gray-100">
                     <tr>
-                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         #
                       </th>
-                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         Nombre
                       </th>
-                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         Teléfono
                       </th>
-                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         Correo
                       </th>
-                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-white">
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         Acciones
                       </th>
                     </tr>

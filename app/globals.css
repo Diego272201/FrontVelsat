@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 
+
+
+
+
 body {
   background: #ffffff;
   overflow-y: hidden;
@@ -255,7 +259,6 @@ body {
   background-color: #f4f4f4 !important;
 }
 
-/* Versión simplificada que respeta la posición original */
 .gm-svpc {
   background-color: white !important;
   border: 1px solid #dadce0 !important;
@@ -264,10 +267,6 @@ body {
   opacity: 1 !important;
   visibility: visible !important;
   
-  /* NO forzar posición, dejar que Google Maps maneje esto */
-  /* position: relative !important; */
-  /* right: auto !important; */
-  /* bottom: auto !important; */
 }
 
 .gm-style .gm-svpc img {
@@ -281,4 +280,35 @@ body {
   left: 50% !important;
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
+}
+
+
+@keyframes typing {
+  0% {
+    width: 0;
+  }
+  30%, 70% {  
+    width: 100%;
+  }
+  100% {
+    width: 0;
+  }
+}
+
+@keyframes blink {
+  0%, 100% {
+    border-right-color: transparent;
+  }
+  50% {
+    border-right-color: #fb923c;
+  }
+}
+
+.animate-typing {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 3px solid #fb923c;
+  animation: 
+    typing 8s steps(14) infinite,  
+    blink 0.75s step-end infinite;
 }

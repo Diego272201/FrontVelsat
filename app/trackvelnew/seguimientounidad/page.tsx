@@ -149,7 +149,7 @@ const SeguimientoUnidadContent = () => {
 
   // Cargar Google Maps Script
   useEffect(() => {
-    const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
+    const GOOGLE_MAPS_API_KEY = 'AIzaSyDjSwibBACnjf7AZXR2sj1yBUEMGq2o1ho'; 
     
     if (!GOOGLE_MAPS_API_KEY) {
       console.error('Google Maps API Key no encontrada');
@@ -438,10 +438,22 @@ const SeguimientoUnidadContent = () => {
               <span style="color: #ffffff !important;">${getDireccion(device.lastValidHeading)}</span>
             </div>
             
-            <div>
-              <span style="color: #d1d5db !important; font-size: 12px !important;">Ubicación:</span> 
-              <span style="color: #ffffff !important; font-size: 12px !important;">${device.direccion}</span>
-            </div>
+<div style="
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+  max-width: 280px !important;
+">
+  <span style="color: #d1d5db !important; font-size: 12px !important;">Ubicación: </span>
+  <span style="
+    color: #ffffff !important; 
+    font-size: 12px !important;
+    display: inline !important;
+    line-height: 1.5 !important;
+  ">${device.direccion}</span>
+</div>
+
+
           </div>
         </div>
       </div>

@@ -123,11 +123,11 @@ export default function Login() {
         </div>
 
         {/* Título del sistema en la parte superior izquierda */}
-        <div className="absolute left-8 top-8 z-30">
-          <h2 className="text-4xl font-bold uppercase tracking-wide text-blue-100 xl:text-4xl">
-            <span className="text-orange-400">TrackVel</span> System
-          </h2>
-        </div>
+<div className="absolute left-8 top-8 z-30">
+  <h2 className="animate-typing text-4xl font-bold uppercase tracking-wide text-blue-100 xl:text-4xl">
+    <span className="text-orange-400">TrackVel</span> System
+  </h2>
+</div>
 
         {/* Overlay con información */}
         <div className="absolute inset-0 z-20 flex flex-col justify-end p-8 text-white xl:p-12">
@@ -313,7 +313,7 @@ export default function Login() {
           {/* Footer */}
           <div className="mt-6 text-center xl:mt-8">
             <p className="text-xs text-gray-400 xl:text-sm">
-              © 2025 Velsat - Sistema de Control Logístico
+              © {new Date().getFullYear()} Velsat - Sistema de Control Logístico
             </p>
           </div>
         </div>

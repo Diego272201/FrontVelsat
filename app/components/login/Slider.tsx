@@ -27,7 +27,7 @@ export default function Slider() {
         effect={'fade'}
       >
         <SwiperSlide>
-          <Image src="/slider1.webp" alt="" width={'1000'} height={'1000'} priority/>
+          <Image src="/fondonuevo.webp" alt="" width={'1000'} height={'1000'} priority/>
         </SwiperSlide>
         <SwiperSlide>
           <Image src="/slider2.webp" alt="" width={'1000'} height={'1000'} priority/>

@@ -12,7 +12,8 @@ interface InputUnidadProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (codunidad: string) => void;
-  bgColor?: 'gray-100' | 'gray-200';
+  bgColor?: 'gray-100' | 'gray-200' | 'white'; 
+
   padding?: string;
   usuario: string; // Nuevo prop requerido
 }
@@ -21,7 +22,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({
   value, 
   onChange, 
   onSelect, 
-  bgColor = 'gray-100', 
+  bgColor = 'gray-50', 
   padding = 'p-2',
   usuario // Nuevo prop
 }) => {
@@ -58,7 +59,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({
     <div className="relative">
       <input
         type="text"
-        className={`w-full border border-gray-300 bg-${bgColor} ${padding} ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`} 
+        className={`w-full border rounded border-gray-300 bg-${bgColor} ${padding} ps-11 text-[11px] placeholder-zinc-500 focus:border-blue-400 focus:outline-none focus:ring-0`} 
         placeholder="Unidad"
         value={value}
         onChange={handleInputChange}
@@ -66,7 +67,7 @@ const InputUnidad: React.FC<InputUnidadProps> = ({
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
       <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4">
-        <FaCar color="#343a40" />
+        <FaCar className='text-gray-400' />
       </div>
       {showDropdown && filtered.length > 0 && (
         <ul className="fixed z-[9999] mt-1 max-h-60 w-[200px] overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">

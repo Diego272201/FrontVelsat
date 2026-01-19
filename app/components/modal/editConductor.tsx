@@ -107,26 +107,6 @@ export default function ConductorDialogModificar({
     unidadasig: '',
   });
 
-  // Cargar datos del conductor cuando se abre el modal
-  // useEffect(() => {
-  //   if (isOpen && conductorData) {
-  //     setFormData({
-  //       apellidos: conductorData.apellidos || '',
-  //       dni: conductorData.dni || '',
-  //       sexo:
-  //         conductorData.sexo === 'M'
-  //           ? 'masculino'
-  //           : conductorData.sexo === 'F'
-  //             ? 'femenino'
-  //             : '',
-  //       login: conductorData.login || '',
-  //       clave: conductorData.clave || '',
-  //       telefono: conductorData.telefono || '',
-  //       email: conductorData.email || '',
-  //     });
-  //   }
-  // }, [isOpen, conductorData]);
-
   const handleInputChange = (field: FormField, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -154,7 +134,7 @@ export default function ConductorDialogModificar({
     console.log('🔍 Iniciando validación...');
     console.log('formData actual:', formData);
 
-    const requiredFields: FormField[] = ['apellidos', 'login', 'clave']; // ⬅️ Quitamos "dni"
+    const requiredFields: FormField[] = ['apellidos', 'login', 'clave'];
 
     for (const field of requiredFields) {
       console.log(`Validando campo ${field}:`, formData[field]);
@@ -207,7 +187,6 @@ export default function ConductorDialogModificar({
             ? 'F'
             : 'M';
 
-      // ✅ Payload base
       const payload: any = {
         codigo: conductorData.codigo,
         nombres: conductorData.nombres || '',
@@ -226,7 +205,6 @@ export default function ConductorDialogModificar({
         sexo: sexoAPI,
       };
 
-      // ✅ Solo agregar turno y horainicio si el usuario es "movilbus"
       if (username === 'movilbus') {
         const turnoAPI =
           formData.turno === 'dia'
@@ -259,7 +237,6 @@ export default function ConductorDialogModificar({
       toast.dismiss(loadingToast);
       toast.success('Conductor modificado exitosamente');
 
-      // ✅ Actualizar conductor con los campos correspondientes
       const updatedConductor: ConductorAPI = {
         ...conductorData,
         apellidos: formData.apellidos.trim(),
@@ -271,7 +248,6 @@ export default function ConductorDialogModificar({
         sexo: sexoAPI,
       };
 
-      // ✅ Solo actualizar turno y horainicio si el usuario es "movilbus"
       if (username === 'movilbus') {
         const turnoAPI =
           formData.turno === 'dia'
@@ -326,7 +302,6 @@ export default function ConductorDialogModificar({
           ? 'noche'
           : '';
 
-    // Prepara los datos antes de abrir
     setFormData({
       apellidos: conductorData.apellidos || '',
       dni: conductorData.dni || '',
@@ -348,16 +323,6 @@ export default function ConductorDialogModificar({
     setIsOpen(true);
   };
 
-  const inputFields: FieldConfig[] = [
-    { id: 'apellidos', label: 'Nombre Completo', icon: User, type: 'text' },
-    { id: 'dni', label: 'DNI', icon: CreditCard, type: 'text' },
-    { id: 'login', label: 'Usuario', icon: Key, type: 'text' },
-    { id: 'clave', label: 'Contraseña', icon: Lock, type: 'password' },
-    { id: 'telefono', label: 'Teléfono', icon: Phone, type: 'tel' },
-    { id: 'email', label: 'Correo Electrónico', icon: Mail, type: 'email' },
-    { id: 'horainicio', label: 'Hora de Inicio', icon: Clock, type: 'time' },
-  ];
-
   return (
     <div>
       <button
@@ -369,7 +334,7 @@ export default function ConductorDialogModificar({
       </button>
 
       <Dialog open={isOpen} onOpenChange={!loading ? setIsOpen : undefined}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-white/95 shadow-2xl backdrop-blur-lg sm:max-w-[550px]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-white/95 shadow-2xl backdrop-blur-lg sm:max-w-[650px]">
           <DialogHeader className="pb-0">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 shadow-lg">
@@ -387,129 +352,275 @@ export default function ConductorDialogModificar({
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Primeros campos hasta email (sin horainicio) */}
-            {inputFields
-              .filter((field) => field.id !== 'horainicio')
-              .map((field) => (
-                <div key={field.id} className="space-y-2">
-                  <Label
-                    htmlFor={field.id}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                  >
-                    <field.icon className="h-4 w-4 text-green-500" />
-                    {field.label}
-                    {['apellidos', 'dni', 'login', 'clave'].includes(
-                      field.id,
-                    ) && <span className="text-red-500">*</span>}
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id={field.id}
-                      type={
-                        field.id === 'clave' && showPassword
-                          ? 'text'
-                          : field.type
-                      }
-                      value={formData[field.id]}
-                      onChange={(e) =>
-                        handleInputChange(field.id, e.target.value)
-                      }
+            {/* Nombre Completo - Línea completa */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="apellidos"
+                className="flex items-center gap-2 text-sm font-medium text-gray-700"
+              >
+                <User className="h-4 w-4 text-green-500" />
+                Nombre Completo
+                <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="apellidos"
+                  type="text"
+                  value={formData.apellidos}
+                  onChange={(e) => handleInputChange('apellidos', e.target.value)}
+                  disabled={loading}
+                  className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                  placeholder="Ingrese nombre completo"
+                />
+                <div className="absolute inset-y-0 right-3 flex items-center">
+                  <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* DNI y Género - Dos columnas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="dni"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <CreditCard className="h-4 w-4 text-green-500" />
+                  DNI
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="dni"
+                    type="text"
+                    value={formData.dni}
+                    onChange={(e) => handleInputChange('dni', e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    placeholder="Ingrese dni"
+                    maxLength={8}
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="sexo"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <Users className="h-4 w-4 text-green-500" />
+                  Género
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={formData.sexo}
+                  onValueChange={(value) => handleInputChange('sexo', value)}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+                    <SelectValue placeholder="Seleccione el género" />
+                  </SelectTrigger>
+                  <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                    <SelectItem
+                      value="masculino"
+                      className="hover:bg-green-50 focus:bg-green-50"
+                    >
+                      Masculino
+                    </SelectItem>
+                    <SelectItem
+                      value="femenino"
+                      className="hover:bg-green-50 focus:bg-green-50"
+                    >
+                      Femenino
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Login y Contraseña - Dos columnas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="login"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <Key className="h-4 w-4 text-green-500" />
+                  Usuario
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="login"
+                    type="text"
+                    value={formData.login}
+                    onChange={(e) => handleInputChange('login', e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    placeholder="Ingrese usuario"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="clave"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <Lock className="h-4 w-4 text-green-500" />
+                  Contraseña
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="clave"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.clave}
+                    onChange={(e) => handleInputChange('clave', e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    placeholder="Ingrese contraseña"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
                       disabled={loading}
-                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-                      placeholder={`Ingrese ${field.label.toLowerCase()}`}
-                      maxLength={field.id === 'dni' ? 8 : undefined}
-                    />
-                    <div className="absolute inset-y-0 right-3 flex items-center">
-                      {field.id === 'clave' ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={loading}
-                          className="text-gray-500 transition-colors hover:text-green-500 disabled:opacity-50"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
+                      className="text-gray-500 transition-colors hover:text-green-500 disabled:opacity-50"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                        <Eye className="h-4 w-4" />
                       )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Teléfono y Correo Electrónico - Dos columnas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="telefono"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <Phone className="h-4 w-4 text-green-500" />
+                  Teléfono
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="telefono"
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => handleInputChange('telefono', e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    placeholder="Ingrese teléfono"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="email"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <Mail className="h-4 w-4 text-green-500" />
+                  Correo Electrónico
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    disabled={loading}
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                    placeholder="Ingrese correo electrónico"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campos condicionales para movilbus */}
+            {username === 'movilbus' && (
+              <>
+                {/* Turno y Hora de Inicio - Dos columnas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="turno"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Calendar className="h-4 w-4 text-green-500" />
+                      Turno
+                    </Label>
+                    <Select
+                      value={formData.turno}
+                      onValueChange={(value) => handleInputChange('turno', value)}
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+                        <SelectValue placeholder="Seleccione el turno" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                        <SelectItem
+                          value="dia"
+                          className="hover:bg-green-50 focus:bg-green-50"
+                        >
+                          Día
+                        </SelectItem>
+                        <SelectItem
+                          value="noche"
+                          className="hover:bg-green-50 focus:bg-green-50"
+                        >
+                          Noche
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="horainicio"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Clock className="h-4 w-4 text-green-500" />
+                      Hora de Inicio
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="horainicio"
+                        type="time"
+                        value={formData.horainicio}
+                        onChange={(e) =>
+                          handleInputChange('horainicio', e.target.value)
+                        }
+                        disabled={loading}
+                        className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                        placeholder="Ingrese hora de inicio"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
 
-            {/* ⭐ Solo mostrar Turno y Hora de Inicio si el usuario es "movilbus" */}
-            {username === 'movilbus' && (
-              <>
-                {/* Select de Turno */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="turno"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                  >
-                    <Calendar className="h-4 w-4 text-green-500" />
-                    Turno
-                  </Label>
-                  <Select
-                    value={formData.turno}
-                    onValueChange={(value) => handleInputChange('turno', value)}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-                      <SelectValue placeholder="Seleccione el turno" />
-                    </SelectTrigger>
-                    <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                      <SelectItem
-                        value="dia"
-                        className="hover:bg-green-50 focus:bg-green-50"
-                      >
-                        Día
-                      </SelectItem>
-                      <SelectItem
-                        value="noche"
-                        className="hover:bg-green-50 focus:bg-green-50"
-                      >
-                        Noche
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Campo de Hora de Inicio */}
-                {inputFields
-                  .filter((field) => field.id === 'horainicio')
-                  .map((field) => (
-                    <div key={field.id} className="space-y-2">
-                      <Label
-                        htmlFor={field.id}
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                      >
-                        <field.icon className="h-4 w-4 text-green-500" />
-                        {field.label}
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id={field.id}
-                          type={field.type}
-                          value={formData[field.id]}
-                          onChange={(e) =>
-                            handleInputChange(field.id, e.target.value)
-                          }
-                          disabled={loading}
-                          className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-                          placeholder={`Ingrese ${field.label.toLowerCase()}`}
-                        />
-                        <div className="absolute inset-y-0 right-3 flex items-center">
-                          <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                {/* ⭐ Campo de Unidad Asignada */}
+                {/* Unidad Asignada - Línea completa */}
                 <div className="space-y-2">
                   <Label
                     htmlFor="unidadasig"
@@ -537,41 +648,6 @@ export default function ConductorDialogModificar({
                 </div>
               </>
             )}
-
-            {/* Select de Género */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="sexo"
-                className="flex items-center gap-2 text-sm font-medium text-gray-700"
-              >
-                <Users className="h-4 w-4 text-green-500" />
-                Género
-                <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.sexo}
-                onValueChange={(value) => handleInputChange('sexo', value)}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
-                  <SelectValue placeholder="Seleccione el género" />
-                </SelectTrigger>
-                <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                  <SelectItem
-                    value="masculino"
-                    className="hover:bg-green-50 focus:bg-green-50"
-                  >
-                    Masculino
-                  </SelectItem>
-                  <SelectItem
-                    value="femenino"
-                    className="hover:bg-green-50 focus:bg-green-50"
-                  >
-                    Femenino
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <DialogFooter className="gap-3 pt-6">

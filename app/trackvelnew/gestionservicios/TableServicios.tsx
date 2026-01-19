@@ -269,7 +269,6 @@ export default function App({
     }
 
     try {
-      // ✅ Usar API diferente según el usuario
       const apiUrl = username === 'movilbus'
         ? `https://do.velsat.pe:2083/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${selectedRow?.empresaSinNumber || ''}`
         : `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
@@ -296,7 +295,7 @@ export default function App({
   }, 300);
 
   return () => clearTimeout(delayDebounce);
-}, [pasajero, seleccionado, username, isReady, selectedRow?.empresaSinNumber]); // ✅ Agregar selectedRow?.empresaSinNumber a las dependencias
+}, [pasajero, seleccionado, username, isReady, selectedRow?.empresaSinNumber]);
 
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
@@ -896,7 +895,6 @@ export default function App({
 
     console.log('Respuesta de la API:', response.data);
 
-    // ✅ ACTUALIZAR con el formato correcto
     setData((prevData) =>
       prevData.map((item) =>
         item.codServicio === selectedRow.codServicio
@@ -909,7 +907,7 @@ export default function App({
                 ? nuevaFechaProg.split('T')[1].slice(0, 5)
                 : item.horaProg,
               fechaCompleta: nuevaFecha 
-                ? formatFechaParaAPI(nuevaFecha) // ✅ Usar formato correcto
+                ? formatFechaParaAPI(nuevaFecha)
                 : item.fechaCompleta,
               fecPlanCompleta: nuevaFechaProg
                 ? formatFechaParaAPI(nuevaFechaProg)
@@ -919,7 +917,6 @@ export default function App({
       ),
     );
 
-    // ✅ TAMBIÉN actualizar selectedRow con el formato correcto
     setSelectedRow({
       ...selectedRow,
       horaAto: nuevaFecha
@@ -929,7 +926,7 @@ export default function App({
         ? nuevaFechaProg.split('T')[1].slice(0, 5)
         : selectedRow.horaProg,
       fechaCompleta: nuevaFecha 
-        ? formatFechaParaAPI(nuevaFecha) // ✅ Usar formato correcto
+        ? formatFechaParaAPI(nuevaFecha) 
         : selectedRow.fechaCompleta,
       fecPlanCompleta: nuevaFechaProg
         ? formatFechaParaAPI(nuevaFechaProg)
@@ -995,12 +992,12 @@ export default function App({
           style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
         >
           <table className="w-full text-left">
-            <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
+            <thead className="sticky top-0 z-10 bg-gray-100">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#ffffff]"
+                    className="px-4 py-2 uppercase text-gray-800"
                     style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
                   >
                     {column.label}
@@ -1023,16 +1020,16 @@ export default function App({
         </div>
       ) : (
         <div
-          className="overflow-auto border border-gray-300"
+          className="overflow-auto  border-gray-300 px-2"
           style={{ height: `calc(100vh - ${altura}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-[#1C5ED8]">
+            <thead className="sticky top-0 z-10 bg-gray-200">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-[#fff]"
+                    className="px-4 py-2 uppercase text-gray-800"
                     style={{ fontSize: '11px' }}
                   >
                     {column.label}

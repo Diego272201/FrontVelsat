@@ -13,7 +13,8 @@ interface InputConductorProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (codigo: number, apepate: string) => void;
-  bgColor?: 'gray-100' | 'gray-200';
+  bgColor?: 'gray-100' | 'gray-200' | 'white'; 
+
 
 }
 
@@ -65,7 +66,7 @@ const InputConductor: React.FC<InputConductorProps> = ({
     <div className="relative">
       <input
         type="text"
-        className={`w-full border border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-gray-400 focus:outline-none focus:ring-0`}
+        className={`w-full border rounded border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-blue-400 focus:outline-none focus:ring-0`}
         placeholder="Conductor"
         value={value}
         onChange={handleInputChange}
@@ -73,7 +74,7 @@ const InputConductor: React.FC<InputConductorProps> = ({
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
       <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4">
-        <FaUserTie color="#343a40" />
+        <FaUserTie className='text-gray-400' />
       </div>
       {showDropdown && filtered.length > 0 && (
         <ul className="fixed z-[9999] mt-1 max-h-60 w-96 overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">

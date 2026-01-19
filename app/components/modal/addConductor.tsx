@@ -66,7 +66,7 @@ export default function ConductorDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
+  const { username, isReady } = useUsername();
 
   const [formData, setFormData] = useState<Record<FormField, string>>({
     apellidos: '',
@@ -105,13 +105,59 @@ export default function ConductorDialog({
   };
 
   const validateForm = () => {
-    const requiredFields: FormField[] = ['apellidos', 'login', 'clave']; // ⬅️ Quitamos "dni"
+    // Validar campos obligatorios básicos
+    if (!formData.apellidos.trim()) {
+      toast.error('El campo Nombre Completo es obligatorio');
+      return false;
+    }
 
-    for (const field of requiredFields) {
-      if (!formData[field].trim()) {
-        toast.error(`El campo ${getFieldLabel(field)} es obligatorio`);
+    if (!formData.login.trim()) {
+      toast.error('El campo Login es obligatorio');
+      return false;
+    }
+
+    if (!formData.clave.trim()) {
+      toast.error('El campo Contraseña es obligatorio');
+      return false;
+    }
+
+    // Validar DNI si está lleno (debe tener 8 dígitos)
+    if (formData.dni.trim() && formData.dni.trim().length !== 8) {
+      toast.error('El DNI debe tener 8 dígitos');
+      return false;
+    }
+
+    // Validar DNI solo números
+    if (formData.dni.trim() && !/^\d+$/.test(formData.dni.trim())) {
+      toast.error('El DNI solo debe contener números');
+      return false;
+    }
+
+    // Validar email si está lleno
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        toast.error('El formato del correo electrónico no es válido');
         return false;
       }
+    }
+
+    // Validar teléfono si está lleno (solo números y mínimo 7 dígitos)
+    if (formData.telefono.trim()) {
+      if (!/^\d+$/.test(formData.telefono.trim())) {
+        toast.error('El teléfono solo debe contener números');
+        return false;
+      }
+      if (formData.telefono.trim().length < 7) {
+        toast.error('El teléfono debe tener al menos 7 dígitos');
+        return false;
+      }
+    }
+
+    // Validar contraseña (mínimo 4 caracteres)
+    if (formData.clave.trim().length < 4) {
+      toast.error('La contraseña debe tener al menos 4 caracteres');
+      return false;
     }
 
     return true;
@@ -147,7 +193,7 @@ export default function ConductorDialog({
             ? 'F'
             : 'M';
 
-      // ✅ Payload base
+
       const payload: any = {
         nombres: '',
         apellidos: formData.apellidos.trim(),
@@ -166,7 +212,7 @@ export default function ConductorDialog({
         unidadActual: '',
       };
 
-      // ✅ Solo agregar turno, horainicio y unidadasig si el usuario es "movilbus"
+ 
       if (username === 'movilbus') {
         const turnoAPI =
           formData.turno === 'dia'
@@ -232,15 +278,6 @@ export default function ConductorDialog({
     }
   };
 
-  const inputFields: FieldConfig[] = [
-    { id: 'apellidos', label: 'Nombre Completo', icon: User, type: 'text' },
-    { id: 'dni', label: 'DNI', icon: CreditCard, type: 'text' },
-    { id: 'login', label: 'Login', icon: Key, type: 'text' },
-    { id: 'clave', label: 'Contraseña', icon: Lock, type: 'password' },
-    { id: 'telefono', label: 'Teléfono', icon: Phone, type: 'tel' },
-    { id: 'email', label: 'Correo Electrónico', icon: Mail, type: 'email' },
-  ];
-
   return (
     <div>
       <button
@@ -259,152 +296,350 @@ export default function ConductorDialog({
       </button>
 
       <Dialog open={isOpen} onOpenChange={!loading ? setIsOpen : undefined}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-white/95 shadow-2xl backdrop-blur-lg sm:max-w-[550px]">
+        <DialogContent className="max-h-[90vh] overflow-y-auto border-0 bg-white/95 shadow-2xl backdrop-blur-lg sm:max-w-[650px]">
           <DialogHeader className="pb-0">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500 shadow-lg">
                 <User className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-blue-600">
+                <DialogTitle className="text-xl font-bold text-blue-700">
                   Nuevo Conductor
                 </DialogTitle>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-[12px] text-gray-500">
                   Complete la información del conductor
                 </p>
               </div>
             </div>
           </DialogHeader>
 
-          {/* 👇 Envuelve todo en un form con autoComplete="off" */}
           <form autoComplete="off" onSubmit={(e) => e.preventDefault()}>
             <div className="space-y-4 py-2">
-              {inputFields.map((field) => (
-                <div key={field.id} className="space-y-2">
+              {/* Nombre Completo - Línea completa */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="apellidos"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <User className="h-4 w-4 text-orange-500" />
+                  Nombre Completo
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="apellidos"
+                    name="conductor-apellidos"
+                    type="text"
+                    value={formData.apellidos}
+                    onChange={(e) =>
+                      handleInputChange('apellidos', e.target.value)
+                    }
+                    disabled={loading}
+                    autoComplete="off"
+                    data-form-type="other"
+                    readOnly
+                    onFocus={(e) =>
+                      e.currentTarget.removeAttribute('readonly')
+                    }
+                    className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                    placeholder="Ingrese nombre completo"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DNI y Género - Dos columnas */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label
-                    htmlFor={field.id}
+                    htmlFor="dni"
                     className="flex items-center gap-2 text-sm font-medium text-gray-700"
                   >
-                    <field.icon className="h-4 w-4 text-orange-500" />
-                    {field.label}
-                    {['apellidos', 'login', 'clave'].includes(field.id) && (
-                      <span className="text-red-500">*</span>
-                    )}
+                    <CreditCard className="h-4 w-4 text-orange-500" />
+                    DNI
                   </Label>
                   <div className="relative">
                     <Input
-                      id={field.id}
-                      name={`conductor-${field.id}`} // 👈 Nombre único
-                      type={
-                        field.id === 'clave' && showPassword
-                          ? 'text'
-                          : field.type
-                      }
-                      value={formData[field.id]}
+                      id="dni"
+                      name="conductor-dni"
+                      type="text"
+                      value={formData.dni}
                       onChange={(e) =>
-                        handleInputChange(field.id, e.target.value)
+                        handleInputChange('dni', e.target.value)
                       }
                       disabled={loading}
-                      autoComplete="off" // 👈 Desactivar autocompletado
-                      data-form-type="other" // 👈 Hint adicional
+                      autoComplete="off"
+                      data-form-type="other"
                       readOnly
                       onFocus={(e) =>
                         e.currentTarget.removeAttribute('readonly')
-                      } // 👈 Y esto
+                      }
                       className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-                      placeholder={`Ingrese ${field.label.toLowerCase()}`}
-                      maxLength={field.id === 'dni' ? 8 : undefined}
+                      placeholder="Ingrese dni"
+                      maxLength={8}
                     />
                     <div className="absolute inset-y-0 right-3 flex items-center">
-                      {field.id === 'clave' ? (
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={loading}
-                          className="text-gray-500 transition-colors hover:text-orange-500 disabled:opacity-50"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      ) : (
-                        <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
-                      )}
+                      <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
                     </div>
                   </div>
                 </div>
-              ))}
 
-              {/* ⭐ Solo mostrar Turno, Hora de Inicio y Unidad Asignada si el usuario es "movilbus" */}
-              {username === 'movilbus' && (
-                <>
-                  {/* Select de Turno */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="turno"
-                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                    >
-                      <Calendar className="h-4 w-4 text-orange-500" />
-                      Turno
-                    </Label>
-                    <Select
-                      value={formData.turno}
-                      onValueChange={(value) =>
-                        handleInputChange('turno', value)
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="sexo"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Users className="h-4 w-4 text-orange-500" />
+                    Género
+                  </Label>
+                  <Select
+                    value={formData.sexo}
+                    onValueChange={(value) => handleInputChange('sexo', value)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
+                      <SelectValue placeholder="Seleccione el género" />
+                    </SelectTrigger>
+                    <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                      <SelectItem
+                        value="masculino"
+                        className="hover:bg-orange-50 focus:bg-orange-50"
+                      >
+                        Masculino
+                      </SelectItem>
+                      <SelectItem
+                        value="femenino"
+                        className="hover:bg-orange-50 focus:bg-orange-50"
+                      >
+                        Femenino
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Login y Contraseña - Dos columnas */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="login"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Key className="h-4 w-4 text-orange-500" />
+                    Login
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="login"
+                      name="conductor-login"
+                      type="text"
+                      value={formData.login}
+                      onChange={(e) =>
+                        handleInputChange('login', e.target.value)
                       }
                       disabled={loading}
-                    >
-                      <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
-                        <SelectValue placeholder="Seleccione el turno" />
-                      </SelectTrigger>
-                      <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                        <SelectItem
-                          value="dia"
-                          className="hover:bg-orange-50 focus:bg-orange-50"
-                        >
-                          Día
-                        </SelectItem>
-                        <SelectItem
-                          value="noche"
-                          className="hover:bg-orange-50 focus:bg-orange-50"
-                        >
-                          Noche
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      autoComplete="off"
+                      data-form-type="other"
+                      readOnly
+                      onFocus={(e) =>
+                        e.currentTarget.removeAttribute('readonly')
+                      }
+                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                      placeholder="Ingrese login"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center">
+                      <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                    </div>
                   </div>
+                </div>
 
-                  {/* Campo de Hora de Inicio */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="horainicio"
-                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                    >
-                      <Clock className="h-4 w-4 text-orange-500" />
-                      Hora de Inicio
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="horainicio"
-                        type="time"
-                        value={formData.horainicio}
-                        onChange={(e) =>
-                          handleInputChange('horainicio', e.target.value)
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="clave"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Lock className="h-4 w-4 text-orange-500" />
+                    Contraseña
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="clave"
+                      name="conductor-clave"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.clave}
+                      onChange={(e) =>
+                        handleInputChange('clave', e.target.value)
+                      }
+                      disabled={loading}
+                      autoComplete="off"
+                      data-form-type="other"
+                      readOnly
+                      onFocus={(e) =>
+                        e.currentTarget.removeAttribute('readonly')
+                      }
+                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                      placeholder="Ingrese contraseña"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={loading}
+                        className="text-gray-500 transition-colors hover:text-orange-500 disabled:opacity-50"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Teléfono y Correo Electrónico - Dos columnas */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="telefono"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Phone className="h-4 w-4 text-orange-500" />
+                    Teléfono
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="telefono"
+                      name="conductor-telefono"
+                      type="tel"
+                      value={formData.telefono}
+                      onChange={(e) =>
+                        handleInputChange('telefono', e.target.value)
+                      }
+                      disabled={loading}
+                      autoComplete="off"
+                      data-form-type="other"
+                      readOnly
+                      onFocus={(e) =>
+                        e.currentTarget.removeAttribute('readonly')
+                      }
+                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                      placeholder="Ingrese teléfono"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center">
+                      <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                  >
+                    <Mail className="h-4 w-4 text-orange-500" />
+                    Correo Electrónico
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      name="conductor-email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange('email', e.target.value)
+                      }
+                      disabled={loading}
+                      autoComplete="off"
+                      data-form-type="other"
+                      readOnly
+                      onFocus={(e) =>
+                        e.currentTarget.removeAttribute('readonly')
+                      }
+                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                      placeholder="Ingrese correo electrónico"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center">
+                      <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campos condicionales para movilbus */}
+              {username === 'movilbus' && (
+                <>
+                  {/* Turno y Hora de Inicio - Dos columnas */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="turno"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                      >
+                        <Calendar className="h-4 w-4 text-orange-500" />
+                        Turno
+                      </Label>
+                      <Select
+                        value={formData.turno}
+                        onValueChange={(value) =>
+                          handleInputChange('turno', value)
                         }
                         disabled={loading}
-                        autoComplete="off"
-                        className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-                        placeholder="Ingrese hora de inicio"
-                      />
-                      <div className="absolute inset-y-0 right-3 flex items-center">
-                        <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                      >
+                        <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
+                          <SelectValue placeholder="Seleccione el turno" />
+                        </SelectTrigger>
+                        <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                          <SelectItem
+                            value="dia"
+                            className="hover:bg-orange-50 focus:bg-orange-50"
+                          >
+                            Día
+                          </SelectItem>
+                          <SelectItem
+                            value="noche"
+                            className="hover:bg-orange-50 focus:bg-orange-50"
+                          >
+                            Noche
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="horainicio"
+                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                      >
+                        <Clock className="h-4 w-4 text-orange-500" />
+                        Hora de Inicio
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="horainicio"
+                          type="time"
+                          value={formData.horainicio}
+                          onChange={(e) =>
+                            handleInputChange('horainicio', e.target.value)
+                          }
+                          disabled={loading}
+                          autoComplete="off"
+                          className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                          placeholder="Ingrese hora de inicio"
+                        />
+                        <div className="absolute inset-y-0 right-3 flex items-center">
+                          <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Campo de Unidad Asignada */}
+                  {/* Unidad Asignada - Línea completa */}
                   <div className="space-y-2">
                     <Label
                       htmlFor="unidadasig"
@@ -433,43 +668,8 @@ export default function ConductorDialog({
                   </div>
                 </>
               )}
-
-              <div className="space-y-2">
-                <Label
-                  htmlFor="sexo"
-                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                >
-                  <Users className="h-4 w-4 text-orange-500" />
-                  Género
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={formData.sexo}
-                  onValueChange={(value) => handleInputChange('sexo', value)}
-                  disabled={loading}
-                >
-                  <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
-                    <SelectValue placeholder="Seleccione el género" />
-                  </SelectTrigger>
-                  <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                    <SelectItem
-                      value="masculino"
-                      className="hover:bg-orange-50 focus:bg-orange-50"
-                    >
-                      Masculino
-                    </SelectItem>
-                    <SelectItem
-                      value="femenino"
-                      className="hover:bg-orange-50 focus:bg-orange-50"
-                    >
-                      Femenino
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </form>
-          {/* 👆 Cierra el form aquí */}
 
           <DialogFooter className="gap-3 pt-6">
             <Button
