@@ -70,7 +70,6 @@ export default function ModalDirecciones({
 
     setIsSaving(true);
     try {
-        
       // codpedido = codigo del pasajero, codubicli = codlugar del lugar seleccionado
       const url = `https://do.velsat.pe:2083/api/Preplan/ActualizarDireccionPasajero/${codigo}/${selectedValue}`;
 
