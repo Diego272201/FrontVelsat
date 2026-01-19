@@ -24,6 +24,7 @@ import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
 import { useUsername } from '@/hooks/useUsername';
 import { HiDocumentReport } from 'react-icons/hi';
+import ModalGenerarReporte from './ModalGenerarReporte';
 
 const empresas = [
   'ABNER MATOS',
@@ -115,6 +116,10 @@ export default function Page() {
   const [fechaInicial, setFechaInicial] = useState('');
   const [fechaFinal, setFechaFinal] = useState('');
   const [tipoReporte, setTipoReporte] = useState('');
+
+
+  const [isModalDiferenciasOpen, setIsModalDiferenciasOpen] = useState(false);
+
 
   const formatearFechaParaAPI = (fechaDatetimeLocal: string) => {
     if (!fechaDatetimeLocal) return '';
@@ -578,15 +583,27 @@ export default function Page() {
             </select>
 
             <button
-              className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95"
+              className="flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-orange-700 active:scale-95"
               onClick={handleGenerarReporte}
             >
               <HiDocumentReport className="h-3 w-3" />
               Generar
             </button>
+
+<button
+  className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
+  onClick={() => setIsModalDiferenciasOpen(true)}
+>
+  <HiDocumentReport className="h-3 w-3" />
+  Servicios por conductor
+</button>
+
           </div>
         </div>
       </div>
+
+
+
     </div>
 
     {/* Filtros de Búsqueda */}
@@ -792,6 +809,12 @@ export default function Page() {
           </div>
         )}
       </div>
+
+
+      <ModalGenerarReporte 
+  isOpen={isModalDiferenciasOpen} 
+  onClose={() => setIsModalDiferenciasOpen(false)} 
+/>
 
       <div className="grupoServicios relative z-10 overflow-visible">
         <TableServicios
