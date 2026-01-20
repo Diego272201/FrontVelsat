@@ -194,7 +194,7 @@ const agruparPorCercania = (
     clusters.push(cluster);
   });
 
-  console.log(`✅ ${clusters.length} grupos formados por cercanía geográfica (distancia máx: ${distanciaMaxima}km)`);
+  console.log(`${clusters.length} grupos formados por cercanía geográfica (distancia máx: ${distanciaMaxima}km)`);
   clusters.forEach((cluster, idx) => {
     console.log(`   Grupo ${idx + 1}: ${cluster.length} pasajeros`);
   });
@@ -268,7 +268,8 @@ export const cargarGruposDesdeAPI = async (
             if (primerPasajero.horaprog) {
               fechaFin = parsearFechaCompleta(primerPasajero.horaprog);
             } else {
-              fechaFin = null;
+              // 👇 NUEVO: Si no tiene horaprog, usar la misma fecha de inicio
+              fechaFin = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
             }
           } else if (tipoServicio === 'I') {
             if (primerPasajero.horaprog) {
@@ -335,7 +336,7 @@ export const cargarGruposDesdeAPI = async (
       console.log('🔍 Datos sin orden/grupo definidos - Aplicando agrupamiento por cercanía...');
 
       // Aplicar algoritmo de clustering por proximidad
-      const clustersGenerados = agruparPorCercania(data, 5); // 3 km de distancia máxima
+      const clustersGenerados = agruparPorCercania(data, 5); // 5 km de distancia máxima
 
       const gruposGenerados: Grupo[] = clustersGenerados.map((cluster, clusterIndex) => {
         const primerPasajero = cluster[0];
@@ -346,7 +347,8 @@ export const cargarGruposDesdeAPI = async (
 
         if (tipoServicio === 'S') {
           fechaInicio = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
-          fechaFin = null;
+          // 👇 NUEVO: Llenar automáticamente fecha fin con fecha inicio
+          fechaFin = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
         } else if (tipoServicio === 'I') {
           fechaInicio = null;
           fechaFin = parsearFecha(primerPasajero.fecha, primerPasajero.hora);
@@ -403,6 +405,7 @@ export const cargarGruposDesdeAPI = async (
     return [];
   }
 };
+
 
 export const guardarGruposEnAPI = async (
   grupos: Grupo[],

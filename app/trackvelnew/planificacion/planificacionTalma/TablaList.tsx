@@ -153,6 +153,8 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
       })
     );
 
+
+
     if (todosSinOrdenGrupo) {
       console.log('🔄 Auto-guardando datos agrupados por cercanía...');
       setGuardando(true);
@@ -181,6 +183,7 @@ export const TablaList = forwardRef<TablaListRef>((props, ref) => {
 
   autoGuardar();
 }, [grupos]); // Solo depende de grupos
+
 
 
 
