@@ -37,7 +37,6 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
   isOpen,
   onClose,
 }) => {
-  
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [conductorSeleccionado, setConductorSeleccionado] =
     useState<Conductor | null>(null);
