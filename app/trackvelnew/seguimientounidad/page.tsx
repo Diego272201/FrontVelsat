@@ -1,10 +1,17 @@
 'use client';
-import React, { useCallback, useEffect, useState, useRef,Suspense  } from 'react';
+import React, { useCallback, useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { X, AlertCircle, Clock8 } from 'lucide-react';
-import { toast, Toaster } from 'sonner';
+import { AlertCircle, Clock8 } from 'lucide-react';
 import { Spinner } from '@nextui-org/react';
-const POLLING_INTERVAL = 10000; 
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
+import 'leaflet-defaulticon-compatibility';
+
+const initialCenter: [number, number] = [
+  -12.046591525826495, -77.04689047482863,
+];
 
 interface Device {
   deviceId: string;
@@ -19,15 +26,11 @@ interface FechaActual {
   fechaActual: string;
 }
 
-interface ApiResponse {
-  datosDevice: Device[];
-  fechaActual: FechaActual;
-}
-
 interface MarkerData {
-  marker: google.maps.Marker;
-  popup1: any;
-  popup2: any;
+  marker: L.Marker;
+  popup1: L.Popup;
+  popup2: L.Popup;
+  popup2IsOpen: boolean; // ✅ Guardar estado del popup
 }
 
 interface TokenData {
@@ -39,25 +42,54 @@ interface TokenData {
   expirationdate: string;
 }
 
+// Componente para acceder al mapa desde dentro
+const MapController = ({
+  onMapReady,
+  device,
+}: {
+  onMapReady: (map: L.Map) => void;
+  device: Device | null;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (map) {
+      onMapReady(map);
+    }
+  }, [map, onMapReady]);
+
+  // Centrar el mapa cuando cambie el device
+  useEffect(() => {
+    if (map && device) {
+      const newCenter: [number, number] = [
+        device.lastValidLatitude,
+        device.lastValidLongitude,
+      ];
+      map.setView(newCenter, 16);
+    }
+  }, [map, device]);
+
+  return null;
+};
+
 const SeguimientoUnidadContent = () => {
   const searchParams = useSearchParams();
+
   const [device, setDevice] = useState<Device | null>(null);
-  const [currentDateTime, setCurrentDateTime] = useState<string>('');
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [fechaActual, setFechaActual] = useState<FechaActual | null>(null);
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [isValidatingToken, setIsValidatingToken] = useState(true);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
-  
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const markerDataRef = useRef<MarkerData | null>(null);
-  const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
 
- 
+  const mapRef = useRef<L.Map | null>(null);
+  const markerDataRef = useRef<MarkerData | null>(null);
+
+  // Validar token
   useEffect(() => {
     const validateToken = async () => {
       const token = searchParams.get('token');
-      
+
       if (!token) {
         setTokenError('Token no proporcionado. Por favor solicita un nuevo enlace de seguimiento.');
         setIsValidatingToken(false);
@@ -75,7 +107,7 @@ const SeguimientoUnidadContent = () => {
         }
 
         const data: TokenData = await response.json();
-        
+
         const expirationDate = new Date(data.expirationdate);
         const now = new Date();
 
@@ -88,7 +120,6 @@ const SeguimientoUnidadContent = () => {
         setTokenData(data);
         setTokenError(null);
         setIsValidatingToken(false);
-
       } catch (error) {
         console.error('Error validando token:', error);
         setTokenError('Token inválido o expirado. Por favor solicita un nuevo enlace de seguimiento.');
@@ -99,7 +130,7 @@ const SeguimientoUnidadContent = () => {
     validateToken();
   }, [searchParams]);
 
-
+  // Actualizar tiempo restante
   useEffect(() => {
     if (!tokenData) return;
 
@@ -127,66 +158,21 @@ const SeguimientoUnidadContent = () => {
     return () => clearInterval(intervalId);
   }, [tokenData]);
 
-  // Actualizar fecha y hora del sistema cada segundo
-  useEffect(() => {
-    const updateDateTime = () => {
-      const now = new Date();
-      const day = String(now.getDate()).padStart(2, '0');
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = now.getFullYear();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      
-      setCurrentDateTime(`${day}/${month}/${year} ${hours}:${minutes}:${seconds}`);
-    };
-
-    updateDateTime();
-    const intervalId = setInterval(updateDateTime, 1000);
-
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Cargar Google Maps Script
-  useEffect(() => {
-    const GOOGLE_MAPS_API_KEY = 'AIzaSyDjSwibBACnjf7AZXR2sj1yBUEMGq2o1ho'; 
-    
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error('Google Maps API Key no encontrada');
-      return;
-    }
-
-    if (window.google?.maps) {
-      setIsLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setIsLoaded(true);
-    script.onerror = () => console.error('Error cargando Google Maps');
-    document.head.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
-
-  // Polling de datos cada 10 segundos
+  // Polling Connection
   useEffect(() => {
     if (!tokenData || tokenError) return;
 
-    let intervalId: NodeJS.Timeout | null = null;
     let isComponentMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
 
     const fetchDeviceData = async () => {
-      if (!isComponentMounted) return;
+      // Validaciones iniciales
+      if (!isComponentMounted || !tokenData.deviceId) {
+        console.warn('❌ Componente desmontado o deviceId no disponible');
+        return;
+      }
 
-      // Verificar expiración antes de hacer fetch
+      // Verificar expiración del token
       const expirationDate = new Date(tokenData.expirationdate);
       const now = new Date();
 
@@ -197,9 +183,9 @@ const SeguimientoUnidadContent = () => {
       }
 
       try {
-        const API_URL = `https://do.velsat.pe:2083/api/DeviceList/Unidad/${tokenData.username}/${tokenData.deviceId}`;
-        
-        const response = await fetch(API_URL, {
+        const apiUrl = `https://do.velsat.pe:2083/api/DeviceList/Unidad/${tokenData.username}/${tokenData.deviceId}`;
+
+        const response = await fetch(apiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -212,30 +198,91 @@ const SeguimientoUnidadContent = () => {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
 
-        const data: ApiResponse = await response.json();
+        const data = await response.json();
 
         if (!isComponentMounted) return;
 
-        if (data.datosDevice && data.datosDevice.length > 0) {
-          setDevice(data.datosDevice[0]);
+        const datosDevice = data.datosDevice;
+
+        // Buscar el dispositivo específico
+        const updatedDevice = datosDevice.find(
+          (d: Device) => d.deviceId === tokenData.deviceId
+        );
+
+        if (updatedDevice) {
+          console.log(`📱 Dispositivo ${tokenData.deviceId} actualizado`);
+          setFechaActual(data.fechaActual);
+          setDevice(updatedDevice);
+        } else {
+          console.warn(`⚠️ Dispositivo ${tokenData.deviceId} no encontrado en los datos`);
         }
       } catch (error) {
-        console.error('Error obteniendo datos:', error);
+        console.error('❌ Error obteniendo datos del dispositivo:', error);
       }
     };
 
-    fetchDeviceData();
-    intervalId = setInterval(fetchDeviceData, POLLING_INTERVAL);
+    const handleVisibilityChange = () => {
+      if (!isComponentMounted) return;
 
+      if (document.visibilityState === 'visible') {
+        console.log('🔍 Pestaña activa - Reanudando polling...');
+        
+        // Llamar inmediatamente al activar
+        fetchDeviceData();
+        
+        // Reiniciar intervalo si no existe
+        if (!intervalId) {
+          intervalId = setInterval(fetchDeviceData, 8000);
+        }
+      } else {
+        console.log('😴 Pestaña inactiva - Pausando polling');
+        
+        // Pausar polling cuando la pestaña está inactiva (opcional)
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+
+    // Agregar event listener para visibilidad
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Iniciar el polling
+    console.log('🚀 Iniciando polling de datos del dispositivo cada 8 segundos...');
+    
+    // Llamada inmediata con pequeño delay
+    const timeoutId = setTimeout(fetchDeviceData, 50);
+    
+    // Configurar intervalo de 8 segundos
+    intervalId = setInterval(fetchDeviceData, 8000);
+
+    // Cleanup function
     return () => {
       isComponentMounted = false;
+      clearTimeout(timeoutId);
+
       if (intervalId) {
         clearInterval(intervalId);
+        intervalId = null;
       }
+
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      console.log('🧹 Cleanup: Polling detenido');
     };
   }, [tokenData, tokenError]);
 
-  // Utilidades
+  const formatFecha = useCallback((fecha: any) => {
+    const date = new Date(fecha);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `Fecha: ${day}/${month}/${year} Hora: ${hours}:${minutes}`;
+  }, []);
+
   const getDireccion = useCallback((heading: number) => {
     if (heading >= 0 && heading <= 22.5) return 'Norte';
     if (heading >= 22.51 && heading <= 67.5) return 'Noreste';
@@ -250,392 +297,299 @@ const SeguimientoUnidadContent = () => {
   }, []);
 
   const getMarkerIcon = useCallback((heading: number) => {
-    const cacheKey = Math.floor(heading / 45) * 45;
-
-    if (iconCache.current[cacheKey]) {
-      return iconCache.current[cacheKey];
-    }
-
     const directions = [
-      { range: [0, 22.5], url: '/up.webp', size: [25, 35] },
-      { range: [22.51, 67.5], url: '/topright.webp', size: [42, 25] },
-      { range: [67.51, 112.5], url: '/right.webp', size: [42, 25] },
-      { range: [112.51, 157.5], url: '/downright.webp', size: [42, 25] },
-      { range: [157.51, 202.5], url: '/down.webp', size: [25, 35] },
-      { range: [202.51, 247.5], url: '/downleft.webp', size: [42, 25] },
-      { range: [247.51, 292.5], url: '/left.webp', size: [42, 25] },
-      { range: [292.51, 337.5], url: '/topleft.webp', size: [42, 25] },
-      { range: [337.51, 360.0], url: '/up.webp', size: [25, 35] },
+      { range: [0, 22.5], url: '/up.webp', size: [25, 35] as [number, number] },
+      {
+        range: [22.51, 67.5],
+        url: '/topright.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [67.51, 112.5],
+        url: '/right.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [112.51, 157.5],
+        url: '/downright.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [157.51, 202.5],
+        url: '/down.webp',
+        size: [25, 35] as [number, number],
+      },
+      {
+        range: [202.51, 247.5],
+        url: '/downleft.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [247.51, 292.5],
+        url: '/left.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [292.51, 337.5],
+        url: '/topleft.webp',
+        size: [42, 25] as [number, number],
+      },
+      {
+        range: [337.51, 360.0],
+        url: '/up.webp',
+        size: [25, 35] as [number, number],
+      },
     ];
 
     const direction = directions.find(
       (d) => heading >= d.range[0] && heading <= d.range[1],
     );
-    
-    const icon = direction
-      ? {
-          url: direction.url,
-          scaledSize: new google.maps.Size(direction.size[0], direction.size[1]),
-        }
-      : { url: '/up.webp', scaledSize: new google.maps.Size(25, 35) };
 
-    iconCache.current[cacheKey] = icon;
-    return icon;
+    return direction
+      ? L.icon({
+          iconUrl: direction.url,
+          iconSize: direction.size,
+          iconAnchor: [direction.size[0] / 2, direction.size[1] / 2],
+        })
+      : L.icon({
+          iconUrl: '/unknown.png',
+          iconSize: [42, 25],
+          iconAnchor: [21, 12.5],
+        });
   }, []);
 
   const getEstado = useCallback((speed: number) => {
     return speed > 0 ? 'En Movimiento' : 'Estacionado';
   }, []);
 
-  // Clase Popup personalizada
-  const createPopupClass = useCallback(() => {
-    if (!window.google?.maps) return null;
-
-    class Popup extends google.maps.OverlayView {
-      position: google.maps.LatLng;
-      containerDiv: HTMLDivElement;
-
-      constructor(position: google.maps.LatLng, content: HTMLElement) {
-        super();
-        this.position = position;
-        content.classList.add('popup-bubble');
-        const bubbleAnchor = document.createElement('div');
-        bubbleAnchor.appendChild(content);
-        this.containerDiv = document.createElement('div');
-        this.containerDiv.classList.add('popup-container');
-        this.containerDiv.appendChild(bubbleAnchor);
-        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
-      }
-
-      onAdd() {
-        this.getPanes()!.floatPane.appendChild(this.containerDiv);
-      }
-
-      onRemove() {
-        if (this.containerDiv.parentElement) {
-          this.containerDiv.parentElement.removeChild(this.containerDiv);
-        }
-      }
-
-      draw() {
-        if (!this.getProjection() || !this.position || !this.containerDiv) return;
-
-        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
-        const popupWidth = this.containerDiv.offsetWidth || 300;
-        
-        this.containerDiv.style.left = `${divPosition.x - (popupWidth / 2)}px`;
-        this.containerDiv.style.top = `${divPosition.y - 35}px`;  
-      }
-    }
-
-    return Popup;
-  }, []);
-
-  // Contenido del popup de placa (popup1)
-  const getPopup1Content = useCallback((device: Device) => {
+ const getPopupContent = useCallback(
+  (device: Device) => {
     return `
-      <div style="
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-top: 16px;
-        position: relative;
-      ">
-        <div style="
-          background-color: #fca311 !important;
-          color: #1f2937 !important;
-          padding: 6px 8px !important;
-          border: 1px solid #fca311 !important;
-          font-size: 12px !important;
-          font-weight: 700 !important;
-          font-family: system-ui, -apple-system, sans-serif !important;
-          border-radius: 4px !important;
-        ">
-          ${device.deviceId.toUpperCase()}
-        </div>
-        <div style="
-          width: 0 !important;
-          height: 0 !important;
-          border-left: 8px solid transparent !important;
-          border-right: 8px solid transparent !important;
-          border-top: 8px solid #fca311 !important;
-          margin-top: -1px !important;
-        "></div>
+    <div class="content-custom-popup bg-gray-800 text-white rounded-lg shadow-2xl" style="width: 280px; padding: 0; overflow: hidden;" id="content2-${device.deviceId}">
+      <!-- Header con botón cerrar -->
+      <div class="relative bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3 border-b border-gray-600">
+        <button id="close-btn-${device.deviceId}" class="absolute top-2 right-2 text-white hover:text-red-400 transition-colors" style="font-size: 24px; line-height: 1; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border-radius: 50%; cursor: pointer;">&times;</button>
+        <h3 class="text-sm font-bold text-yellow-400 uppercase tracking-wide pr-8">Unidad: ${device.deviceId.toUpperCase()}</h3>
       </div>
-    `;
-  }, []);
-
-  // Contenido del popup detallado (popup2)
-  const getPopup2Content = useCallback((device: Device, currentTime: string) => {
-    return `
-      <div style="
-        background-color: #1f2937 !important;
-        color: #ffffff !important;
-        padding: 16px !important;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-        border: 1px solid #4b5563 !important;
-        min-width: 300px !important;
-        border-radius: 8px !important;
-        font-size: 12px !important;
-        line-height: 1.4 !important;
-        position: relative !important;
-        font-family: system-ui, -apple-system, sans-serif !important;
-        margin-top: 16px !important;
-      " id="content-popup-${device.deviceId}">
-        <button id="close-btn-${device.deviceId}" style="
-          position: absolute !important;
-          top: 8px !important;
-          right: 12px !important;
-          color: #d1d5db !important;
-          font-size: 20px !important;
-          font-weight: bold !important;
-          cursor: pointer !important;
-          border: none !important;
-          background: transparent !important;
-          transition: color 0.15s ease !important;
-        " onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#d1d5db'">&times;</button>
-        
-        <div style="margin-bottom: 8px !important;">
-          <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-            <span style="color: #d1d5db !important;">Unidad:</span> 
-            <strong style="color: #93c5fd !important; margin-left: 4px !important;">${device.deviceId.toUpperCase()}</strong>
-          </div>
-          
-          <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-            <span style="color: #d1d5db !important;">Velocidad:</span> 
-            <strong style="color: #86efac !important; margin-left: 4px !important;">${device.lastValidSpeed.toFixed(0)} Km/h</strong>
-          </div>
-          
-          <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-            <span style="color: #d1d5db !important;">Estado:</span> 
-            <strong style="color: #fde047 !important; margin-left: 4px !important;">${getEstado(device.lastValidSpeed)}</strong>
-          </div>
-        </div>
-
-        <hr style="border: none !important; border-top: 1px solid #4b5563 !important; margin: 8px 0 !important;">
-        
-        <h4 style="
-          font-weight: 600 !important;
-          color: #e5e7eb !important;
-          text-transform: uppercase !important;
-          font-size: 10px !important;
-          margin-bottom: 4px !important;
-          margin-left: 2px !important;
-        ">
-          <strong>ÚLTIMO REPORTE</strong>
-        </h4>
-        
-        <div style="background-color: #374151 !important; padding: 8px !important; border-radius: 4px !important;">
-          <div style="margin-bottom: 5px !important;">
-            <span style="color: #d1d5db !important; font-size: 12px !important;">
-              Fecha: <span style="color: #ffffff !important; font-weight: 500 !important;" id="datetime-${device.deviceId}">${currentTime}</span>
-            </span>
-          </div>
-          
-          <div>
-            <div style="margin-bottom: 4px !important;">
-              <span style="color: #d1d5db !important; font-size: 12px !important;">Dirección:</span> 
-              <span style="color: #ffffff !important;">${getDireccion(device.lastValidHeading)}</span>
-            </div>
-            
-<div style="
-  word-wrap: break-word !important;
-  word-break: break-word !important;
-  white-space: normal !important;
-  max-width: 280px !important;
-">
-  <span style="color: #d1d5db !important; font-size: 12px !important;">Ubicación: </span>
-  <span style="
-    color: #ffffff !important; 
-    font-size: 12px !important;
-    display: inline !important;
-    line-height: 1.5 !important;
-  ">${device.direccion}</span>
-</div>
-
-
-          </div>
-        </div>
-      </div>
-    `;
-  }, [getDireccion, getEstado]);
-
-  // Crear/actualizar marcador
-  const createOrUpdateMarker = useCallback((map: google.maps.Map) => {
-    if (!device || !window.google?.maps) return;
-
-    const PopupClass = createPopupClass();
-    if (!PopupClass) return;
-
-    const position = new google.maps.LatLng(
-      device.lastValidLatitude,
-      device.lastValidLongitude,
-    );
-
-    if (markerDataRef.current) {
-      const markerData = markerDataRef.current;
       
-      markerData.marker.setPosition(position);
-      markerData.popup1.position = position;
-      markerData.popup2.position = position;
+      <!-- Información principal -->
+      <div class="px-4 py-3 space-y-2">
+        <div class="flex justify-between items-center py-1.5 px-3 bg-gray-700/50 rounded">
+          <span class="text-xs text-gray-300">Velocidad:</span>
+          <span class="text-sm font-bold text-green-400">${device.lastValidSpeed.toFixed(0)} Km/h</span>
+        </div>
+        <div class="flex justify-between items-center py-1.5 px-3 bg-gray-700/50 rounded">
+          <span class="text-xs text-gray-300">Estado:</span>
+          <span class="text-sm font-bold ${device.lastValidSpeed > 0 ? 'text-blue-400' : 'text-orange-400'}">${getEstado(device.lastValidSpeed)}</span>
+        </div>
+      </div>
 
-      const newIcon = getMarkerIcon(device.lastValidHeading);
-      if (newIcon) {
-        markerData.marker.setIcon(newIcon);
-      }
+      <!-- Separador -->
+      <div class="h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent mx-4"></div>
 
-      const popup2Element = document.querySelector(`#content-popup-${device.deviceId}`) as HTMLElement;
-      if (popup2Element) {
-        const newContent = getPopup2Content(device, currentDateTime);
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newContent;
-        const newPopupContent = tempDiv.firstElementChild as HTMLElement;
-        
-        if (newPopupContent) {
-          popup2Element.parentNode?.replaceChild(newPopupContent, popup2Element);
-          
-          setTimeout(() => {
-            const closeButton = document.querySelector(`#close-btn-${device.deviceId}`);
+      <!-- Último reporte -->
+      <div class="px-4 py-3">
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-2">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+          </svg>
+          Último Reporte
+        </h4>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 min-w-[60px]">Fecha:</span>
+            <span class="text-gray-200 font-medium">${formatFecha(fechaActual).replace('Fecha: ', '').replace(' Hora: ', ' • ')}</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 min-w-[60px]">Dirección:</span>
+            <span class="text-gray-200 font-medium">${getDireccion(device.lastValidHeading)}</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <span class="text-gray-400 min-w-[60px]">Ubicación:</span>
+            <span class="text-gray-200 font-medium leading-relaxed">${device.direccion}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  },
+  [fechaActual, getDireccion, getEstado, formatFecha],
+);
+
+  // ✅ Crear/actualizar marcador PRESERVANDO el estado del popup
+  const createMarkerAndPopup = useCallback(
+    (map: L.Map) => {
+      if (!device) return;
+
+      const position: [number, number] = [
+        device.lastValidLatitude,
+        device.lastValidLongitude,
+      ];
+
+      if (markerDataRef.current) {
+        // ✅ Actualizar marcador existente SIN cerrar popup
+        const markerData = markerDataRef.current;
+
+        // Actualizar posición e icono
+        markerData.marker.setLatLng(position);
+        markerData.marker.setIcon(getMarkerIcon(device.lastValidHeading));
+
+        // ✅ Actualizar contenido del popup2 SOLO si está abierto
+        if (markerData.popup2IsOpen) {
+          const popupElement = markerData.popup2.getElement();
+          if (popupElement) {
+            popupElement.innerHTML = getPopupContent(device);
+
+            // Re-agregar event listener al botón de cerrar
+            const closeButton = popupElement.querySelector(
+              `#close-btn-${device.deviceId}`,
+            );
             if (closeButton) {
               closeButton.addEventListener('click', (e) => {
                 e.stopPropagation();
-                markerData.popup2.setMap(null);
-                markerData.popup1.setMap(map);
+                markerData.marker.closePopup();
+                markerData.marker.bindPopup(markerData.popup1).openPopup();
+                markerData.popup2IsOpen = false;
               });
             }
-          }, 10);
+          }
+        }
+        // ✅ Si popup2 NO está abierto, actualizar popup1 (el nombre del dispositivo)
+        else {
+          const popup1Content = `
+            <div class="relative flex flex-col items-center mt-4">
+              <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
+                ${device.deviceId.toUpperCase()}
+              </div>
+              <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
+            </div>
+          `;
+          markerData.popup1.setContent(popup1Content);
         }
       } else {
-        const datetimeElement = document.querySelector(`#datetime-${device.deviceId}`);
-        if (datetimeElement) {
-          datetimeElement.textContent = currentDateTime;
-        }
+        // ✅ Crear nuevo marcador (solo la primera vez)
+        const popup1Content = `
+        <div class="relative flex flex-col items-center mt-4">
+          <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
+            ${device.deviceId.toUpperCase()}
+          </div>
+          <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
+        </div>
+      `;
+
+        const popup1 = L.popup({
+          closeButton: false,
+          autoClose: false,
+          autoPan: false,
+          className: 'custom-popup-1 transparent-popup',
+        }).setContent(popup1Content);
+
+        const popup2 = L.popup({
+          closeButton: false,
+          autoClose: false,
+          className: 'custom-popup-2 transparent-popup',
+        }).setContent(getPopupContent(device));
+
+        const icon = getMarkerIcon(device.lastValidHeading);
+        const marker = L.marker(position, { icon }).addTo(map);
+
+        // Abrir popup1 por defecto
+        marker.bindPopup(popup1).openPopup();
+
+        // ✅ Inicializar MarkerData con popup2IsOpen
+        const markerData: MarkerData = {
+          marker,
+          popup1,
+          popup2,
+          popup2IsOpen: false,
+        };
+
+        // Event listeners
+        marker.on('click', () => {
+          if (!markerData.popup2IsOpen) {
+            // Abrir popup2
+            marker.bindPopup(popup2).openPopup();
+            markerData.popup2IsOpen = true;
+          } else {
+            // Cerrar popup2 y volver a popup1
+            marker.closePopup();
+            marker.bindPopup(popup1).openPopup();
+            markerData.popup2IsOpen = false;
+          }
+        });
+
+        // Configurar event listeners para popup2
+        popup2.on('add', () => {
+          // Configurar botón de cerrar
+          const closeButton = document.querySelector(
+            `#close-btn-${device.deviceId}`,
+          );
+          if (closeButton) {
+            closeButton.addEventListener('click', (e) => {
+              e.stopPropagation();
+              marker.closePopup();
+              marker.bindPopup(popup1).openPopup();
+              markerData.popup2IsOpen = false;
+            });
+          }
+        });
+
+        // Guardar referencia
+        markerDataRef.current = markerData;
       }
-    } else {
-      const popup1Content = document.createElement('div');
-      popup1Content.innerHTML = getPopup1Content(device);
+    },
+    [device, getMarkerIcon, getPopupContent],
+  );
 
-      const popup2Content = document.createElement('div');
-      popup2Content.innerHTML = getPopup2Content(device, currentDateTime);
-
-      const popup1 = new PopupClass(position, popup1Content);
-      const popup2 = new PopupClass(position, popup2Content);
-
-      popup1.setMap(map);
-      popup2.setMap(null);
-
-      const icon = getMarkerIcon(device.lastValidHeading);
-      const marker = new google.maps.Marker({
-        position,
-        map,
-        icon: icon || undefined,
-      });
-
-      let popup2IsOpen = false;
-
-      marker.addListener('click', () => {
-        if (!popup2IsOpen) {
-          popup1.setMap(null);
-          popup2.setMap(map);
-          popup2IsOpen = true;
-        } else {
-          popup2.setMap(null);
-          popup1.setMap(map);
-          popup2IsOpen = false;
-        }
-      });
-
-      setTimeout(() => {
-        const closeButton = document.querySelector(`#close-btn-${device.deviceId}`);
-        if (closeButton) {
-          closeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            popup2.setMap(null);
-            popup1.setMap(map);
-            popup2IsOpen = false;
-          });
-        }
-      }, 100);
-
-      markerDataRef.current = { marker, popup1, popup2 };
-      
-      map.setCenter(position);
-      map.setZoom(15);
-    }
-  }, [device, getMarkerIcon, getPopup1Content, getPopup2Content, createPopupClass, currentDateTime]);
-
-  // Inicializar mapa
-  useEffect(() => {
-    if (!isLoaded || !device || tokenError) return;
-
-    const initMap = () => {
-      const mapElement = document.getElementById('map');
-      if (!mapElement || mapRef.current) return;
-
-      const map = new google.maps.Map(mapElement, {
-        center: { lat: device.lastValidLatitude, lng: device.lastValidLongitude },
-        zoom: 15,
-        mapTypeControl: true,
-        streetViewControl: false,
-        fullscreenControl: true,
-      });
-
+  const onMapReady = useCallback(
+    (map: L.Map) => {
       mapRef.current = map;
-      createOrUpdateMarker(map);
-    };
 
-    initMap();
-  }, [isLoaded, device, createOrUpdateMarker, tokenError]);
+      // Prevenir que los clics en el mapa cierren los popups
+      map.on('click', (e) => {
+        e.originalEvent.stopPropagation();
+        // No hacer nada - mantener todos los popups abiertos
+      });
 
-  // Actualizar marcador
+      if (device) {
+        createMarkerAndPopup(map);
+      }
+    },
+    [createMarkerAndPopup, device],
+  );
+
   useEffect(() => {
-    if (mapRef.current && device && !tokenError) {
-      createOrUpdateMarker(mapRef.current);
+    if (mapRef.current && device) {
+      createMarkerAndPopup(mapRef.current);
     }
-  }, [device, currentDateTime, createOrUpdateMarker, tokenError]);
+  }, [device, createMarkerAndPopup]);
 
-  // Pantalla de carga
+  // Pantallas de validación
   if (isValidatingToken) {
     return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 relative overflow-hidden">
-  {/* Efectos de fondo animados */}
-  <div className="absolute inset-0 overflow-hidden">
-    <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-400/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-    <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-indigo-400/10 to-transparent rounded-full blur-3xl animate-pulse delay-1000"></div>
-  </div>
-
-  {/* Card principal */}
-  <div className="relative z-10 text-center bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 max-w-md">
-    {/* Spinner de Next UI */}
-    <div className="mb-6">
-      <Spinner 
-        size="lg" 
-        color="primary"
-        className="mx-auto"
-      />
-    </div>
-
-    {/* Título */}
-    <h2 className="text-2xl font-bold text-gray-800 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-      Validando Acceso
-    </h2>
-
-    {/* Descripción */}
-    <p className="text-gray-600 text-base font-medium mb-4">
-      Verificando enlace de seguimiento...
-    </p>
-
-    {/* Indicador de progreso */}
-    <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-     
-      <span className="font-medium">Procesando</span>
-    </div>
-  </div>
-</div>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-400/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-indigo-400/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
+        </div>
+        <div className="relative z-10 text-center bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 max-w-md">
+          <div className="mb-6">
+            <Spinner size="lg" color="primary" className="mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Validando Acceso
+          </h2>
+          <p className="text-gray-600 text-base font-medium mb-4">
+            Verificando enlace de seguimiento...
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <span className="font-medium">Procesando</span>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  // Pantalla de error
   if (tokenError) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50 to-orange-100">
@@ -655,69 +609,125 @@ const SeguimientoUnidadContent = () => {
     );
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando mapa...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative w-full h-screen">
-          <Toaster position="top-right" richColors />
-
+    <div style={{ width: '100%', height: '100vh' }}>
       {/* Indicador de tiempo restante */}
-{timeRemaining && timeRemaining !== 'Expirado' && (
-  <div className="absolute bottom-4 left-4 z-[1000]">
-    <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white px-5 py-3 rounded-xl shadow-2xl backdrop-blur-sm border border-white/20">
-      <div className="flex items-center gap-3">
-        <div className="bg-white/20 p-2 rounded-lg backdrop-blur-md">
-          <Clock8 className="w-5 h-5 animate-pulse" />
+      {timeRemaining && timeRemaining !== 'Expirado' && (
+        <div className="absolute bottom-4 left-4 z-[1000]">
+          <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white px-5 py-3 rounded-xl shadow-2xl backdrop-blur-sm border border-white/20">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-md">
+                <Clock8 className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white uppercase">Sesión activa</p>
+                <p className="text-sm font-bold text-white mt-0.5">{timeRemaining}</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-xs font-bold text-white uppercase">
-            Sesión activa
-          </p>
-          <p className="text-sm font-bold text-white mt-0.5">
-            {timeRemaining}
-          </p>
-        </div>
-      </div>
-   
-    </div>
-  </div>
-)}
-      <div id="map" className="w-full h-full"></div>
+      )}
 
+      <MapContainer
+        center={
+          device
+            ? [device.lastValidLatitude + 0.009, device.lastValidLongitude]
+            : initialCenter
+        }
+        zoom={14}
+        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={true}
+        maxZoom={19}
+        minZoom={1}
+        closePopupOnClick={false} // ← Esta es la configuración clave
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
+        />
+
+        <MapController onMapReady={onMapReady} device={device} />
+      </MapContainer>
+
+      {/* CSS para popups transparentes y estilos */}
       <style jsx global>{`
-        .popup-bubble {
+        .transparent-popup .leaflet-popup-content-wrapper {
           background: transparent !important;
           box-shadow: none !important;
           border: none !important;
         }
 
-        .popup-container {
-          position: absolute;
-          z-index: 1000;
-          transform: translateY(-100%);
+        .transparent-popup .leaflet-popup-tip {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+        }
+
+        .transparent-popup .leaflet-popup-content {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        .transparent-popup .leaflet-popup-close-button {
+          display: none !important;
+        }
+
+        /* Forzar alineación a la izquierda en todo el contenido del popup */
+        .custom-popup-2 * {
+          text-align: left !important;
+        }
+
+        /* Estilos específicos para elementos del popup */
+        .custom-popup1-font {
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .popup-title {
+          padding: 8px 12px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .popup-close-btnn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+
+        .popup-close-btnn:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .content-custom-popup {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          position: relative;
+        }
+
+        .content-custom-popup span {
+          font-size: 12px;
         }
       `}</style>
     </div>
   );
 };
 
-
 const SeguimientoUnidad = () => {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
-        <Spinner size="lg" color="primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+          <Spinner size="lg" color="primary" />
+        </div>
+      }
+    >
       <SeguimientoUnidadContent />
     </Suspense>
   );

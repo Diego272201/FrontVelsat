@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
 import '@/app/styles/popup.css';
-import * as signalR from '@microsoft/signalr';
+
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
@@ -130,7 +130,6 @@ useEffect(() => {
 
       if (!isComponentMounted) return;
 
-      // ✅ Extraer datosDevice del objeto de respuesta
       const datosDevice = data.datosDevice;
 
       // Buscar el dispositivo específico
