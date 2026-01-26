@@ -222,54 +222,48 @@ export default function RequestPage() {
             ) {
               activeAlerts.current[deviceKey] = true;
 
-              // 🆕 Guardar alerta en la base de datos
-              const alertaGuardada = await insertarAlertaVelocidad(
-                baseUrl,
-                device,
-              );
+              // ✅ Guardar alerta en la base de datos SOLO si el usuario es "movilbus"
+              if (session?.user?.username === 'movilbus') {
+                await insertarAlertaVelocidad(baseUrl, device);
+              }
 
-              // Solo mostrar notificación si se guardó exitosamente
-              if (alertaGuardada) {
-                playSpeedAlert();
+              // ✅ Mostrar notificación y reproducir sonido para TODOS los usuarios
+              playSpeedAlert();
 
-                // Convertir timestamp Unix a hora local peruana
-                const peruTime = new Date(
-                  device.lastGPSTimestamp * 1000,
-                ).toLocaleString('es-PE', {
-                  timeZone: 'America/Lima',
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false,
-                });
+              // Convertir timestamp Unix a hora local peruana
+              const peruTime = new Date(
+                device.lastGPSTimestamp * 1000,
+              ).toLocaleString('es-PE', {
+                timeZone: 'America/Lima',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              });
 
-                toast.error(
-                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${peruTime})`,
-                  {
-                    duration: Infinity,
-                    action: {
-                      label: 'OK',
-                      onClick: () => {
-                        activeAlerts.current[deviceKey] = false;
-                        if (audioRef.current) {
-                          audioRef.current.pause();
-                          audioRef.current.currentTime = 0;
-                        }
+              toast.error(
+                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${peruTime})`,
+                {
+                  duration: Infinity,
+                  action: {
+                    label: 'OK',
+                    onClick: () => {
+                      activeAlerts.current[deviceKey] = false;
+                      if (audioRef.current) {
+                        audioRef.current.pause();
+                        audioRef.current.currentTime = 0;
+                      }
 
-                        alertTimeouts.current[deviceKey] = setTimeout(() => {
-                          delete alertTimeouts.current[deviceKey];
-                        }, 300000); // 5 minutos
-                      },
+                      alertTimeouts.current[deviceKey] = setTimeout(() => {
+                        delete alertTimeouts.current[deviceKey];
+                      }, 300000); // 5 minutos
                     },
                   },
-                );
-              } else {
-                // Si no se pudo guardar, liberar el estado de alerta
-                activeAlerts.current[deviceKey] = false;
-              }
+                },
+              );
             }
           } else {
             // Si la velocidad baja, limpiar todo
