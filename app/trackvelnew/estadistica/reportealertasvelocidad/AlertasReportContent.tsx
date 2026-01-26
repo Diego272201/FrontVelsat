@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import Table from '@/app/components/table/Table';
+import AlertasVelocidadTable from '@/app/components/table/AlertasVelocidadTable';
 import ReporteHeader from '@/app/components/ReporteHeader';
 import { IoSpeedometer } from 'react-icons/io5';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
@@ -18,9 +18,7 @@ export default function AlertasVelocidadReportContent() {
 
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
-  const username = session?.user.username;
 
-  // Convertir fechas al formato requerido por la API: dd/MM/yyyy HH:mm
   const formatDateForAPI = (dateString: string) => {
     if (!dateString) return '';
     
@@ -37,17 +35,10 @@ export default function AlertasVelocidadReportContent() {
   const fechaini = formatDateForAPI(startDate || '');
   const fechafin = formatDateForAPI(endDate || '');
 
-  // ✅ PASAR SOLO LA RUTA RELATIVA (sin baseUrl)
   const tableUrl = useMemo(() => {
     if (!fechaini || !fechafin) return null;
     return `/api/Preplan/AlertasVelocidad?fechaini=${encodeURIComponent(fechaini)}&fechafin=${encodeURIComponent(fechafin)}`;
   }, [fechaini, fechafin]);
-
-  console.log('Base URL:', baseUrl);
-  console.log('Table URL (relativa):', tableUrl);
-  console.log('URL completa será:', baseUrl + tableUrl);
-  console.log('Fecha inicial:', fechaini);
-  console.log('Fecha final:', fechafin);
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -67,7 +58,6 @@ export default function AlertasVelocidadReportContent() {
 
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
-  // ✅ MOSTRAR LOADING MIENTRAS baseUrl NO ESTÉ DISPONIBLE
   if (!baseUrl || !tableUrl) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -88,7 +78,8 @@ export default function AlertasVelocidadReportContent() {
         icon={<IoSpeedometer size={25} />}
       />
       
-      <Table url={tableUrl} deviceId="TODAS" />
+      {/* ✅ Usar el nuevo componente */}
+      <AlertasVelocidadTable url={tableUrl} deviceId="TODAS" />
     </div>
   );
 }
