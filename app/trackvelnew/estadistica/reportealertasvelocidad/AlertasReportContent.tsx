@@ -22,14 +22,14 @@ export default function AlertasVelocidadReportContent() {
 
   const formatDateForAPI = (dateString: string) => {
     if (!dateString) return '';
-    
+
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    
+
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
@@ -39,7 +39,7 @@ export default function AlertasVelocidadReportContent() {
   const tableUrl = useMemo(() => {
     // ✅ Validar que también exista el username
     if (!fechaini || !fechafin || !username) return null;
-    
+
     // ✅ Agregar el parámetro usuario a la URL
     return `/api/Preplan/AlertasVelocidad?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(fechaini)}&fechafin=${encodeURIComponent(fechafin)}`;
   }, [fechaini, fechafin, username]); // ✅ Agregar username a las dependencias
@@ -49,22 +49,26 @@ export default function AlertasVelocidadReportContent() {
     const endDate = new Date(end);
     const diffMs = endDate.getTime() - startDate.getTime();
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const hours = Math.floor(
+      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    );
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     return { days, hours, minutes };
   };
 
-  const diff = useMemo(() => (
-    startDate && endDate
-      ? calculateDifference(startDate, endDate)
-      : { days: 0, hours: 0, minutes: 0 }
-  ), [startDate, endDate]);
+  const diff = useMemo(
+    () =>
+      startDate && endDate
+        ? calculateDifference(startDate, endDate)
+        : { days: 0, hours: 0, minutes: 0 },
+    [startDate, endDate],
+  );
 
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   if (!baseUrl || !tableUrl) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <Spinner size="lg" color="primary" label="Cargando..." />
       </div>
     );
@@ -81,7 +85,7 @@ export default function AlertasVelocidadReportContent() {
         formatDate={formatDate}
         icon={<IoSpeedometer size={25} />}
       />
-      
+
       {/* ✅ Usar el nuevo componente */}
       <AlertasVelocidadTable url={tableUrl} deviceId="TODAS" />
     </div>
