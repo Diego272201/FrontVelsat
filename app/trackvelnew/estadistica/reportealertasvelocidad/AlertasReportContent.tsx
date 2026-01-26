@@ -18,6 +18,7 @@ export default function AlertasVelocidadReportContent() {
 
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
+  const username = session?.user.username;
 
   const formatDateForAPI = (dateString: string) => {
     if (!dateString) return '';
@@ -36,9 +37,12 @@ export default function AlertasVelocidadReportContent() {
   const fechafin = formatDateForAPI(endDate || '');
 
   const tableUrl = useMemo(() => {
-    if (!fechaini || !fechafin) return null;
-    return `/api/Preplan/AlertasVelocidad?fechaini=${encodeURIComponent(fechaini)}&fechafin=${encodeURIComponent(fechafin)}`;
-  }, [fechaini, fechafin]);
+    // ✅ Validar que también exista el username
+    if (!fechaini || !fechafin || !username) return null;
+    
+    // ✅ Agregar el parámetro usuario a la URL
+    return `/api/Preplan/AlertasVelocidad?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(fechaini)}&fechafin=${encodeURIComponent(fechafin)}`;
+  }, [fechaini, fechafin, username]); // ✅ Agregar username a las dependencias
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);

@@ -128,9 +128,11 @@ export default function RequestPage() {
   }, [filteredIdsFromSidebar]);
 
   // Función para insertar alerta de velocidad en la BD
+  // Función para insertar alerta de velocidad en la BD
   const insertarAlertaVelocidad = async (
     baseUrl: string,
     device: DeviceList,
+    username: string, // ✅ Nuevo parámetro
   ): Promise<boolean> => {
     try {
       // Convertir Unix timestamp a formato dd/MM/yyyy HH:mm
@@ -151,11 +153,12 @@ export default function RequestPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            usuario: username,
             deviceID: device.deviceId,
-            datetime: datetimeFormatted, // "26/01/2026 15:30"
+            datetime: datetimeFormatted,
             latitude: device.lastValidLatitude.toString(),
             longitude: device.lastValidLongitude.toString(),
-            speed: device.lastValidSpeed.toString(),
+            speed: device.lastValidSpeed.toString()        
           }),
         },
       );
@@ -165,7 +168,7 @@ export default function RequestPage() {
       }
 
       console.log(
-        `✅ Alerta guardada para ${device.deviceId} - ${datetimeFormatted}`,
+        `✅ Alerta guardada para ${device.deviceId} - ${datetimeFormatted} (Usuario: ${username})`,
       );
       return true;
     } catch (error) {
@@ -222,9 +225,13 @@ export default function RequestPage() {
             ) {
               activeAlerts.current[deviceKey] = true;
 
-              // ✅ Guardar alerta en la base de datos SOLO si el usuario es "movilbus"
-              if (session?.user?.username === 'movilbus') {
-                await insertarAlertaVelocidad(baseUrl, device);
+              // ✅ Guardar alerta en la base de datos para TODOS los usuarios
+              if (session?.user?.username) {
+                await insertarAlertaVelocidad(
+                  baseUrl,
+                  device,
+                  session.user.username,
+                );
               }
 
               // ✅ Mostrar notificación y reproducir sonido para TODOS los usuarios
