@@ -69,7 +69,7 @@ const empresas = [
   'PRESIDENCIAL',
   'PROSEGUR',
   'PTB',
-  'Quality Products',
+  'REP SI',
   'REP',
   'SAT',
   'SERVICE QUOTATION',

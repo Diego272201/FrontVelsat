@@ -629,7 +629,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                           AMERICAN TIERRA
                         </SelectItem>
                         <SelectItem key="REP">REP</SelectItem>
-                        <SelectItem key="COPA_AIR">COPA AIR</SelectItem>
+                        <SelectItem key="REP_SI">REP SI</SelectItem>
                         <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
                         <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
                         <SelectItem key="SASAA">SASAA</SelectItem>
