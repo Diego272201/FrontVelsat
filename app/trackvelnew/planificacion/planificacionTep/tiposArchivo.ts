@@ -15,6 +15,7 @@ export const tiposArchivos: string[] = [
     "Total TERPEL",
     "Total DHL",
     "Total INDECOPI",
+    "AMERICAN TIERRA",
     "REP SI",
     "Total COPA AIR",
     "PLUSPETROL",
