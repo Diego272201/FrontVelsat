@@ -158,7 +158,8 @@ export default function RequestPage() {
             datetime: datetimeFormatted,
             latitude: device.lastValidLatitude.toString(),
             longitude: device.lastValidLongitude.toString(),
-            speed: device.lastValidSpeed.toString()        
+            speed: device.lastValidSpeed.toString()        ,
+            direccion: device.direccion
           }),
         },
       );
