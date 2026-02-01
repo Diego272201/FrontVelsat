@@ -10,6 +10,7 @@ import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useApi } from '@/context/ApiContext';
 import { Spinner } from '@nextui-org/react';
 import '@/app/styles/table.css';
+import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 
 export default function AlertasVelocidadReportContent() {
   const { data: session } = useSession();
@@ -35,7 +36,6 @@ export default function AlertasVelocidadReportContent() {
 
   const fechaini = formatDateForAPI(startDate || '');
   const fechafin = formatDateForAPI(endDate || '');
-
   const tableUrl = useMemo(() => {
     // ✅ Validar que también exista el username
     if (!fechaini || !fechafin || !username) return null;
@@ -86,6 +86,15 @@ export default function AlertasVelocidadReportContent() {
         icon={<IoSpeedometer size={25} />}
       />
 
+      {/* ✅ Actualizado con los parámetros correctos */}
+      <ButtonDownloadFloat
+        startDate={fechaini}
+        endDate={fechafin}
+        namedown="AlertasVelocidadExcel"
+        namedesc="alertas_velocidad"
+        username={username || ''}
+        nameurl="alertasvelocidad"
+      />
       {/* ✅ Usar el nuevo componente */}
       <AlertasVelocidadTable url={tableUrl} deviceId="TODAS" />
     </div>

@@ -13,6 +13,7 @@ interface AlertaVelocidad {
   latitude: string;
   longitude: string;
   speed: string;
+  direccion: string;
 }
 
 interface AlertasVelocidadTableProps {
@@ -20,7 +21,10 @@ interface AlertasVelocidadTableProps {
   deviceId: string;
 }
 
-export default function AlertasVelocidadTable({ url, deviceId }: AlertasVelocidadTableProps) {
+export default function AlertasVelocidadTable({
+  url,
+  deviceId,
+}: AlertasVelocidadTableProps) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<AlertaVelocidad[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,9 +42,9 @@ export default function AlertasVelocidadTable({ url, deviceId }: AlertasVelocida
       try {
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
-        
+
         console.log('Respuesta de la API:', data);
-        
+
         if (Array.isArray(data)) {
           setRows(data);
         } else {
@@ -85,18 +89,25 @@ export default function AlertasVelocidadTable({ url, deviceId }: AlertasVelocida
               <th className="p-2 text-center">VELOCIDAD</th>
               <th className="p-2 text-center">LATITUD</th>
               <th className="p-2 text-center">LONGITUD</th>
+              <th className="p-2 text-center">VER MAPA</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td
+                  colSpan={8}
+                  className="py-8 text-center text-sm text-gray-500"
+                >
                   <Spinner size="sm" color="warning" />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td
+                  colSpan={8}
+                  className="py-8 text-center text-sm text-gray-500"
+                >
                   No hay alertas de velocidad para las fechas ingresadas
                 </td>
               </tr>
@@ -105,16 +116,36 @@ export default function AlertasVelocidadTable({ url, deviceId }: AlertasVelocida
                 const datetime = splitDateTime(alerta.datetime);
                 const lat = parseFloat(alerta.latitude);
                 const lng = parseFloat(alerta.longitude);
-                
+
                 return (
-                  <tr key={alerta.id} className="border-t border-gray-300 bg-gray-100 hover:bg-white">
-                    <td className="p-2 text-center">{index + 1 + (page - 1) * rowsPerPage}</td>
+                  <tr
+                    key={alerta.id}
+                    className="border-t border-gray-300 bg-gray-100 hover:bg-white"
+                  >
+                    <td className="p-2 text-center">
+                      {index + 1 + (page - 1) * rowsPerPage}
+                    </td>
                     <td className="p-2 text-center">{alerta.deviceID}</td>
                     <td className="p-2 text-center">{datetime.fecha}</td>
                     <td className="p-2 text-center">{datetime.hora}</td>
                     <td className="p-2 text-center">{alerta.speed} Km/h</td>
                     <td className="p-2 text-center">{lat.toFixed(5)}</td>
                     <td className="p-2 text-center">{lng.toFixed(5)}</td>
+                    <td className="p-2 text-center">
+                      <a
+                        href={`/VerMapa?lat=${alerta.latitude}&lng=${alerta.longitude}&deviceId=${deviceId}&dir=${alerta.direccion}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block"
+                      >
+                        <Image
+                          src="/map.png"
+                          alt="Ver Mapa"
+                          width={16}
+                          height={16}
+                        />
+                      </a>
+                    </td>
                   </tr>
                 );
               })
@@ -125,17 +156,31 @@ export default function AlertasVelocidadTable({ url, deviceId }: AlertasVelocida
 
       {pages > 1 && (
         <div className="mt-2 flex justify-center gap-2 text-[14px]">
-          <button disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className={`rounded border px-2 py-1 ${page === 1 ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-white text-blue-600 hover:bg-blue-100'}`}>
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={`rounded border px-2 py-1 ${page === 1 ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-white text-blue-600 hover:bg-blue-100'}`}
+          >
             Anterior
           </button>
-          
-          {Array.from({ length: pages }, (_, i) => i).filter((i) => Math.abs(i + 1 - page) <= 2).map((i) => (
-            <button key={i} onClick={() => setPage(i + 1)} className={`rounded border px-2 py-1 ${i + 1 === page ? 'bg-blue-500 text-white' : 'bg-white text-blue-600 hover:bg-blue-100'}`}>
-              {i + 1}
-            </button>
-          ))}
 
-          <button disabled={page === pages} onClick={() => setPage((p) => Math.min(p + 1, pages))} className={`rounded border px-2 py-1 ${page === pages ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-white text-blue-600 hover:bg-blue-100'}`}>
+          {Array.from({ length: pages }, (_, i) => i)
+            .filter((i) => Math.abs(i + 1 - page) <= 2)
+            .map((i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i + 1)}
+                className={`rounded border px-2 py-1 ${i + 1 === page ? 'bg-blue-500 text-white' : 'bg-white text-blue-600 hover:bg-blue-100'}`}
+              >
+                {i + 1}
+              </button>
+            ))}
+
+          <button
+            disabled={page === pages}
+            onClick={() => setPage((p) => Math.min(p + 1, pages))}
+            className={`rounded border px-2 py-1 ${page === pages ? 'cursor-not-allowed bg-gray-200 text-gray-400' : 'bg-white text-blue-600 hover:bg-blue-100'}`}
+          >
             Siguiente
           </button>
         </div>
