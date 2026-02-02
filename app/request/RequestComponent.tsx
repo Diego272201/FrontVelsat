@@ -204,28 +204,24 @@ export default function RequestPage() {
         }
 
         const data = await response.json();
-
         if (!isComponentMounted) return;
 
-        // ✅ Extraer datosDevice del objeto de respuesta
         const datos = data.datosDevice;
-
         setMarkersLoaded(true);
         setDeviceList(datos);
 
-        // Procesar alertas de velocidad
-        datos.forEach(async (device: DeviceList) => {
+        // ✅ USAR for...of EN LUGAR DE forEach
+        for (const device of datos) {
           const deviceKey = device.deviceId;
 
           if (device.lastValidSpeed >= 91) {
-            // Solo activar si no hay alerta activa Y no hay timeout pendiente
             if (
               !activeAlerts.current[deviceKey] &&
               !alertTimeouts.current[deviceKey]
             ) {
               activeAlerts.current[deviceKey] = true;
 
-              // ✅ Guardar alerta en la base de datos para TODOS los usuarios
+              // Guardar alerta en la base de datos
               if (session?.user?.username) {
                 await insertarAlertaVelocidad(
                   baseUrl,
@@ -234,10 +230,8 @@ export default function RequestPage() {
                 );
               }
 
-              // ✅ Mostrar notificación y reproducir sonido para TODOS los usuarios
               playSpeedAlert();
 
-              // Convertir timestamp Unix a hora local peruana
               const peruTime = new Date(
                 device.lastGPSTimestamp * 1000,
               ).toLocaleString('es-PE', {
@@ -266,14 +260,13 @@ export default function RequestPage() {
 
                       alertTimeouts.current[deviceKey] = setTimeout(() => {
                         delete alertTimeouts.current[deviceKey];
-                      }, 300000); // 5 minutos
+                      }, 300000);
                     },
                   },
                 },
               );
             }
           } else {
-            // Si la velocidad baja, limpiar todo
             if (activeAlerts.current[deviceKey]) {
               activeAlerts.current[deviceKey] = false;
               if (audioRef.current) {
@@ -282,13 +275,12 @@ export default function RequestPage() {
               }
             }
 
-            // Limpiar timeout si existe
             if (alertTimeouts.current[deviceKey]) {
               clearTimeout(alertTimeouts.current[deviceKey]);
               delete alertTimeouts.current[deviceKey];
             }
           }
-        });
+        }
       } catch (error) {
         console.error('❌ Error obteniendo datos de devices:', error);
       }
