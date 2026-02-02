@@ -1,11 +1,8 @@
-import React from 'react';
-import { FaDownload } from 'react-icons/fa';
-import '@/app/styles/components.css';
-import axios from 'axios';
-import { toast } from 'sonner';
-import '@/app/styles/sonner.css';
-import { useApi } from '@/context/ApiContext';
-import { validateDateRange } from '../dates/convertToCustomFormat ';
+import { useApi } from "@/context/ApiContext";
+import axios from "axios";
+import { FaDownload } from "react-icons/fa";
+import { toast } from "sonner";
+import { validateDateRange } from "../dates/convertToCustomFormat ";
 
 interface DownloadParameterProps {
   startDate: string;
@@ -58,6 +55,9 @@ export default function ButtonDownloadFloat({
           : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else if (nameurl === 'reportevelocidad') {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+      } else if (nameurl === 'alertasvelocidad') {
+        // ✅ Nueva condición para alertas de velocidad
+        url += `/Preplan/AlertasVelocidadExcel?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(startDate)}&fechafin=${encodeURIComponent(endDate)}`;
       } else {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       }
@@ -71,7 +71,7 @@ export default function ButtonDownloadFloat({
       });
 
       const downloadUrl = window.URL.createObjectURL(blob);
-      const fileName = `reporte_${namedesc}_gps_${devideId || 'todos'}.xlsx`;
+      const fileName = `reporte_${namedesc}_${devideId || 'todos'}.xlsx`;
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('download', fileName);

@@ -37,25 +37,26 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
   isOpen,
   onClose,
 }) => {
-  
   const [conductores, setConductores] = useState<Conductor[]>([]);
   const [conductorSeleccionado, setConductorSeleccionado] =
     useState<Conductor | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [fecha, setFecha] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
+  const [usarRangoFechas, setUsarRangoFechas] = useState(false);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const handleClose = () => {
+  const handleClose = () => {
     setConductorSeleccionado(null);
     setSearchTerm('');
     setFecha('');
+    setFechaFin('');
+    setUsarRangoFechas(false);
     onClose();
   };
-
-
 
   // Fetch conductores
   useEffect(() => {
@@ -120,65 +121,100 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!conductorSeleccionado || !fecha) {
+      return;
+    }
+
+    // Validar que si está activado el rango, se haya ingresado la fecha fin
+    if (usarRangoFechas && !fechaFin) {
+      toast.error('Por favor ingrese la fecha fin');
       return;
     }
 
     setDownloading(true);
 
     try {
-      // Formatear la fecha
-      const fechaFormateada = formatFecha(fecha);
-      const codConductor = conductorSeleccionado.codigo;
-      const usuario = 'movilbus';
+      if (usarRangoFechas) {
+        // Consumir la nueva API con rango de fechas
+        const fechaInicioFormateada = formatFecha(fecha);
+        const fechaFinFormateada = formatFecha(fechaFin);
+        const codConductor = conductorSeleccionado.codigo;
+        const usuario = 'movilbus';
 
-      // Construir la URL
-      const url = `https://do.velsat.pe:2083/api/Preplan/ExcelServiciosConductor?codConductor=${codConductor}&fecha=${encodeURIComponent(fechaFormateada)}&usuario=${usuario}`;
+        const url = `https://do.velsat.pe:2083/api/Preplan/ServiciosConductorRangos?codConductor=${codConductor}&fechaini=${encodeURIComponent(fechaInicioFormateada)}&fechafin=${encodeURIComponent(fechaFinFormateada)}&usuario=${usuario}`;
 
-      // Hacer la petición
-      const response = await fetch(url);
+        const response = await fetch(url);
 
-      if (!response.ok) {
-        throw new Error('Error al descargar el archivo');
+        if (!response.ok) {
+          throw new Error('Error al descargar el archivo');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+
+        const nombreArchivo = `Reporte_${conductorSeleccionado.apellidos}_${fechaInicioFormateada.replace(/\//g, '-')}_${fechaFinFormateada.replace(/\//g, '-')}.xlsx`;
+        link.download = nombreArchivo;
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        console.log('Descarga exitosa');
+
+        setTimeout(() => {
+          onClose();
+          setConductorSeleccionado(null);
+          setSearchTerm('');
+          setFecha('');
+          setFechaFin('');
+          setUsarRangoFechas(false);
+        }, 500);
+      } else {
+        // Consumir la API existente
+        const fechaFormateada = formatFecha(fecha);
+        const codConductor = conductorSeleccionado.codigo;
+        const usuario = 'movilbus';
+
+        const url = `https://do.velsat.pe:2083/api/Preplan/ExcelServiciosConductor?codConductor=${codConductor}&fecha=${encodeURIComponent(fechaFormateada)}&usuario=${usuario}`;
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error('Error al descargar el archivo');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+
+        const nombreArchivo = `Reporte_${conductorSeleccionado.apellidos}_${fechaFormateada.replace(/\//g, '-')}.xlsx`;
+        link.download = nombreArchivo;
+
+        document.body.appendChild(link);
+        link.click();
+
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        console.log('Descarga exitosa');
+
+        setTimeout(() => {
+          onClose();
+          setConductorSeleccionado(null);
+          setSearchTerm('');
+          setFecha('');
+          setFechaFin('');
+          setUsarRangoFechas(false);
+        }, 500);
       }
-
-      // Obtener el blob del archivo
-      const blob = await response.blob();
-
-      // Crear un enlace temporal para descargar
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      
-      // Nombre del archivo
-      const nombreArchivo = `Reporte_${conductorSeleccionado.apellidos}_${fechaFormateada.replace(/\//g, '-')}.xlsx`;
-      link.download = nombreArchivo;
-
-      // Simular click para descargar
-      document.body.appendChild(link);
-      link.click();
-
-      // Limpiar
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-
-      // Mostrar mensaje de éxito (opcional)
-      console.log('Descarga exitosa');
-
-      // Cerrar el modal después de descargar
-      setTimeout(() => {
-        onClose();
-        // Limpiar formulario
-        setConductorSeleccionado(null);
-        setSearchTerm('');
-        setFecha('');
-      }, 500);
-
     } catch (error) {
-    toast.error('No hay reporte para los datos seleccionados.');
-
-      
+      toast.error('No hay reporte para los datos seleccionados.');
     } finally {
       setDownloading(false);
     }
@@ -292,29 +328,48 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-700 to-blue-400 text-white">
                     <User className="h-5 w-5" />
-                    
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-900">
                       {conductorSeleccionado.apellidos}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Código: {conductorSeleccionado.codigo} • DNI: {conductorSeleccionado.dni}
+                      Código: {conductorSeleccionado.codigo} • DNI:{' '}
+                      {conductorSeleccionado.dni}
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Input Fecha */}
+            {/* Input Fecha Inicio con Switch */}
             <div>
-              <label
-                htmlFor="fecha"
-                className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700"
-              >
-                <HiCalendar className="h-4 w-4 text-orange-500" />
-                Fecha
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label
+                  htmlFor="fecha"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                >
+                  <HiCalendar className="h-4 w-4 text-orange-500" />
+                  Fecha {usarRangoFechas ? 'Inicio' : ''}
+                </label>
+
+                {/* Switch más pequeño */}
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    checked={usarRangoFechas}
+                    onChange={(e) => {
+                      setUsarRangoFechas(e.target.checked);
+                      if (!e.target.checked) {
+                        setFechaFin('');
+                      }
+                    }}
+                    className="peer sr-only"
+                    disabled={downloading}
+                  />
+                  <div className="group peer h-6 w-12 rounded-full bg-rose-400 shadow-md outline-none ring-0 duration-300 after:absolute after:left-0.5 after:top-0.5 after:flex after:h-5 after:w-5 after:-rotate-180 after:items-center after:justify-center after:rounded-full after:bg-gray-50 after:text-[10px] after:outline-none after:duration-300 after:content-['✖️'] peer-checked:bg-emerald-500 peer-checked:after:translate-x-6 peer-checked:after:rotate-0 peer-checked:after:content-['✔️'] peer-hover:after:scale-95 peer-focus:outline-none"></div>
+                </label>
+              </div>
               <input
                 id="fecha"
                 type="date"
@@ -325,6 +380,30 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
                 disabled={downloading}
               />
             </div>
+
+            {/* Input Fecha Fin */}
+            <div>
+              <label
+                htmlFor="fechaFin"
+                className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700"
+              >
+                <HiCalendar className="h-4 w-4 text-orange-500" />
+                Fecha Fin
+              </label>
+              <input
+                id="fechaFin"
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className={`w-full rounded-xl border px-4 py-3 text-sm transition-all focus:outline-none focus:ring-4 ${
+                  !usarRangoFechas
+                    ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
+                    : 'border-gray-300 bg-gray-50 text-gray-900 focus:border-orange-500 focus:bg-white focus:ring-orange-500/10'
+                }`}
+                required={usarRangoFechas}
+                disabled={!usarRangoFechas || downloading}
+              />
+            </div>
           </div>
 
           {/* Footer Buttons */}
@@ -332,7 +411,7 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 active:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 active:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={downloading}
             >
               Cancelar
@@ -340,13 +419,12 @@ const ModalGenerarReporte: React.FC<ModalGenerarReporteProps> = ({
 
             <button
               type="submit"
-              className="flex-1 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white   transition-all hover:shadow-xl  disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               disabled={downloading}
             >
               {downloading ? (
                 <>
-                       <Spinner size="sm" color='default' />
-
+                  <Spinner size="sm" color="default" />
                   <span>Descargando...</span>
                 </>
               ) : (

@@ -2,7 +2,7 @@ import '@/app/styles/tollbar.css';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSearchParams, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
 
@@ -32,6 +32,7 @@ import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGener
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
 import AppModalUnidadesCercanas from '../trackvelnew/unidadescercanas/ModalUnidadesCercanas';
 import AppModalCargaLatam from './ModalCargaLatam';
+import AppModalAlertaReporte from '../trackvelnew/estadistica/reportealertasvelocidad/ModalAlertaReporte';
 
 // Tipos TypeScript
 type IconType =
@@ -56,7 +57,8 @@ type ModalType =
   | 'duracionservicios'
   | 'unidadesCercanas' // ← Nuevo
   | 'autosParados' // ← Nuevo
-  | 'cargaLatam';
+  | 'cargaLatam'
+  | 'alertasVelocidad';
 
 type MenuType =
   | 'services'
@@ -113,6 +115,7 @@ interface ModalState {
   unidadesCercanas: boolean; // ← Nuevo
   autosParados: boolean; // ← Nuevo
   cargaLatam: boolean;
+  alertasVelocidad: boolean;
 }
 
 interface IconSVGProps {
@@ -161,6 +164,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Reporte de Kilometraje',
         icon: 'chart',
         modalType: 'kilometers',
+      },
+      {
+        id: 'alertas-velocidad',
+        title: 'Alertas de Velocidad',
+        icon: 'velocity',
+        modalType: 'alertasVelocidad',
+        allowedUsers: ['movilbus', 'mitsubishi'], // Solo para movilbus
       },
     ],
   },
@@ -310,6 +320,7 @@ const useModalState = () => {
     unidadesCercanas: false, // ← Nuevo
     autosParados: false, // ← Nuevo
     cargaLatam: false, // ← Agregar esta línea
+    alertasVelocidad: false,
   });
 
   const openModal = useCallback((modalType: ModalType) => {
@@ -495,7 +506,10 @@ const Tollbar: React.FC = () => {
   const { modals, openModal, closeModal } = useModalState();
 
   const isTrackvel = useMemo(() => pathname === '/trackvelnew', [pathname]);
-  const isSedapal = useMemo(() => baseUrl === 'https://sub.velsat.pe:2096', [baseUrl]);
+  const isSedapal = useMemo(
+    () => baseUrl === 'https://sub.velsat.pe:2096',
+    [baseUrl],
+  );
 
   const TALMAV_LIKE_USERS = [
     'talmav',
@@ -619,104 +633,104 @@ const Tollbar: React.FC = () => {
                 return true;
               })
               .map((item, index) => (
-              <React.Fragment key={item.id}>
-                {item.submenu ? (
-                  <li className="group/sub">
-                    <a
-                      href="#"
-                      title={item.title}
-                      className={`flex cursor-pointer items-center justify-between border-l-4 px-5 py-3 text-[12px] font-medium transition-all duration-200 ${
-                        openMenus.programacion
-                          ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700'
-                          : 'border-transparent text-slate-700 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700'
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleMenu('programacion');
-                      }}
-                    >
-                      <div className="flex items-center">
+                <React.Fragment key={item.id}>
+                  {item.submenu ? (
+                    <li className="group/sub">
+                      <a
+                        href="#"
+                        title={item.title}
+                        className={`flex cursor-pointer items-center justify-between border-l-4 px-5 py-3 text-[12px] font-medium transition-all duration-200 ${
+                          openMenus.programacion
+                            ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700'
+                            : 'border-transparent text-slate-700 hover:border-orange-500 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:text-orange-700'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleMenu('programacion');
+                        }}
+                      >
+                        <div className="flex items-center">
+                          <IconSVG
+                            type={item.icon}
+                            className={`mr-3 h-5 w-5 transition-colors ${
+                              openMenus.programacion
+                                ? 'text-orange-500'
+                                : 'text-slate-400'
+                            }`}
+                          />
+                          <span>{item.title}</span>
+                        </div>
                         <IconSVG
-                          type={item.icon}
-                          className={`mr-3 h-5 w-5 transition-colors ${
+                          type="chevron"
+                          className={`h-4 w-4 transition-all duration-200 ${
                             openMenus.programacion
-                              ? 'text-orange-500'
+                              ? 'rotate-180 text-orange-500'
                               : 'text-slate-400'
                           }`}
                         />
-                        <span>{item.title}</span>
-                      </div>
-                      <IconSVG
-                        type="chevron"
-                        className={`h-4 w-4 transition-all duration-200 ${
-                          openMenus.programacion
-                            ? 'rotate-180 text-orange-500'
-                            : 'text-slate-400'
-                        }`}
-                      />
-                    </a>
+                      </a>
 
-                    <div
-                      className={`overflow-hidden transition-all duration-300 ease-out ${
-                        openMenus.programacion
-                          ? 'max-h-96 opacity-100'
-                          : 'max-h-0 opacity-0'
-                      }`}
-                    >
-                      <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
-                        {item.submenu.map((subItem) => (
-                          <li key={subItem.id} className="group/subitem">
-                            {subItem.href ? (
-                              <Link
-                                href={subItem.href}
-                                title={subItem.title}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
-                              >
-                                <IconSVG
-                                  type="document"
-                                  className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
-                                />
-                                {subItem.title}
-                              </Link>
-                            ) : (
-                              <a
-                                href="#"
-                                title={subItem.title}
-                                className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
-                                onClick={() =>
-                                  subItem.modalType &&
-                                  handleModalAction(subItem.modalType)
-                                }
-                              >
-                                <IconSVG
-                                  type="document"
-                                  className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
-                                />
-                                {subItem.title}
-                              </a>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </li>
-                ) : (
-                  <MenuItemComponent
-                    item={item}
-                    onClick={() =>
-                      item.modalType && handleModalAction(item.modalType)
-                    }
-                  />
-                )}
-                {config.id === 'reportes' && (index === 1 || index === 3) && (
-                  <li key={`separator-${index}`} className="mx-3 my-2">
-                    <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-                  </li>
-                )}
-              </React.Fragment>
-            ))}
+                      <div
+                        className={`overflow-hidden transition-all duration-300 ease-out ${
+                          openMenus.programacion
+                            ? 'max-h-96 opacity-100'
+                            : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        <ul className="from-orange-25 ml-0 border-l-4 border-orange-200 bg-gradient-to-r to-orange-50">
+                          {item.submenu.map((subItem) => (
+                            <li key={subItem.id} className="group/subitem">
+                              {subItem.href ? (
+                                <Link
+                                  href={subItem.href}
+                                  title={subItem.title}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+                                >
+                                  <IconSVG
+                                    type="document"
+                                    className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+                                  />
+                                  {subItem.title}
+                                </Link>
+                              ) : (
+                                <a
+                                  href="#"
+                                  title={subItem.title}
+                                  className="hover:to-orange-150 ml-[-2px] flex items-center border-l-2 border-transparent px-8 py-3 text-[12px] font-medium text-slate-600 transition-all duration-200 hover:bg-gradient-to-r hover:from-orange-100 hover:text-orange-700"
+                                  onClick={() =>
+                                    subItem.modalType &&
+                                    handleModalAction(subItem.modalType)
+                                  }
+                                >
+                                  <IconSVG
+                                    type="document"
+                                    className="mr-3 h-4 w-4 text-slate-400 transition-colors group-hover/subitem:text-orange-500"
+                                  />
+                                  {subItem.title}
+                                </a>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </li>
+                  ) : (
+                    <MenuItemComponent
+                      item={item}
+                      onClick={() =>
+                        item.modalType && handleModalAction(item.modalType)
+                      }
+                    />
+                  )}
+                  {config.id === 'reportes' && (index === 1 || index === 3) && (
+                    <li key={`separator-${index}`} className="mx-3 my-2">
+                      <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                    </li>
+                  )}
+                </React.Fragment>
+              ))}
           </div>
         </ul>
       </li>
@@ -816,37 +830,37 @@ const Tollbar: React.FC = () => {
                 return true;
               })
               .map((item, index) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.modalType) {
-                    handleModalAction(item.modalType);
-                  }
-                }}
-                className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-2 py-0.5 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <SquareCheck color="#003049" />{' '}
-                <span className="text-[12px] font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
-                  {item.title}
-                </span>
-                <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
-                  <svg
-                    className="h-3 w-3 text-blue-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </div>
-              </button>
-            ))}
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.modalType) {
+                      handleModalAction(item.modalType);
+                    }
+                  }}
+                  className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-2 py-0.5 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <SquareCheck color="#003049" />{' '}
+                  <span className="text-[12px] font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
+                    {item.title}
+                  </span>
+                  <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
+                    <svg
+                      className="h-3 w-3 text-blue-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </button>
+              ))}
           </div>
         )}
       </div>
@@ -964,9 +978,12 @@ const Tollbar: React.FC = () => {
                 {
                   ...MENU_CONFIG.SERVICIOS,
                   items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
-                    ['conductores', 'unidades', 'control', 'carga-latam'].includes(
-                      item.id,
-                    ),
+                    [
+                      'conductores',
+                      'unidades',
+                      'control',
+                      'carga-latam',
+                    ].includes(item.id),
                   ),
                 },
                 openMenus.services,
@@ -1251,13 +1268,20 @@ const Tollbar: React.FC = () => {
         icono={<RiGpsFill size={25} />}
       />
 
-<AppModalCargaLatam
-  isOpen={modals.cargaLatam}
-  onClose={() => closeModal('cargaLatam')}
-  titulo="CARGA DATOS LATAM"
-  useSelectAll={true}
-  icono={<SiGoogledocs size={25} />}
-/>
+      <AppModalCargaLatam
+        isOpen={modals.cargaLatam}
+        onClose={() => closeModal('cargaLatam')}
+        titulo="CARGA DATOS LATAM"
+        useSelectAll={true}
+        icono={<SiGoogledocs size={25} />}
+      />
+
+      <AppModalAlertaReporte
+        isOpen={modals.alertasVelocidad}
+        onClose={() => closeModal('alertasVelocidad')}
+        titulo="REPORTE DE ALERTAS DE VELOCIDAD"
+        icono={<IoSpeedometer size={25} />}
+      />
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
@@ -1340,9 +1364,12 @@ const Tollbar: React.FC = () => {
               {
                 ...MENU_CONFIG.SERVICIOS,
                 items: MENU_CONFIG.SERVICIOS.items?.filter((item) =>
-                  ['conductores', 'unidades', 'control', 'carga-latam'].includes(
-                    item.id,
-                  ),
+                  [
+                    'conductores',
+                    'unidades',
+                    'control',
+                    'carga-latam',
+                  ].includes(item.id),
                 ),
               },
               openMenus.services,

@@ -69,7 +69,7 @@ const empresas = [
   'PRESIDENCIAL',
   'PROSEGUR',
   'PTB',
-  'Quality Products',
+  'REP SI',
   'REP',
   'SAT',
   'SERVICE QUOTATION',
@@ -117,9 +117,7 @@ export default function Page() {
   const [fechaFinal, setFechaFinal] = useState('');
   const [tipoReporte, setTipoReporte] = useState('');
 
-
   const [isModalDiferenciasOpen, setIsModalDiferenciasOpen] = useState(false);
-
 
   const formatearFechaParaAPI = (fechaDatetimeLocal: string) => {
     if (!fechaDatetimeLocal) return '';
@@ -128,110 +126,110 @@ export default function Page() {
     return `${fecha} ${hora}`;
   };
 
- const handleGenerarReporte = async () => {
-  // Validaciones específicas con mensajes personalizados
-  if (!fechaInicial) {
-    toast.error('Por favor seleccione la fecha inicial');
-    return;
-  }
-
-  if (!fechaFinal) {
-    toast.error('Por favor seleccione la fecha final');
-    return;
-  }
-
-  if (!tipoReporte) {
-    toast.error('Por favor seleccione el tipo de reporte (Recojo o Reparto)');
-    return;
-  }
-
-  if (!empresaSelecRes) {
-    toast.error('Por favor seleccione un cliente/empresa');
-    return;
-  }
-
-  // Validar que fecha inicial no sea mayor que fecha final
-  if (new Date(fechaInicial) > new Date(fechaFinal)) {
-    toast.error('La fecha inicial no puede ser mayor que la fecha final');
-    return;
-  }
-
-  // Mostrar toast de loading
-  const toastId = toast.loading('Generando reporte de diferencias...');
-
-  try {
-    const fechaInicialAPI = formatearFechaParaAPI(fechaInicial);
-    const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
-
-    // Construir la URL con los parámetros
-    const baseUrl = 'https://do.velsat.pe:2083/api/Preplan/ExcelDiferencias';
-    const params = new URLSearchParams({
-      fecini: fechaInicialAPI,
-      fecfin: fechaFinalAPI,
-      aerolinea: empresaSelecRes,
-      usuario: username || '',
-      tipo: tipoReporte === 'RECOJO' ? 'I' : 'S',
-    });
-
-    const url = `${baseUrl}?${params.toString()}`;
-
-    console.log('Llamando a API:', url);
-
-    // Realizar la petición
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept:
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Error en la API: ${response.status} ${response.statusText}`,
-      );
+  const handleGenerarReporte = async () => {
+    // Validaciones específicas con mensajes personalizados
+    if (!fechaInicial) {
+      toast.error('Por favor seleccione la fecha inicial');
+      return;
     }
 
-    // Obtener el blob del archivo Excel
-    const blob = await response.blob();
+    if (!fechaFinal) {
+      toast.error('Por favor seleccione la fecha final');
+      return;
+    }
 
-    // Crear un enlace temporal para descargar el archivo
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
+    if (!tipoReporte) {
+      toast.error('Por favor seleccione el tipo de reporte (Recojo o Reparto)');
+      return;
+    }
 
-    // Generar nombre del archivo
-    const fechaHoy = new Date().toISOString().split('T')[0];
-    const tipoArchivo = tipoReporte === 'RECOJO' ? 'Recojo' : 'Reparto';
-    link.download = `Diferencias_${tipoArchivo}_${fechaHoy}.xlsx`;
+    if (!empresaSelecRes) {
+      toast.error('Por favor seleccione un cliente/empresa');
+      return;
+    }
 
-    // Ejecutar la descarga
-    document.body.appendChild(link);
-    link.click();
+    // Validar que fecha inicial no sea mayor que fecha final
+    if (new Date(fechaInicial) > new Date(fechaFinal)) {
+      toast.error('La fecha inicial no puede ser mayor que la fecha final');
+      return;
+    }
 
-    // Limpiar
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(downloadUrl);
+    // Mostrar toast de loading
+    const toastId = toast.loading('Generando reporte de diferencias...');
 
-    console.log('Archivo descargado exitosamente');
+    try {
+      const fechaInicialAPI = formatearFechaParaAPI(fechaInicial);
+      const fechaFinalAPI = formatearFechaParaAPI(fechaFinal);
 
-    // Dismissar el toast de loading y mostrar éxito
-    toast.dismiss(toastId);
-    toast.success('Reporte generado y descargado exitosamente');
+      // Construir la URL con los parámetros
+      const baseUrl = 'https://do.velsat.pe:2083/api/Preplan/ExcelDiferencias';
+      const params = new URLSearchParams({
+        fecini: fechaInicialAPI,
+        fecfin: fechaFinalAPI,
+        aerolinea: empresaSelecRes,
+        usuario: username || '',
+        tipo: tipoReporte === 'RECOJO' ? 'I' : 'S',
+      });
 
-    // Limpiar los campos después de la descarga exitosa
-    setFechaInicial('');
-    setFechaFinal('');
-    setTipoReporte('');
-    setEmpresaSelecRes('');
-  } catch (error) {
-    console.error('Error al generar el reporte:', error);
+      const url = `${baseUrl}?${params.toString()}`;
 
-    // Dismissar el toast de loading y mostrar error
-    toast.dismiss(toastId);
-    toast.error('Error al generar el reporte. Por favor intente nuevamente.');
-  }
-};
+      console.log('Llamando a API:', url);
+
+      // Realizar la petición
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Error en la API: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      // Obtener el blob del archivo Excel
+      const blob = await response.blob();
+
+      // Crear un enlace temporal para descargar el archivo
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      // Generar nombre del archivo
+      const fechaHoy = new Date().toISOString().split('T')[0];
+      const tipoArchivo = tipoReporte === 'RECOJO' ? 'Recojo' : 'Reparto';
+      link.download = `Diferencias_${tipoArchivo}_${fechaHoy}.xlsx`;
+
+      // Ejecutar la descarga
+      document.body.appendChild(link);
+      link.click();
+
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      console.log('Archivo descargado exitosamente');
+
+      // Dismissar el toast de loading y mostrar éxito
+      toast.dismiss(toastId);
+      toast.success('Reporte generado y descargado exitosamente');
+
+      // Limpiar los campos después de la descarga exitosa
+      setFechaInicial('');
+      setFechaFinal('');
+      setTipoReporte('');
+      setEmpresaSelecRes('');
+    } catch (error) {
+      console.error('Error al generar el reporte:', error);
+
+      // Dismissar el toast de loading y mostrar error
+      toast.dismiss(toastId);
+      toast.error('Error al generar el reporte. Por favor intente nuevamente.');
+    }
+  };
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -468,294 +466,287 @@ export default function Page() {
           </label>
         </div>
 
-   
-{isVisible && (
-  <div id="contenido" className="mx-2 space-y-3">
-    {/* Fecha a Consultar + Reporte Diferencias de Tiempo - Separados */}
-    <div className="flex gap-3">
-      {/* Fecha a Consultar */}
+        {isVisible && (
+          <div id="contenido" className="mx-2 space-y-3">
+            {/* Fecha a Consultar + Reporte Diferencias de Tiempo - Separados */}
+            <div className="flex gap-3">
+              {/* Fecha a Consultar */}
 
-      <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-1.5">
-          <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-            <HiCalendarDateRange className="h-4 w-4 text-blue-600" />
-            Fecha a Consultar
-          </span>
-        </div>
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiCalendarDateRange className="h-4 w-4 text-blue-600" />
+                    Fecha a Consultar
+                  </span>
+                </div>
 
-        <div className="p-3">
-          <div className="flex flex-space items-end gap-2">
-            <input
-              type="date"
-              className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-              value={selectedDate || ''}
-              onChange={(e) => setSelectedDate(e.target.value)}
-            />
+                <div className="p-3">
+                  <div className="flex-space flex items-end gap-2">
+                    <input
+                      type="date"
+                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      value={selectedDate || ''}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                    />
 
-            <button
-              className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
-              onClick={() => {
-                setSearchDate(selectedDate);
-                setRefreshSearch((prev) => prev + 1);
-              }}
-            >
-              <IoSearchSharp className="h-3 w-3" />
-              Buscar
-            </button>
+                    <button
+                      className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
+                      onClick={() => {
+                        setSearchDate(selectedDate);
+                        setRefreshSearch((prev) => prev + 1);
+                      }}
+                    >
+                      <IoSearchSharp className="h-3 w-3" />
+                      Buscar
+                    </button>
 
-            <button
-              className="rounded-md bg-gray-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95"
-              onClick={() => {
-                setSelectedDate(null);
-                setSearchDate(null);
-                setRefreshSearch((prev) => prev + 1);
-              }}
-            >
-              Actual
-            </button>
+                    <button
+                      className="rounded-md bg-gray-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95"
+                      onClick={() => {
+                        setSelectedDate(null);
+                        setSearchDate(null);
+                        setRefreshSearch((prev) => prev + 1);
+                      }}
+                    >
+                      Actual
+                    </button>
 
-            <select
-              id="empresas"
-              className="w-[180px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-              value={empresaSelecRes}
-              onChange={(e) => setEmpresaSelecRes(e.target.value)}
-            >
-              <option value="">Seleccione Empresa</option>
-              {(username && username.toLowerCase() !== 'movilbus'
-                ? empresasG
-                : empresas
-              ).map((empresa, index) => (
-                <option key={index} value={empresa}>
-                  {empresa}
-                </option>
-              ))}
-            </select>
+                    <select
+                      id="empresas"
+                      className="w-[180px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      value={empresaSelecRes}
+                      onChange={(e) => setEmpresaSelecRes(e.target.value)}
+                    >
+                      <option value="">Seleccione Empresa</option>
+                      {(username && username.toLowerCase() !== 'movilbus'
+                        ? empresasG
+                        : empresas
+                      ).map((empresa, index) => (
+                        <option key={index} value={empresa}>
+                          {empresa}
+                        </option>
+                      ))}
+                    </select>
 
-            <button
-              className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
-              onClick={handleDescarga}
-            >
-              <FaClipboard className="h-3 w-3" />
-              Resumen
-            </button>
-          </div>
-        </div>
-      </div>
+                    <button
+                      className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
+                      onClick={handleDescarga}
+                    >
+                      <FaClipboard className="h-3 w-3" />
+                      Resumen
+                    </button>
+                  </div>
+                </div>
+              </div>
 
+              {/* Reporte Diferencias de Tiempo */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiClock className="h-4 w-4 text-indigo-600" />
+                    Reporte Diferencias de Tiempo
+                  </span>
+                </div>
 
+                <div className="p-3">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <input
+                      type="datetime-local"
+                      className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      placeholder="Fecha Inicial"
+                      value={fechaInicial || ''}
+                      onChange={(e) => setFechaInicial(e.target.value)}
+                    />
 
-      {/* Reporte Diferencias de Tiempo */}
-      <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 py-1.5">
-          <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-            <HiClock className="h-4 w-4 text-indigo-600" />
-            Reporte Diferencias de Tiempo
-          </span>
-        </div>
+                    <input
+                      type="datetime-local"
+                      className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      placeholder="Fecha Final"
+                      value={fechaFinal || ''}
+                      onChange={(e) => setFechaFinal(e.target.value)}
+                    />
 
-        <div className="p-3">
-          <div className="flex flex-wrap items-end gap-2">
-            <input
-              type="datetime-local"
-              className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-              placeholder="Fecha Inicial"
-              value={fechaInicial || ''}
-              onChange={(e) => setFechaInicial(e.target.value)}
-            />
+                    <select
+                      id="tipoReporte"
+                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      value={tipoReporte}
+                      onChange={(e) => setTipoReporte(e.target.value)}
+                    >
+                      <option value="">Tipo</option>
+                      <option value="RECOJO">Recojo</option>
+                      <option value="REPARTO">Reparto</option>
+                    </select>
 
-            <input
-              type="datetime-local"
-              className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-              placeholder="Fecha Final"
-              value={fechaFinal || ''}
-              onChange={(e) => setFechaFinal(e.target.value)}
-            />
+                    <button
+                      className="flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-orange-700 active:scale-95"
+                      onClick={handleGenerarReporte}
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      Generar
+                    </button>
 
-            <select
-              id="tipoReporte"
-              className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-              value={tipoReporte}
-              onChange={(e) => setTipoReporte(e.target.value)}
-            >
-              <option value="">Tipo</option>
-              <option value="RECOJO">Recojo</option>
-              <option value="REPARTO">Reparto</option>
-            </select>
-
-            <button
-              className="flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-orange-700 active:scale-95"
-              onClick={handleGenerarReporte}
-            >
-              <HiDocumentReport className="h-3 w-3" />
-              Generar
-            </button>
-
-<button
-  className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
-  onClick={() => setIsModalDiferenciasOpen(true)}
->
-  <HiDocumentReport className="h-3 w-3" />
-  Servicios por conductor
-</button>
-
-          </div>
-        </div>
-      </div>
-
-
-
-    </div>
-
-    {/* Filtros de Búsqueda */}
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-1.5">
-        <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-          <AiOutlineFilter className="h-4 w-4 text-blue-600" />
-          Filtros de Búsqueda
-        </span>
-      </div>
-
-      <div className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            id="countries"
-            className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-            value={selectedArea}
-            onChange={(e) => setSelectedArea(e.target.value)}
-          >
-            <option value="" disabled>
-              Área
-            </option>
-            <option value="TEP">TEP</option>
-            <option value="TURISMO">TURISMO</option>
-          </select>
-
-          <select
-            id="countries"
-            className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-            value={empresaSeleccionada}
-            onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-          >
-            <option value="" disabled>
-              Cliente
-            </option>
-            {(username && username.toLowerCase() !== 'movilbus'
-              ? empresasG
-              : empresas
-            ).map((empresa, index) => (
-              <option key={index} value={empresa}>
-                {empresa}
-              </option>
-            ))}
-          </select>
-
-          <select
-            id="tipo-servicio"
-            className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-            value={tipoServicio}
-            onChange={(e) => setTipoServicio(e.target.value)}
-          >
-            <option value="" disabled>
-              Tipo Servicio
-            </option>
-            <option value="RECOJO">Recojo</option>
-            <option value="REPARTO">Reparto</option>
-            <option value="TRF IN">TRF IN</option>
-            <option value="TRF OUT">TRF OUT</option>
-            <option value="CITY TOUR">CITY TOUR</option>
-            <option value="VIAJE">VIAJE</option>
-            <option value="FULLDAY">FULLDAY</option>
-          </select>
-
-          <div className="relative w-[220px]">
-            <input
-              id="inputPasajero"
-              type="text"
-              className="w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-              placeholder="Buscar pasajero..."
-              value={pasajero}
-              onChange={(e) => {
-                if (seleccionado) {
-                  setSeleccionado(false);
-                  return;
-                }
-                setPasajero(e.target.value);
-                setMostrarSugerencias(true);
-              }}
-              onFocus={() => {
-                if (sugerencias.length > 0 && !seleccionado)
-                  setMostrarSugerencias(true);
-              }}
-              onBlur={() =>
-                setTimeout(() => setMostrarSugerencias(false), 100)
-              }
-            />
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-              <FaUser className="h-3 w-3 text-gray-400" />
+                    <button
+                      className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
+                      onClick={() => setIsModalDiferenciasOpen(true)}
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      Servicios por conductor
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {mostrarSugerencias && sugerencias.length > 0 && (
-              <ul className="absolute z-[9999] mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                {sugerencias.map((item, index) => (
-                  <li
-                    key={index}
-                    className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      seleccionarPasajero(item.apepate, item.codlan);
-                      setMostrarSugerencias(false);
-                      setSugerencias([]);
-                      setTimeout(() => {
-                        const input = document.getElementById('inputPasajero');
-                        input?.blur();
-                      }, 100);
-                    }}
+            {/* Filtros de Búsqueda */}
+            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-1.5">
+                <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                  <AiOutlineFilter className="h-4 w-4 text-blue-600" />
+                  Filtros de Búsqueda
+                </span>
+              </div>
+
+              <div className="p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    id="countries"
+                    className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                    value={selectedArea}
+                    onChange={(e) => setSelectedArea(e.target.value)}
                   >
-                    {item.apepate}
-                  </li>
-                ))}
-              </ul>
-            )}
+                    <option value="" disabled>
+                      Área
+                    </option>
+                    <option value="TEP">TEP</option>
+                    <option value="TURISMO">TURISMO</option>
+                  </select>
+
+                  <select
+                    id="countries"
+                    className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                    value={empresaSeleccionada}
+                    onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Cliente
+                    </option>
+                    {(username && username.toLowerCase() !== 'movilbus'
+                      ? empresasG
+                      : empresas
+                    ).map((empresa, index) => (
+                      <option key={index} value={empresa}>
+                        {empresa}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    id="tipo-servicio"
+                    className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                    value={tipoServicio}
+                    onChange={(e) => setTipoServicio(e.target.value)}
+                  >
+                    <option value="" disabled>
+                      Tipo Servicio
+                    </option>
+                    <option value="RECOJO">Recojo</option>
+                    <option value="REPARTO">Reparto</option>
+                    <option value="TRF IN">TRF IN</option>
+                    <option value="TRF OUT">TRF OUT</option>
+                    <option value="CITY TOUR">CITY TOUR</option>
+                    <option value="VIAJE">VIAJE</option>
+                    <option value="FULLDAY">FULLDAY</option>
+                  </select>
+
+                  <div className="relative w-[220px]">
+                    <input
+                      id="inputPasajero"
+                      type="text"
+                      className="w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      placeholder="Buscar pasajero..."
+                      value={pasajero}
+                      onChange={(e) => {
+                        if (seleccionado) {
+                          setSeleccionado(false);
+                          return;
+                        }
+                        setPasajero(e.target.value);
+                        setMostrarSugerencias(true);
+                      }}
+                      onFocus={() => {
+                        if (sugerencias.length > 0 && !seleccionado)
+                          setMostrarSugerencias(true);
+                      }}
+                      onBlur={() =>
+                        setTimeout(() => setMostrarSugerencias(false), 100)
+                      }
+                    />
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                      <FaUser className="h-3 w-3 text-gray-400" />
+                    </div>
+
+                    {mostrarSugerencias && sugerencias.length > 0 && (
+                      <ul className="absolute z-[9999] mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                        {sugerencias.map((item, index) => (
+                          <li
+                            key={index}
+                            className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              seleccionarPasajero(item.apepate, item.codlan);
+                              setMostrarSugerencias(false);
+                              setSugerencias([]);
+                              setTimeout(() => {
+                                const input =
+                                  document.getElementById('inputPasajero');
+                                input?.blur();
+                              }, 100);
+                            }}
+                          >
+                            {item.apepate}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <input
+                    value={numeroServicio}
+                    onChange={(e) => setNumeroServicio(e.target.value)}
+                    type="number"
+                    id="tentacles"
+                    name="tentacles"
+                    placeholder="N° Servicio"
+                    min="0"
+                    max="100"
+                    className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  />
+
+                  {username && (
+                    <InputUnidad
+                      value={unidadSeleccionada}
+                      onChange={(value) => setUnidadSeleccionada(value)}
+                      onSelect={(codunidad) => {
+                        setUnidadSeleccionada(codunidad);
+                      }}
+                      padding="p-1.5"
+                      bgColor="white"
+                      usuario={username}
+                    />
+                  )}
+
+                  <button
+                    className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
+                    onClick={handleClearFilters}
+                  >
+                    <MdCleaningServices className="h-3 w-3" />
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <input
-            value={numeroServicio}
-            onChange={(e) => setNumeroServicio(e.target.value)}
-            type="number"
-            id="tentacles"
-            name="tentacles"
-            placeholder="N° Servicio"
-            min="0"
-            max="100"
-            className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-          />
-
-          {username && (
-            <InputUnidad
-              value={unidadSeleccionada}
-              onChange={(value) => setUnidadSeleccionada(value)}
-              onSelect={(codunidad) => {
-                setUnidadSeleccionada(codunidad);
-              }}
-              padding="p-1.5"
-              bgColor="white"
-              usuario={username}
-            />
-          )}
-
-          <button
-            className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
-            onClick={handleClearFilters}
-          >
-            <MdCleaningServices className="h-3 w-3" />
-            Limpiar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
+        )}
 
         {isVisibleAsignar && (
           <div>
@@ -810,11 +801,10 @@ export default function Page() {
         )}
       </div>
 
-
-      <ModalGenerarReporte 
-  isOpen={isModalDiferenciasOpen} 
-  onClose={() => setIsModalDiferenciasOpen(false)} 
-/>
+      <ModalGenerarReporte
+        isOpen={isModalDiferenciasOpen}
+        onClose={() => setIsModalDiferenciasOpen(false)}
+      />
 
       <div className="grupoServicios relative z-10 overflow-visible">
         <TableServicios

@@ -48,29 +48,27 @@ interface MarkerData {
 }
 
 export default function RequestPage() {
+  const openStreetView = useCallback((lat: number, lng: number) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /iphone|ipad|ipod|android/.test(userAgent);
 
-const openStreetView = useCallback((lat: number, lng: number) => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobile = /iphone|ipad|ipod|android/.test(userAgent);
-  
-  if (isMobile) {
-    const link = document.createElement('a');
-    link.href = `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+    if (isMobile) {
+      const link = document.createElement('a');
+      link.href = `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
 
-    document.body.appendChild(link);
-    link.click();
+      document.body.appendChild(link);
+      link.click();
 
-    setTimeout(() => {
-      document.body.removeChild(link);
-    }, 100);
-  } else {
-    const desktopUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
-    window.open(desktopUrl, '_blank');
-  }
-}, []);
-
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+    } else {
+      const desktopUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+      window.open(desktopUrl, '_blank');
+    }
+  }, []);
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
@@ -129,6 +127,56 @@ const openStreetView = useCallback((lat: number, lng: number) => {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
   }, [filteredIdsFromSidebar]);
 
+  // Función para insertar alerta de velocidad en la BD
+  const insertarAlertaVelocidad = async (
+    baseUrl: string,
+    device: DeviceList,
+    username: string, // ✅ Nuevo parámetro
+  ): Promise<boolean> => {
+    try {
+      // Convertir Unix timestamp a formato dd/MM/yyyy HH:mm
+      const fecha = new Date(device.lastGPSTimestamp * 1000);
+      const day = String(fecha.getDate()).padStart(2, '0');
+      const month = String(fecha.getMonth() + 1).padStart(2, '0');
+      const year = fecha.getFullYear();
+      const hours = String(fecha.getHours()).padStart(2, '0');
+      const minutes = String(fecha.getMinutes()).padStart(2, '0');
+
+      const datetimeFormatted = `${day}/${month}/${year} ${hours}:${minutes}`;
+
+      const response = await fetch(
+        `${baseUrl}/api/Preplan/InsertarAlertaVelocidad`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            usuario: username,
+            deviceID: device.deviceId,
+            datetime: datetimeFormatted,
+            latitude: device.lastValidLatitude.toString(),
+            longitude: device.lastValidLongitude.toString(),
+            speed: device.lastValidSpeed.toString(),
+            direccion: device.direccion,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      console.log(
+        `✅ Alerta guardada para ${device.deviceId} - ${datetimeFormatted} (Usuario: ${username})`,
+      );
+      return true;
+    } catch (error) {
+      console.error('❌ Error guardando alerta de velocidad:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     let isComponentMounted = true;
     let intervalId: NodeJS.Timeout | null = null;
@@ -166,7 +214,7 @@ const openStreetView = useCallback((lat: number, lng: number) => {
         setDeviceList(datos);
 
         // Procesar alertas de velocidad
-        datos.forEach((device: DeviceList) => {
+        datos.forEach(async (device: DeviceList) => {
           const deviceKey = device.deviceId;
 
           if (device.lastValidSpeed >= 91) {
@@ -176,20 +224,32 @@ const openStreetView = useCallback((lat: number, lng: number) => {
               !alertTimeouts.current[deviceKey]
             ) {
               activeAlerts.current[deviceKey] = true;
+
+              // ✅ Guardar alerta en la base de datos para TODOS los usuarios
+              if (session?.user?.username) {
+                await insertarAlertaVelocidad(
+                  baseUrl,
+                  device,
+                  session.user.username,
+                );
+              }
+
+              // ✅ Mostrar notificación y reproducir sonido para TODOS los usuarios
               playSpeedAlert();
 
               // Convertir timestamp Unix a hora local peruana
-              const peruTime = new Date(device.lastGPSTimestamp * 1000)
-                .toLocaleString('es-PE', {
-                  timeZone: 'America/Lima',
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                  hour12: false
-                });
+              const peruTime = new Date(
+                device.lastGPSTimestamp * 1000,
+              ).toLocaleString('es-PE', {
+                timeZone: 'America/Lima',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              });
 
               toast.error(
                 `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${peruTime})`,

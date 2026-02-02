@@ -56,7 +56,7 @@ const clientes = [
   'PREMIER',
   'PRESIDENCIAL',
   'PROSEGUR',
-  'Quality Products',
+  'REP SI',
   'REP',
   'SIEMENS',
   'TALMA',
