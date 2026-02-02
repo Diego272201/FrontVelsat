@@ -128,7 +128,6 @@ export default function RequestPage() {
   }, [filteredIdsFromSidebar]);
 
   // Función para insertar alerta de velocidad en la BD
-  // Función para insertar alerta de velocidad en la BD
   const insertarAlertaVelocidad = async (
     baseUrl: string,
     device: DeviceList,
@@ -158,8 +157,8 @@ export default function RequestPage() {
             datetime: datetimeFormatted,
             latitude: device.lastValidLatitude.toString(),
             longitude: device.lastValidLongitude.toString(),
-            speed: device.lastValidSpeed.toString()        ,
-            direccion: device.direccion
+            speed: device.lastValidSpeed.toString(),
+            direccion: device.direccion,
           }),
         },
       );

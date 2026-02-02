@@ -170,7 +170,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Alertas de Velocidad',
         icon: 'velocity',
         modalType: 'alertasVelocidad',
-        allowedUsers: ['movilbus'], // Solo para movilbus
+        allowedUsers: ['movilbus', 'mitsubishi'], // Solo para movilbus
       },
     ],
   },
