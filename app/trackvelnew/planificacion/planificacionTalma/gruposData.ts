@@ -333,7 +333,7 @@ export const cargarGruposDesdeAPI = async (
       // ========================================
       // CASO 2: DATOS SIN ORDEN/GRUPO → AGRUPAR POR CERCANÍA
       // ========================================
-      console.log('🔍 Datos sin orden/grupo definidos - Aplicando agrupamiento por cercanía...');
+      console.log(' Datos sin orden/grupo definidos - Aplicando agrupamiento por cercanía...');
 
       // Aplicar algoritmo de clustering por proximidad
       const clustersGenerados = agruparPorCercania(data, 5); // 5 km de distancia máxima
@@ -393,7 +393,7 @@ export const cargarGruposDesdeAPI = async (
         return grupo;
       });
 
-      console.log(`📦 ${gruposGenerados.length} grupos generados automáticamente por proximidad`);
+      console.log(`${gruposGenerados.length} grupos generados automáticamente por proximidad`);
       gruposGenerados.forEach((g) => {
         console.log(`   Grupo ${g.numero}: ${g.pasajeros.length} pasajeros`);
       });
