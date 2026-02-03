@@ -127,8 +127,6 @@ export default function RequestPage() {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
   }, [filteredIdsFromSidebar]);
 
-
-
   useEffect(() => {
     let isComponentMounted = true;
     let intervalId: NodeJS.Timeout | null = null;

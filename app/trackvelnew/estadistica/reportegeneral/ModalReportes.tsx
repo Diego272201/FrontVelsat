@@ -154,6 +154,7 @@ const AppModalReportes: React.FC<AppModalProps> = ({
                     borderRadius="5px"
                   />
                 </div>
+                
               </div>
             </ModalBody>
             <ModalFooter>
