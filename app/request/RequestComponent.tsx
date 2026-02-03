@@ -127,55 +127,7 @@ export default function RequestPage() {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
   }, [filteredIdsFromSidebar]);
 
-  // Función para insertar alerta de velocidad en la BD
-  const insertarAlertaVelocidad = async (
-    baseUrl: string,
-    device: DeviceList,
-    username: string, // ✅ Nuevo parámetro
-  ): Promise<boolean> => {
-    try {
-      // Convertir Unix timestamp a formato dd/MM/yyyy HH:mm
-      const fecha = new Date(device.lastGPSTimestamp * 1000);
-      const day = String(fecha.getDate()).padStart(2, '0');
-      const month = String(fecha.getMonth() + 1).padStart(2, '0');
-      const year = fecha.getFullYear();
-      const hours = String(fecha.getHours()).padStart(2, '0');
-      const minutes = String(fecha.getMinutes()).padStart(2, '0');
 
-      const datetimeFormatted = `${day}/${month}/${year} ${hours}:${minutes}`;
-
-      const response = await fetch(
-        `${baseUrl}/api/Preplan/InsertarAlertaVelocidad`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            usuario: username,
-            deviceID: device.deviceId,
-            datetime: datetimeFormatted,
-            latitude: device.lastValidLatitude.toString(),
-            longitude: device.lastValidLongitude.toString(),
-            speed: device.lastValidSpeed.toString(),
-            direccion: device.direccion,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      console.log(
-        `✅ Alerta guardada para ${device.deviceId} - ${datetimeFormatted} (Usuario: ${username})`,
-      );
-      return true;
-    } catch (error) {
-      console.error('❌ Error guardando alerta de velocidad:', error);
-      return false;
-    }
-  };
 
   useEffect(() => {
     let isComponentMounted = true;
