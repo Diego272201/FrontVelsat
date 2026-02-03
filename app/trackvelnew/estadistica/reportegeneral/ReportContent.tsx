@@ -39,7 +39,6 @@ export default function ReportContent() {
       ? calculateDifference(startDate, endDate)
       : { days: 0, hours: 0, minutes: 0 }
   ), [startDate, endDate]);
-
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   return (
