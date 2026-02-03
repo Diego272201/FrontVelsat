@@ -1,7 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import '@/app/styles/popup.css';
-import Sidebar from '../components/Sidebar';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
@@ -11,6 +10,7 @@ const blinkingStates: { [key: string]: boolean } = {};
 import GoogleMapComponent from '../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
+import SidebarMobile from './SidebarMobile';
 
 const center = {
   lat: -9.22812,
@@ -18,7 +18,8 @@ const center = {
 };
 
 interface DeviceList {
-  deviceId: string;
+  deviceId: string; // ← Mantener minúscula
+  accountID?: string;
   lastValidLatitude: number;
   lastValidLongitude: number;
   lastValidSpeed: number;
@@ -37,9 +38,8 @@ interface DeviceList {
     numero?: string;
     empresa?: string;
     tipo?: string;
-  };
+  } | null;
 }
-
 interface MarkerData {
   marker: google.maps.Marker;
   popup1: any;
@@ -114,10 +114,8 @@ export default function RequestPage() {
 
   const handleMapLoad = useCallback(
     (map: google.maps.Map) => {
-      // Llamar al onLoad del hook
       mapOnLoad(map);
 
-      // Tu lógica personalizada
       setMarkersLoaded(false);
     },
     [mapOnLoad],
@@ -127,14 +125,14 @@ export default function RequestPage() {
     console.log('Unidades filtradas desde Sidebar:', filteredIdsFromSidebar);
   }, [filteredIdsFromSidebar]);
 
-  // Función para insertar alerta de velocidad en la BD
+
+  
   const insertarAlertaVelocidad = async (
     baseUrl: string,
     device: DeviceList,
-    username: string, 
+    username: string,
   ): Promise<boolean> => {
     try {
-      // Convertir Unix timestamp a formato dd/MM/yyyy HH:mm
       const fecha = new Date(device.lastGPSTimestamp * 1000);
       const day = String(fecha.getDate()).padStart(2, '0');
       const month = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -167,15 +165,14 @@ export default function RequestPage() {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
 
-      console.log(
-        `✅ Alerta guardada para ${device.deviceId} - ${datetimeFormatted} (Usuario: ${username})`,
-      );
       return true;
     } catch (error) {
-      console.error('❌ Error guardando alerta de velocidad:', error);
       return false;
     }
   };
+
+
+
 
   useEffect(() => {
     let isComponentMounted = true;
@@ -188,7 +185,7 @@ export default function RequestPage() {
 
       try {
         const username = session.user.username;
-        const apiUrl = `${baseUrl}/api/DeviceList/${username}`;
+        const apiUrl = `https://do.velsat.pe:2053/api/Aplicativo/GetLastTrama?accountID=movilbus`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -202,30 +199,45 @@ export default function RequestPage() {
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
-
         const data = await response.json();
 
         if (!isComponentMounted) return;
 
-        // ✅ Extraer datosDevice del objeto de respuesta
-        const datos = data.datosDevice;
+        const datos = Array.isArray(data)
+          ? data.map((device: any) => ({
+              deviceId: device.deviceID,
+              accountID: device.accountID,
+              lastValidLatitude: device.lastValidLatitude,
+              lastValidLongitude: device.lastValidLongitude,
+              lastValidSpeed: device.lastValidSpeed,
+              lastValidHeading: device.lastValidHeading,
+              direccion: device.direccion,
+              lastGPSTimestamp: 0,
+              lastOdometerKM: 0,
+              odometerini: 0,
+              kmini: 0,
+              rutaact: '',
+              servicio: '',
+              ultimoServicio: null,
+            }))
+          : [];
 
         setMarkersLoaded(true);
         setDeviceList(datos);
 
-        // Procesar alertas de velocidad
+        setMarkersLoaded(true);
+        setDeviceList(datos);
+
         datos.forEach(async (device: DeviceList) => {
           const deviceKey = device.deviceId;
 
           if (device.lastValidSpeed >= 91) {
-            // Solo activar si no hay alerta activa Y no hay timeout pendiente
             if (
               !activeAlerts.current[deviceKey] &&
               !alertTimeouts.current[deviceKey]
             ) {
               activeAlerts.current[deviceKey] = true;
 
-              // ✅ Guardar alerta en la base de datos para TODOS los usuarios
               if (session?.user?.username) {
                 await insertarAlertaVelocidad(
                   baseUrl,
@@ -234,10 +246,8 @@ export default function RequestPage() {
                 );
               }
 
-              // ✅ Mostrar notificación y reproducir sonido para TODOS los usuarios
               playSpeedAlert();
 
-              // Convertir timestamp Unix a hora local peruana
               const peruTime = new Date(
                 device.lastGPSTimestamp * 1000,
               ).toLocaleString('es-PE', {
@@ -266,14 +276,13 @@ export default function RequestPage() {
 
                       alertTimeouts.current[deviceKey] = setTimeout(() => {
                         delete alertTimeouts.current[deviceKey];
-                      }, 300000); // 5 minutos
+                      }, 300000);
                     },
                   },
                 },
               );
             }
           } else {
-            // Si la velocidad baja, limpiar todo
             if (activeAlerts.current[deviceKey]) {
               activeAlerts.current[deviceKey] = false;
               if (audioRef.current) {
@@ -282,7 +291,6 @@ export default function RequestPage() {
               }
             }
 
-            // Limpiar timeout si existe
             if (alertTimeouts.current[deviceKey]) {
               clearTimeout(alertTimeouts.current[deviceKey]);
               delete alertTimeouts.current[deviceKey];
@@ -290,7 +298,7 @@ export default function RequestPage() {
           }
         });
       } catch (error) {
-        console.error('❌ Error obteniendo datos de devices:', error);
+        console.error('Error obteniendo datos de devices:', error);
       }
     };
 
@@ -298,20 +306,16 @@ export default function RequestPage() {
       if (!isComponentMounted) return;
 
       if (document.visibilityState === 'visible') {
-        console.log('🔍 Pestaña activa - Reanudando polling...');
+        console.log('Pestaña activa - Reanudando polling...');
 
-        // Llamar inmediatamente al activar
         fetchDeviceData();
 
-        // Reiniciar intervalo si no existe
         if (!intervalId) {
-          intervalId = setInterval(fetchDeviceData, 8000);
+          intervalId = setInterval(fetchDeviceData, 5000);
         }
       } else {
         console.log('😴 Pestaña inactiva - Pausando polling');
 
-        // Pausar polling cuando la pestaña está inactiva (opcional)
-        // Si prefieres seguir consultando aunque esté inactiva, comenta estas líneas:
         if (intervalId) {
           clearInterval(intervalId);
           intervalId = null;
@@ -319,19 +323,14 @@ export default function RequestPage() {
       }
     };
 
-    // Agregar event listener para visibilidad
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Iniciar el polling
-    console.log('🚀 Iniciando polling de datos cada 8 segundos...');
+    console.log('Iniciando polling de datos cada 8 segundos...');
 
-    // Llamada inmediata
     fetchDeviceData();
 
-    // Configurar intervalo de 8 segundos
     intervalId = setInterval(fetchDeviceData, 8000);
 
-    // Cleanup
     return () => {
       isComponentMounted = false;
 
@@ -359,7 +358,6 @@ export default function RequestPage() {
     };
   }, [session?.user?.username, baseUrl]);
 
-  // Funciones optimizadas con memoización
   const getDireccion = useCallback((heading: number): string => {
     const directions = [
       [0, 22.5, 'Norte'],
@@ -422,167 +420,120 @@ export default function RequestPage() {
     [],
   );
 
-  const getColorScheme = useCallback(
-    (device: DeviceList) => {
-      const isMovilbusUser = session?.user?.username === 'movilbus';
-      const isCgacelaUser = session?.user?.username === 'cgacela';
+const getColorScheme = useCallback(
+  (device: DeviceList) => {
+    const isMovilbusUser = session?.user?.username === 'movilbus';
+    const isCgacelaUser = session?.user?.username === 'cgacela';
 
-      // Lógica específica para usuario cgacela
-      if (isCgacelaUser) {
-        const hasUltimoServicio = device.ultimoServicio !== null;
+    if (isCgacelaUser) {
+      const hasUltimoServicio = device.ultimoServicio !== null;
 
-        if (hasUltimoServicio) {
-          const empresa = device.ultimoServicio?.empresa?.toUpperCase() || '';
-          let bgColor, borderColor, triangleColor;
-
-          switch (empresa) {
-            case 'TALMA':
-              bgColor = 'bg-[#8DBB37]';
-              borderColor = 'border-[#8DBB37]';
-              triangleColor = 'border-t-[#8DBB37]';
-              break;
-            case 'LATAM':
-              bgColor = 'bg-[#3d048c]';
-              borderColor = 'border-[#3d048c]';
-              triangleColor = 'border-t-[#3d048c]';
-              break;
-            case 'DHL':
-              bgColor = 'bg-[#FFCC00]';
-              borderColor = 'border-[#FFCC00]';
-              triangleColor = 'border-t-[#FFCC00]';
-              break;
-            case 'TERPEL':
-              bgColor = 'bg-[#ED1C24]';
-              borderColor = 'border-[#ED1C24]';
-              triangleColor = 'border-t-[#ED1C24]';
-              break;
-            default:
-              // Color naranja para empresa desconocida
-              bgColor = 'bg-[#ff6600]';
-              borderColor = 'border-[#ff6600]';
-              triangleColor = 'border-t-[#ff6600]';
-          }
-
-          // Determinar color de texto basado en el fondo
-          const textColor =
-            empresa === 'DHL' || empresa === 'TALMA'
-              ? 'text-black'
-              : 'text-white';
-          const closeButtonColor =
-            empresa === 'DHL' || empresa === 'TALMA'
-              ? 'text-black hover:text-gray-600'
-              : 'text-white hover:text-gray-300';
-          const linkColor =
-            empresa === 'DHL' || empresa === 'TALMA'
-              ? 'text-blue-600 hover:text-blue-800'
-              : 'text-blue-300 hover:text-blue-100';
-
-          return {
-            popup1: {
-              bgColor,
-              textColor,
-              borderColor,
-              triangleColor,
-            },
-            popup2: {
-              bgColor,
-              textColor,
-              borderColor,
-              closeButtonColor,
-              linkColor,
-            },
-          };
-        } else {
-          // Blanco cuando no tiene ultimoServicio
-          return {
-            popup1: {
-              bgColor: 'bg-white',
-              textColor: 'text-black',
-              borderColor: 'border-black',
-              triangleColor: 'border-t-white',
-            },
-            popup2: {
-              bgColor: 'bg-white',
-              textColor: 'text-black',
-              borderColor: 'border-black',
-              closeButtonColor: 'text-black hover:text-gray-600',
-              linkColor: 'text-blue-600 hover:text-blue-800',
-            },
-          };
-        }
-      }
-
-      if (!isMovilbusUser) {
+      if (hasUltimoServicio) {
         return {
           popup1: {
-            bgColor: 'bg-[#fca311]',
-            textColor: 'text-gray-800',
-            borderColor: 'border-[#fca311]',
-            triangleColor: 'border-t-[#fca311]',
+            bgColor: 'bg-[#3d048c]',
+            textColor: 'text-white',
+            borderColor: 'border-[#3d048c]',
+            triangleColor: 'border-t-[#3d048c]',
           },
           popup2: {
-            bgColor: 'bg-[#1f2937]',
+            bgColor: 'bg-[#3d048c]',
             textColor: 'text-white',
-            borderColor: 'border-black',
+            borderColor: 'border-[#3d048c]',
             closeButtonColor: 'text-white hover:text-gray-300',
             linkColor: 'text-blue-300 hover:text-blue-100',
           },
         };
-      }
-
-      let popup1Colors, popup2Colors;
-
-      if (device.servicio) {
-        popup1Colors = {
-          bgColor: 'bg-[#ffccd5]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffccd5]',
-          triangleColor: 'border-t-[#ffccd5]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#ffccd5]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffccd5]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
-        };
-      } else if (!device.servicio && device.lastValidSpeed < 1) {
-        popup1Colors = {
-          bgColor: 'bg-[#8fd694]',
-          textColor: 'text-black',
-          borderColor: 'border-[#8fd694]',
-          triangleColor: 'border-t-[#8fd694]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#8fd694]',
-          textColor: 'text-black',
-          borderColor: 'border-[#8fd694]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
-        };
       } else {
-        popup1Colors = {
-          bgColor: 'bg-[#ffd670]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffd670]',
-          triangleColor: 'border-t-[#ffd670]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#ffd670]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffd670]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
+        return {
+          popup1: {
+            bgColor: 'bg-white',
+            textColor: 'text-black',
+            borderColor: 'border-black',
+            triangleColor: 'border-t-white',
+          },
+          popup2: {
+            bgColor: 'bg-white',
+            textColor: 'text-black',
+            borderColor: 'border-black',
+            closeButtonColor: 'text-black hover:text-gray-600',
+            linkColor: 'text-blue-600 hover:text-blue-800',
+          },
         };
       }
+    }
 
+    if (!isMovilbusUser) {
       return {
-        popup1: popup1Colors,
-        popup2: popup2Colors,
+        popup1: {
+          bgColor: 'bg-[#fca311]',
+          textColor: 'text-gray-800',
+          borderColor: 'border-[#fca311]',
+          triangleColor: 'border-t-[#fca311]',
+        },
+        popup2: {
+          bgColor: 'bg-[#1f2937]',
+          textColor: 'text-white',
+          borderColor: 'border-black',
+          closeButtonColor: 'text-white hover:text-gray-300',
+          linkColor: 'text-blue-300 hover:text-blue-100',
+        },
       };
-    },
-    [session?.user?.username],
-  );
+    }
+
+    let popup1Colors, popup2Colors;
+
+    if (device.servicio) {
+      popup1Colors = {
+        bgColor: 'bg-[#ffccd5]',
+        textColor: 'text-black',
+        borderColor: 'border-[#ffccd5]',
+        triangleColor: 'border-t-[#ffccd5]',
+      };
+      popup2Colors = {
+        bgColor: 'bg-[#ffccd5]',
+        textColor: 'text-black',
+        borderColor: 'border-[#ffccd5]',
+        closeButtonColor: 'text-white hover:text-gray-300',
+        linkColor: 'text-blue-300 hover:text-blue-100',
+      };
+    } else if (!device.servicio && device.lastValidSpeed < 1) {
+      popup1Colors = {
+        bgColor: 'bg-[#8fd694]',
+        textColor: 'text-black',
+        borderColor: 'border-[#8fd694]',
+        triangleColor: 'border-t-[#8fd694]',
+      };
+      popup2Colors = {
+        bgColor: 'bg-[#8fd694]',
+        textColor: 'text-black',
+        borderColor: 'border-[#8fd694]',
+        closeButtonColor: 'text-white hover:text-gray-300',
+        linkColor: 'text-blue-300 hover:text-blue-100',
+      };
+    } else {
+      popup1Colors = {
+        bgColor: 'bg-[#ffd670]',
+        textColor: 'text-black',
+        borderColor: 'border-[#ffd670]',
+        triangleColor: 'border-t-[#ffd670]',
+      };
+      popup2Colors = {
+        bgColor: 'bg-[#ffd670]',
+        textColor: 'text-black',
+        borderColor: 'border-[#ffd670]',
+        closeButtonColor: 'text-white hover:text-gray-300',
+        linkColor: 'text-blue-300 hover:text-blue-100',
+      };
+    }
+
+    return {
+      popup1: popup1Colors,
+      popup2: popup2Colors,
+    };
+  },
+  [session?.user?.username],
+);
 
   const updateMarkersAndPopups = useCallback(
     (map: google.maps.Map) => {
@@ -606,7 +557,7 @@ export default function RequestPage() {
               clearInterval(markerData.intervalId);
             }
 
-            // Limpiar elementos DOM
+       
             const content1 = document.querySelector(`#content-${deviceId}`);
             const content2 = document.querySelector(`#content2-${deviceId}`);
             content1?.remove();
@@ -617,7 +568,6 @@ export default function RequestPage() {
         });
       }
 
-      // Actualizar o crear marcadores
       filteredDeviceList.forEach((device) => {
         const position = new google.maps.LatLng(
           device.lastValidLatitude,
@@ -627,7 +577,6 @@ export default function RequestPage() {
         const existingMarkerData = markersDataRef.current[device.deviceId];
 
         if (existingMarkerData) {
-          // Solo actualizar posición e icono si es necesario
           if (!existingMarkerData.marker.getPosition()?.equals(position)) {
             existingMarkerData.marker.setPosition(position);
             existingMarkerData.popup1.position = position;
@@ -639,10 +588,8 @@ export default function RequestPage() {
             existingMarkerData.marker.setIcon(newIcon);
           }
 
-          // Actualizar contenido del popup2
           updatePopupContent(device, existingMarkerData);
         } else {
-          // Crear nuevo marcador
           createNewMarker(device, position, map);
         }
       });
@@ -656,7 +603,6 @@ export default function RequestPage() {
     ],
   );
 
-  // Función para generar contenido del popup simplificado
   const getOptimizedPopupContent = useCallback(
     (device: DeviceList) => {
       const fechaActualHoy = new Date();
@@ -680,7 +626,6 @@ export default function RequestPage() {
 
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
-      // Obtener datos del servicio
       const hasUltimoServicio = device.ultimoServicio !== null;
       const conductor = hasUltimoServicio
         ? device.ultimoServicio?.conductor?.apepate || 'Sin asignar'
@@ -767,7 +712,6 @@ export default function RequestPage() {
     ) => {
       const colorScheme = getColorScheme(device);
 
-      // ✅ FUNCIÓN COMPLETA para extraer colores (igual que en updatePopupContent)
       const extractColor = (bgColorClass: string): string => {
         const colorMap: { [key: string]: string } = {
           // Colores de fondo
@@ -788,7 +732,7 @@ export default function RequestPage() {
           'bg-[#3d048c]': '#3d048c',
           'bg-[#FFCC00]': '#FFCC00',
           'bg-[#ED1C24]': '#ED1C24',
-          'bg-[#ff6600]': '#ff6600', // Empresa desconocida
+          'bg-[#ff6600]': '#ff6600',
 
           // Mapeos de borde
           'border-red-500': '#ef4444',
@@ -829,12 +773,11 @@ export default function RequestPage() {
           'border-t-[#3d048c]': '#3d048c',
           'border-t-[#FFCC00]': '#FFCC00',
           'border-t-[#ED1C24]': '#ED1C24',
-          'border-t-[#ff6600]': '#ff6600', // Empresa desconocida
+          'border-t-[#ff6600]': '#ff6600', 
         };
         return colorMap[bgColorClass] || '#fca311';
       };
 
-      // FUNCIÓN PARA EXTRAER COLOR DE TEXTO
       const extractTextColor = (textColorClass: string): string => {
         if (textColorClass === 'text-black') return 'black';
         if (textColorClass === 'text-gray-800') return '#1f2937';
@@ -842,13 +785,11 @@ export default function RequestPage() {
         return 'black';
       };
 
-      // ✅ EXTRAER colores correctos (fondo Y borde por separado)
       const popup1BgColor = extractColor(colorScheme.popup1.bgColor);
-      const popup1BorderColor = extractColor(colorScheme.popup1.borderColor); // ← AGREGAR ESTA LÍNEA
+      const popup1BorderColor = extractColor(colorScheme.popup1.borderColor);
       const popup1TextColor = extractTextColor(colorScheme.popup1.textColor);
       const triangleColor = extractColor(colorScheme.popup1.triangleColor);
 
-      // Crear popup1 (etiqueta) con colores correctos desde el inicio
       const content1 = document.createElement('div');
       content1.id = `content-${device.deviceId}`;
       content1.innerHTML = `
@@ -860,26 +801,21 @@ export default function RequestPage() {
           </div>
         `;
 
-      // Crear popup2 (información detallada)
+
       const content2 = document.createElement('div');
       content2.innerHTML = getOptimizedPopupContent(device);
 
-      // ✅ APLICAR colores al popup2 con borde correcto
       const popup2Element = content2.firstElementChild as HTMLElement;
       if (popup2Element) {
         const popup2BgColor = extractColor(colorScheme.popup2.bgColor);
-        const popup2BorderColor = extractColor(colorScheme.popup2.borderColor); // ← AGREGAR ESTA LÍNEA
+        const popup2BorderColor = extractColor(colorScheme.popup2.borderColor); 
         const popup2TextColor = extractTextColor(colorScheme.popup2.textColor);
 
         popup2Element.style.backgroundColor = popup2BgColor;
-        popup2Element.style.borderColor = popup2BorderColor; // ← USAR BORDE ESPECÍFICO
+        popup2Element.style.borderColor = popup2BorderColor;
         popup2Element.style.color = popup2TextColor;
       }
 
-      // Resto del código permanece exactamente igual...
-      // (Clase Popup, event listeners, etc.)
-
-      // Clase Popup optimizada
       class Popup extends google.maps.OverlayView {
         position: google.maps.LatLng;
         containerDiv: HTMLDivElement;
@@ -983,7 +919,6 @@ export default function RequestPage() {
     ],
   );
 
-  // TAMBIÉN necesitas actualizar updatePopupContent para usar la misma función de extracción:
 
   const updatePopupContent = useCallback(
     (device: DeviceList, markerData: MarkerData) => {
@@ -1324,14 +1259,12 @@ export default function RequestPage() {
     }
   }, []);
 
-  // ✅ REEMPLAZA tu useEffect actual con esto:
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     if (!clickListenerAttached.current) {
-      // ✅ Especificar opciones de event listener para evitar warnings
       const eventOptions: AddEventListenerOptions = {
-        passive: false, // Necesario porque usamos preventDefault
+        passive: false,
         capture: false,
       };
 
@@ -1342,7 +1275,6 @@ export default function RequestPage() {
 
     return () => {
       if (clickListenerAttached.current) {
-        // ✅ Usar las mismas opciones para remover
         const eventOptions: AddEventListenerOptions = {
           passive: false,
           capture: false,
@@ -1357,7 +1289,7 @@ export default function RequestPage() {
           'click',
           handleStreetViewClick,
           eventOptions,
-        ); // ✅ CORREGIDO: era addEventListener
+        );
         clickListenerAttached.current = false;
       }
     };
@@ -1492,7 +1424,7 @@ export default function RequestPage() {
   }, [mapOnUnmount]);
 
   if (!isLoaded) {
-    return <Loader />;
+    return null;
   }
 
   return (
@@ -1513,7 +1445,7 @@ export default function RequestPage() {
         />
       </div>
 
-      <Sidebar
+      <SidebarMobile
         centerMap={centerMap}
         centerUnit={centerUnit}
         onFilteredIdsChange={setFilteredIdsFromSidebar}
