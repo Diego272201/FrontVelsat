@@ -39,7 +39,17 @@ const MapContent = () => {
   const deviceId = searchParams.get('deviceId');
   const username = session?.user.username;
 
+  // Imprimir lo que está recibiendo
+  console.log('Parámetros recibidos:', {
+    username,
+    deviceId,
+    startDate,
+    endDate,
+  });
+
   const detailRecorrido = `https://do.velsat.pe:2053/api/Aplicativo/RouteDetails?accountID=${username}&deviceID=${deviceId}&fechaini=${startDate}&fechafin=${endDate}`;
+
+  console.log('URL construida:', detailRecorrido);
 
   const [mapCenter, setMapCenter] = useState({
     lat: -12.046591525826495,
@@ -55,31 +65,52 @@ const MapContent = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries, // ← importante
+    libraries,
   });
 
   const fetchData = useCallback(async () => {
-    try {
-      const response = await axios.get(detailRecorrido);
-      // La respuesta ahora es directamente un array, no tiene .result
-      if (response.data.length === 0) {
-        toast.error('No hay registros para estas fechas', {
-          className: 'toast-slide-in',
-          richColors: true,
-          duration: Infinity,
-        });
-      } else {
-        setMarkersData(response.data);
-        setIsMarkersLoaded(true);
-        setMapCenter({
-          lat: response.data[0].latitude,
-          lng: response.data[0].longitude,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
+  // Solo hacer la petición si tenemos todos los parámetros necesarios
+  if (!username || !deviceId || !startDate || !endDate) {
+    console.log('Faltan parámetros para hacer la petición');
+    return;
+  }
+
+  try {
+    console.log('Realizando petición a:', detailRecorrido);
+    const response = await axios.get(detailRecorrido);
+    console.log('Respuesta de la API:', response.data);
+    
+    // Validar que la respuesta sea un array
+    if (!Array.isArray(response.data)) {
+      console.error('La respuesta no es un array:', response.data);
+      return;
     }
-  }, [detailRecorrido]);
+
+    if (response.data.length === 0) {
+      toast.error('No hay registros para estas fechas', {
+        className: 'toast-slide-in',
+        richColors: true,
+        duration: Infinity,
+      });
+      setIsMarkersLoaded(true); // Marcar como cargado aunque no haya datos
+    } else {
+      console.log('Total de registros recibidos:', response.data.length);
+      setMarkersData(response.data);
+      setIsMarkersLoaded(true);
+      setMapCenter({
+        lat: response.data[0].latitude,
+        lng: response.data[0].longitude,
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    setIsMarkersLoaded(true); // Marcar como cargado en caso de error
+    toast.error('Error al cargar los datos', {
+      className: 'toast-slide-in',
+      richColors: true,
+    });
+  }
+}, [detailRecorrido, username, deviceId, startDate, endDate]);
 
   useEffect(() => {
     fetchData();

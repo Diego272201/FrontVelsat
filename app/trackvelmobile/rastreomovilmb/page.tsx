@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import RequestComponent from './RequestComponent';
+import ModalDetalleRecorrido from '../ModalDetalleRecorrido';
 
 export default function Page() {
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== 'undefined' ? window.innerWidth : 1920,
   );
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -30,6 +32,14 @@ export default function Page() {
     }
   };
 
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="relative">
       <div
@@ -48,13 +58,19 @@ export default function Page() {
           </div>
 
           {/* Botón de Reporte */}
-          <button className="mt-[-4px] bg-blue-800 px-3 py-[8px] text-[12px] font-medium text-white hover:bg-blue-700">
+          <button
+            onClick={handleOpenModal}
+            className="mt-[-4px] bg-blue-800 px-3 py-[8px] text-[12px] font-medium text-white hover:bg-blue-700"
+          >
             Reporte de recorrido
           </button>
         </div>
       </div>
 
       <RequestComponent />
+
+      {/* Modal */}
+      <ModalDetalleRecorrido isOpen={isModalOpen} onClose={handleCloseModal} />
     </div>
   );
 }
