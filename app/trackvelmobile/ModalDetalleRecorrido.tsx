@@ -42,47 +42,39 @@ const ModalDetalleRecorrido: React.FC<ModalDetalleRecorridoProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!selectedDeviceId || !startDate || !endDate) {
-      toast.error('Rellenar campos necesarios', {
-        className: 'toast-slide-in',
-        richColors: true,
-      });
-      return;
-    }
+  if (!selectedDeviceId || !startDate || !endDate) {
+    toast.error('Rellenar campos necesarios', {
+      className: 'toast-slide-in',
+      richColors: true,
+    });
+    return;
+  }
 
-    // Validar que el rango no exceda 11 días
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Validar que el rango no exceda 11 días
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 11) {
-      toast.error('El límite de fechas es de 11 días', {
-        className: 'toast-slide-in',
-        richColors: true,
-      });
-      return;
-    }
+  if (diffDays > 11) {
+    toast.error('El límite de fechas es de 11 días', {
+      className: 'toast-slide-in',
+      richColors: true,
+    });
+    return;
+  }
 
-    // Formatear las fechas al formato requerido: YYYY-MM-DD HH:mm
-    const formatDate = (dateStr: string, isEnd: boolean = false) => {
-      const date = new Date(dateStr);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const time = isEnd ? '23:59' : '00:00';
-      return `${year}-${month}-${day} ${time}`;
-    };
+  // El TimePicker ya retorna el formato "YYYY-MM-DDTHH:mm"
+  // Solo reemplazamos la T por un espacio si es necesario
+  const fechaini = startDate.replace('T', ' ');
+  const fechafin = endDate.replace('T', ' ');
 
-    const fechaini = formatDate(startDate, false);
-    const fechafin = formatDate(endDate, true);
+  // Construir la URL con los parámetros
+  const url = `/trackvelmobile/detallerecorrido?deviceId=${encodeURIComponent(selectedDeviceId)}&startDate=${encodeURIComponent(fechaini)}&endDate=${encodeURIComponent(fechafin)}`;
 
-    // Construir la URL con los parámetros en el formato correcto
-    const url = `/trackvelmobile/detallerecorrido?deviceId=${encodeURIComponent(selectedDeviceId)}&startDate=${encodeURIComponent(fechaini)}&endDate=${encodeURIComponent(fechafin)}`;
-
-    // Abrir en nueva ventana
-    window.open(url, '_blank');
-  };
+  // Abrir en nueva ventana
+  window.open(url, '_blank');
+};
 
   return (
     <Modal

@@ -32,7 +32,6 @@ const libraries: 'places'[] = ['places'];
 const MapContent = () => {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
-  const { baseUrl } = useApi();
 
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
