@@ -1640,9 +1640,10 @@ export default function App({
                           horaAto={
                             nuevaFecha
                               ? formatearFechaParaMostrar(nuevaFecha)
-                              : horaAto
-                                ? parseFecha(horaAto)
-                                : selectedRow?.fechaCompleta
+                              : selectedRow?.fechaCompleta &&
+                                  selectedRow.fechaCompleta !== '-'
+                                ? selectedRow.fechaCompleta // ← usar directamente, ya está en formato dd/MM/yyyy HH:mm
+                                : ''
                           }
                           dataAgregada={dataSeleccionada}
                           agregarTrigger={agregarTrigger}
@@ -1691,11 +1692,12 @@ export default function App({
               <ModalFooter>
                 <Button
                   color="success"
-                  onPress={() => {
+                  onPress={async () => {
+                    await handleGuardarHoras();
+                    await tableRef.current?.actualizarOrdenEnServidor();
                     handleGuardarHoraAto();
-                    tableRef.current?.actualizarOrdenEnServidor();
                     onClose();
-                    handleGuardarHoras();
+                    handleLimpiarAll();
                   }}
                 >
                   Guardar
