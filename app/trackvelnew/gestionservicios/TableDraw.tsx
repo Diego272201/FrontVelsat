@@ -488,8 +488,10 @@ const DragAndDropTable = forwardRef(
     };
 
     useImperativeHandle(ref, () => ({
-      actualizarOrdenEnServidor,
-    }));
+  actualizarOrdenEnServidor: async () => {
+    await actualizarOrdenEnServidor(); // ← asegura que retorna la promesa
+  },
+}));
 
     const handleDragEnd = (event: any) => {
       const { active, over } = event;
