@@ -2,12 +2,12 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import '@/app/styles/popup.css';
 import { useSession } from 'next-auth/react';
-import Loader from '../components/Loader';
+import Loader from '../../components/Loader';
 import { useApi } from '@/context/ApiContext';
 import { toast, Toaster } from 'sonner';
 const blinkingIntervals: { [key: string]: NodeJS.Timeout } = {};
 const blinkingStates: { [key: string]: boolean } = {};
-import GoogleMapComponent from '../components/GoogleMapComponent';
+import GoogleMapComponent from '../../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import SidebarMobile from './SidebarMobile';
@@ -180,7 +180,7 @@ export default function RequestPage() {
 
       try {
         const username = session.user.username;
-        const apiUrl = `https://do.velsat.pe:2053/api/Aplicativo/GetLastTrama?accountID=movilbus`;
+        const apiUrl = `https://do.velsat.pe:2053/api/Aplicativo/GetTramaMitsubishi?accountID=mitsubishi`;
 
         const response = await fetch(apiUrl, {
           method: 'GET',

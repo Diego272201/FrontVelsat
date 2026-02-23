@@ -273,6 +273,22 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
       },
     ],
   },
+  RASTREO: {
+    id: 'rastreo',
+    title: 'Rastreo Móvil',
+    icon: RiGpsFill,
+    href: '/trackvelmobile/rastreomovilmb', // ← Ruta de tu página de rastreo
+    target: '_blank', // ← Opcional: abre en nueva pestaña
+  },
+
+  RASTREO_MOVILBUS: {
+    // ← NUEVO para movilbus
+    id: 'rastreo-movilbus',
+    title: 'Rastreo Móvil',
+    icon: RiGpsFill,
+    href: '/trackvelmobile',
+    target: '_blank',
+  },
 };
 
 const useMenuState = () => {
@@ -1013,6 +1029,13 @@ const Tollbar: React.FC = () => {
                 </Link>
               </li>
 
+              {/* ← NUEVO: Rastreo Móvil para movilbus */}
+              {renderDropdownMenu(
+                MENU_CONFIG.RASTREO_MOVILBUS,
+                false,
+                () => {},
+              )}
+
               {renderDropdownMenu(
                 MENU_CONFIG.REPORTES,
                 openMenus.reportes,
@@ -1095,6 +1118,14 @@ const Tollbar: React.FC = () => {
           ) : isView ? (
             // ← NUEVO: MENÚ PARA AREMYS
             <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+              {/* Mostrar Rastreo Móvil solo para mitsubishi */}
+              {username === 'mitsubishi' &&
+                renderDropdownMenu(
+                  MENU_CONFIG.RASTREO,
+                  false, // No tiene dropdown
+                  () => {},
+                )}
+
               {renderDropdownMenu(
                 MENU_CONFIG.REPORTES,
                 openMenus.reportes,
@@ -1422,6 +1453,9 @@ const Tollbar: React.FC = () => {
               </div>
             </Link>
 
+            {/* ← NUEVO: Rastreo Móvil para movilbus */}
+            {renderSidebarMenu(MENU_CONFIG.RASTREO_MOVILBUS, false, () => {})}
+
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
             )}
@@ -1502,8 +1536,12 @@ const Tollbar: React.FC = () => {
             )}
           </div>
         ) : isView ? (
-          // SIDEBAR PARA AREMYS
+          // SIDEBAR PARA VIEWERS
           <div className="mb-0 space-y-0">
+            {/* Agregar Rastreo Móvil solo para mitsubishi */}
+            {username === 'mitsubishi' &&
+              renderSidebarMenu(MENU_CONFIG.RASTREO, false, () => {})}
+
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
             )}

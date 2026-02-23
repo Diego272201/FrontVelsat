@@ -26,8 +26,6 @@ import type { Map as LeafletMap } from 'leaflet';
 import { User } from 'lucide-react';
 import { Controller } from 'react-hook-form';
 
-
-
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false },
@@ -124,7 +122,7 @@ export default function App({ title, codCliente }: Props) {
     formState: { errors },
     reset,
     watch,
-    setValue, 
+    setValue,
   } = useForm({
     defaultValues: {
       codlan: '',
@@ -540,23 +538,22 @@ export default function App({ title, codCliente }: Props) {
     fetchTarifa();
   }, [isBaseUrlReady, baseUrl]);
 
-
   useEffect(() => {
-  if (wy && wx && !isNaN(parseFloat(wy)) && !isNaN(parseFloat(wx))) {
-    setGoogleMapsLink(`https://www.google.com/maps?q=${wy},${wx}`);
-  }
-}, [wy, wx]);
+    if (wy && wx && !isNaN(parseFloat(wy)) && !isNaN(parseFloat(wx))) {
+      setGoogleMapsLink(`https://www.google.com/maps?q=${wy},${wx}`);
+    }
+  }, [wy, wx]);
 
-const handleCopyLink = async () => {
-  try {
-    await navigator.clipboard.writeText(googleMapsLink);
-    setCopied(true);
-    toast.success('Link copiado al portapapeles');
-    setTimeout(() => setCopied(false), 2000);
-  } catch (error) {
-    toast.error('Error al copiar el link');
-  }
-};
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(googleMapsLink);
+      setCopied(true);
+      toast.success('Link copiado al portapapeles');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Error al copiar el link');
+    }
+  };
 
   useEffect(() => {
     if (!isBaseUrlReady || codCliente === null || !isTarifaLoaded) return;
@@ -1049,48 +1046,52 @@ const handleCopyLink = async () => {
                   </div>
                 </ModalBody>
 
-            <ModalFooter className="flex items-center justify-between">
-  <div className="flex items-center gap-2 flex-1">
-    <Input
-      type="text"
-      value={googleMapsLink}
-      readOnly
-      placeholder="Link de Google Maps"
-      className="flex-1"
-    />
-    <Button
-      color="success" 
-      onPress={handleCopyLink}
-      isIconOnly
-      title="Copiar link"
-    >
-      {copied ? <MdCheck size={18} color='#fff'/> : <MdContentCopy size={18} color='#fff'/>}
-    </Button>
-  </div>
-  
-  <div className="flex gap-2">
-    <Button
-      color="danger"
-      onPress={() => {
-        handleClose();
-        onClose();
-      }}
-      isDisabled={isLoading}
-    >
-      Cerrar
-      <AiFillCloseCircle size={18} />
-    </Button>
-    <Button
-      color="primary"
-      type="submit"
-      isLoading={isLoading}
-      isDisabled={isLoading}
-    >
-      {isLoading ? 'Guardando...' : 'Guardar'}
-      {!isLoading && <IoMdSave size={18} />}
-    </Button>
-  </div>
-</ModalFooter>
+                <ModalFooter className="flex items-center justify-between">
+                  <div className="flex flex-1 items-center gap-2">
+                    <Input
+                      type="text"
+                      value={googleMapsLink}
+                      readOnly
+                      placeholder="Link de Google Maps"
+                      className="flex-1"
+                    />
+                    <Button
+                      color="success"
+                      onPress={handleCopyLink}
+                      isIconOnly
+                      title="Copiar link"
+                    >
+                      {copied ? (
+                        <MdCheck size={18} color="#fff" />
+                      ) : (
+                        <MdContentCopy size={18} color="#fff" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      color="danger"
+                      onPress={() => {
+                        handleClose();
+                        onClose();
+                      }}
+                      isDisabled={isLoading}
+                    >
+                      Cerrar
+                      <AiFillCloseCircle size={18} />
+                    </Button>
+                    <Button
+                      color="primary"
+                      type="submit"
+                      isLoading={isLoading}
+                      isDisabled={isLoading}
+                    >
+                      {isLoading ? 'Guardando...' : 'Guardar'}
+                      {!isLoading && <IoMdSave size={18} />}
+                    </Button>
+                  </div>
+                </ModalFooter>
               </>
             )}
           </ModalContent>

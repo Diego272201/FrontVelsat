@@ -15,8 +15,8 @@ import { useSession } from 'next-auth/react';
 import { FcSearch } from 'react-icons/fc';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
-import SelectSidebar from '../components/selectUI/SelectSidebar';
-import Unidad from '../components/Unidad';
+import SelectSidebar from '../../components/selectUI/SelectSidebar';
+import Unidad from '../../components/Unidad';
 
 interface SidebarProps {
   centerMap: () => void;
@@ -75,7 +75,7 @@ export default function SidebarMobile({
       setConnectionStatus('Connecting');
 
       const response = await axios.get(
-        `https://do.velsat.pe:2053/api/Aplicativo/GetLastTrama?accountID=movilbus`,
+        `https://do.velsat.pe:2053/api/Aplicativo/GetTramaMitsubishi?accountID=mitsubishi`,
       );
 
       if (response.data && Array.isArray(response.data)) {

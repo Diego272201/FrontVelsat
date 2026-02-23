@@ -1,13 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import RequestComponent from './RequestComponent';
-import ModalDetalleRecorrido from './ModalDetalleRecorrido';
+import ModalDetalleRecorrido from '../ModalDetalleRecorrido';
 
 export default function Page() {
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== 'undefined' ? window.innerWidth : 1920,
   );
-
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   useEffect(() => {

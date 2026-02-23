@@ -262,41 +262,48 @@ export default function App({
   };
 
   useEffect(() => {
-  const fetchPasajeros = async () => {
-    if (pasajero.length < 1) {
-      setSugerencias([]);
-      return;
-    }
+    const fetchPasajeros = async () => {
+      if (pasajero.length < 1) {
+        setSugerencias([]);
+        return;
+      }
 
-    try {
-      const apiUrl = username === 'movilbus'
-        ? `https://do.velsat.pe:2083/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${selectedRow?.empresaSinNumber || ''}`
-        : `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
+      try {
+        const apiUrl =
+          username === 'movilbus'
+            ? `https://do.velsat.pe:2083/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${selectedRow?.empresaSinNumber || ''}`
+            : `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
 
-      const response = await axios.get(apiUrl);
-      
-      const resultados = response.data.map((item: any) => ({
-        apepate: item.apepate,
-        codigo: item.codigo,
-        codlugar: item.lugar?.codlugar || 0,
-        direccion: item.lugar?.direccion || 'NO Disponible',
-        distrito: item.lugar?.distrito || 'NO Disponible',
-        wx: item.lugar?.wx || '',
-        wy: item.lugar?.wy || '',
-      }));
+        const response = await axios.get(apiUrl);
 
-      setSugerencias(resultados);
-    } catch (error) {
-      console.error('Error al obtener pasajeros:', error);
-    }
-  };
+        const resultados = response.data.map((item: any) => ({
+          apepate: item.apepate,
+          codigo: item.codigo,
+          codlugar: item.lugar?.codlugar || 0,
+          direccion: item.lugar?.direccion || 'NO Disponible',
+          distrito: item.lugar?.distrito || 'NO Disponible',
+          wx: item.lugar?.wx || '',
+          wy: item.lugar?.wy || '',
+        }));
 
-  const delayDebounce = setTimeout(() => {
-    fetchPasajeros();
-  }, 300);
+        setSugerencias(resultados);
+      } catch (error) {
+        console.error('Error al obtener pasajeros:', error);
+      }
+    };
 
-  return () => clearTimeout(delayDebounce);
-}, [pasajero, seleccionado, username, isReady, selectedRow?.empresaSinNumber]);
+    const delayDebounce = setTimeout(() => {
+      fetchPasajeros();
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [
+    pasajero,
+    seleccionado,
+    username,
+    isReady,
+    selectedRow?.empresaSinNumber,
+  ]);
 
   const [horaAtencion, setHoraAtencion] = useState('');
   const [horaAto, setHoraAto] = useState('');
@@ -758,6 +765,19 @@ export default function App({
     }
   };
 
+  const handleReiniciarServicio = async (codServicio: string) => {
+    try {
+      await axios.put(
+        `https://do.velsat.pe:2083/api/Preplan/reiniciar/${codServicio}`,
+      );
+
+      toast.success('Servicio reiniciado correctamente.');
+    } catch (error) {
+      toast.error('Error al reiniciar el servicio.');
+      console.error('Error en reiniciar servicio:', error);
+    }
+  };
+
   const eliminarServicio = async () => {
     const result = await Swal.fire({
       title: '¿Estás seguro?',
@@ -875,71 +895,71 @@ export default function App({
   };
 
   const handleGuardarHoras = async () => {
-  if (!selectedRow) return;
+    if (!selectedRow) return;
 
-  const codservicio = selectedRow.codServicio;
+    const codservicio = selectedRow.codServicio;
 
-  // Formatear fecha de servicio
-  const fecha = nuevaFecha
-    ? formatFechaParaAPI(nuevaFecha) // Ya está correcto
-    : selectedRow.fechaCompleta || '';
+    // Formatear fecha de servicio
+    const fecha = nuevaFecha
+      ? formatFechaParaAPI(nuevaFecha) // Ya está correcto
+      : selectedRow.fechaCompleta || '';
 
-  // Formatear fecha de programación
-  const fecplan = nuevaFechaProg
-    ? formatFechaParaAPI(nuevaFechaProg) // Ya está correcto
-    : selectedRow.fecPlanCompleta || '';
+    // Formatear fecha de programación
+    const fecplan = nuevaFechaProg
+      ? formatFechaParaAPI(nuevaFechaProg) // Ya está correcto
+      : selectedRow.fecPlanCompleta || '';
 
-  try {
-    const url = `https://do.velsat.pe:2083/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
+    try {
+      const url = `https://do.velsat.pe:2083/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
 
-    const response = await axios.put(url);
+      const response = await axios.put(url);
 
-    console.log('Respuesta de la API:', response.data);
+      console.log('Respuesta de la API:', response.data);
 
-    setData((prevData) =>
-      prevData.map((item) =>
-        item.codServicio === selectedRow.codServicio
-          ? {
-              ...item,
-              horaAto: nuevaFecha
-                ? nuevaFecha.split('T')[1].slice(0, 5)
-                : item.horaAto,
-              horaProg: nuevaFechaProg
-                ? nuevaFechaProg.split('T')[1].slice(0, 5)
-                : item.horaProg,
-              fechaCompleta: nuevaFecha 
-                ? formatFechaParaAPI(nuevaFecha)
-                : item.fechaCompleta,
-              fecPlanCompleta: nuevaFechaProg
-                ? formatFechaParaAPI(nuevaFechaProg)
-                : item.fecPlanCompleta,
-            }
-          : item,
-      ),
-    );
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.codServicio === selectedRow.codServicio
+            ? {
+                ...item,
+                horaAto: nuevaFecha
+                  ? nuevaFecha.split('T')[1].slice(0, 5)
+                  : item.horaAto,
+                horaProg: nuevaFechaProg
+                  ? nuevaFechaProg.split('T')[1].slice(0, 5)
+                  : item.horaProg,
+                fechaCompleta: nuevaFecha
+                  ? formatFechaParaAPI(nuevaFecha)
+                  : item.fechaCompleta,
+                fecPlanCompleta: nuevaFechaProg
+                  ? formatFechaParaAPI(nuevaFechaProg)
+                  : item.fecPlanCompleta,
+              }
+            : item,
+        ),
+      );
 
-    setSelectedRow({
-      ...selectedRow,
-      horaAto: nuevaFecha
-        ? nuevaFecha.split('T')[1].slice(0, 5)
-        : selectedRow.horaAto,
-      horaProg: nuevaFechaProg
-        ? nuevaFechaProg.split('T')[1].slice(0, 5)
-        : selectedRow.horaProg,
-      fechaCompleta: nuevaFecha 
-        ? formatFechaParaAPI(nuevaFecha) 
-        : selectedRow.fechaCompleta,
-      fecPlanCompleta: nuevaFechaProg
-        ? formatFechaParaAPI(nuevaFechaProg)
-        : selectedRow.fecPlanCompleta,
-    });
+      setSelectedRow({
+        ...selectedRow,
+        horaAto: nuevaFecha
+          ? nuevaFecha.split('T')[1].slice(0, 5)
+          : selectedRow.horaAto,
+        horaProg: nuevaFechaProg
+          ? nuevaFechaProg.split('T')[1].slice(0, 5)
+          : selectedRow.horaProg,
+        fechaCompleta: nuevaFecha
+          ? formatFechaParaAPI(nuevaFecha)
+          : selectedRow.fechaCompleta,
+        fecPlanCompleta: nuevaFechaProg
+          ? formatFechaParaAPI(nuevaFechaProg)
+          : selectedRow.fecPlanCompleta,
+      });
 
-    toast.success('Horas actualizadas correctamente');
-  } catch (error) {
-    console.error('Error al actualizar horas:', error);
-    toast.error('Error al actualizar las horas');
-  }
-};
+      toast.success('Horas actualizadas correctamente');
+    } catch (error) {
+      console.error('Error al actualizar horas:', error);
+      toast.error('Error al actualizar las horas');
+    }
+  };
 
   // Agregar esta función helper
   const formatFechaParaAPI = (fechaISO: string): string => {
@@ -1580,7 +1600,24 @@ export default function App({
                                     <li
                                       className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                                       onClick={() =>
-                                        alert('Reiniciar Servicio')
+                                        handleClickOption(async () => {
+                                          const result = await Swal.fire({
+                                            title: '¿Estás seguro?',
+                                            text: '¿Deseas reiniciar este servicio?',
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonColor: '#3085d6',
+                                            cancelButtonColor: '#d33',
+                                            confirmButtonText: 'Sí, reiniciar',
+                                            cancelButtonText: 'No, mantener',
+                                          });
+
+                                          if (result.isConfirmed) {
+                                            handleReiniciarServicio(
+                                              selectedRow.codServicio,
+                                            );
+                                          }
+                                        })
                                       }
                                     >
                                       Reiniciar Servicio
@@ -1603,9 +1640,10 @@ export default function App({
                           horaAto={
                             nuevaFecha
                               ? formatearFechaParaMostrar(nuevaFecha)
-                              : horaAto
-                                ? parseFecha(horaAto)
-                                : selectedRow?.fechaCompleta
+                              : selectedRow?.fechaCompleta &&
+                                  selectedRow.fechaCompleta !== '-'
+                                ? selectedRow.fechaCompleta // ← usar directamente, ya está en formato dd/MM/yyyy HH:mm
+                                : ''
                           }
                           dataAgregada={dataSeleccionada}
                           agregarTrigger={agregarTrigger}
@@ -1654,11 +1692,12 @@ export default function App({
               <ModalFooter>
                 <Button
                   color="success"
-                  onPress={() => {
+                  onPress={async () => {
+                    await handleGuardarHoras();
+                    await tableRef.current?.actualizarOrdenEnServidor();
                     handleGuardarHoraAto();
-                    tableRef.current?.actualizarOrdenEnServidor();
                     onClose();
-                    handleGuardarHoras();
+                    handleLimpiarAll();
                   }}
                 >
                   Guardar

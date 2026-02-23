@@ -1,5 +1,5 @@
 'use client';
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useState, useCallback } from 'react';
 import axios from 'axios';
 
 import { DndContext, closestCenter } from '@dnd-kit/core';
@@ -20,7 +20,7 @@ import {
 } from '@nextui-org/react';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
 import { toast } from 'sonner';
-import { MapPin, Home, XCircle } from 'lucide-react';
+import { MapPin, Home, XCircle, Link } from 'lucide-react';
 import ModalDirecciones from './ModalDireccionServicio';
 
 interface RowData {
@@ -67,6 +67,7 @@ const SortableRow = ({
   onUbicar,
   onCancelar,
   onDireccion,
+  onCopiarLink,
 }: {
   row: RowData;
   index: number;
@@ -77,6 +78,7 @@ const SortableRow = ({
     nombrePasajero: string,
     codigo: string,
   ) => void;
+  onCopiarLink: (coords: { lat: number; lng: number }) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
@@ -92,6 +94,11 @@ const SortableRow = ({
       : row.estado === 'CC' || row.estado === 'CP'
         ? 'bg-[#FDBDAA]'
         : 'bg-white';
+
+  // ✅ SOLUCIÓN: Envolver en una función para evitar llamada directa durante render
+  const handleCopiarLinkClick = () => {
+    onCopiarLink({ lat: parseFloat(row.wy), lng: parseFloat(row.wx) });
+  };
 
   return (
     <tr
@@ -130,6 +137,15 @@ const SortableRow = ({
                 startContent={<Home className="h-4 w-4 text-green-600" />}
               >
                 Dirección
+              </DropdownItem>
+
+              {/* ✅ CORREGIDO: Usar la función wrapper */}
+              <DropdownItem
+                key="copiarLink"
+                onPress={handleCopiarLinkClick}
+                startContent={<Link className="h-4 w-4 text-purple-600" />}
+              >
+                Copiar Link
               </DropdownItem>
 
               <DropdownItem
@@ -258,7 +274,7 @@ const DragAndDropTable = forwardRef(
             fechafin: null,
             feccancelpas: null,
             codlugar: item.codlugar,
-            lugar: item.codlugar.toString(), // Agregamos el lugar basado en codlugar
+            lugar: item.codlugar.toString(),
             vuelo: null,
           }));
 
@@ -280,6 +296,24 @@ const DragAndDropTable = forwardRef(
         toast.error('Coordenadas inválidas');
       }
     };
+
+    // ✅ FUNCIÓN CORREGIDA: Usar useCallback para memorizar
+    const handleCopiarLink = useCallback(async (coords: { lat: number; lng: number }) => {
+      if (isNaN(coords.lat) || isNaN(coords.lng)) {
+        toast.error('Coordenadas inválidas');
+        return;
+      }
+
+      const googleMapsLink = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+
+      try {
+        await navigator.clipboard.writeText(googleMapsLink);
+        toast.success('Link copiado al portapapeles');
+      } catch (error) {
+        toast.error('Error al copiar el link');
+        console.error('Error al copiar:', error);
+      }
+    }, []);
 
     const handleCancelar = async (codigo: number) => {
       console.log('Código a cancelar:', codigo);
@@ -312,7 +346,6 @@ const DragAndDropTable = forwardRef(
       }
     };
 
-    // Nueva función para manejar la apertura del modal de direcciones
     const handleDireccion = (
       codCliente: string,
       nombrePasajero: string,
@@ -329,7 +362,6 @@ const DragAndDropTable = forwardRef(
     const handleCloseModal = () => {
       setIsModalOpen(false);
       setModalData(null);
-      // Resetear shouldRefetch al cerrar el modal
       if (shouldRefetch) {
         setShouldRefetch(false);
       }
@@ -391,7 +423,6 @@ const DragAndDropTable = forwardRef(
         .finally(() => setLoading(false));
     }, [codServicio, onCoordenadasUpdate, shouldRefetch]);
 
-    // Resetear shouldRefetch después de usarlo
     useEffect(() => {
       if (shouldRefetch) {
         setShouldRefetch(false);
@@ -457,8 +488,10 @@ const DragAndDropTable = forwardRef(
     };
 
     useImperativeHandle(ref, () => ({
-      actualizarOrdenEnServidor,
-    }));
+  actualizarOrdenEnServidor: async () => {
+    await actualizarOrdenEnServidor(); // ← asegura que retorna la promesa
+  },
+}));
 
     const handleDragEnd = (event: any) => {
       const { active, over } = event;
@@ -535,6 +568,7 @@ const DragAndDropTable = forwardRef(
                           onUbicar={handleUbicar}
                           onCancelar={handleCancelar}
                           onDireccion={handleDireccion}
+                          onCopiarLink={handleCopiarLink}
                         />
                       ))}
                 </tbody>
