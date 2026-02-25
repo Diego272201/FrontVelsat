@@ -9,13 +9,12 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { MdAddBox } from 'react-icons/md';
+import { MdAddBox, MdDelete, MdContentCopy } from 'react-icons/md';
 import Container from './container';
 import { Item } from './sortable_item';
 import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
 import GrupoEliminados from './GrupoEliminados';
 import { Spinner } from '@nextui-org/react';
-import { MdDelete } from 'react-icons/md';
 import axios from 'axios';
 import ModalDirecciones from './ModalDirecciones';
 import { parseFechaHora } from '@/app/components/dates/convertToCustomFormat ';
@@ -271,6 +270,26 @@ export default function App({
     console.log('Grupos filtrados:', gruposFiltrados);
   }, [gruposFiltrados]);
 
+  const handleCopiarLink = useCallback(
+    async (coords: { lat: number; lng: number }) => {
+      if (isNaN(coords.lat) || isNaN(coords.lng)) {
+        toast.error('Coordenadas inválidas');
+        return;
+      }
+
+      const googleMapsLink = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+
+      try {
+        await navigator.clipboard.writeText(googleMapsLink);
+        toast.success('Link copiado al portapapeles');
+      } catch (error) {
+        toast.error('Error al copiar el link');
+        console.error('Error al copiar:', error);
+      }
+    },
+    [],
+  );
+
   function verificarGrupos(grupos: Grupo[], fechaParametro: string) {
     let contador = 0;
 
@@ -357,6 +376,30 @@ export default function App({
                 wy: persona.wy,
                 acciones: (
                   <div className="accionesItems">
+                    {/* NUEVO BOTÓN */}
+                    <div className="relative inline-block h-8 w-8">
+                      <div className="group relative h-full w-full">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopiarLink({
+                              lat: Number(persona.wy),
+                              lng: Number(persona.wx),
+                            });
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          type="button"
+                          className="flex h-full w-full items-center justify-center rounded bg-blue-500 hover:bg-blue-600 focus:outline-none"
+                        >
+                          <MdContentCopy size={16} className="text-white" />
+                        </button>
+
+                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          Copiar link de ubicación
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="relative inline-block h-8 w-8">
                       <div className="group relative h-full w-full">
                         <button
