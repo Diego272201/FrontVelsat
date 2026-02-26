@@ -242,7 +242,7 @@ export const ExpiryAlerts = () => {
     const results = await Promise.allSettled(
       docs.map((doc) =>
         axios.get(
-          `https://do.velsat.pe:2083/api/Doc//detalleConductor/${doc.codtaxi}`,
+          `https://do.velsat.pe:2083/api/Doc/detalleConductor/${doc.codtaxi}`,
         ),
       ),
     );
