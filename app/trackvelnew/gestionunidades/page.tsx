@@ -332,32 +332,17 @@ export default function Page() {
                     <td className="py-2 text-center">
                       <div className="flex flex-wrap justify-center gap-2">
                         <Button
-                          size="sm"
-                          className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-md transition-all hover:from-emerald-700 hover:to-emerald-800"
-                          onClick={() => {
-                            setSelectedUnidadLiberar(unidad.codunidad);
-                            setShowLiberarDialog(true);
-                          }}
-                          disabled={loadingLiberar || loadingLiberarTodas}
-                        >
-                          <FileText className="mr-1 h-4 w-4" />
-                          Liberar
-                        </Button>
-
-                        <Button
+                          onClick={() =>
+                            window.open(
+                              `/trackvelnew/gestionunidades/gestiondocs?deviceID=${unidad.codunidad}`,
+                              '_blank',
+                            )
+                          }
                           size="sm"
                           className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transition-all hover:from-blue-700 hover:to-blue-800"
                         >
                           <FileText className="mr-1 h-4 w-4" />
                           Documentos
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          className="bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md transition-all hover:from-amber-600 hover:to-amber-700"
-                        >
-                          <Settings className="mr-1 h-4 w-4" />
-                          Mantenimientos
                         </Button>
 
                         <Button

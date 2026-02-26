@@ -1,11 +1,9 @@
+/* Agregar esto a tu globals.css o importar en _app.tsx */
+@import 'leaflet/dist/leaflet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-
-
-
-
 
 body {
   background: #ffffff;
@@ -206,9 +204,6 @@ body {
 .pasajerosleyenda {
   clip-path: polygon(0 20%, 100% 0, 100% 100%, 0 80%);
 }
-
-/* Agregar esto a tu globals.css o importar en _app.tsx */
-@import 'leaflet/dist/leaflet.css';
 
 /* Estilos adicionales para mejorar la apariencia */
 .leaflet-container {
