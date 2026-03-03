@@ -174,6 +174,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
       },
     ],
   },
+
   SERVICIOS: {
     id: 'servicios',
     title: 'Gestión de Servicios',
@@ -287,6 +288,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
     title: 'Rastreo Móvil',
     icon: RiGpsFill,
     href: '/trackvelmobile',
+    target: '_blank',
+  },
+  DOCUMENTOS: {
+    id: 'documentos',
+    title: 'Documentos',
+    icon: SiGoogledocs,
+    href: '/subtrackvelnew/documentos',
     target: '_blank',
   },
 };
@@ -1123,9 +1131,10 @@ const Tollbar: React.FC = () => {
                 openMenus.reportes,
                 () => toggleMenu('reportes'),
               )}
+              {renderDropdownMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
               <li className="group relative">
                 <Link
-                  href="/subtrackvelnew/geocercas" // ← antes: ""
+                  href="/subtrackvelnew/geocercas"
                   title="Geocercas"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1168,6 +1177,7 @@ const Tollbar: React.FC = () => {
                     openMenus.reportes,
                     () => toggleMenu('reportes'),
                   )}
+                  {renderDropdownMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
                 </>
               ) : (
                 <>
@@ -1552,8 +1562,9 @@ const Tollbar: React.FC = () => {
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
             )}
+            {renderSidebarMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
             <Link
-              href="/subtrackvelnew/geocercas" // ← antes: ""
+              href="/subtrackvelnew/geocercas"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => toggleMenu('sidebar')}
@@ -1602,9 +1613,14 @@ const Tollbar: React.FC = () => {
         ) : (
           <div className="mb-0 space-y-0">
             {isSedapal ? (
-              renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
-                toggleMenu('reportes'),
-              )
+              <>
+                {renderSidebarMenu(
+                  MENU_CONFIG.REPORTES,
+                  openMenus.reportes,
+                  () => toggleMenu('reportes'),
+                )}
+                {renderSidebarMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
+              </>
             ) : (
               <>
                 {renderSidebarMenu(

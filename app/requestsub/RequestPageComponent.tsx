@@ -11,6 +11,7 @@ import * as signalR from '@microsoft/signalr';
 import { useSession } from 'next-auth/react';
 import Loader from '../components/Loader';
 import { useApi } from '@/context/ApiContext';
+import DocumentosPorVencer from '../components/ExpirySubAlerts';
 
 interface DeviceList {
   deviceId: string;
@@ -101,28 +102,27 @@ const MapController = ({
 export default function RequestPage() {
   const isClient = typeof window !== 'undefined';
 
-const openStreetView = useCallback((lat: number, lng: number) => {
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobile = /iphone|ipad|ipod|android/.test(userAgent);
-  
-  if (isMobile) {
-    const link = document.createElement('a');
-    link.href = `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
+  const openStreetView = useCallback((lat: number, lng: number) => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobile = /iphone|ipad|ipod|android/.test(userAgent);
 
-    document.body.appendChild(link);
-    link.click();
+    if (isMobile) {
+      const link = document.createElement('a');
+      link.href = `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
 
-    setTimeout(() => {
-      document.body.removeChild(link);
-    }, 100);
-  } else {
-    const desktopUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
-    window.open(desktopUrl, '_blank');
-  }
-}, []);
+      document.body.appendChild(link);
+      link.click();
 
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+    } else {
+      const desktopUrl = `https://www.google.com/maps/@${lat},${lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0:0!2e0!7i16384!8i8192`;
+      window.open(desktopUrl, '_blank');
+    }
+  }, []);
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
@@ -146,98 +146,97 @@ const openStreetView = useCallback((lat: number, lng: number) => {
 
   useEffect(() => {}, [filteredIdsFromSidebar]);
 
-useEffect(() => {
-  let isComponentMounted = true;
-  let intervalId: NodeJS.Timeout | null = null;
+  useEffect(() => {
+    let isComponentMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
 
-  const fetchDeviceData = async () => {
-    if (!isComponentMounted || !session?.user?.username || !baseUrl) {
-      return;
-    }
-
-    try {
-      const username = session.user.username;
-      const apiUrl = `${baseUrl}/api/DeviceList/${username}`;
-
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+    const fetchDeviceData = async () => {
+      if (!isComponentMounted || !session?.user?.username || !baseUrl) {
+        return;
       }
 
-      const data = await response.json();
+      try {
+        const username = session.user.username;
+        const apiUrl = `${baseUrl}/api/DeviceList/${username}`;
 
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (!isComponentMounted) return;
+
+        // ✅ Extraer datosDevice del objeto de respuesta
+        const datos = data.datosDevice;
+
+        setMarkersLoaded(true);
+        setDeviceList(datos);
+      } catch (error) {
+        console.error('❌ Error obteniendo datos de devices:', error);
+      }
+    };
+
+    const handleVisibilityChange = () => {
       if (!isComponentMounted) return;
 
-      // ✅ Extraer datosDevice del objeto de respuesta
-      const datos = data.datosDevice;
+      if (document.visibilityState === 'visible') {
+        console.log('🔍 Pestaña activa - Reanudando polling...');
 
-      setMarkersLoaded(true);
-      setDeviceList(datos);
+        // Llamar inmediatamente al activar
+        fetchDeviceData();
 
-    } catch (error) {
-      console.error('❌ Error obteniendo datos de devices:', error);
-    }
-  };
+        // Reiniciar intervalo si no existe
+        if (!intervalId) {
+          intervalId = setInterval(fetchDeviceData, 8000);
+        }
+      } else {
+        console.log('😴 Pestaña inactiva - Pausando polling');
 
-  const handleVisibilityChange = () => {
-    if (!isComponentMounted) return;
-
-    if (document.visibilityState === 'visible') {
-      console.log('🔍 Pestaña activa - Reanudando polling...');
-      
-      // Llamar inmediatamente al activar
-      fetchDeviceData();
-      
-      // Reiniciar intervalo si no existe
-      if (!intervalId) {
-        intervalId = setInterval(fetchDeviceData, 8000);
+        // Pausar polling cuando la pestaña está inactiva (opcional)
+        // Si prefieres seguir consultando aunque esté inactiva, comenta estas líneas:
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
       }
-    } else {
-      console.log('😴 Pestaña inactiva - Pausando polling');
-      
-      // Pausar polling cuando la pestaña está inactiva (opcional)
-      // Si prefieres seguir consultando aunque esté inactiva, comenta estas líneas:
+    };
+
+    // Agregar event listener para visibilidad
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Iniciar el polling
+    console.log('🚀 Iniciando polling de datos cada 8 segundos...');
+
+    // Llamada inmediata
+    fetchDeviceData();
+
+    // Configurar intervalo de 8 segundos
+    intervalId = setInterval(fetchDeviceData, 8000);
+
+    // Cleanup
+    return () => {
+      isComponentMounted = false;
+
       if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
       }
-    }
-  };
 
-  // Agregar event listener para visibilidad
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-  // Iniciar el polling
-  console.log('🚀 Iniciando polling de datos cada 8 segundos...');
-  
-  // Llamada inmediata
-  fetchDeviceData();
-  
-  // Configurar intervalo de 8 segundos
-  intervalId = setInterval(fetchDeviceData, 8000);
-
-  // Cleanup
-  return () => {
-    isComponentMounted = false;
-
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
-
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-    console.log('🧹 Cleanup: Polling detenido');
-  };
-}, [session?.user?.username, baseUrl]);
+      console.log('🧹 Cleanup: Polling detenido');
+    };
+  }, [session?.user?.username, baseUrl]);
 
   // MOVIDO FUERA DE LA CONDICIÓN
   useEffect(() => {
@@ -991,6 +990,9 @@ useEffect(() => {
           onFilteredIdsChange={setFilteredIdsFromSidebar}
         />
       </div>
+
+      <DocumentosPorVencer />
+
     </>
   );
 }
