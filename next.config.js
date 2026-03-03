@@ -2,8 +2,10 @@
 const nextConfig = {
     compress: false, // Desactiva la compresión
     images: {
-      domains: ['res.cloudinary.com'],
-    },
+  remotePatterns: [
+    { protocol: 'https', hostname: 'ejemplo.com' }
+  ]
+}
   };
   
   module.exports = nextConfig;

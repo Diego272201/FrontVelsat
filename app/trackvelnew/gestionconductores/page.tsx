@@ -73,7 +73,7 @@ export default function Page() {
   const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(
     null,
   );
-  const { username, isReady } = useUsername(); 
+  const { username, isReady } = useUsername();
 
   // Función para obtener datos de la API
   const fetchConductores = async () => {
@@ -347,7 +347,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <Toaster richColors />
+      <Toaster richColors />
       {/* Header moderno */}
       <div className="border-b border-gray-200 bg-[#113EB9] shadow-lg">
         <div className="px-4 py-1.5">
@@ -376,9 +376,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-
-
-      
 
       {/* Contenido principal */}
       <div className="mx-auto px-4 py-2">
@@ -474,11 +471,6 @@ export default function Page() {
                               onConductorModified={handleConductorModified}
                             />
 
-                            <button className="inline-flex h-8 items-center justify-center rounded-lg bg-blue-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
-                              <Image size={14} className="mr-1" />
-                              Imagen
-                            </button>
-
                             {/* Eliminar Conductor */}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -524,152 +516,18 @@ export default function Page() {
                               </AlertDialogContent>
                             </AlertDialog>
 
-                            {/* Liberar Conductor */}
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button
-                                  className="inline-flex h-8 items-center justify-center rounded-lg bg-yellow-500 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-yellow-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1 disabled:opacity-50"
-                                  disabled={liberandoLoading === conductor.id}
-                                >
-                                  {liberandoLoading === conductor.id ? (
-                                    <Loader2
-                                      size={14}
-                                      className="mr-1 animate-spin"
-                                    />
-                                  ) : (
-                                    <Eye size={14} className="mr-1" />
-                                  )}
-                                  Liberar
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    ¿Estás seguro?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    ¿Deseas liberar al conductor &quot;
-                                    {conductor.nombre}&quot;? Esta acción
-                                    liberará al conductor de su unidad actual.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>
-                                    Cancelar
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      liberarConductor(conductor.id)
-                                    }
-                                    className="bg-yellow-600 hover:bg-yellow-700"
-                                  >
-                                    Liberar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-
-                            <button className="inline-flex h-8 items-center justify-center rounded-lg bg-purple-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-purple-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1">
+                            <button
+                              onClick={() =>
+                                window.open(
+                                  `/trackvelnew/gestionconductores/gestiondocs?codtaxi=${conductor.id}&nombre=${encodeURIComponent(conductor.nombre)}`,
+                                  '_blank',
+                                )
+                              }
+                              className="inline-flex h-8 items-center justify-center rounded-lg bg-purple-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-purple-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                            >
                               <FileCheck size={14} className="mr-1" />
                               Documentos
                             </button>
-
-                            {/* Habilitar/Deshabilitar Conductor */}
-                            {isConductorHabilitado(conductor.id) ? (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <button
-                                    className="inline-flex h-8 items-center justify-center rounded-lg bg-gray-500 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-gray-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1 disabled:opacity-50"
-                                    disabled={
-                                      habilitandoLoading === conductor.id
-                                    }
-                                  >
-                                    {habilitandoLoading === conductor.id ? (
-                                      <Loader2
-                                        size={14}
-                                        className="mr-1 animate-spin"
-                                      />
-                                    ) : (
-                                      <UserX size={14} className="mr-1" />
-                                    )}
-                                    Deshabilitar
-                                  </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      ¿Estás seguro?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      ¿Deseas deshabilitar al conductor &quot;
-                                      {conductor.nombre}&quot;? El conductor no
-                                      podrá ser asignado a unidades mientras
-                                      esté deshabilitado.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancelar
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() =>
-                                        deshabilitarConductor(conductor.id)
-                                      }
-                                      className="bg-gray-600 hover:bg-gray-700"
-                                    >
-                                      Deshabilitar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            ) : (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <button
-                                    className="inline-flex h-8 items-center justify-center rounded-lg bg-green-600 px-3 text-xs font-medium text-white transition-all duration-200 hover:bg-green-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 disabled:opacity-50"
-                                    disabled={
-                                      habilitandoLoading === conductor.id
-                                    }
-                                  >
-                                    {habilitandoLoading === conductor.id ? (
-                                      <Loader2
-                                        size={14}
-                                        className="mr-1 animate-spin"
-                                      />
-                                    ) : (
-                                      <UserCheck size={14} className="mr-1" />
-                                    )}
-                                    Habilitar
-                                  </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      ¿Estás seguro?
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      ¿Deseas habilitar al conductor &quot;
-                                      {conductor.nombre}&quot;? El conductor
-                                      podrá ser asignado a unidades una vez
-                                      habilitado.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancelar
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() =>
-                                        habilitarConductor(conductor.id)
-                                      }
-                                      className="bg-green-600 hover:bg-green-700"
-                                    >
-                                      Habilitar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
                           </div>
                         </td>
                       </tr>

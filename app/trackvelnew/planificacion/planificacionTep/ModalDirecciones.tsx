@@ -43,7 +43,8 @@ export default function ModalDirecciones({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [isModalDireccionAdicionalOpen, setIsModalDireccionAdicionalOpen] = useState<boolean>(false);
+  const [isModalDireccionAdicionalOpen, setIsModalDireccionAdicionalOpen] =
+    useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen && codCliente) {
@@ -57,7 +58,7 @@ export default function ModalDirecciones({
 
           // Imprimir información adicional del contexto
           console.log('Código del cliente:', codCliente);
-          
+
           setLugares(response.data);
         })
         .catch((error) => {
@@ -92,21 +93,24 @@ export default function ModalDirecciones({
 
   const handleEliminar = async (codlugar: number) => {
     setIsDeleting(codlugar);
-    
+
     try {
-      await axios.delete(`https://do.velsat.pe:2083/api/Preplan/EliminarDireccion?codlugar=${codlugar}`);
-      
+      await axios.delete(
+        `https://do.velsat.pe:2083/api/Preplan/EliminarDireccion?codlugar=${codlugar}`,
+      );
+
       // Actualizar la lista local removiendo la dirección eliminada
-      setLugares(prevLugares => prevLugares.filter(lugar => lugar.codlugar !== codlugar));
-      
+      setLugares((prevLugares) =>
+        prevLugares.filter((lugar) => lugar.codlugar !== codlugar),
+      );
+
       // Si la dirección eliminada era la seleccionada, limpiar la selección
       if (selectedValue === String(codlugar)) {
         setSelectedValue('');
       }
-      
+
       toast.success('Dirección eliminada correctamente.');
       setShouldRefetch(true);
-      
     } catch (error) {
       console.error('Error al eliminar dirección:', error);
       toast.error('Error al eliminar la dirección.');
@@ -174,13 +178,18 @@ export default function ModalDirecciones({
                     onValueChange={setSelectedValue}
                   >
                     {lugares.map((lugar) => (
-                      <div key={lugar.codlugar} className="flex items-center gap-2 w-full">
+                      <div
+                        key={lugar.codlugar}
+                        className="flex w-full items-center gap-2"
+                      >
                         <div className="flex-1">
                           <Radio
                             value={String(lugar.codlugar)}
                             description={lugar.direccion}
                           >
-                            <span className="text-[11px]">{lugar.distrito}</span>
+                            <span className="text-[11px]">
+                              {lugar.distrito}
+                            </span>
                           </Radio>
                         </div>
                         <Button
@@ -190,7 +199,7 @@ export default function ModalDirecciones({
                           variant="light"
                           onPress={() => handleEliminar(lugar.codlugar)}
                           isLoading={isDeleting === lugar.codlugar}
-                          className="min-w-8 h-8"
+                          className="h-8 min-w-8"
                         >
                           <TbTrash size={16} />
                         </Button>
@@ -201,7 +210,7 @@ export default function ModalDirecciones({
                   <p>No hay direcciones disponibles.</p>
                 )}
               </ModalBody>
-              
+
               <ModalFooter>
                 <Button color="danger" onPress={onClose}>
                   Cerrar
@@ -215,8 +224,8 @@ export default function ModalDirecciones({
                   Guardar
                 </Button>
 
-                <Button 
-                  color="secondary" 
+                <Button
+                  color="secondary"
                   onPress={() => setIsModalDireccionAdicionalOpen(true)}
                 >
                   Dirección Adicional

@@ -11,6 +11,7 @@ const blinkingStates: { [key: string]: boolean } = {};
 import GoogleMapComponent from '../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
+import ExpiryAlerts from '../components/ExpiryAlerts';
 
 const center = {
   lat: -9.22812,
@@ -1510,6 +1511,9 @@ export default function RequestPage() {
         centerUnit={centerUnit}
         onFilteredIdsChange={setFilteredIdsFromSidebar}
       />
+
+      <ExpiryAlerts />
+
     </>
   );
 }
