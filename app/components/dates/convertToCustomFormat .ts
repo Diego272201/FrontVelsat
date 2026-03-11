@@ -20,9 +20,15 @@ export const formatDate = (dateString: any) => {
 
 export function validateDateRange(startDate: string, endDate: string, maxDays: number = 11): string | null {
   if (!startDate || !endDate) return 'Fechas incompletas';
-  
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+
+  const isoStart = formatDateToISO(startDate); // → "2026-03-10T00:00"
+  const isoEnd = formatDateToISO(endDate);     // → "2026-03-11T23:59"
+
+  const start = new Date(isoStart);
+  const end = new Date(isoEnd);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Fechas inválidas';
+
   const diffTime = Math.abs(end.getTime() - start.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
