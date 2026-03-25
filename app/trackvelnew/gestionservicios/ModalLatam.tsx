@@ -30,6 +30,7 @@ export default function ModalLatam({
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [loading, setLoading] = useState(false);
   const [noEncontrados, setNoEncontrados] = useState<RegistroLatam[]>([]);
+  const [completado, setCompletado] = useState(false);
 
   if (!isOpen) return null;
 
@@ -142,6 +143,7 @@ export default function ModalLatam({
       toast.dismiss(toastId);
       toast.success(`Servicios completados: ${response.data.total}`);
       setNoEncontrados(response.data.noEncontrados || []);
+      setCompletado(true);
 
       // Solo cierra si no hay no encontrados
       if ((response.data.noEncontrados || []).length === 0) handleClose();
@@ -155,7 +157,8 @@ export default function ModalLatam({
 
   const handleClose = () => {
     setRegistros([]);
-    setNoEncontrados([]); // ✅ limpiar
+    setNoEncontrados([]);
+    setCompletado(false);
     setNombreArchivo('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     onClose();
@@ -310,17 +313,25 @@ export default function ModalLatam({
           <div className="flex gap-2">
             <button
               onClick={handleClose}
-              className="rounded-md border border-gray-300 px-4 py-1.5 text-[11px] text-gray-600 hover:bg-gray-50"
+              className={`rounded-md border px-4 py-1.5 text-[11px] transition ${
+                completado
+                  ? 'border-red-600 text-red-600 hover:bg-red-50'
+                  : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              Cancelar
+              {completado ? 'Cerrar' : 'Cancelar'}
             </button>
-            <button
-              onClick={handleCompletar}
-              disabled={loading || registros.length === 0}
-              className="flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
-            >
-              {loading ? 'Procesando...' : `Completar (${registros.length})`}
-            </button>
+
+            {/*Solo muestra el botón si aún no se completó */}
+            {!completado && (
+              <button
+                onClick={handleCompletar}
+                disabled={loading || registros.length === 0}
+                className="flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-1.5 text-[11px] font-medium text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+              >
+                {loading ? 'Procesando...' : `Completar (${registros.length})`}
+              </button>
+            )}
           </div>
         </div>
       </div>
