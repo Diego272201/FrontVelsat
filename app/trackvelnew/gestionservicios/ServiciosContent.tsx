@@ -1,6 +1,6 @@
 'use client';
 import { useDisclosure } from '@nextui-org/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FaUser } from 'react-icons/fa';
 import {
   MdCleaningServices,
@@ -17,14 +17,15 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
-import { HiCalendarDateRange, HiClock } from 'react-icons/hi2';
+import { HiCalendarDateRange, HiClock, HiTruck } from 'react-icons/hi2';
 import { RiCheckboxMultipleFill } from 'react-icons/ri';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
 import InputConductor from '@/app/components/inputs/InputConductor';
 import { useUsername } from '@/hooks/useUsername';
 import { HiDocumentReport } from 'react-icons/hi';
-import ModalGenerarReporte from './ModalGenerarReporte';
+import { createPortal } from 'react-dom';
+import ModalLatam from './ModalLatam';
 
 const empresas = [
   'ABNER MATOS',
@@ -57,8 +58,6 @@ const empresas = [
   'MILPO',
   'MKCOLLEAGUE',
   'MOVIL AIR',
-  'MOVIL-BUS-MANTTO',
-  'MOVILBUS',
   'NEXA',
   'NEXA CJM',
   'OI LURIN',
@@ -87,7 +86,6 @@ const empresasG = ['ATSA', 'AVIANCA', 'DHL', 'LATAM', 'TALMA', 'TERPEL'];
 
 export default function Page() {
   const { username, isReady } = useUsername();
-
   const [isVisible, setIsVisible] = useState(true);
   const [isVisibleAsignar, setIsVisibleAsignar] = useState(false);
   const [selectedArea, setSelectedArea] = useState('');
@@ -116,15 +114,24 @@ export default function Page() {
   const [fechaInicial, setFechaInicial] = useState('');
   const [fechaFinal, setFechaFinal] = useState('');
   const [tipoReporte, setTipoReporte] = useState('');
-
-  const [isModalDiferenciasOpen, setIsModalDiferenciasOpen] = useState(false);
-
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const [fechaLatam, setFechaLatam] = useState('');
+  const [isModalLatamOpen, setIsModalLatamOpen] = useState(false);
   const formatearFechaParaAPI = (fechaDatetimeLocal: string) => {
     if (!fechaDatetimeLocal) return '';
-
     const [fecha, hora] = fechaDatetimeLocal.split('T');
     return `${fecha} ${hora}`;
   };
+  const [conductorSearch, setConductorSearch] = useState('');
+  const [conductorSeleccionado, setConductorSeleccionado] = useState<any>(null);
+  const [conductores, setConductores] = useState<any[]>([]);
+  const [showConductorDropdown, setShowConductorDropdown] = useState(false);
+  const [fechaConductorIni, setFechaConductorIni] = useState('');
+  const [fechaConductorFin, setFechaConductorFin] = useState('');
+  const [usarRangoConductor, setUsarRangoConductor] = useState(false);
+  const [descargandoConductor, setDescargandoConductor] = useState(false);
+  const conductorDropdownRef = useRef<HTMLDivElement>(null);
+  const [reporteTodos, setReporteTodos] = useState(false);
 
   const handleGenerarReporte = async () => {
     // Validaciones específicas con mensajes personalizados
@@ -406,6 +413,115 @@ export default function Page() {
   };
 
   useEffect(() => {
+    const fetchConductores = async () => {
+      if (!isReady || !username) return;
+      try {
+        const res = await fetch(
+          `https://do.velsat.pe:2083/api/Preplan/conductores/${username}`,
+        );
+        const data = await res.json();
+        setConductores(data.filter((c: any) => c.habilitado === '1'));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchConductores();
+  }, [username, isReady]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        conductorDropdownRef.current &&
+        !conductorDropdownRef.current.contains(e.target as Node)
+      )
+        setShowConductorDropdown(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleGenerarReporteConductor = async () => {
+    if (!isReady || !username) {
+      toast.error('Esperando datos de sesión, intente nuevamente');
+      return;
+    }
+    if (!conductorSeleccionado || !fechaConductorIni) {
+      toast.error('Seleccione conductor y fecha');
+      return;
+    }
+    if (usarRangoConductor && !fechaConductorFin) {
+      toast.error('Ingrese la fecha fin');
+      return;
+    }
+
+    const formatF = (f: string) => {
+      const [y, m, d] = f.split('-');
+      return `${d}/${m}/${y}`;
+    };
+
+    setDescargandoConductor(true);
+    try {
+      const base = 'https://do.velsat.pe:2083/api/Preplan';
+      const cod = conductorSeleccionado.codigo;
+      const url = usarRangoConductor
+        ? `${base}/ServiciosConductorRangos?codConductor=${cod}&fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username || ''}`
+        : `${base}/ExcelServiciosConductor?codConductor=${cod}&fecha=${encodeURIComponent(formatF(fechaConductorIni))}&usuario=${username || ''}`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Reporte_${conductorSeleccionado.apellidos}_${formatF(fechaConductorIni)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Reporte descargado');
+    } catch {
+      toast.error('No hay reporte para los datos seleccionados.');
+    } finally {
+      setDescargandoConductor(false);
+    }
+  };
+
+  const handleGenerarReporteTodos = async () => {
+    if (!isReady || !username) {
+      toast.error('Esperando datos de sesión, intente nuevamente');
+      return;
+    }
+
+    if (!fechaConductorIni || !fechaConductorFin) {
+      toast.error('Seleccione fecha inicio y fecha fin');
+      return;
+    }
+
+    const formatF = (f: string) => {
+      const [y, m, d] = f.split('-');
+      return `${d}/${m}/${y}`;
+    };
+
+    setDescargandoConductor(true);
+    try {
+      const url = `https://do.velsat.pe:2083/api/Preplan/ExcelServiciosTodosConductores?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username || ''}`;
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Reporte_Todos_Conductores_${formatF(fechaConductorIni)}_al_${formatF(fechaConductorFin)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Reporte descargado');
+    } catch {
+      toast.error('No hay reporte para los datos seleccionados.');
+    } finally {
+      setDescargandoConductor(false);
+    }
+  };
+
+  useEffect(() => {
     console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
   }, [unidadSeleccionada]);
 
@@ -584,13 +700,205 @@ export default function Page() {
                       <HiDocumentReport className="h-3 w-3" />
                       Generar
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
+            {/* Reporte Latam + Servicios por conductor - lado a lado */}
+            <div className="flex gap-3">
+              {/* Reporte Latam */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <FaClipboard className="h-4 w-4 text-blue-600" />
+                    Completar servicios Latam
+                  </span>
+                </div>
+                <div className="p-3">
+                  <div className="flex items-end gap-2">
+                    <input
+                      type="date"
+                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/20"
+                      value={fechaLatam}
+                      onChange={(e) => setFechaLatam(e.target.value)}
+                    />
                     <button
-                      className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
-                      onClick={() => setIsModalDiferenciasOpen(true)}
+                      className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
+                      onClick={() => {
+                        if (!fechaLatam) {
+                          toast.error('Seleccione una fecha');
+                          return;
+                        }
+                        setIsModalLatamOpen(true);
+                      }}
                     >
                       <HiDocumentReport className="h-3 w-3" />
-                      Servicios por conductor
+                      Completar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Servicios por conductor */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiTruck className="h-4 w-4 text-indigo-600" />
+                    Servicios por conductor
+                  </span>
+                </div>
+                <div className="p-3">
+                  <div className="flex flex-wrap items-end gap-2">
+                    {/* Selector conductor - deshabilitado si reporteTodos */}
+                    <div
+                      className="relative w-[200px]"
+                      ref={conductorDropdownRef}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Buscar conductor..."
+                        value={conductorSearch}
+                        onChange={(e) => {
+                          if (reporteTodos) return;
+                          setConductorSearch(e.target.value);
+                          setShowConductorDropdown(true);
+                          if (!e.target.value) setConductorSeleccionado(null);
+                        }}
+                        onFocus={() => {
+                          if (!reporteTodos) setShowConductorDropdown(true);
+                        }}
+                        disabled={reporteTodos}
+                        className={`w-full rounded-md border px-2 py-2 pr-7 text-[11px] focus:outline-none ${
+                          reporteTodos
+                            ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
+                            : 'border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
+                        }`}
+                        autoComplete="off"
+                      />
+                      <IoSearchSharp className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+                      {showConductorDropdown &&
+                        conductorSearch &&
+                        !reporteTodos &&
+                        conductores.filter((c) =>
+                          c.apellidos
+                            .toLowerCase()
+                            .includes(conductorSearch.toLowerCase()),
+                        ).length > 0 && (
+                          <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                            {conductores
+                              .filter((c) =>
+                                c.apellidos
+                                  .toLowerCase()
+                                  .includes(conductorSearch.toLowerCase()),
+                              )
+                              .map((c) => (
+                                <li
+                                  key={c.codigo}
+                                  className="cursor-pointer px-3 py-2 text-[11px] hover:bg-indigo-50"
+                                  onMouseDown={() => {
+                                    setConductorSeleccionado(c);
+                                    setConductorSearch(c.apellidos);
+                                    setShowConductorDropdown(false);
+                                  }}
+                                >
+                                  <span className="font-medium">
+                                    {c.apellidos}
+                                  </span>
+                                  <span className="ml-2 text-gray-400">
+                                    DNI: {c.dni}
+                                  </span>
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                    </div>
+
+                    {/* Fecha inicio */}
+                    <input
+                      type="date"
+                      value={fechaConductorIni}
+                      onChange={(e) => setFechaConductorIni(e.target.value)}
+                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                    />
+
+                    {/* Fecha fin - deshabilitada si no hay rango Y no es todos */}
+                    <input
+                      type="date"
+                      value={fechaConductorFin}
+                      onChange={(e) => setFechaConductorFin(e.target.value)}
+                      disabled={!usarRangoConductor && !reporteTodos}
+                      className={`w-[140px] rounded-md border px-2 py-1.5 text-[11px] focus:outline-none ${
+                        usarRangoConductor || reporteTodos
+                          ? 'border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
+                          : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
+                      }`}
+                    />
+
+                    {/* Switch Rango - deshabilitado si reporteTodos */}
+                    <div className="flex items-center gap-1.5 pb-1">
+                      <span
+                        className={`text-[10px] ${reporteTodos ? 'text-gray-300' : 'text-gray-500'}`}
+                      >
+                        Rango
+                      </span>
+                      <label
+                        className={`relative inline-flex items-center ${reporteTodos ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={usarRangoConductor}
+                          onChange={(e) => {
+                            if (reporteTodos) return;
+                            setUsarRangoConductor(e.target.checked);
+                            if (!e.target.checked) setFechaConductorFin('');
+                          }}
+                          disabled={reporteTodos}
+                          className="peer sr-only"
+                        />
+                        <div className="peer relative h-5 w-9 rounded-full bg-rose-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-4"></div>
+                      </label>
+                    </div>
+
+                    {/* Switch Todos */}
+                    <div className="flex items-center gap-1.5 pb-1">
+                      <span className="text-[10px] text-gray-500">Todos</span>
+                      <label className="relative inline-flex cursor-pointer items-center">
+                        <input
+                          type="checkbox"
+                          checked={reporteTodos}
+                          onChange={(e) => {
+                            setReporteTodos(e.target.checked);
+                            if (e.target.checked) {
+                              // Al activar Todos: limpiar conductor y desactivar rango
+                              setConductorSeleccionado(null);
+                              setConductorSearch('');
+                              setUsarRangoConductor(false);
+                              // fecha fin se habilita automáticamente por reporteTodos
+                            } else {
+                              setFechaConductorFin('');
+                            }
+                          }}
+                          className="peer sr-only"
+                        />
+                        <div className="peer relative h-5 w-9 rounded-full bg-rose-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-4"></div>
+                      </label>
+                    </div>
+
+                    {/* Botón Generar */}
+                    <button
+                      onClick={
+                        reporteTodos
+                          ? handleGenerarReporteTodos
+                          : handleGenerarReporteConductor
+                      }
+                      disabled={descargandoConductor}
+                      className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95 disabled:opacity-50"
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      {descargandoConductor
+                        ? 'Descargando...'
+                        : 'Generar reporte'}
                     </button>
                   </div>
                 </div>
@@ -662,7 +970,7 @@ export default function Page() {
                     <input
                       id="inputPasajero"
                       type="text"
-                      className="w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      className="... w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px]"
                       placeholder="Buscar pasajero..."
                       value={pasajero}
                       onChange={(e) => {
@@ -670,12 +978,25 @@ export default function Page() {
                           setSeleccionado(false);
                           return;
                         }
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setDropdownPos({
+                          top: rect.bottom + window.scrollY,
+                          left: rect.left + window.scrollX,
+                          width: rect.width,
+                        });
                         setPasajero(e.target.value);
                         setMostrarSugerencias(true);
                       }}
-                      onFocus={() => {
-                        if (sugerencias.length > 0 && !seleccionado)
+                      onFocus={(e) => {
+                        if (sugerencias.length > 0 && !seleccionado) {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setDropdownPos({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.left + window.scrollX,
+                            width: rect.width,
+                          });
                           setMostrarSugerencias(true);
+                        }
                       }}
                       onBlur={() =>
                         setTimeout(() => setMostrarSugerencias(false), 100)
@@ -685,29 +1006,41 @@ export default function Page() {
                       <FaUser className="h-3 w-3 text-gray-400" />
                     </div>
 
-                    {mostrarSugerencias && sugerencias.length > 0 && (
-                      <ul className="absolute z-[9999] mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                        {sugerencias.map((item, index) => (
-                          <li
-                            key={index}
-                            className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              seleccionarPasajero(item.apepate, item.codlan);
-                              setMostrarSugerencias(false);
-                              setSugerencias([]);
-                              setTimeout(() => {
-                                const input =
-                                  document.getElementById('inputPasajero');
-                                input?.blur();
-                              }, 100);
-                            }}
-                          >
-                            {item.apepate}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    {mostrarSugerencias &&
+                      sugerencias.length > 0 &&
+                      createPortal(
+                        <ul
+                          style={{
+                            position: 'absolute',
+                            top: dropdownPos.top,
+                            left: dropdownPos.left,
+                            width: dropdownPos.width,
+                            zIndex: 99999,
+                          }}
+                          className="max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg"
+                        >
+                          {sugerencias.map((item, index) => (
+                            <li
+                              key={index}
+                              className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                seleccionarPasajero(item.apepate, item.codlan);
+                                setMostrarSugerencias(false);
+                                setSugerencias([]);
+                                setTimeout(() => {
+                                  document
+                                    .getElementById('inputPasajero')
+                                    ?.blur();
+                                }, 100);
+                              }}
+                            >
+                              {item.apepate}
+                            </li>
+                          ))}
+                        </ul>,
+                        document.body,
+                      )}
                   </div>
 
                   <input
@@ -801,9 +1134,11 @@ export default function Page() {
         )}
       </div>
 
-      <ModalGenerarReporte
-        isOpen={isModalDiferenciasOpen}
-        onClose={() => setIsModalDiferenciasOpen(false)}
+      <ModalLatam
+        isOpen={isModalLatamOpen}
+        onClose={() => setIsModalLatamOpen(false)}
+        fecha={fechaLatam}
+        codusuario={username || ''}
       />
 
       <div className="grupoServicios relative z-10 overflow-visible">
