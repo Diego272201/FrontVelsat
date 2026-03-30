@@ -96,7 +96,7 @@ export default function Login() {
           const urlGuardada = localStorage.getItem('servidorUrl');
 
           // Usuario rcmachacuay siempre va a /trackvelnew independientemente del servidor
-          if (username === 'rcmachacuay' || username === 'vvwalter') {
+          if (username === 'rcmachacuay' || username === 'vvwalter' || username === 'estserrodas') {
             router.replace('/trackvelnew');
           } else if (urlGuardada === 'https://sub.velsat.pe:2096') {
             router.replace('/subtrackvelnew');
