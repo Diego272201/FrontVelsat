@@ -613,36 +613,36 @@ export default function App({ title, onPasajeroAgregado }: Props) {
                         <SelectItem key="LATAM">LATAM</SelectItem>
                         <SelectItem key="KLM">KLM</SelectItem>
                         <SelectItem key="DELTA">DELTA</SelectItem>
-                        <SelectItem key="QUALITY_PRODUCTS">
+                        <SelectItem key="QUALITY PRODUCTS">
                           QUALITY PRODUCTS
                         </SelectItem>
                         <SelectItem key="NEXA">NEXA</SelectItem>
                         <SelectItem key="LCP">LCP</SelectItem>
-                        <SelectItem key="AMERICAN_AIRLINES">
+                        <SelectItem key="AMERICAN AIRLINES">
                           AMERICAN AIRLINES
                         </SelectItem>
                         <SelectItem key="AJINOMOTO">AJINOMOTO</SelectItem>
                         <SelectItem key="DHL">DHL</SelectItem>
                         <SelectItem key="TERPEL">TERPEL</SelectItem>
                         <SelectItem key="INDECOPI">INDECOPI</SelectItem>
-                        <SelectItem key="AMERICAN_TIERRA">
+                        <SelectItem key="AMERICAN TIERRA">
                           AMERICAN TIERRA
                         </SelectItem>
                         <SelectItem key="REP">REP</SelectItem>
-                        <SelectItem key="REP_SI">REP SI</SelectItem>
+                        <SelectItem key="REP SI">REP SI</SelectItem>
                         <SelectItem key="PLUSPETROL">PLUSPETROL</SelectItem>
                         <SelectItem key="PROSEGUR">PROSEGUR</SelectItem>
                         <SelectItem key="SASAA">SASAA</SelectItem>
                         <SelectItem key="TALMA">TALMA</SelectItem>
-                        <SelectItem key="OI_PERU">OI PERU</SelectItem>
+                        <SelectItem key="OI PERU">OI PERU</SelectItem>
                         <SelectItem key="METSO">METSO</SelectItem>
                         <SelectItem key="MOVILBUS">MOVILBUS</SelectItem>
-                        <SelectItem key="OI_LURIN">OI LURIN</SelectItem>
-                        <SelectItem key="METSO_SSGG">METSO SSGG</SelectItem>
-                        <SelectItem key="TERPEL_AVIACION">
+                        <SelectItem key="OI LURIN">OI LURIN</SelectItem>
+                        <SelectItem key="METSO SSGG">METSO SSGG</SelectItem>
+                        <SelectItem key="TERPEL AVIACION">
                           TERPEL AVIACION
                         </SelectItem>
-                        <SelectItem key="TERPEL_COMERCIAL">
+                        <SelectItem key="TERPEL COMERCIAL">
                           TERPEL COMERCIAL
                         </SelectItem>
                         <SelectItem key="ATSA">ATSA</SelectItem>
