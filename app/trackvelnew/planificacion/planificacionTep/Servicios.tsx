@@ -551,6 +551,36 @@ export default function App({
     });
 
     if (resultado.isConfirmed) {
+      // 👇 NUEVO: comparar horaprog entre grupos
+      const horaOrigen = grupos[indiceGrupo]?.horaprog;
+      const horaDestino = grupos[overContainerIndex]?.horaprog;
+
+      const horasDistintas =
+        horaOrigen &&
+        horaDestino &&
+        horaOrigen !== 'null' &&
+        horaDestino !== 'null' &&
+        horaOrigen !== horaDestino;
+
+      if (horasDistintas) {
+        const confirmacionHora = await Swal.fire({
+          title: '⚠️ Diferencia de horario',
+          html: `
+        <p>El grupo de origen tiene hora: <strong>${horaOrigen}</strong></p>
+        <p>El grupo destino tiene hora: <strong>${horaDestino}</strong></p>
+        <p>¿Confirmas el movimiento de todas formas?</p>
+      `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, confirmar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#f0a500',
+          cancelButtonColor: '#3085d6',
+        });
+
+        if (!confirmacionHora.isConfirmed) return; // 👈 cancela si rechaza
+      }
+
       moverClienteOtroGrupo(
         Number(activeId),
         indiceGrupo,
