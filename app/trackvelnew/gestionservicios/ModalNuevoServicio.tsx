@@ -62,6 +62,16 @@ const clientes = [
   'TALMA',
 ];
 
+const empresasG = [
+  'ATSA',
+  'AVIANCA',
+  'DHL',
+  'LATAM',
+  'TALMA',
+  'TERPEL',
+  'LAGARDERE',
+];
+
 function SortableItem({
   id,
   children,
@@ -161,44 +171,44 @@ export default function NuevoServicioModal({
   };
 
   useEffect(() => {
-  const fetchPasajeros = async () => {
-    if (!isReady || pasajero.trim() === '') {
-      setSugerencias([]);
-      setMostrarSugerencias(false);
-      return;
-    }
+    const fetchPasajeros = async () => {
+      if (!isReady || pasajero.trim() === '') {
+        setSugerencias([]);
+        setMostrarSugerencias(false);
+        return;
+      }
 
-    try {
-      
-      // ✅ Usar API diferente según el usuario
-      const apiUrl = username === 'movilbus'
-        ? `${API_BASE_URL125}/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${clienteSeleccionado}`
-        : `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
+      try {
+        // ✅ Usar API diferente según el usuario
+        const apiUrl =
+          username === 'movilbus'
+            ? `${API_BASE_URL125}/api/Preplan/GetPasajerosEmpresa?palabra=${pasajero}&codusuario=${username}&empresa=${clienteSeleccionado}`
+            : `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`;
 
-      const response = await axios.get(apiUrl);
+        const response = await axios.get(apiUrl);
 
-      const resultados = response.data.map((item: any) => ({
-        apepate: item.apepate,
-        codigo: item.codigo,
-        codlugar: item.lugar?.codlugar || 0,
-        direccion: item.lugar?.direccion || 'No disponible',
-        distrito: item.lugar?.distrito || 'No disponible',
-        wx: item.lugar?.wx || '',
-        wy: item.lugar?.wy || '',
-      }));
+        const resultados = response.data.map((item: any) => ({
+          apepate: item.apepate,
+          codigo: item.codigo,
+          codlugar: item.lugar?.codlugar || 0,
+          direccion: item.lugar?.direccion || 'No disponible',
+          distrito: item.lugar?.distrito || 'No disponible',
+          wx: item.lugar?.wx || '',
+          wy: item.lugar?.wy || '',
+        }));
 
-      setSugerencias(resultados);
-    } catch (error) {
-      console.error('Error al obtener pasajeros:', error);
-    }
-  };
+        setSugerencias(resultados);
+      } catch (error) {
+        console.error('Error al obtener pasajeros:', error);
+      }
+    };
 
-  const delayDebounce = setTimeout(() => {
-    fetchPasajeros();
-  }, 300);
+    const delayDebounce = setTimeout(() => {
+      fetchPasajeros();
+    }, 300);
 
-  return () => clearTimeout(delayDebounce);
-}, [pasajero, seleccionado, username, isReady, clienteSeleccionado]); // ✅ Agregar clienteSeleccionado a las dependencias
+    return () => clearTimeout(delayDebounce);
+  }, [pasajero, seleccionado, username, isReady, clienteSeleccionado]); // ✅ Agregar clienteSeleccionado a las dependencias
 
   const agregarPasajero = () => {
     if (!pasajero) {
@@ -374,11 +384,13 @@ export default function NuevoServicioModal({
                     <option value="" disabled>
                       Seleccione un cliente
                     </option>
-                    {clientes.map((cliente) => (
-                      <option key={cliente} value={cliente}>
-                        {cliente}
-                      </option>
-                    ))}
+                    {(username === 'movilbus' ? clientes : empresasG).map(
+                      (cliente) => (
+                        <option key={cliente} value={cliente}>
+                          {cliente}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </div>
                 <div>

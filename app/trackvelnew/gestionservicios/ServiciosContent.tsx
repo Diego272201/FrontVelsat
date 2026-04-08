@@ -82,7 +82,7 @@ const empresas = [
   'ZUSANE',
 ];
 
-const empresasG = ['ATSA', 'AVIANCA', 'DHL', 'LATAM', 'TALMA', 'TERPEL'];
+const empresasG = ['ATSA', 'AVIANCA', 'DHL', 'LATAM', 'TALMA', 'TERPEL', 'LAGARDERE'];
 
 export default function Page() {
   const { username, isReady } = useUsername();

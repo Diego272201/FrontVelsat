@@ -66,6 +66,7 @@ export default function ModalAddService({
     { key: 'latam', label: 'LATAM' },
     { key: 'talma', label: 'TALMA' },
     { key: 'terpel', label: 'TERPEL' },
+    { key: 'lagardere', label: 'LAGARDERE ' }
   ];
 
   const aerolineaAremys = [{ key: 'sasaa', label: 'SASAA' }];

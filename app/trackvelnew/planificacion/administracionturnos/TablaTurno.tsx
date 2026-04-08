@@ -69,10 +69,15 @@ export default function App({
 
   const [filterValue, setFilterValue] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = useState<Selection>( new Set(columns.map((c) => c.uid)),);
+  const [visibleColumns, setVisibleColumns] = useState<Selection>(
+    new Set(columns.map((c) => c.uid)),
+  );
   const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
   const [rowsPerPage, setRowsPerPage] = useState(8);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({column: 'n',direction: 'ascending',});
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: 'n',
+    direction: 'ascending',
+  });
   const [page, setPage] = useState(1);
   const [uniqueEmpresas, setUniqueEmpresas] = useState<string[]>([]);
 
@@ -95,17 +100,20 @@ export default function App({
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
+    console.log('username:', username, 'isReady:', isReady);
+    if (!isReady || !username) return;
 
     axios
       .get(`https://do.velsat.pe:2083/api/Turnos/empresa/${username}`)
       .then((response) => {
+        console.log('Empresas:', response.data);
+        console.log('uniqueEmpresas:', uniqueEmpresas); // 👈 fuera del useEffect
         setUniqueEmpresas(response.data);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
       });
-  }, [username, isReady]);
+  }, [username, isReady, users]);
 
   const pages = Math.ceil(users.length / rowsPerPage);
 
@@ -202,7 +210,7 @@ export default function App({
         );
       case 'operaciones':
         return (
-          <div className="relative flex items-center gap-3 justify-center">
+          <div className="relative flex items-center justify-center gap-3">
             <ModalTurnoEdit
               user={user}
               titleM={title}
@@ -252,7 +260,7 @@ export default function App({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4 ">
-<h2 className="tituloTunos font-medium text-900">TURNOS DE {title}</h2>
+        <h2 className="tituloTunos text-900 font-medium">TURNOS DE {title}</h2>
         <div className="flex items-end justify-between gap-3 px-1">
           <Input
             isClearable
@@ -272,8 +280,8 @@ export default function App({
           />
 
           <Select
+            aria-label="Filtrar por Empresa"
             style={{ background: '#fff' }}
-            label=""
             placeholder="Filtrar por Empresa"
             labelPlacement="outside"
             size="sm"
@@ -331,6 +339,7 @@ export default function App({
     onSearchChange,
     users.length,
     hasSearchFilter,
+    uniqueEmpresas
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -339,7 +348,7 @@ export default function App({
     const endPage = Math.min(pages, startPage + maxVisiblePages - 1);
 
     return (
-      <div className="flex items-center px-2 py-1 bg-gray-100 rounded">
+      <div className="flex items-center rounded bg-gray-100 px-2 py-1">
         <div className="flex items-center gap-2">
           {page > 1 && (
             <button
@@ -416,7 +425,6 @@ export default function App({
       topContentPlacement="outside"
       onSelectionChange={setSelectedKeys}
       onSortChange={setSortDescriptor}
-      
     >
       <TableHeader columns={headerColumns}>
         {(column) => (

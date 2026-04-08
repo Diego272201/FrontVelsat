@@ -726,6 +726,7 @@ export default function App({ title, codCliente }: Props) {
                         >
                           <SelectItem key="AVIANCA">AVIANCA</SelectItem>
                           <SelectItem key="LATAM">LATAM</SelectItem>
+                          <SelectItem key="LAGARDERE">LAGARDERE</SelectItem>
                           <SelectItem key="KLM">KLM</SelectItem>
                           <SelectItem key="DELTA">DELTA</SelectItem>
                           <SelectItem key="QUALITY PRODUCTS">
