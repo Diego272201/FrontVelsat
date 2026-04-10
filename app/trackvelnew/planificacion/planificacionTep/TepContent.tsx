@@ -279,7 +279,7 @@ export default function TepContent() {
 
         try {
           const response = await axios.post(
-            `${API_BASE_URL125}/api/preplan/insert?fecact=${fecact}&tipo=${encodeURIComponent(selectedEmpresa)}&usuario=${username}`,
+            `https://localhost:7223/api/preplan/insert?fecact=${fecact}&tipo=${encodeURIComponent(selectedEmpresa)}&usuario=${username}`,
             filteredData,
           );
           console.log(response.data);

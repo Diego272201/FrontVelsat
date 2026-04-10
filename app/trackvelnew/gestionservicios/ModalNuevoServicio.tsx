@@ -26,40 +26,14 @@ interface NuevoServicioModalProps {
 }
 
 const clientes = [
-  'AJINOMOTO',
   'AMERICAN',
   'AMERICAN TIERRA',
-  'AVIANCA',
-  'AVIANCA ADM',
-  'CHINALCO',
   'DELTA',
-  'ECONOMICO',
-  'EJECUTIVO VIP 2',
-  'EJECUTIVO VIP 1',
-  'INDECOPI',
   'KLM',
   'LATAM',
   'LATAM ADM',
-  'LCP',
-  'MAPFRE',
-  'METSO',
-  'METSO SSGG',
-  'MKCOLLEQUE',
-  'MOVIL-BUS-MANTTO',
-  'MOVILBUS',
-  'NEXA',
-  'NEXA CJM',
-  'OI LURIN',
-  'OI PERU',
-  'PLUSPETROL',
-  'PLUSPETROL-PISCO',
-  'PREMIER',
-  'PRESIDENCIAL',
-  'PROSEGUR',
   'REP SI',
-  'REP',
-  'SIEMENS',
-  'TALMA',
+  'REP'
 ];
 
 const empresasG = [
