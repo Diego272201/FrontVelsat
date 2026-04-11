@@ -125,7 +125,7 @@ export function GoogleMapsProvider({
   const hasInitializedRef = useRef<boolean>(false);
 
   // ✅ NUEVA LÓGICA: Usuarios que DEBEN usar Google Maps aunque tengan servidor "sub"
-  const usersShouldUseGoogleMaps = ['rcmachacuay', 'vvwalter', 'estserrodas'];
+  const usersShouldUseGoogleMaps = ['rcmachacuay', 'vvwalter', 'estserrodas', 'ifaburneo'];
   const forceGoogleMaps = username
     ? usersShouldUseGoogleMaps.includes(username)
     : false;
