@@ -309,7 +309,7 @@ export default function NuevoServicioModal({
         orden: '0',
       },
     ],
-    numero: '',
+    numero: 'Adicional',
     tipo: tipoServicio, // ← Ya viene 'I' o 'S' directamente del select
     unidad: { codunidad: codUnidadSeleccionado },
   };

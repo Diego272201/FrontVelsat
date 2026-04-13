@@ -94,6 +94,7 @@ export default function App({
   refreshFlag,
   refreshFlagServicio,
   refreshSearch,
+  onConteoChange
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -108,6 +109,7 @@ export default function App({
   refreshFlag: boolean;
   refreshFlagServicio: boolean;
   refreshSearch: number;
+  onConteoChange?: (servicios: number, conductores: number) => void;
 }) {
   const { username, isReady } = useUsername();
 
@@ -648,6 +650,18 @@ export default function App({
   const items = useMemo(() => {
     return filteredData;
   }, [filteredData]);
+
+  // Calcular conteos y pasarlos al padre
+useEffect(() => {
+  const serviciosActivos = data.filter(s => s.estado !== 'CN');
+  const cantServicios = serviciosActivos.length;
+  const cantConductores = new Set(
+    serviciosActivos
+      .map(s => s.conductor?.trim().toLowerCase())
+      .filter(c => c && c !== '-')
+  ).size;
+  onConteoChange?.(cantServicios, cantConductores);
+}, [data]); // ← data en lugar de filteredData
 
   useEffect(() => {
     console.log(

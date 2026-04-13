@@ -35,10 +35,18 @@ const empresas = [
   'LATAM',
   'LATAM ADM',
   'REP SI',
-  'REP'
+  'REP',
 ];
 
-const empresasG = ['ATSA', 'AVIANCA', 'DHL', 'LATAM', 'TALMA', 'TERPEL', 'LAGARDERE'];
+const empresasG = [
+  'ATSA',
+  'AVIANCA',
+  'DHL',
+  'LATAM',
+  'TALMA',
+  'TERPEL',
+  'LAGARDERE',
+];
 
 export default function Page() {
   const { username, isReady } = useUsername();
@@ -88,6 +96,8 @@ export default function Page() {
   const [descargandoConductor, setDescargandoConductor] = useState(false);
   const conductorDropdownRef = useRef<HTMLDivElement>(null);
   const [reporteTodos, setReporteTodos] = useState(false);
+  const [conteoServicios, setConteoServicios] = useState(0);
+  const [conteoConductores, setConteoConductores] = useState(0);
 
   const handleGenerarReporte = async () => {
     // Validaciones específicas con mensajes personalizados
@@ -446,8 +456,13 @@ export default function Page() {
       return;
     }
 
-    if (!fechaConductorIni || !fechaConductorFin) {
-      toast.error('Seleccione fecha inicio y fecha fin');
+    if (!fechaConductorIni) {
+      toast.error('Seleccione la fecha de inicio');
+      return;
+    }
+
+    if (usarRangoConductor && !fechaConductorFin) {
+      toast.error('Ingrese la fecha fin');
       return;
     }
 
@@ -458,14 +473,20 @@ export default function Page() {
 
     setDescargandoConductor(true);
     try {
-      const url = `https://do.velsat.pe:2083/api/Preplan/ExcelServiciosTodosConductores?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username || ''}`;
+      const base = 'https://do.velsat.pe:2083/api/Preplan';
+
+      const url = usarRangoConductor
+        ? `${base}/ExcelServiciosTodosConductores?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username}`
+        : `${base}/ExcelServiciosTodosConductoresDia?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&usuario=${username}`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error();
       const blob = await res.blob();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = `Reporte_Todos_Conductores_${formatF(fechaConductorIni)}_al_${formatF(fechaConductorFin)}.xlsx`;
+      link.download = usarRangoConductor
+        ? `Reporte_Todos_${formatF(fechaConductorIni)}_al_${formatF(fechaConductorFin)}.xlsx`
+        : `Reporte_Todos_${formatF(fechaConductorIni)}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -778,38 +799,30 @@ export default function Page() {
                       className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
                     />
 
-                    {/* Fecha fin - deshabilitada si no hay rango Y no es todos */}
+                    {/* Fecha fin - deshabilitada si no hay rango*/}
                     <input
                       type="date"
                       value={fechaConductorFin}
                       onChange={(e) => setFechaConductorFin(e.target.value)}
-                      disabled={!usarRangoConductor && !reporteTodos}
+                      disabled={!usarRangoConductor}
                       className={`w-[140px] rounded-md border px-2 py-1.5 text-[11px] focus:outline-none ${
-                        usarRangoConductor || reporteTodos
+                        usarRangoConductor
                           ? 'border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
                           : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
                       }`}
                     />
 
-                    {/* Switch Rango - deshabilitado si reporteTodos */}
+                    {/* Switch Rango*/}
                     <div className="flex items-center gap-1.5 pb-1">
-                      <span
-                        className={`text-[10px] ${reporteTodos ? 'text-gray-300' : 'text-gray-500'}`}
-                      >
-                        Rango
-                      </span>
-                      <label
-                        className={`relative inline-flex items-center ${reporteTodos ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
-                      >
+                      <span className="text-[10px] text-gray-500">Rango</span>
+                      <label className="relative inline-flex cursor-pointer items-center">
                         <input
                           type="checkbox"
                           checked={usarRangoConductor}
                           onChange={(e) => {
-                            if (reporteTodos) return;
                             setUsarRangoConductor(e.target.checked);
                             if (!e.target.checked) setFechaConductorFin('');
                           }}
-                          disabled={reporteTodos}
                           className="peer sr-only"
                         />
                         <div className="peer relative h-5 w-9 rounded-full bg-rose-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-4"></div>
@@ -826,12 +839,11 @@ export default function Page() {
                           onChange={(e) => {
                             setReporteTodos(e.target.checked);
                             if (e.target.checked) {
-                              // Al activar Todos: limpiar conductor y desactivar rango
                               setConductorSeleccionado(null);
                               setConductorSearch('');
-                              setUsarRangoConductor(false);
-                              // fecha fin se habilita automáticamente por reporteTodos
+                              // Ya no reseteamos usarRangoConductor ni fechaConductorFin
                             } else {
+                              setUsarRangoConductor(false);
                               setFechaConductorFin('');
                             }
                           }}
@@ -861,176 +873,213 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Filtros de Búsqueda */}
-            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-1.5">
-                <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                  <AiOutlineFilter className="h-4 w-4 text-blue-600" />
-                  Filtros de Búsqueda
-                </span>
-              </div>
+            {/* Filtros de Búsqueda + Resumen - lado a lado */}
+            <div className="flex gap-2">
+              {/* Filtros de Búsqueda */}
+              <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <AiOutlineFilter className="h-4 w-4 text-blue-600" />
+                    Filtros de Búsqueda
+                  </span>
+                </div>
 
-              <div className="p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    id="countries"
-                    className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                    value={selectedArea}
-                    onChange={(e) => setSelectedArea(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Área
-                    </option>
-                    <option value="TEP">TEP</option>
-                    <option value="TURISMO">TURISMO</option>
-                  </select>
-
-                  <select
-                    id="countries"
-                    className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                    value={empresaSeleccionada}
-                    onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Cliente
-                    </option>
-                    {(username && username.toLowerCase() !== 'movilbus'
-                      ? empresasG
-                      : empresas
-                    ).map((empresa, index) => (
-                      <option key={index} value={empresa}>
-                        {empresa}
+                <div className="p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      id="countries"
+                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      value={selectedArea}
+                      onChange={(e) => setSelectedArea(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Área
                       </option>
-                    ))}
-                  </select>
+                      <option value="TEP">TEP</option>
+                      <option value="TURISMO">TURISMO</option>
+                    </select>
 
-                  <select
-                    id="tipo-servicio"
-                    className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                    value={tipoServicio}
-                    onChange={(e) => setTipoServicio(e.target.value)}
-                  >
-                    <option value="" disabled>
-                      Tipo Servicio
-                    </option>
-                    <option value="RECOJO">Recojo</option>
-                    <option value="REPARTO">Reparto</option>
-                    <option value="TRF IN">TRF IN</option>
-                    <option value="TRF OUT">TRF OUT</option>
-                    <option value="CITY TOUR">CITY TOUR</option>
-                    <option value="VIAJE">VIAJE</option>
-                    <option value="FULLDAY">FULLDAY</option>
-                  </select>
+                    <select
+                      id="countries"
+                      className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      value={empresaSeleccionada}
+                      onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Cliente
+                      </option>
+                      {(username && username.toLowerCase() !== 'movilbus'
+                        ? empresasG
+                        : empresas
+                      ).map((empresa, index) => (
+                        <option key={index} value={empresa}>
+                          {empresa}
+                        </option>
+                      ))}
+                    </select>
 
-                  <div className="relative w-[220px]">
-                    <input
-                      id="inputPasajero"
-                      type="text"
-                      className="... w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px]"
-                      placeholder="Buscar pasajero..."
-                      value={pasajero}
-                      onChange={(e) => {
-                        if (seleccionado) {
-                          setSeleccionado(false);
-                          return;
-                        }
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setDropdownPos({
-                          top: rect.bottom + window.scrollY,
-                          left: rect.left + window.scrollX,
-                          width: rect.width,
-                        });
-                        setPasajero(e.target.value);
-                        setMostrarSugerencias(true);
-                      }}
-                      onFocus={(e) => {
-                        if (sugerencias.length > 0 && !seleccionado) {
+                    <select
+                      id="tipo-servicio"
+                      className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                      value={tipoServicio}
+                      onChange={(e) => setTipoServicio(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Tipo Servicio
+                      </option>
+                      <option value="RECOJO">Recojo</option>
+                      <option value="REPARTO">Reparto</option>
+                      <option value="TRF IN">TRF IN</option>
+                      <option value="TRF OUT">TRF OUT</option>
+                      <option value="CITY TOUR">CITY TOUR</option>
+                      <option value="VIAJE">VIAJE</option>
+                      <option value="FULLDAY">FULLDAY</option>
+                    </select>
+
+                    <div className="relative w-[220px]">
+                      <input
+                        id="inputPasajero"
+                        type="text"
+                        className="... w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px]"
+                        placeholder="Buscar pasajero..."
+                        value={pasajero}
+                        onChange={(e) => {
+                          if (seleccionado) {
+                            setSeleccionado(false);
+                            return;
+                          }
                           const rect = e.currentTarget.getBoundingClientRect();
                           setDropdownPos({
                             top: rect.bottom + window.scrollY,
                             left: rect.left + window.scrollX,
                             width: rect.width,
                           });
+                          setPasajero(e.target.value);
                           setMostrarSugerencias(true);
+                        }}
+                        onFocus={(e) => {
+                          if (sugerencias.length > 0 && !seleccionado) {
+                            const rect =
+                              e.currentTarget.getBoundingClientRect();
+                            setDropdownPos({
+                              top: rect.bottom + window.scrollY,
+                              left: rect.left + window.scrollX,
+                              width: rect.width,
+                            });
+                            setMostrarSugerencias(true);
+                          }
+                        }}
+                        onBlur={() =>
+                          setTimeout(() => setMostrarSugerencias(false), 100)
                         }
-                      }}
-                      onBlur={() =>
-                        setTimeout(() => setMostrarSugerencias(false), 100)
-                      }
-                    />
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-                      <FaUser className="h-3 w-3 text-gray-400" />
+                      />
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                        <FaUser className="h-3 w-3 text-gray-400" />
+                      </div>
+
+                      {mostrarSugerencias &&
+                        sugerencias.length > 0 &&
+                        createPortal(
+                          <ul
+                            style={{
+                              position: 'absolute',
+                              top: dropdownPos.top,
+                              left: dropdownPos.left,
+                              width: dropdownPos.width,
+                              zIndex: 99999,
+                            }}
+                            className="max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg"
+                          >
+                            {sugerencias.map((item, index) => (
+                              <li
+                                key={index}
+                                className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  seleccionarPasajero(
+                                    item.apepate,
+                                    item.codlan,
+                                  );
+                                  setMostrarSugerencias(false);
+                                  setSugerencias([]);
+                                  setTimeout(() => {
+                                    document
+                                      .getElementById('inputPasajero')
+                                      ?.blur();
+                                  }, 100);
+                                }}
+                              >
+                                {item.apepate}
+                              </li>
+                            ))}
+                          </ul>,
+                          document.body,
+                        )}
                     </div>
 
-                    {mostrarSugerencias &&
-                      sugerencias.length > 0 &&
-                      createPortal(
-                        <ul
-                          style={{
-                            position: 'absolute',
-                            top: dropdownPos.top,
-                            left: dropdownPos.left,
-                            width: dropdownPos.width,
-                            zIndex: 99999,
-                          }}
-                          className="max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg"
-                        >
-                          {sugerencias.map((item, index) => (
-                            <li
-                              key={index}
-                              className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                seleccionarPasajero(item.apepate, item.codlan);
-                                setMostrarSugerencias(false);
-                                setSugerencias([]);
-                                setTimeout(() => {
-                                  document
-                                    .getElementById('inputPasajero')
-                                    ?.blur();
-                                }, 100);
-                              }}
-                            >
-                              {item.apepate}
-                            </li>
-                          ))}
-                        </ul>,
-                        document.body,
-                      )}
-                  </div>
-
-                  <input
-                    value={numeroServicio}
-                    onChange={(e) => setNumeroServicio(e.target.value)}
-                    type="number"
-                    id="tentacles"
-                    name="tentacles"
-                    placeholder="N° Servicio"
-                    min="0"
-                    max="100"
-                    className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                  />
-
-                  {username && (
-                    <InputUnidad
-                      value={unidadSeleccionada}
-                      onChange={(value) => setUnidadSeleccionada(value)}
-                      onSelect={(codunidad) => {
-                        setUnidadSeleccionada(codunidad);
-                      }}
-                      padding="p-1.5"
-                      bgColor="white"
-                      usuario={username}
+                    <input
+                      value={numeroServicio}
+                      onChange={(e) => setNumeroServicio(e.target.value)}
+                      type="number"
+                      id="tentacles"
+                      name="tentacles"
+                      placeholder="N° Servicio"
+                      min="0"
+                      max="100"
+                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                     />
-                  )}
 
-                  <button
-                    className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
-                    onClick={handleClearFilters}
-                  >
-                    <MdCleaningServices className="h-3 w-3" />
-                    Limpiar
-                  </button>
+                    {username && (
+                      <InputUnidad
+                        value={unidadSeleccionada}
+                        onChange={(value) => setUnidadSeleccionada(value)}
+                        onSelect={(codunidad) => {
+                          setUnidadSeleccionada(codunidad);
+                        }}
+                        padding="p-1.5"
+                        bgColor="white"
+                        usuario={username}
+                      />
+                    )}
+
+                    <button
+                      className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
+                      onClick={handleClearFilters}
+                    >
+                      <MdCleaningServices className="h-3 w-3" />
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conteo de servicios */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiDocumentReport className="h-4 w-4 text-green-600" />
+                    Resumen
+                  </span>
+                </div>
+                <div className="p-3">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center rounded-md border border-green-200 bg-green-50 px-4 py-2">
+                      <span className="text-[10px] text-gray-500">
+                        SERVICIOS
+                      </span>
+                      <span className="text-[18px] font-bold text-green-700">
+                        {conteoServicios}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center rounded-md border border-blue-200 bg-blue-50 px-4 py-2">
+                      <span className="text-[10px] text-gray-500">
+                        CONDUCTORES
+                      </span>
+                      <span className="text-[18px] font-bold text-blue-700">
+                        {conteoConductores}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1112,6 +1161,10 @@ export default function Page() {
           refreshFlag={refreshFlag}
           refreshFlagServicio={refreshFlagServicio}
           refreshSearch={refreshSearch}
+          onConteoChange={(s, c) => {
+            setConteoServicios(s);
+            setConteoConductores(c);
+          }}
         ></TableServicios>
       </div>
     </div>
