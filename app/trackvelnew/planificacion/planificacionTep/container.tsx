@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -39,7 +39,7 @@ interface Grupo {
   tipo: string;
   empresa: string;
   destinoGrupo: string;
-  destinocodigo?: string;  
+  destinocodigo?: string;
   fecha: string;
   horaprog: string;
   conductor: string;
@@ -75,7 +75,7 @@ type MarkerData = {
   direccion?: string;
 };
 
-export default function Container({
+const Container = memo(function Container({
   id,
   items,
   grupo,
@@ -331,7 +331,12 @@ export default function Container({
         </table>
 
         {items.map((item) => (
-          <SortableItem key={item.id} id={item.id} data={item} />
+          <SortableItem
+            key={item.id}
+            id={item.id}
+            data={item}
+            disabled={isOpen} // ← el modal del mapa
+          />
         ))}
 
         <div className="footerTep">
@@ -350,16 +355,16 @@ export default function Container({
 
               <div>
                 {username && (
-                <InputUnidad
-                  value={unidad}
-                  onChange={setUnidad}
-                  onSelect={(codunidad) => {
-                    setUnidad(codunidad);
-                    onUpdateUnidad?.(grupo.id, codunidad);
-                  }}
-                 usuario={username}
-  />
-)}
+                  <InputUnidad
+                    value={unidad}
+                    onChange={setUnidad}
+                    onSelect={(codunidad) => {
+                      setUnidad(codunidad);
+                      onUpdateUnidad?.(grupo.id, codunidad);
+                    }}
+                    usuario={username}
+                  />
+                )}
               </div>
 
               <div className="w-[230px]  border border-gray-200 bg-white px-2 py-[7px] shadow-sm">
@@ -401,15 +406,17 @@ export default function Container({
                   Ruta
                 </button>
 
-                <ModalMapa
-                  isOpen={isOpen}
-                  setIsOpen={setIsOpen}
-                  grupo={grupo.id}
-                  coordenadas={coordenadas}
-                  selectedMarker={selectedMarker}
-                  setSelectedMarker={setSelectedMarker}
-                  getMarkerSVG={getMarkerSVG}
-                />
+                {isOpen && (
+                  <ModalMapa
+                    isOpen={isOpen}
+                    setIsOpen={setIsOpen}
+                    grupo={grupo.id}
+                    coordenadas={coordenadas}
+                    selectedMarker={selectedMarker}
+                    setSelectedMarker={setSelectedMarker}
+                    getMarkerSVG={getMarkerSVG}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -417,4 +424,6 @@ export default function Container({
       </div>
     </SortableContext>
   );
-}
+});
+
+export default Container;

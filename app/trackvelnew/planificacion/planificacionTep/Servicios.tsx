@@ -103,17 +103,16 @@ export default function App({
     return fechaHora;
   };
 
-  const handleUpdateConductor = (id: number, codigoConductor: number) => {
-    setConductores((prev) => {
-      return { ...prev, [id]: codigoConductor };
-    });
-  };
+  const handleUpdateConductor = useCallback(
+    (id: number, codigoConductor: number) => {
+      setConductores((prev) => ({ ...prev, [id]: codigoConductor }));
+    },
+    [],
+  );
 
-  const handleUpdateUnidad = (id: number, codigoUnidad: string) => {
-    setUnidades((prev) => {
-      return { ...prev, [id]: codigoUnidad };
-    });
-  };
+  const handleUpdateUnidad = useCallback((id: number, codigoUnidad: string) => {
+    setUnidades((prev) => ({ ...prev, [id]: codigoUnidad }));
+  }, []);
 
   // Función para limpiar grupos vacíos y reindexar
   const limpiarGruposVacios = (gruposActuales: any[]) => {
@@ -226,14 +225,16 @@ export default function App({
     }
   }, [grupos]);
 
-  const handleUpdateGrupoHoraProg = (id: number, nuevaFecha: string) => {
-    console.log(`Actualizando grupo ID: ${id}, Nueva fecha: ${nuevaFecha}`);
-    setGrupos((prevGrupos) =>
-      prevGrupos.map((grupo) =>
-        grupo.id === id ? { ...grupo, horaprog: nuevaFecha } : grupo,
-      ),
-    );
-  };
+  const handleUpdateGrupoHoraProg = useCallback(
+    (id: number, nuevaFecha: string) => {
+      setGrupos((prevGrupos) =>
+        prevGrupos.map((grupo) =>
+          grupo.id === id ? { ...grupo, horaprog: nuevaFecha } : grupo,
+        ),
+      );
+    },
+    [],
+  );
 
   // Actualizar gruposFiltrados:
   const gruposFiltrados = useMemo(() => {
@@ -1035,27 +1036,41 @@ export default function App({
     });
   };
 
-  const handleUpdateDestino = (
-    id: number,
-    nuevoDestino: string,
-    codigoDestino: string,
-  ) => {
-    setGrupos((prev) =>
-      prev.map((g) =>
-        g.id === id
-          ? {
-              ...g,
-              destinoGrupo: nuevoDestino,
-              destino: {
-                ...g.destino,
-                coddestino: codigoDestino,
-                nomdestino: nuevoDestino,
-              },
-            }
-          : g,
-      ),
+  const handleUpdateDestino = useCallback(
+    (id: number, nuevoDestino: string, codigoDestino: string) => {
+      setGrupos((prev) =>
+        prev.map((g) =>
+          g.id === id
+            ? {
+                ...g,
+                destinoGrupo: nuevoDestino,
+                destino: {
+                  ...g.destino,
+                  coddestino: codigoDestino,
+                  nomdestino: nuevoDestino,
+                },
+              }
+            : g,
+        ),
+      );
+    },
+    [],
+  );
+
+  // ✅ AGREGAR antes del return
+  const coordenadasPorGrupo = useMemo(() => {
+    return gruposFiltrados.map(
+      (grupo) =>
+        grupo.personas
+          ?.filter((p: any) => p.wx && p.wy)
+          .map((p: any) => ({
+            wx: p.wx,
+            wy: p.wy,
+            nombre: p.nombre,
+            direccion: p.direccion,
+          })) ?? [],
     );
-  };
+  }, [gruposFiltrados]);
 
   return (
     <div style={wrapperStyle}>
@@ -1089,14 +1104,7 @@ export default function App({
                       items={items[key] || []}
                       onUpdateDestino={handleUpdateDestino}
                       grupo={gruposFiltrados[index]}
-                      coordenadas={gruposFiltrados[index]?.personas
-                        ?.filter((p: any) => p.wx && p.wy)
-                        .map((p: any) => ({
-                          wx: p.wx,
-                          wy: p.wy,
-                          nombre: p.nombre,
-                          direccion: p.direccion,
-                        }))}
+                      coordenadas={coordenadasPorGrupo[index]}
                       onUpdateGrupoHoraProg={(id: number, nuevaFecha: string) =>
                         handleUpdateGrupoHoraProg(id, nuevaFecha)
                       }
