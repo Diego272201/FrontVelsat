@@ -1,7 +1,7 @@
 'use client';
 import { useDisclosure } from '@nextui-org/react';
 import React, { useEffect, useRef, useState } from 'react';
-import { FaUser } from 'react-icons/fa';
+import { FaUser, FaUserTie } from 'react-icons/fa';
 import {
   MdCleaningServices,
   MdDelete,
@@ -26,6 +26,7 @@ import { useUsername } from '@/hooks/useUsername';
 import { HiDocumentReport } from 'react-icons/hi';
 import { createPortal } from 'react-dom';
 import ModalLatam from './ModalLatam';
+import ModalTurnoConductor from '../../components/modal/ModalTurnoConductor';
 
 const empresas = [
   'AMERICAN',
@@ -98,6 +99,7 @@ export default function Page() {
   const [reporteTodos, setReporteTodos] = useState(false);
   const [conteoServicios, setConteoServicios] = useState(0);
   const [conteoConductores, setConteoConductores] = useState(0);
+  const [isModalTurnoOpen, setIsModalTurnoOpen] = useState(false);
 
   const handleGenerarReporte = async () => {
     // Validaciones específicas con mensajes personalizados
@@ -853,20 +855,19 @@ export default function Page() {
                       </label>
                     </div>
 
-                    {/* Botón Generar */}
+                    {/* Botón Ver Turnos */}
                     <button
-                      onClick={
-                        reporteTodos
-                          ? handleGenerarReporteTodos
-                          : handleGenerarReporteConductor
-                      }
-                      disabled={descargandoConductor}
-                      className="flex items-center gap-1.5 rounded-md bg-green-700 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95 disabled:opacity-50"
+                      onClick={() => {
+                        if (!conductorSeleccionado && !reporteTodos) {
+                          toast.error('Seleccione al menos un conductor');
+                          return;
+                        }
+                        setIsModalTurnoOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95"
                     >
-                      <HiDocumentReport className="h-3 w-3" />
-                      {descargandoConductor
-                        ? 'Descargando...'
-                        : 'Generar reporte'}
+                      <FaUserTie className="h-3 w-3" />
+                      Ver turnos
                     </button>
                   </div>
                 </div>
@@ -1144,6 +1145,33 @@ export default function Page() {
         onClose={() => setIsModalLatamOpen(false)}
         fecha={fechaLatam}
         codusuario={username || ''}
+      />
+
+      <ModalTurnoConductor
+        isOpen={isModalTurnoOpen}
+        onClose={() => setIsModalTurnoOpen(false)}
+        conductores={
+          reporteTodos
+            ? conductores.map((c) => ({
+                codigo: c.codigo,
+                apellidos: c.apellidos,
+              }))
+            : conductorSeleccionado
+              ? [
+                  {
+                    codigo: conductorSeleccionado.codigo,
+                    apellidos: conductorSeleccionado.apellidos,
+                  },
+                ]
+              : []
+        }
+        onGuardado={async () => {
+          if (reporteTodos) {
+            await handleGenerarReporteTodos();
+          } else {
+            await handleGenerarReporteConductor();
+          }
+        }}
       />
 
       <div className="grupoServicios relative z-10 overflow-visible">
