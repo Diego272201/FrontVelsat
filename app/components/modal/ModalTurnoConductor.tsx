@@ -17,7 +17,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   conductores: { codigo: number; apellidos: string }[];
-  onGuardado?: () => Promise<void>;
+  onGuardado?: (codigos: number[]) => Promise<void>;
   tipo?: string | null;
 }
 
@@ -208,7 +208,7 @@ export default function ModalTurnoConductor({
 
       // 2. Generar Excel después de cerrar el modal
       if (onGuardado) {
-        await onGuardado();
+        await onGuardado(datos.map((d) => d.codTaxi));
       }
     } catch {
       toast.error('Error al guardar los turnos');

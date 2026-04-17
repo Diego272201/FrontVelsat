@@ -409,7 +409,7 @@ export default function Page() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleGenerarReporteConductor = async () => {
+  const handleGenerarReporteConductor = async (codigos?: number[]) => {
     if (!isReady || !username) {
       toast.error('Esperando datos de sesión, intente nuevamente');
       return;
@@ -429,9 +429,11 @@ export default function Page() {
     };
 
     setDescargandoConductor(true);
+    const toastId = toast.loading('Generando reporte...');
     try {
       const base = 'https://do.velsat.pe:2083/api/Preplan';
       const cod = conductorSeleccionado.codigo;
+
       const url = usarRangoConductor
         ? `${base}/ServiciosConductorRangos?codConductor=${cod}&fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username || ''}`
         : `${base}/ExcelServiciosConductor?codConductor=${cod}&fecha=${encodeURIComponent(formatF(fechaConductorIni))}&usuario=${username || ''}`;
@@ -445,15 +447,17 @@ export default function Page() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.dismiss(toastId);
       toast.success('Reporte descargado');
     } catch {
+      toast.dismiss(toastId);
       toast.error('No hay reporte para los datos seleccionados.');
     } finally {
       setDescargandoConductor(false);
     }
   };
 
-  const handleGenerarReporteTodos = async () => {
+  const handleGenerarReporteTodos = async (codigos?: number[]) => {
     if (!isReady || !username) {
       toast.error('Esperando datos de sesión, intente nuevamente');
       return;
@@ -475,12 +479,19 @@ export default function Page() {
     };
 
     setDescargandoConductor(true);
+    const toastId = toast.loading('Generando reporte...');
     try {
       const base = 'https://do.velsat.pe:2083/api/Preplan';
 
+      // Construir parámetros de conductores si vienen del modal
+      const codigosParam =
+        codigos && codigos.length > 0
+          ? '&' + codigos.map((c) => `codtaxis=${c}`).join('&')
+          : '';
+
       const url = usarRangoConductor
-        ? `${base}/ExcelServiciosTodosConductores?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username}`
-        : `${base}/ExcelServiciosTodosConductoresDia?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&usuario=${username}`;
+        ? `${base}/ExcelServiciosTodosConductores?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&fechafin=${encodeURIComponent(formatF(fechaConductorFin))}&usuario=${username}${codigosParam}`
+        : `${base}/ExcelServiciosTodosConductoresDia?fechaini=${encodeURIComponent(formatF(fechaConductorIni))}&usuario=${username}${codigosParam}`;
 
       const res = await fetch(url);
       if (!res.ok) throw new Error();
@@ -493,8 +504,11 @@ export default function Page() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      toast.dismiss(toastId);
       toast.success('Reporte descargado');
     } catch {
+      toast.dismiss(toastId);
       toast.error('No hay reporte para los datos seleccionados.');
     } finally {
       setDescargandoConductor(false);
@@ -732,9 +746,14 @@ export default function Page() {
                   <div className="flex flex-wrap items-end gap-2">
                     {/* Select Tipo - después del div del conductor */}
                     <select
-                      className="w-[130px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      className={`w-[130px] rounded-md border px-2 py-2 text-[11px] transition-colors focus:outline-none ${
+                        !reporteTodos
+                          ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
+                          : 'border-gray-300 bg-white hover:border-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
+                      }`}
                       value={tipoConductorReporte}
                       onChange={(e) => setTipoConductorReporte(e.target.value)}
+                      disabled={!reporteTodos} // 👈
                     >
                       <option value="">Todos los tipos</option>
                       <option value="Tdp Menores">Tdp Menores</option>
@@ -1179,11 +1198,11 @@ export default function Page() {
                 ]
               : []
         }
-        onGuardado={async () => {
+        onGuardado={async (codigos) => {
           if (reporteTodos) {
-            await handleGenerarReporteTodos();
+            await handleGenerarReporteTodos(codigos);
           } else {
-            await handleGenerarReporteConductor();
+            await handleGenerarReporteConductor(codigos);
           }
         }}
       />
