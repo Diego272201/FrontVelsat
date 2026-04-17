@@ -18,6 +18,7 @@ interface Props {
   onClose: () => void;
   conductores: { codigo: number; apellidos: string }[];
   onGuardado?: () => Promise<void>;
+  tipo?: string | null;
 }
 
 const HORAS = Array.from(
@@ -129,6 +130,7 @@ export default function ModalTurnoConductor({
   onClose,
   conductores,
   onGuardado,
+  tipo,
 }: Props) {
   const [datos, setDatos] = useState<ConductorTurno[]>([]);
   const [loading, setLoading] = useState(false);
@@ -143,9 +145,11 @@ export default function ModalTurnoConductor({
       yaFetcheado.current = true;
       try {
         const params = conductores.map((c) => `codtaxis=${c.codigo}`).join('&');
+        const tipoParam = tipo ? `&tipo=${encodeURIComponent(tipo)}` : '';
         const res = await fetch(
-          `${API_BASE_URL125}/api/Preplan/turno?${params}`,
+          `${API_BASE_URL125}/api/Preplan/turno?${params}${tipoParam}`,
         );
+
         const data: { codTaxi: number; turno: string; horaInicio: string }[] =
           await res.json();
         const merged = data.map((d) => ({

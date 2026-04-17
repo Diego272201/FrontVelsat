@@ -100,6 +100,7 @@ export default function Page() {
   const [conteoServicios, setConteoServicios] = useState(0);
   const [conteoConductores, setConteoConductores] = useState(0);
   const [isModalTurnoOpen, setIsModalTurnoOpen] = useState(false);
+  const [tipoConductorReporte, setTipoConductorReporte] = useState('');
 
   const handleGenerarReporte = async () => {
     // Validaciones específicas con mensajes personalizados
@@ -729,6 +730,18 @@ export default function Page() {
                 </div>
                 <div className="p-3">
                   <div className="flex flex-wrap items-end gap-2">
+                    {/* Select Tipo - después del div del conductor */}
+                    <select
+                      className="w-[130px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      value={tipoConductorReporte}
+                      onChange={(e) => setTipoConductorReporte(e.target.value)}
+                    >
+                      <option value="">Todos los tipos</option>
+                      <option value="Tdp Menores">Tdp Menores</option>
+                      <option value="Turismo">Turismo</option>
+                      <option value="Tdp Mayores">Tdp Mayores</option>
+                    </select>
+
                     {/* Selector conductor - deshabilitado si reporteTodos */}
                     <div
                       className="relative w-[200px]"
@@ -1150,6 +1163,7 @@ export default function Page() {
       <ModalTurnoConductor
         isOpen={isModalTurnoOpen}
         onClose={() => setIsModalTurnoOpen(false)}
+        tipo={tipoConductorReporte || null} // ← NUEVO
         conductores={
           reporteTodos
             ? conductores.map((c) => ({

@@ -34,6 +34,7 @@ interface Conductor {
   nombre: string;
   telefono: string;
   correo: string;
+  tipo: string | null;
 }
 
 interface ConductorAPI {
@@ -58,6 +59,7 @@ interface ConductorAPI {
   sexo: string;
   unidadActual: string | null;
   habilitado: string;
+  tipo: string | null;
 }
 
 export default function Page() {
@@ -67,10 +69,6 @@ export default function Page() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [eliminandoLoading, setEliminandoLoading] = useState<number | null>(
-    null,
-  );
-  const [liberandoLoading, setLiberandoLoading] = useState<number | null>(null);
-  const [habilitandoLoading, setHabilitandoLoading] = useState<number | null>(
     null,
   );
   const { username, isReady } = useUsername();
@@ -100,6 +98,7 @@ export default function Page() {
           nombre: conductor.apellidos.trim(),
           telefono: conductor.telefono || '',
           correo: conductor.email || '',
+          tipo: conductor.tipo || null,
         }),
       );
 
@@ -111,127 +110,6 @@ export default function Page() {
       console.error('Error fetching conductores:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Función para liberar conductor
-  const liberarConductor = async (id: number) => {
-    try {
-      setLiberandoLoading(id);
-      const response = await fetch(
-        `https://do.velsat.pe:2083/api/Preplan/Liberar/${id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Error al liberar el conductor');
-      }
-
-      await fetchConductores();
-      console.log('Conductor liberado exitosamente');
-    } catch (err: unknown) {
-      console.error('Error liberando conductor:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
-      alert('Error al liberar el conductor: ' + errorMessage);
-    } finally {
-      setLiberandoLoading(null);
-    }
-  };
-
-  // Función para deshabilitar conductor
-  const deshabilitarConductor = async (id: number) => {
-    try {
-      setHabilitandoLoading(id);
-      const response = await fetch(
-        `https://do.velsat.pe:2083/api/Preplan/DeshabilitarCond/${id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Error al deshabilitar el conductor');
-      }
-
-      setConductores((prevConductores) => {
-        const conductorIndex = prevConductores.findIndex((c) => c.id === id);
-        if (conductorIndex !== -1) {
-          const conductor = prevConductores[conductorIndex];
-          const newConductores = [...prevConductores];
-          newConductores.splice(conductorIndex, 1);
-          newConductores.push(conductor);
-          return newConductores;
-        }
-        return prevConductores;
-      });
-
-      setConductoresAPI((prevAPI) =>
-        prevAPI.map((c) => (c.codigo === id ? { ...c, habilitado: '0' } : c)),
-      );
-
-      console.log('Conductor deshabilitado exitosamente');
-    } catch (err: unknown) {
-      console.error('Error deshabilitando conductor:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
-      alert('Error al deshabilitar el conductor: ' + errorMessage);
-    } finally {
-      setHabilitandoLoading(null);
-    }
-  };
-
-  // Función para habilitar conductor
-  const habilitarConductor = async (id: number) => {
-    try {
-      setHabilitandoLoading(id);
-      const response = await fetch(
-        `https://do.velsat.pe:2083/api/Preplan/HabilitarCond/${id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Error al habilitar el conductor');
-      }
-
-      setConductores((prevConductores) => {
-        const conductorIndex = prevConductores.findIndex((c) => c.id === id);
-        if (conductorIndex !== -1) {
-          const conductor = prevConductores[conductorIndex];
-          const newConductores = [...prevConductores];
-          newConductores.splice(conductorIndex, 1);
-          const insertPosition = Math.max(0, newConductores.length - 5);
-          newConductores.splice(insertPosition, 0, conductor);
-          return newConductores;
-        }
-        return prevConductores;
-      });
-
-      setConductoresAPI((prevAPI) =>
-        prevAPI.map((c) => (c.codigo === id ? { ...c, habilitado: '1' } : c)),
-      );
-
-      console.log('Conductor habilitado exitosamente');
-    } catch (err: unknown) {
-      console.error('Error habilitando conductor:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
-      alert('Error al habilitar el conductor: ' + errorMessage);
-    } finally {
-      setHabilitandoLoading(null);
     }
   };
 
@@ -289,6 +167,7 @@ export default function Page() {
               nombre: modifiedConductor.apellidos.trim(),
               telefono: modifiedConductor.telefono || '',
               correo: modifiedConductor.email || '',
+              tipo: modifiedConductor.tipo || '',
             }
           : conductor,
       ),
@@ -432,6 +311,9 @@ export default function Page() {
                         Correo
                       </th>
                       <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
+                        Tipo
+                      </th>
+                      <th className="px-6 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-800">
                         Acciones
                       </th>
                     </tr>
@@ -459,6 +341,13 @@ export default function Page() {
                         </td>
                         <td className="whitespace-nowrap px-6 py-2 text-sm text-gray-600">
                           {conductor.correo || (
+                            <span className="italic text-gray-400">
+                              No disponible
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-2 text-sm text-gray-600">
+                          {conductor.tipo || (
                             <span className="italic text-gray-400">
                               No disponible
                             </span>

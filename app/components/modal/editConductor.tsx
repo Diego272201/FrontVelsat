@@ -33,6 +33,7 @@ import {
   Clock,
   Calendar,
   Truck,
+  Route,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUsername } from '@/hooks/useUsername';
@@ -47,7 +48,8 @@ type FormField =
   | 'email'
   | 'turno'
   | 'horainicio'
-  | 'unidadasig';
+  | 'unidadasig'
+  | 'tipo';
 
 type FieldConfig = {
   id: FormField;
@@ -78,6 +80,7 @@ interface ConductorAPI {
   unidadActual: string | null;
   habilitado: string;
   unidadasig: string | null;
+  tipo: string | null;
 }
 
 interface ConductorDialogProps {
@@ -105,6 +108,7 @@ export default function ConductorDialogModificar({
     turno: '',
     horainicio: '',
     unidadasig: '',
+    tipo: '',
   });
 
   const handleInputChange = (field: FormField, value: string) => {
@@ -126,6 +130,7 @@ export default function ConductorDialogModificar({
       turno: '',
       horainicio: '',
       unidadasig: '',
+      tipo: '',
     });
     setShowPassword(false);
   };
@@ -162,6 +167,7 @@ export default function ConductorDialogModificar({
       turno: 'Turno',
       horainicio: 'Hora de Inicio',
       unidadasig: 'Unidad Asignada',
+      tipo: 'Tipo',
     };
     return labels[field];
   };
@@ -215,6 +221,7 @@ export default function ConductorDialogModificar({
         payload.turno = turnoAPI;
         payload.horainicio = formData.horainicio.trim();
         payload.unidadasig = formData.unidadasig.trim();
+        payload.tipo = formData.tipo.trim();
       }
 
       const response = await fetch(
@@ -258,6 +265,7 @@ export default function ConductorDialogModificar({
         updatedConductor.turno = turnoAPI;
         updatedConductor.horainicio = formData.horainicio.trim();
         updatedConductor.unidadasig = formData.unidadasig.trim();
+        updatedConductor.tipo = formData.tipo.trim();
       }
 
       setIsOpen(false);
@@ -318,6 +326,7 @@ export default function ConductorDialogModificar({
       turno: turnoFormato,
       horainicio: conductorData.horainicio || '',
       unidadasig: conductorData.unidadasig || '',
+      tipo: conductorData.tipo || '',
     });
 
     setIsOpen(true);
@@ -367,7 +376,9 @@ export default function ConductorDialogModificar({
                   id="apellidos"
                   type="text"
                   value={formData.apellidos}
-                  onChange={(e) => handleInputChange('apellidos', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('apellidos', e.target.value)
+                  }
                   disabled={loading}
                   className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
                   placeholder="Ingrese nombre completo"
@@ -519,7 +530,9 @@ export default function ConductorDialogModificar({
                     id="telefono"
                     type="tel"
                     value={formData.telefono}
-                    onChange={(e) => handleInputChange('telefono', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange('telefono', e.target.value)
+                    }
                     disabled={loading}
                     className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
                     placeholder="Ingrese teléfono"
@@ -570,7 +583,9 @@ export default function ConductorDialogModificar({
                     </Label>
                     <Select
                       value={formData.turno}
-                      onValueChange={(value) => handleInputChange('turno', value)}
+                      onValueChange={(value) =>
+                        handleInputChange('turno', value)
+                      }
                       disabled={loading}
                     >
                       <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
@@ -620,30 +635,74 @@ export default function ConductorDialogModificar({
                   </div>
                 </div>
 
-                {/* Unidad Asignada - Línea completa */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="unidadasig"
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                  >
-                    <Truck className="h-4 w-4 text-green-500" />
-                    Unidad Asignada
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="unidadasig"
-                      type="text"
-                      value={formData.unidadasig}
-                      onChange={(e) =>
-                        handleInputChange('unidadasig', e.target.value)
+                {/* Unidad Asignada y Tipo - Dos columnas */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="unidadasig"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Truck className="h-4 w-4 text-green-500" />
+                      Unidad Asignada
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="unidadasig"
+                        type="text"
+                        value={formData.unidadasig}
+                        onChange={(e) =>
+                          handleInputChange('unidadasig', e.target.value)
+                        }
+                        disabled={loading}
+                        className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                        placeholder="Ingrese unidad asignada"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NUEVO: Tipo */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="tipo"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Route className="h-4 w-4 text-green-500" />
+                      Tipo
+                    </Label>
+                    <Select
+                      value={formData.tipo}
+                      onValueChange={(value) =>
+                        handleInputChange('tipo', value)
                       }
                       disabled={loading}
-                      className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50"
-                      placeholder="Ingrese unidad asignada"
-                    />
-                    <div className="absolute inset-y-0 right-3 flex items-center">
-                      <div className="pointer-events-none h-2 w-2 rounded-full bg-green-400 opacity-50"></div>
-                    </div>
+                    >
+                      <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:opacity-50">
+                        <SelectValue placeholder="Seleccione el tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                        <SelectItem
+                          value="Tdp Menores"
+                          className="hover:bg-green-50 focus:bg-green-50"
+                        >
+                          Tdp Menores
+                        </SelectItem>
+                        <SelectItem
+                          value="Turismo"
+                          className="hover:bg-green-50 focus:bg-green-50"
+                        >
+                          Turismo
+                        </SelectItem>
+                        <SelectItem
+                          value="Tdp Mayores"
+                          className="hover:bg-green-50 focus:bg-green-50"
+                        >
+                          Tdp Mayores
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </>
