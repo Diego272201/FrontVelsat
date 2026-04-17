@@ -135,23 +135,31 @@ export default function ModalTurnoConductor({
   const [datos, setDatos] = useState<ConductorTurno[]>([]);
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  const yaFetcheado = useRef(false);
+
+  const conductoresKey = conductores.map((c) => c.codigo).join(',');
 
   useEffect(() => {
-    if (!isOpen || conductores.length === 0 || yaFetcheado.current) return;
+    if (!isOpen || conductores.length === 0) {
+      setDatos([]);
+      return;
+    }
+
+    let cancelled = false;
 
     const fetchTurnos = async () => {
       setLoading(true);
-      yaFetcheado.current = true;
+      setDatos([]);
       try {
         const params = conductores.map((c) => `codtaxis=${c.codigo}`).join('&');
         const tipoParam = tipo ? `&tipo=${encodeURIComponent(tipo)}` : '';
         const res = await fetch(
           `${API_BASE_URL125}/api/Preplan/turno?${params}${tipoParam}`,
         );
-
         const data: { codTaxi: number; turno: string; horaInicio: string }[] =
           await res.json();
+
+        if (cancelled) return;
+
         const merged = data.map((d) => ({
           ...d,
           turno: d.turno ?? '',
@@ -161,20 +169,19 @@ export default function ModalTurnoConductor({
         }));
         setDatos(merged);
       } catch {
-        toast.error('Error al obtener los turnos');
+        if (!cancelled) toast.error('Error al obtener los turnos');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchTurnos();
-  }, [isOpen, conductores]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      yaFetcheado.current = false;
-    }
-  }, [isOpen]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, conductoresKey, tipo]);
 
   const handleChange = (
     codTaxi: number,

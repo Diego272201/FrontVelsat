@@ -875,10 +875,10 @@ export default function Page() {
                             if (e.target.checked) {
                               setConductorSeleccionado(null);
                               setConductorSearch('');
-                              // Ya no reseteamos usarRangoConductor ni fechaConductorFin
                             } else {
                               setUsarRangoConductor(false);
                               setFechaConductorFin('');
+                              setTipoConductorReporte('');
                             }
                           }}
                           className="peer sr-only"
