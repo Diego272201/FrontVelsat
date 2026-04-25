@@ -1,8 +1,8 @@
-import { useApi } from "@/context/ApiContext";
-import axios from "axios";
-import { FaDownload } from "react-icons/fa";
-import { toast } from "sonner";
-import { validateDateRange } from "../dates/convertToCustomFormat ";
+import { useApi } from '@/context/ApiContext';
+import axios from 'axios';
+import { FaDownload } from 'react-icons/fa';
+import { toast } from 'sonner';
+import { validateDateRange } from '../dates/convertToCustomFormat ';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -35,15 +35,16 @@ export default function ButtonDownloadFloat({
       position: 'bottom-left',
     });
 
-    const errorMsg = validateDateRange(startDate, endDate);
-
-    if (errorMsg) {
-      toast.error(errorMsg, {
-        id: toastId,
-        className: 'toast-slide-in',
-        richColors: true,
-      });
-      return;
+    if (nameurl !== 'reporteeventos') {
+      const errorMsg = validateDateRange(startDate, endDate);
+      if (errorMsg) {
+        toast.error(errorMsg, {
+          id: toastId,
+          className: 'toast-slide-in',
+          richColors: true,
+        });
+        return;
+      }
     }
 
     try {
@@ -56,8 +57,9 @@ export default function ButtonDownloadFloat({
       } else if (nameurl === 'reportevelocidad') {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
       } else if (nameurl === 'alertasvelocidad') {
-        // ✅ Nueva condición para alertas de velocidad
         url += `/Preplan/AlertasVelocidadExcel?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(startDate)}&fechafin=${encodeURIComponent(endDate)}`;
+      } else if (nameurl === 'reporteeventos') {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       }

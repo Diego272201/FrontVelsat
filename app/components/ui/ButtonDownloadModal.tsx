@@ -80,6 +80,8 @@ export default function ButtonDownload({
           : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else if (nameurl === 'reportevelocidad') {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+      } else if (nameurl === 'reporteeventos') {
+        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       }

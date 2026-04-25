@@ -10,6 +10,8 @@ import { useApi } from '@/context/ApiContext';
 import AppModalReportes from '../trackvelnew/estadistica/reportegeneral/ModalReportes';
 import AppModalVelocidad from '../trackvelnew/estadistica/reportevelocidad/ModalVelocidad';
 import AppModalServicios from '../trackvelnew/estadistica/detallerecorridoservicios/ModalServicios';
+import AppModalReporteEventos from '../subtrackvelnew/estadistica/reporteeventos/ModalReporteEventos';
+import { MdOutlineEventNote } from 'react-icons/md';
 
 // Iconos
 import {
@@ -55,10 +57,11 @@ type ModalType =
   | 'servicios'
   | 'detalleServicios'
   | 'duracionservicios'
-  | 'unidadesCercanas' // ← Nuevo
-  | 'autosParados' // ← Nuevo
+  | 'unidadesCercanas'
+  | 'autosParados'
   | 'cargaLatam'
-  | 'alertasVelocidad';
+  | 'alertasVelocidad'
+  | 'reporteEventos';
 
 type MenuType =
   | 'services'
@@ -83,6 +86,7 @@ interface MenuItem {
   href?: string;
   submenu?: SubMenuItem[];
   allowedUsers?: string[];
+  sedapalOnly?: boolean;
 }
 
 interface MenuConfig {
@@ -112,10 +116,11 @@ interface ModalState {
   servicios: boolean;
   detalleServicios: boolean;
   duracionservicios: boolean;
-  unidadesCercanas: boolean; // ← Nuevo
-  autosParados: boolean; // ← Nuevo
+  unidadesCercanas: boolean;
+  autosParados: boolean;
   cargaLatam: boolean;
   alertasVelocidad: boolean;
+  reporteEventos: false;
 }
 
 interface IconSVGProps {
@@ -170,7 +175,14 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         title: 'Alertas de Velocidad',
         icon: 'velocity',
         modalType: 'alertasVelocidad',
-        allowedUsers: ['movilbus', 'mitsubishi'], // Solo para movilbus
+        allowedUsers: ['movilbus', 'mitsubishi'],
+      },
+      {
+        id: 'reporte-eventos',
+        title: 'Reporte de Eventos',
+        icon: 'document',
+        modalType: 'reporteEventos',
+        sedapalOnly: true,
       },
     ],
   },
@@ -341,10 +353,11 @@ const useModalState = () => {
     servicios: false,
     detalleServicios: false,
     duracionservicios: false,
-    unidadesCercanas: false, // ← Nuevo
-    autosParados: false, // ← Nuevo
-    cargaLatam: false, // ← Agregar esta línea
+    unidadesCercanas: false,
+    autosParados: false,
+    cargaLatam: false,
     alertasVelocidad: false,
+    reporteEventos: false,
   });
 
   const openModal = useCallback((modalType: ModalType) => {
@@ -655,6 +668,9 @@ const Tollbar: React.FC = () => {
                 if (item.allowedUsers) {
                   return item.allowedUsers.includes(username);
                 }
+                if ((item as any).sedapalOnly) {
+                  return isSedapal;
+                }
                 return true;
               })
               .map((item, index) => (
@@ -851,6 +867,9 @@ const Tollbar: React.FC = () => {
               .filter((item) => {
                 if (item.allowedUsers) {
                   return item.allowedUsers.includes(username);
+                }
+                if ((item as any).sedapalOnly) {
+                  return isSedapal;
                 }
                 return true;
               })
@@ -1334,6 +1353,14 @@ const Tollbar: React.FC = () => {
         onClose={() => closeModal('alertasVelocidad')}
         titulo="REPORTE DE ALERTAS DE VELOCIDAD"
         icono={<IoSpeedometer size={25} />}
+      />
+
+      <AppModalReporteEventos
+        isOpen={modals.reporteEventos}
+        onClose={() => closeModal('reporteEventos')}
+        titulo="REPORTE DE EVENTOS"
+        showDownloadButton={true}
+        icono={<MdOutlineEventNote size={25} />}
       />
 
       {/* Sidebar */}
