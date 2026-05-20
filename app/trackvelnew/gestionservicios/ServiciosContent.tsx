@@ -26,7 +26,8 @@ import { useUsername } from '@/hooks/useUsername';
 import { HiDocumentReport } from 'react-icons/hi';
 import { createPortal } from 'react-dom';
 import ModalLatam from './ModalLatam';
-import ModalTurnoConductor from '../../components/modal/ModalTurnoConductor';
+import ModalAdministrarHorarios from '../../components/modal/ModalAdministrarHorarios';
+import { useMemo } from 'react';
 
 const empresas = [
   'AMERICAN',
@@ -99,8 +100,13 @@ export default function Page() {
   const [reporteTodos, setReporteTodos] = useState(false);
   const [conteoServicios, setConteoServicios] = useState(0);
   const [conteoConductores, setConteoConductores] = useState(0);
-  const [isModalTurnoOpen, setIsModalTurnoOpen] = useState(false);
-  const [tipoConductorReporte, setTipoConductorReporte] = useState('');
+  const [isModalHorariosOpen, setIsModalHorariosOpen] = useState(false);
+
+  const conductoresModal = useMemo(
+    () =>
+      conductores.map((c) => ({ codigo: c.codigo, apellidos: c.apellidos })),
+    [conductores],
+  );
 
   const handleGenerarReporte = async () => {
     // Validaciones específicas con mensajes personalizados
@@ -744,23 +750,6 @@ export default function Page() {
                 </div>
                 <div className="p-3">
                   <div className="flex flex-wrap items-end gap-2">
-                    {/* Select Tipo - después del div del conductor */}
-                    <select
-                      className={`w-[130px] rounded-md border px-2 py-2 text-[11px] transition-colors focus:outline-none ${
-                        !reporteTodos
-                          ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
-                          : 'border-gray-300 bg-white hover:border-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
-                      }`}
-                      value={tipoConductorReporte}
-                      onChange={(e) => setTipoConductorReporte(e.target.value)}
-                      disabled={!reporteTodos} // 👈
-                    >
-                      <option value="">Todos los tipos</option>
-                      <option value="Tdp Menores">Tdp Menores</option>
-                      <option value="Turismo">Turismo</option>
-                      <option value="Tdp Mayores">Tdp Mayores</option>
-                    </select>
-
                     {/* Selector conductor - deshabilitado si reporteTodos */}
                     <div
                       className="relative w-[200px]"
@@ -878,7 +867,6 @@ export default function Page() {
                             } else {
                               setUsarRangoConductor(false);
                               setFechaConductorFin('');
-                              setTipoConductorReporte('');
                             }
                           }}
                           className="peer sr-only"
@@ -887,19 +875,41 @@ export default function Page() {
                       </label>
                     </div>
 
-                    {/* Botón Ver Turnos */}
+                    {/* Botón Generar Reporte */}
                     <button
                       onClick={() => {
-                        if (!conductorSeleccionado && !reporteTodos) {
-                          toast.error('Seleccione al menos un conductor');
+                        if (!reporteTodos && !conductorSeleccionado) {
+                          toast.error('Seleccione un conductor');
                           return;
                         }
-                        setIsModalTurnoOpen(true);
+                        if (!fechaConductorIni) {
+                          toast.error('Seleccione la fecha de inicio');
+                          return;
+                        }
+                        if (usarRangoConductor && !fechaConductorFin) {
+                          toast.error('Ingrese la fecha fin');
+                          return;
+                        }
+                        if (reporteTodos) {
+                          handleGenerarReporteTodos();
+                        } else {
+                          handleGenerarReporteConductor();
+                        }
                       }}
+                      disabled={descargandoConductor}
+                      className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      {descargandoConductor ? 'Generando...' : 'Generar'}
+                    </button>
+
+                    {/* Botón Administrar Horarios */}
+                    <button
+                      onClick={() => setIsModalHorariosOpen(true)}
                       className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95"
                     >
                       <FaUserTie className="h-3 w-3" />
-                      Ver turnos
+                      Administrar Horarios
                     </button>
                   </div>
                 </div>
@@ -1179,32 +1189,11 @@ export default function Page() {
         codusuario={username || ''}
       />
 
-      <ModalTurnoConductor
-        isOpen={isModalTurnoOpen}
-        onClose={() => setIsModalTurnoOpen(false)}
-        tipo={tipoConductorReporte || null} // ← NUEVO
-        conductores={
-          reporteTodos
-            ? conductores.map((c) => ({
-                codigo: c.codigo,
-                apellidos: c.apellidos,
-              }))
-            : conductorSeleccionado
-              ? [
-                  {
-                    codigo: conductorSeleccionado.codigo,
-                    apellidos: conductorSeleccionado.apellidos,
-                  },
-                ]
-              : []
-        }
-        onGuardado={async (codigos) => {
-          if (reporteTodos) {
-            await handleGenerarReporteTodos(codigos);
-          } else {
-            await handleGenerarReporteConductor(codigos);
-          }
-        }}
+      <ModalAdministrarHorarios
+        isOpen={isModalHorariosOpen}
+        onClose={() => setIsModalHorariosOpen(false)}
+        conductores={conductoresModal}
+        username={username || ''}
       />
 
       <div className="grupoServicios relative z-10 overflow-visible">
