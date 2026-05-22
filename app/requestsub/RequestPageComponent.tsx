@@ -20,6 +20,7 @@ interface DeviceList {
   lastValidSpeed: number;
   direccion: string;
   lastValidHeading: number;
+  lastGPSTimestamp: number;
   rutaact: string;
 }
 
@@ -98,6 +99,8 @@ const MapController = ({
 
   return null;
 };
+
+const USERS_WITH_GPS_TIMESTAMP = ['oloasac'];
 
 export default function RequestPage() {
   const isClient = typeof window !== 'undefined';
@@ -454,9 +457,25 @@ export default function RequestPage() {
         const stateElement = popupElement.querySelector('.state-value');
         const directionElement = popupElement.querySelector('.direction-value');
         const locationElement = popupElement.querySelector('.location-value');
-
-        // *** AGREGAR ESTA LÍNEA PARA ACTUALIZAR COORDENADAS ***
         const streetViewLink = popupElement.querySelector('.street-view-link');
+
+        // ← AGREGAR ESTO:
+        const fechaEl = popupElement.querySelector(`#fecha-${device.deviceId}`);
+        const useGpsTime = USERS_WITH_GPS_TIMESTAMP.includes(
+          session?.user?.username ?? '',
+        );
+
+        if (fechaEl && useGpsTime) {
+          const fecha = new Date(device.lastGPSTimestamp * 1000);
+          const day = String(fecha.getDate()).padStart(2, '0');
+          const month = String(fecha.getMonth() + 1).padStart(2, '0');
+          const year = fecha.getFullYear();
+          const hours = String(fecha.getHours()).padStart(2, '0');
+          const minutes = String(fecha.getMinutes()).padStart(2, '0');
+          const seconds = String(fecha.getSeconds()).padStart(2, '0');
+          fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> ${day}/${month}/${year} <strong style="font-weight: 800;">Hora:</strong> ${hours}:${minutes}:${seconds}`;
+        }
+        // ← FIN DEL BLOQUE
 
         if (speedElement)
           speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
@@ -466,7 +485,6 @@ export default function RequestPage() {
           directionElement.textContent = getDireccion(device.lastValidHeading);
         if (locationElement) locationElement.textContent = device.direccion;
 
-        // *** ACTUALIZAR COORDENADAS DEL BOTÓN VISTA 3D ***
         if (streetViewLink) {
           streetViewLink.setAttribute(
             'data-lat',
@@ -479,7 +497,7 @@ export default function RequestPage() {
         }
       }
     },
-    [getEstado, getDireccion],
+    [getEstado, getDireccion, session?.user?.username], // ← session ya está aquí
   );
 
   const createNewMarker = useCallback(
@@ -565,28 +583,43 @@ export default function RequestPage() {
       popup2.on('add', () => {
         const fechaEl = document.querySelector(`#fecha-${device.deviceId}`);
         if (fechaEl) {
-          // *** ESTABLECER LA FECHA INMEDIATAMENTE AL ABRIR ***
-          const setCurrentTime = () => {
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> ${day}/${month}/${year} <strong style="font-weight: 800;">Hora:</strong> ${hours}:${minutes}:${seconds}`;
-          };
+          const useGpsTime = USERS_WITH_GPS_TIMESTAMP.includes(
+            session?.user?.username ?? '',
+          );
 
-          // Establecer la fecha inmediatamente
-          setCurrentTime();
-
-          // Luego iniciar el interval
-          intervalId = setInterval(setCurrentTime, 1000);
-        }
+          if (useGpsTime) {
+            if (!device.lastGPSTimestamp || device.lastGPSTimestamp === 0) {
+              fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> Sin datos`;
+            } else {
+              const fecha = new Date(device.lastGPSTimestamp * 1000);
+              const day = String(fecha.getDate()).padStart(2, '0');
+              const month = String(fecha.getMonth() + 1).padStart(2, '0');
+              const year = fecha.getFullYear();
+              const hours = String(fecha.getHours()).padStart(2, '0');
+              const minutes = String(fecha.getMinutes()).padStart(2, '0');
+              const seconds = String(fecha.getSeconds()).padStart(2, '0');
+              fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> ${day}/${month}/${year} <strong style="font-weight: 800;">Hora:</strong> ${hours}:${minutes}:${seconds}`;
+            }
+          } else {
+            const setCurrentTime = () => {
+              const now = new Date();
+              const day = String(now.getDate()).padStart(2, '0');
+              const month = String(now.getMonth() + 1).padStart(2, '0');
+              const year = now.getFullYear();
+              const hours = String(now.getHours()).padStart(2, '0');
+              const minutes = String(now.getMinutes()).padStart(2, '0');
+              const seconds = String(now.getSeconds()).padStart(2, '0');
+              fechaEl.innerHTML = `<strong style="font-weight: 800;">Fecha:</strong> ${day}/${month}/${year} <strong style="font-weight: 800;">Hora:</strong> ${hours}:${minutes}:${seconds}`;
+            };
+            setCurrentTime();
+            intervalId = setInterval(setCurrentTime, 1000);
+          }
+        } // ← CIERRE del if(fechaEl)
 
         const closeButton = document.querySelector(
           `#close-btn-${device.deviceId}`,
         );
+        // ...resto del código
         if (closeButton) {
           closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -992,7 +1025,6 @@ export default function RequestPage() {
       </div>
 
       <DocumentosPorVencer />
-
     </>
   );
 }
