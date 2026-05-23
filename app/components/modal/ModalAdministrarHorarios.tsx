@@ -24,10 +24,11 @@ const MESES = [
   'Diciembre',
 ];
 
-const HORAS = Array.from(
-  { length: 24 },
-  (_, i) => `${String(i).padStart(2, '0')}:00`,
-);
+const HORAS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? '00' : '30';
+  return `${String(h).padStart(2, '0')}:${m}`;
+});
 
 interface Conductor {
   codigo: number;
