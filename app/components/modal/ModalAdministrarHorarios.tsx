@@ -75,6 +75,8 @@ export default function ModalAdministrarHorarios({
   const [nuevaHora, setNuevaHora] = useState('');
   const [tipoEdicion, setTipoEdicion] = useState<'T' | 'P'>('T');
 
+  const [busqueda, setBusqueda] = useState('');
+
   // Solo seleccionar conductor inicial cuando el modal se abre
   // y no hay ninguno seleccionado aún
   useEffect(() => {
@@ -88,6 +90,7 @@ export default function ModalAdministrarHorarios({
       setConductorActivo(null);
       setCalendario([]);
       setMesVacio(false);
+      setBusqueda('');
     }
   }, [isOpen]);
 
@@ -270,6 +273,10 @@ export default function ModalAdministrarHorarios({
 
   const diasEnMes = new Date(anio, mes, 0).getDate();
 
+  const conductoresFiltrados = conductores.filter((c) =>
+    c.apellidos.toLowerCase().includes(busqueda.toLowerCase()),
+  );
+
   if (!isOpen) return null;
 
   return (
@@ -296,20 +303,47 @@ export default function ModalAdministrarHorarios({
               <p className="mb-2 px-1 text-[10px] font-semibold uppercase text-gray-400">
                 Conductores
               </p>
-              {conductores.map((c) => (
-                <button
-                  key={c.codigo}
-                  onClick={() => setConductorActivo(c)}
-                  className={`mb-1 w-full rounded-md px-3 py-2 text-left text-[11px] transition-colors ${
-                    conductorActivo?.codigo === c.codigo
-                      ? 'bg-indigo-600 font-medium text-white'
-                      : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <FaUserTie className="mb-0.5 mr-1.5 inline" />
-                  {c.apellidos}
-                </button>
-              ))}
+
+              {/* Buscador */}
+              <div className="relative mb-2">
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar conductor..."
+                  className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[11px] text-gray-700 outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+                />
+                {busqueda && (
+                  <button
+                    onClick={() => setBusqueda('')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Lista filtrada */}
+              {conductoresFiltrados.length === 0 ? (
+                <p className="px-1 text-[10px] italic text-gray-400">
+                  Sin resultados
+                </p>
+              ) : (
+                conductoresFiltrados.map((c) => (
+                  <button
+                    key={c.codigo}
+                    onClick={() => setConductorActivo(c)}
+                    className={`mb-1 w-full rounded-md px-3 py-2 text-left text-[11px] transition-colors ${
+                      conductorActivo?.codigo === c.codigo
+                        ? 'bg-indigo-600 font-medium text-white'
+                        : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <FaUserTie className="mb-0.5 mr-1.5 inline" />
+                    {c.apellidos}
+                  </button>
+                ))
+              )}
             </div>
           )}
 

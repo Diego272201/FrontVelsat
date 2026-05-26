@@ -30,9 +30,7 @@ import {
   Eye,
   EyeOff,
   Plus,
-  Clock,
   Truck,
-  Calendar,
   Route,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -46,8 +44,6 @@ type FormField =
   | 'clave'
   | 'telefono'
   | 'email'
-  | 'turno'
-  | 'horainicio'
   | 'unidadasig'
   | 'tipo';
 
@@ -78,8 +74,6 @@ export default function ConductorDialog({
     clave: '',
     telefono: '',
     email: '',
-    turno: '',
-    horainicio: '',
     unidadasig: '',
     tipo: '',
   });
@@ -100,8 +94,6 @@ export default function ConductorDialog({
       clave: '',
       telefono: '',
       email: '',
-      turno: '',
-      horainicio: '',
       unidadasig: '',
       tipo: '',
     });
@@ -176,8 +168,6 @@ export default function ConductorDialog({
       clave: 'Contraseña',
       telefono: 'Teléfono',
       email: 'Email',
-      turno: 'Turno',
-      horainicio: 'Hora de Inicio',
       unidadasig: 'Unidad Asignada',
       tipo: 'Tipo',
     };
@@ -215,19 +205,6 @@ export default function ConductorDialog({
         fecValidBrevete: '',
         unidadActual: '',
       };
-
-      if (username === 'movilbus') {
-        const turnoAPI =
-          formData.turno === 'dia'
-            ? 'D'
-            : formData.turno === 'noche'
-              ? 'N'
-              : 'D';
-        payload.turno = turnoAPI;
-        payload.horainicio = formData.horainicio.trim();
-        payload.unidadasig = formData.unidadasig.trim();
-        payload.tipo = formData.tipo.trim();
-      }
 
       const response = await fetch(
         `https://do.velsat.pe:2083/api/Preplan/NuevoConductor/${username}`,
@@ -573,144 +550,75 @@ export default function ConductorDialog({
 
               {/* Campos condicionales para movilbus */}
               {username === 'movilbus' && (
-                <>
-                  {/* Turno y Hora de Inicio - Dos columnas */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="turno"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                      >
-                        <Calendar className="h-4 w-4 text-orange-500" />
-                        Turno
-                      </Label>
-                      <Select
-                        value={formData.turno}
-                        onValueChange={(value) =>
-                          handleInputChange('turno', value)
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="unidadasig"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Truck className="h-4 w-4 text-orange-500" />
+                      Unidad Asignada
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="unidadasig"
+                        type="text"
+                        value={formData.unidadasig}
+                        onChange={(e) =>
+                          handleInputChange('unidadasig', e.target.value)
                         }
                         disabled={loading}
-                      >
-                        <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
-                          <SelectValue placeholder="Seleccione el turno" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                          <SelectItem
-                            value="dia"
-                            className="hover:bg-orange-50 focus:bg-orange-50"
-                          >
-                            Día
-                          </SelectItem>
-                          <SelectItem
-                            value="noche"
-                            className="hover:bg-orange-50 focus:bg-orange-50"
-                          >
-                            Noche
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="horainicio"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                      >
-                        <Clock className="h-4 w-4 text-orange-500" />
-                        Hora de Inicio
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="horainicio"
-                          type="time"
-                          value={formData.horainicio}
-                          onChange={(e) =>
-                            handleInputChange('horainicio', e.target.value)
-                          }
-                          disabled={loading}
-                          autoComplete="off"
-                          className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-                          placeholder="Ingrese hora de inicio"
-                        />
-                        <div className="absolute inset-y-0 right-3 flex items-center">
-                          <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
-                        </div>
+                        autoComplete="off"
+                        className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                        placeholder="Ingrese unidad asignada"
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Unidad Asignada y Tipo - Dos columnas */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="unidadasig"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                      >
-                        <Truck className="h-4 w-4 text-orange-500" />
-                        Unidad Asignada
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="unidadasig"
-                          type="text"
-                          value={formData.unidadasig}
-                          onChange={(e) =>
-                            handleInputChange('unidadasig', e.target.value)
-                          }
-                          disabled={loading}
-                          autoComplete="off"
-                          className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-                          placeholder="Ingrese unidad asignada"
-                        />
-                        <div className="absolute inset-y-0 right-3 flex items-center">
-                          <div className="pointer-events-none h-2 w-2 rounded-full bg-blue-400 opacity-50"></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* NUEVO: Tipo */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="tipo"
-                        className="flex items-center gap-2 text-sm font-medium text-gray-700"
-                      >
-                        <Route className="h-4 w-4 text-orange-500" />
-                        Tipo
-                      </Label>
-                      <Select
-                        value={formData.tipo}
-                        onValueChange={(value) =>
-                          handleInputChange('tipo', value)
-                        }
-                        disabled={loading}
-                      >
-                        <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
-                          <SelectValue placeholder="Seleccione el tipo" />
-                        </SelectTrigger>
-                        <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
-                          <SelectItem
-                            value="Tdp Menores"
-                            className="hover:bg-orange-50 focus:bg-orange-50"
-                          >
-                            Tdp Menores
-                          </SelectItem>
-                          <SelectItem
-                            value="Turismo"
-                            className="hover:bg-orange-50 focus:bg-orange-50"
-                          >
-                            Turismo
-                          </SelectItem>
-                          <SelectItem
-                            value="Tdp Mayores"
-                            className="hover:bg-orange-50 focus:bg-orange-50"
-                          >
-                            Tdp Mayores
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="tipo"
+                      className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                    >
+                      <Route className="h-4 w-4 text-orange-500" />
+                      Tipo
+                    </Label>
+                    <Select
+                      value={formData.tipo}
+                      onValueChange={(value) =>
+                        handleInputChange('tipo', value)
+                      }
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="w-full rounded-lg border border-gray-200 bg-white/50 px-4 py-3 backdrop-blur-sm transition-all duration-200 hover:bg-white/70 focus:border-transparent focus:ring-2 focus:ring-orange-500 disabled:opacity-50">
+                        <SelectValue placeholder="Seleccione el tipo" />
+                      </SelectTrigger>
+                      <SelectContent className="border-gray-200 bg-white/95 shadow-xl backdrop-blur-lg">
+                        <SelectItem
+                          value="Tdp Menores"
+                          className="hover:bg-orange-50 focus:bg-orange-50"
+                        >
+                          Tdp Menores
+                        </SelectItem>
+                        <SelectItem
+                          value="Turismo"
+                          className="hover:bg-orange-50 focus:bg-orange-50"
+                        >
+                          Turismo
+                        </SelectItem>
+                        <SelectItem
+                          value="Tdp Mayores"
+                          className="hover:bg-orange-50 focus:bg-orange-50"
+                        >
+                          Tdp Mayores
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </form>
