@@ -530,7 +530,7 @@ export default function App({
         controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
         fechaini: item.newfechaini || '---',
         fechafin: item.newfechafni || '---',
-        horageoato: item.horageoato || '-',
+        horageoato: item.horageoato ? item.horageoato.split(' ')[1] : '-',
         unidadSF: item.unidad?.codunidad,
         unidad: item.unidad?.codunidad
           ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
