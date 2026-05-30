@@ -28,6 +28,7 @@ import { createPortal } from 'react-dom';
 import ModalLatam from './ModalLatam';
 import ModalAdministrarHorarios from '../../components/modal/ModalAdministrarHorarios';
 import { useMemo } from 'react';
+import BtnCompletarHoraAto from '@/app/components/BtnCompletarHoraAto';
 
 const empresas = [
   'AMERICAN',
@@ -101,6 +102,7 @@ export default function Page() {
   const [conteoServicios, setConteoServicios] = useState(0);
   const [conteoConductores, setConteoConductores] = useState(0);
   const [isModalHorariosOpen, setIsModalHorariosOpen] = useState(false);
+  const [dataServicios, setDataServicios] = useState<any[]>([]);
 
   const conductoresModal = useMemo(
     () =>
@@ -1122,6 +1124,7 @@ export default function Page() {
                         {conteoConductores}
                       </span>
                     </div>
+                    <BtnCompletarHoraAto data={dataServicios} />
                   </div>
                 </div>
               </div>
@@ -1215,6 +1218,7 @@ export default function Page() {
             setConteoServicios(s);
             setConteoConductores(c);
           }}
+          onDataChange={setDataServicios}
         ></TableServicios>
       </div>
     </div>

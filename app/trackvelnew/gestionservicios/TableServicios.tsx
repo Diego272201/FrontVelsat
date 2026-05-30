@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic';
 import { RiSaveFill } from 'react-icons/ri';
 import { BiSolidEdit } from 'react-icons/bi';
 import { useUsername } from '@/hooks/useUsername';
+import { useApi } from '@/context/ApiContext';
 
 const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
   ssr: false,
@@ -36,7 +37,7 @@ const getFormattedDate = () => {
 };
 
 const parseFecha = (fechaStr: string | null) => {
-  // ✅ Validar cadenas vacías, null, undefined y el string "null"
+  // Validar cadenas vacías, null, undefined y el string "null"
   if (!fechaStr || fechaStr === 'null' || fechaStr.trim() === '') {
     return null;
   }
@@ -46,7 +47,7 @@ const parseFecha = (fechaStr: string | null) => {
 
     // Validar que el split funcionó correctamente
     if (!dia || !mes || !añoHora) {
-      console.warn('⚠️ Formato de fecha inválido:', fechaStr);
+      console.warn('Formato de fecha inválido:', fechaStr);
       return null;
     }
 
@@ -54,13 +55,13 @@ const parseFecha = (fechaStr: string | null) => {
 
     // Validar que tenemos año y hora
     if (!año || !hora) {
-      console.warn('⚠️ Formato de fecha inválido:', fechaStr);
+      console.warn('Formato de fecha inválido:', fechaStr);
       return null;
     }
 
     return new Date(`${año}-${mes}-${dia}T${hora}:00`).getTime();
   } catch (error) {
-    console.error('❌ Error parseando fecha:', fechaStr, error);
+    console.error('Error parseando fecha:', fechaStr, error);
     return null;
   }
 };
@@ -75,6 +76,7 @@ const columns = [
   { key: 'horaProg', label: 'Hora Prog' },
   { key: 'horaAto', label: 'Hora ATO' },
   { key: 'controlAto', label: 'Control ATO' },
+  { key: 'horageoato', label: 'Hora GEOATO' },
   { key: 'unidad', label: 'Unidad' },
   { key: 'conductor', label: 'Conductor' },
   { key: 'estado', label: 'Estado' },
@@ -94,7 +96,8 @@ export default function App({
   refreshFlag,
   refreshFlagServicio,
   refreshSearch,
-  onConteoChange
+  onConteoChange,
+  onDataChange,
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -110,8 +113,10 @@ export default function App({
   refreshFlagServicio: boolean;
   refreshSearch: number;
   onConteoChange?: (servicios: number, conductores: number) => void;
+  onDataChange?: (data: any[]) => void;
 }) {
   const { username, isReady } = useUsername();
+  const { baseUrl } = useApi();
 
   const [coordenadas, setCoordenadas] = useState<
     { lat: number; lng: number }[]
@@ -399,8 +404,6 @@ export default function App({
     fetchConductores();
   }, [username, isReady]);
 
-  // Reemplaza el useEffect actual que obtiene las unidades con este código corregido:
-
   useEffect(() => {
     const fetchUnidades = async () => {
       // Verificar que el hook esté listo y que username no esté vacío
@@ -431,6 +434,23 @@ export default function App({
 
     fetchUnidades();
   }, [username, isReady]); // Agregar isReady como dependencia
+
+  useEffect(() => {
+    const filtrados = data.filter(
+      (item) =>
+        item.tipo === 'RECOJO' &&
+        item.destino === '4175' &&
+        item.unidadSF != null &&
+        item.horageoato === null &&
+        ['FA', 'FT', 'PR'].includes(item.estado),
+    );
+
+    const lista = filtrados.map((item) => ({
+      codServicio: item.codServicio,
+      fechaCompleta: item.fechaCompleta,
+      unidadSF: item.unidadSF,
+    }));
+  }, [data]);
 
   const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUnidadA(e.target.value);
@@ -510,6 +530,7 @@ export default function App({
         controlAto: item.newfechafni ? item.newfechafni.split(' ')[1] : '-',
         fechaini: item.newfechaini || '---',
         fechafin: item.newfechafni || '---',
+        horageoato: item.horageoato || '-',
         unidadSF: item.unidad?.codunidad,
         unidad: item.unidad?.codunidad
           ? item.unidad.codunidad.split('-')[0].charAt(0).toUpperCase() +
@@ -551,6 +572,7 @@ export default function App({
       try {
         const response = await axios.get(API_URL);
         setData(formatData(response.data));
+        onDataChange?.(formatData(response.data));
       } catch (error) {
         console.error('Error al obtener los datos:', error);
         setData([]);
@@ -652,16 +674,16 @@ export default function App({
   }, [filteredData]);
 
   // Calcular conteos y pasarlos al padre
-useEffect(() => {
-  const serviciosActivos = data.filter(s => s.estado !== 'CN');
-  const cantServicios = serviciosActivos.length;
-  const cantConductores = new Set(
-    serviciosActivos
-      .map(s => s.conductor?.trim().toLowerCase())
-      .filter(c => c && c !== '-')
-  ).size;
-  onConteoChange?.(cantServicios, cantConductores);
-}, [data]); // ← data en lugar de filteredData
+  useEffect(() => {
+    const serviciosActivos = data.filter((s) => s.estado !== 'CN');
+    const cantServicios = serviciosActivos.length;
+    const cantConductores = new Set(
+      serviciosActivos
+        .map((s) => s.conductor?.trim().toLowerCase())
+        .filter((c) => c && c !== '-'),
+    ).size;
+    onConteoChange?.(cantServicios, cantConductores);
+  }, [data]); // ← data en lugar de filteredData
 
   useEffect(() => {
     console.log(

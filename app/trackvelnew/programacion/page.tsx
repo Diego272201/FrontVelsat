@@ -3,19 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast, Toaster } from 'sonner';
 import {
   Search,
-  Calendar,
   MapPin,
   Plane,
   User,
-  Plus,
-  Eye,
   X,
   RotateCcw,
-  Settings,
-  LogOut,
   Filter,
-  Loader2,
-  ChevronDown,
+  Loader2
 } from 'lucide-react';
 import ModalAddService from './ModalAddService';
 import ModalPasajero from './ModalPasajero';
