@@ -562,9 +562,8 @@ export default function ModalDireccionAdicional({
     <>
       <Modal
         isOpen={isOpen}
-        onOpenChange={() => {}} // Desactivar el cierre automático
+        onOpenChange={(open) => { if (!open) handleClose(); }}
         isDismissable={false}
-        hideCloseButton={true}
         size="4xl"
         scrollBehavior="inside"
         classNames={{
@@ -574,7 +573,7 @@ export default function ModalDireccionAdicional({
           body: "p-6",
         }}
       >
-        <ModalContent>
+        <ModalContent onPointerDown={(e) => e.stopPropagation()}>
           {(onClose) => (
             <>
               <ModalHeader>
