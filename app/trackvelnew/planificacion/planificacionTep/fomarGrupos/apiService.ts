@@ -59,13 +59,45 @@ interface Grupo {
   coordenadas: { wx: string; wy: string }[]
 }
 
-export const obtenerDatosYAgrupar = async (empresa: string, dato: string, username: string,): Promise<Grupo[]> => {
+export const obtenerDatosYAgrupar = async (
+  empresa: string,
+  dato: string,
+  username: string,
+): Promise<Grupo[]> => {
   try {
     const url = `${API_BASE_URL125}/api/preplan/get?dato=${encodeURIComponent(
       dato,
     )}&empresa=${encodeURIComponent(empresa)}&usuario=${username}`
     const response = await axios.get(url)
-    const datos: DataItem[] = response.data
+    const datosRaw: DataItem[] = response.data
+
+    // ─── Validación: detectar pasajeros con lugar null ───────────────────────
+    const pasajerosSinLugar = datosRaw.filter((item) => !item.lugar)
+    if (pasajerosSinLugar.length > 0) {
+      console.warn(
+        "[ADVERTENCIA] Los siguientes pasajeros no tienen lugar asignado y serán omitidos:",
+        pasajerosSinLugar.map((p) => ({
+          id: p.id,
+          codigo: p.codigo,
+          nombre: p.nombre,
+          codcliente: p.codcliente,
+          fecha: p.fecha,
+          empresa: p.empresa,
+        })),
+      )
+    }
+
+    // Filtrar solo datos con lugar válido para no romper el flujo
+    const datos: DataItem[] = datosRaw.filter((item) => {
+      if (!item.lugar) {
+        console.error(
+          `[ERROR] Pasajero sin lugar - id: ${item.id} | codigo: ${item.codigo} | nombre: ${item.nombre} | codcliente: ${item.codcliente}`,
+        )
+        return false
+      }
+      return true
+    })
+    // ─────────────────────────────────────────────────────────────────────────
 
     const grupos: Grupo[] = []
     let gn = 1
@@ -73,10 +105,18 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
     if (dato === "1") {
       // Separar datos que ya tienen orden/número de los que no
       const datosConOrden = datos.filter(
-        (item) => item.orden !== null && item.numero !== null && item.orden !== "" && item.numero !== "",
+        (item) =>
+          item.orden !== null &&
+          item.numero !== null &&
+          item.orden !== "" &&
+          item.numero !== "",
       )
       const datosSinOrden = datos.filter(
-        (item) => item.orden === null || item.numero === null || item.orden === "" || item.numero === "",
+        (item) =>
+          item.orden === null ||
+          item.numero === null ||
+          item.orden === "" ||
+          item.numero === "",
       )
 
       console.log("[v0] Datos con orden:", datosConOrden.length)
@@ -102,8 +142,8 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
                 coddestino: item.destinocodigo,
                 nomdestino: item.nomdestino,
               },
-              conductor: item.servicio.conductor.apepate || "",
-              unidad: item.servicio.unidad.codunidad || "",
+              conductor: item.servicio?.conductor?.apepate || "",
+              unidad: item.servicio?.unidad?.codunidad || "",
               coordenadas: [],
             })
           }
@@ -130,10 +170,12 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
         })
 
         // Agregar grupos con orden, ordenando personas por orden
-        const gruposConOrden = Array.from(gruposConOrdenMap.values()).map((grupo) => ({
-          ...grupo,
-          personas: grupo.personas.sort((a, b) => a.orden - b.orden),
-        }))
+        const gruposConOrden = Array.from(gruposConOrdenMap.values()).map(
+          (grupo) => ({
+            ...grupo,
+            personas: grupo.personas.sort((a, b) => a.orden - b.orden),
+          }),
+        )
 
         grupos.push(...gruposConOrden)
       }
@@ -158,8 +200,8 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
               coddestino: item.destinocodigo || "",
               nomdestino: item.nomdestino,
             },
-            conductor: item.servicio.conductor.apepate || "",
-            unidad: item.servicio.unidad.codunidad || "",
+            conductor: item.servicio?.conductor?.apepate || "",
+            unidad: item.servicio?.unidad?.codunidad || "",
             coordenadas: [],
           }
 
@@ -187,7 +229,7 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
                 area: currentItem.empresa,
                 wx: currentItem.lugar.wx,
                 wy: currentItem.lugar.wy,
-                orden: ordenCounter++, // Asignar orden secuencial
+                orden: ordenCounter++,
               })
 
               grupo.coordenadas.push({
@@ -222,8 +264,8 @@ export const obtenerDatosYAgrupar = async (empresa: string, dato: string, userna
             coddestino: item.destinocodigo || "",
             nomdestino: item.nomdestino,
           },
-          conductor: item.servicio.conductor.apepate || "",
-          unidad: item.servicio.unidad.codunidad || "",
+          conductor: item.servicio?.conductor?.apepate || "",
+          unidad: item.servicio?.unidad?.codunidad || "",
           coordenadas: [],
         }
 
