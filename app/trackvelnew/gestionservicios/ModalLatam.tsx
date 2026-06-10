@@ -55,13 +55,13 @@ export default function ModalLatam({
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      if (rows.length < 3) {
+      if (rows.length < 2) {
         toast.error('El archivo no tiene datos suficientes.');
         return;
       }
 
-      // ✅ Encabezados están en la fila 2 (índice 1)
-      const headers: string[] = rows[1].map((h: any) => String(h ?? '').trim());
+      // Encabezados en la fila 1 (índice 0)
+      const headers: string[] = rows[0].map((h: any) => String(h ?? '').trim());
 
       const idx = {
         serv: headers.findIndex((h) => h === 'SERV.'),
@@ -100,7 +100,7 @@ export default function ModalLatam({
       const seen = new Set<string>();
       const parsed: RegistroLatam[] = [];
 
-      rows.slice(2).forEach((row) => {
+      rows.slice(1).forEach((row) => {
         const codserv = String(row[idx.serv] ?? '').trim();
         if (!codserv || seen.has(codserv)) return;
         seen.add(codserv);
