@@ -60,8 +60,16 @@ export default function ModalLatam({
         return;
       }
 
-      // Encabezados en la fila 1 (índice 0)
-      const headers: string[] = rows[0].map((h: any) => String(h ?? '').trim());
+      // Detectar en qué fila están los encabezados (busca la fila que contenga 'SERV.')
+      const headerRowIndex = rows.findIndex((r) =>
+        r.some((c: any) => String(c ?? '').trim() === 'SERV.')
+      );
+      if (headerRowIndex === -1) {
+        toast.error('No se encontró la fila de encabezados (columna SERV.).');
+        setRegistros([]);
+        return;
+      }
+      const headers: string[] = rows[headerRowIndex].map((h: any) => String(h ?? '').trim());
 
       const idx = {
         serv: headers.findIndex((h) => h === 'SERV.'),
@@ -100,7 +108,7 @@ export default function ModalLatam({
       const seen = new Set<string>();
       const parsed: RegistroLatam[] = [];
 
-      rows.slice(1).forEach((row) => {
+      rows.slice(headerRowIndex + 1).forEach((row) => {
         const codserv = String(row[idx.serv] ?? '').trim();
         if (!codserv || seen.has(codserv)) return;
         seen.add(codserv);
