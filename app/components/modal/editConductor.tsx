@@ -192,6 +192,8 @@ export default function ConductorDialogModificar({
         telefono: formData.telefono.trim(),
         dni: formData.dni.trim(),
         email: formData.email.trim(),
+        unidadasig: formData.unidadasig.trim(),
+        tipo: formData.tipo.trim(),
         brevete: conductorData.brevete || '',
         direccion: conductorData.direccion || '',
         sctr: conductorData.sctr || '',
@@ -229,6 +231,8 @@ export default function ConductorDialogModificar({
         telefono: formData.telefono.trim(),
         dni: formData.dni.trim(),
         email: formData.email.trim(),
+        unidadasig: formData.unidadasig.trim(),
+        tipo: formData.tipo.trim(),
         sexo: sexoAPI,
       };
 
