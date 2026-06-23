@@ -566,6 +566,7 @@ const Tollbar: React.FC = () => {
   );
   const isMovilbus = useMemo(() => username === 'movilbus', [username]);
   const isAremys = useMemo(() => username === 'aremys', [username]);
+  const isTransvios = useMemo(() => username === 'transvios', [username]);
   const isView = useMemo(() => VIEWERS.includes(username), [username]);
 
   useEffect(() => {
@@ -910,6 +911,35 @@ const Tollbar: React.FC = () => {
       </div>
     );
   };
+  if (isTransvios) {
+    return (
+      <div className="tollbar menu__wrapper">
+        <div className="menu__bar bg-[#113eb9] md:bg-transparent">
+          <div className="flex items-center">
+            <div className="ml-[-1px] mt-[-1px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px]">
+              <Image src="/LogoWeb.png" alt="Logo" width={20} height={20} />
+            </div>
+            <div className="mt-[-1px]">
+              <h3 className="text-center text-[12px] font-semibold text-white">
+                TRACKVEL SYSTEM :
+                <span className="pl-1 text-[12px] text-white/80">
+                  {username.toUpperCase()}
+                </span>
+              </h3>
+            </div>
+          </div>
+          <ul className="navigation">
+            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+              <div className="ml-auto">
+                <Profile toggleFullScreen={toggleFullScreen} />
+              </div>
+            </ul>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tollbar menu__wrapper">
       {/* Background */}
