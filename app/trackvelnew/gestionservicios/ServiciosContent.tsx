@@ -17,7 +17,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import { AiOutlineFilter } from 'react-icons/ai';
-import { HiCalendarDateRange, HiClock, HiTruck } from 'react-icons/hi2';
+import { HiCalendarDateRange, HiClock, HiTruck, HiTableCells } from 'react-icons/hi2';
 import { RiCheckboxMultipleFill } from 'react-icons/ri';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import InputUnidad from '@/app/components/inputs/InputUnidad';
@@ -103,6 +103,14 @@ export default function Page() {
   const [conteoConductores, setConteoConductores] = useState(0);
   const [isModalHorariosOpen, setIsModalHorariosOpen] = useState(false);
   const [dataServicios, setDataServicios] = useState<any[]>([]);
+
+  // Resumen mensual
+  const [mesMensual, setMesMensual] = useState('');
+  const [conductorSearchMensual, setConductorSearchMensual] = useState('');
+  const [conductorSeleccionadoMensual, setConductorSeleccionadoMensual] = useState<any>(null);
+  const [showConductorDropdownMensual, setShowConductorDropdownMensual] = useState(false);
+  const [descargandoMensual, setDescargandoMensual] = useState(false);
+  const conductorDropdownMensualRef = useRef<HTMLDivElement>(null);
 
   const conductoresModal = useMemo(
     () =>
@@ -412,6 +420,11 @@ export default function Page() {
         !conductorDropdownRef.current.contains(e.target as Node)
       )
         setShowConductorDropdown(false);
+      if (
+        conductorDropdownMensualRef.current &&
+        !conductorDropdownMensualRef.current.contains(e.target as Node)
+      )
+        setShowConductorDropdownMensual(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -520,6 +533,41 @@ export default function Page() {
       toast.error('No hay reporte para los datos seleccionados.');
     } finally {
       setDescargandoConductor(false);
+    }
+  };
+
+  const handleGenerarResumenMensual = async () => {
+    if (!mesMensual) {
+      toast.error('Seleccione el mes');
+      return;
+    }
+    const [anio, mes] = mesMensual.split('-');
+    const params = new URLSearchParams({ usuario: username || '', anio, mes });
+    if (conductorSeleccionadoMensual) {
+      params.append('codConductor', conductorSeleccionadoMensual.codigo);
+    }
+
+    setDescargandoMensual(true);
+    const toastId = toast.loading('Generando resumen mensual...');
+    try {
+      const res = await fetch(
+        `https://do.velsat.pe:2083/api/Preplan/ExcelResumenServiciosMes?${params.toString()}`,
+      );
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Resumen_Mensual_${mesMensual}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.dismiss(toastId);
+      toast.success('Resumen descargado');
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('No hay datos para los parámetros seleccionados.');
+    } finally {
+      setDescargandoMensual(false);
     }
   };
 
@@ -914,6 +962,105 @@ export default function Page() {
                       Administrar Horarios
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Resumen mensual por conductor */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-teal-50 to-teal-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <HiTableCells className="h-4 w-4 text-teal-600" />
+                    Resumen Mensual por Conductor
+                  </span>
+                </div>
+                <div className="p-3">
+                  <div className="flex flex-wrap items-end gap-2">
+                    {/* Selector de mes */}
+                    <input
+                      type="month"
+                      value={mesMensual}
+                      onChange={(e) => setMesMensual(e.target.value)}
+                      className="w-[145px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                    />
+
+                    {/* Selector conductor (opcional) */}
+                    <div
+                      className="relative w-[200px]"
+                      ref={conductorDropdownMensualRef}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Conductor (opcional)..."
+                        value={conductorSearchMensual}
+                        onChange={(e) => {
+                          setConductorSearchMensual(e.target.value);
+                          setShowConductorDropdownMensual(true);
+                          if (!e.target.value) setConductorSeleccionadoMensual(null);
+                        }}
+                        onFocus={() => setShowConductorDropdownMensual(true)}
+                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-2 pr-7 text-[11px] focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
+                        autoComplete="off"
+                      />
+                      <IoSearchSharp className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+                      {showConductorDropdownMensual &&
+                        conductorSearchMensual &&
+                        conductores.filter((c) =>
+                          c.apellidos
+                            .toLowerCase()
+                            .includes(conductorSearchMensual.toLowerCase()),
+                        ).length > 0 && (
+                          <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                            {conductores
+                              .filter((c) =>
+                                c.apellidos
+                                  .toLowerCase()
+                                  .includes(conductorSearchMensual.toLowerCase()),
+                              )
+                              .map((c) => (
+                                <li
+                                  key={c.codigo}
+                                  className="cursor-pointer px-3 py-2 text-[11px] hover:bg-teal-50"
+                                  onMouseDown={() => {
+                                    setConductorSeleccionadoMensual(c);
+                                    setConductorSearchMensual(c.apellidos);
+                                    setShowConductorDropdownMensual(false);
+                                  }}
+                                >
+                                  <span className="font-medium">{c.apellidos}</span>
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                    </div>
+
+                    {/* Chip del conductor seleccionado */}
+                    {conductorSeleccionadoMensual && (
+                      <button
+                        onClick={() => {
+                          setConductorSeleccionadoMensual(null);
+                          setConductorSearchMensual('');
+                        }}
+                        className="flex items-center gap-1 rounded-full bg-teal-100 px-2 py-1 text-[10px] font-medium text-teal-700 hover:bg-teal-200"
+                      >
+                        {conductorSeleccionadoMensual.apellidos} ✕
+                      </button>
+                    )}
+
+                    {/* Botón Generar */}
+                    <button
+                      onClick={handleGenerarResumenMensual}
+                      disabled={descargandoMensual}
+                      className="flex items-center gap-1.5 rounded-md bg-teal-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-95 disabled:opacity-50"
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      {descargandoMensual ? 'Generando...' : 'Generar'}
+                    </button>
+                  </div>
+
+                  {/* Hint */}
+                  <p className="mt-2 text-[10px] text-gray-400">
+                    Sin conductor seleccionado se genera para todos.
+                  </p>
                 </div>
               </div>
             </div>
