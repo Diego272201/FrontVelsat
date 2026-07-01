@@ -965,8 +965,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Resumen mensual por conductor - TEMPORALMENTE OCULTO */}
-              {false && (
+              {/* Resumen mensual por conductor */}
               <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-200 bg-gradient-to-r from-teal-50 to-teal-100 px-4 py-1.5">
                   <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
@@ -1064,7 +1063,6 @@ export default function Page() {
                   </p>
                 </div>
               </div>
-              )}
             </div>
 
             {/* Filtros de Búsqueda + Resumen - lado a lado */}
