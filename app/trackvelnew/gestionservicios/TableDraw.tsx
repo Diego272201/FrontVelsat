@@ -20,8 +20,9 @@ import {
 } from '@nextui-org/react';
 import { BsArrowDownSquareFill } from 'react-icons/bs';
 import { toast } from 'sonner';
-import { MapPin, Home, XCircle, Link } from 'lucide-react';
+import { MapPin, Home, XCircle, Link, MessageSquare } from 'lucide-react';
 import ModalDirecciones from './ModalDireccionServicio';
+import ModalObservacion from './ModalObservacion';
 
 interface RowData {
   orden: string;
@@ -39,6 +40,7 @@ interface RowData {
   codlugar: string;
   vuelo: string | null;
   telefono: string | null;
+  observacion: string | null;
 }
 
 interface Props {
@@ -68,6 +70,7 @@ const SortableRow = ({
   onCancelar,
   onDireccion,
   onCopiarLink,
+  onObservacion,
 }: {
   row: RowData;
   index: number;
@@ -79,6 +82,7 @@ const SortableRow = ({
     codigo: string,
   ) => void;
   onCopiarLink: (coords: { lat: number; lng: number }) => void;
+  onObservacion: (nombrePasajero: string, observacion: string | null) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: row.orden });
@@ -137,6 +141,14 @@ const SortableRow = ({
                 startContent={<Home className="h-4 w-4 text-green-600" />}
               >
                 Dirección
+              </DropdownItem>
+
+              <DropdownItem
+                key="observacion"
+                onPress={() => onObservacion(row.nombre, row.observacion)}
+                startContent={<MessageSquare className="h-4 w-4 text-orange-600" />}
+              >
+                Observación
               </DropdownItem>
 
               {/* ✅ CORREGIDO: Usar la función wrapper */}
@@ -217,6 +229,13 @@ const DragAndDropTable = forwardRef(
     } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Estado para el modal de observación
+    const [observacionData, setObservacionData] = useState<{
+      nombrePasajero: string;
+      observacion: string | null;
+    } | null>(null);
+    const [isObservacionModalOpen, setIsObservacionModalOpen] = useState(false);
+
     const parseFecha = (fechaStr: string | null) => {
       if (!fechaStr) return null;
 
@@ -276,6 +295,7 @@ const DragAndDropTable = forwardRef(
             codlugar: item.codlugar,
             lugar: item.codlugar.toString(),
             vuelo: null,
+            observacion: null,
           }));
 
           return [...prevData, ...nuevosItems];
@@ -367,13 +387,24 @@ const DragAndDropTable = forwardRef(
       }
     };
 
+    const handleObservacion = (
+      nombrePasajero: string,
+      observacion: string | null,
+    ) => {
+      setObservacionData({ nombrePasajero, observacion });
+      setIsObservacionModalOpen(true);
+    };
+
+    const handleCloseObservacionModal = () => {
+      setIsObservacionModalOpen(false);
+      setObservacionData(null);
+    };
+
     useEffect(() => {
       if (!codServicio) return;
 
       const API_URL = `https://do.velsat.pe:2083/api/Preplan/PasajeroList?codservicio=${codServicio}`;
       setLoading(true);
-
-      console.log('Refrescando datos de la tabla...', { shouldRefetch });
 
       axios
         .get(API_URL)
@@ -402,6 +433,7 @@ const DragAndDropTable = forwardRef(
               fechafin: item.fechafin,
               feccancelpas: item.feccancelpas,
               vuelo: item.vuelo || null,
+              observacion: item.observacion || null,
             };
           });
 
@@ -569,6 +601,7 @@ const DragAndDropTable = forwardRef(
                           onCancelar={handleCancelar}
                           onDireccion={handleDireccion}
                           onCopiarLink={handleCopiarLink}
+                          onObservacion={handleObservacion}
                         />
                       ))}
                 </tbody>
@@ -586,6 +619,16 @@ const DragAndDropTable = forwardRef(
             setShouldRefetch={setShouldRefetch}
             isOpen={isModalOpen}
             onClose={handleCloseModal}
+          />
+        )}
+
+        {/* Modal de Observación */}
+        {observacionData && (
+          <ModalObservacion
+            nombrePasajero={observacionData.nombrePasajero}
+            observacion={observacionData.observacion}
+            isOpen={isObservacionModalOpen}
+            onClose={handleCloseObservacionModal}
           />
         )}
       </>
