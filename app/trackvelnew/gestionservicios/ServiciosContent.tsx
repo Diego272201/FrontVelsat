@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FaUser, FaUserTie } from 'react-icons/fa';
 import {
   MdCleaningServices,
+  MdComment,
   MdDelete,
   MdDesignServices,
   MdNewLabel,
@@ -111,6 +112,10 @@ export default function Page() {
   const [showConductorDropdownMensual, setShowConductorDropdownMensual] = useState(false);
   const [descargandoMensual, setDescargandoMensual] = useState(false);
   const conductorDropdownMensualRef = useRef<HTMLDivElement>(null);
+
+  // Reporte de observaciones
+  const [fechaObservaciones, setFechaObservaciones] = useState('');
+  const [descargandoObservaciones, setDescargandoObservaciones] = useState(false);
 
   const conductoresModal = useMemo(
     () =>
@@ -571,6 +576,46 @@ export default function Page() {
     }
   };
 
+  const handleGenerarReporteObservaciones = async () => {
+    if (!isReady || !username) {
+      toast.error('Esperando datos de sesión, intente nuevamente');
+      return;
+    }
+    if (!fechaObservaciones) {
+      toast.error('Seleccione la fecha a consultar');
+      return;
+    }
+
+    setDescargandoObservaciones(true);
+    const toastId = toast.loading('Generando reporte de observaciones...');
+    try {
+      const params = new URLSearchParams({
+        fecha: fechaObservaciones,
+        usuario: username,
+      });
+      const res = await fetch(
+        `https://do.velsat.pe:2083/api/Preplan/observaciones?${params.toString()}`,
+      );
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Observaciones_${fechaObservaciones}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(link.href);
+      toast.dismiss(toastId);
+      toast.success('Reporte descargado');
+      setFechaObservaciones('');
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('No hay observaciones para la fecha seleccionada.');
+    } finally {
+      setDescargandoObservaciones(false);
+    }
+  };
+
   useEffect(() => {
     console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
   }, [unidadSeleccionada]);
@@ -964,7 +1009,10 @@ export default function Page() {
                   </div>
                 </div>
               </div>
+            </div>
 
+            {/* Resumen Mensual por Conductor + Reporte de Observaciones - lado a lado */}
+            <div className="flex gap-3">
               {/* Resumen mensual por conductor */}
               <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-200 bg-gradient-to-r from-teal-50 to-teal-100 px-4 py-1.5">
@@ -1060,6 +1108,40 @@ export default function Page() {
                   {/* Hint */}
                   <p className="mt-2 text-[10px] text-gray-400">
                     Sin conductor seleccionado se genera para todos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Reporte de observaciones */}
+              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div className="border-b border-gray-200 bg-gradient-to-r from-amber-50 to-amber-100 px-4 py-1.5">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <MdComment className="h-4 w-4 text-amber-600" />
+                    Reporte de Observaciones
+                  </span>
+                </div>
+                <div className="p-3">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <input
+                      type="date"
+                      value={fechaObservaciones}
+                      onChange={(e) => setFechaObservaciones(e.target.value)}
+                      className="w-[145px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                    />
+
+                    <button
+                      onClick={handleGenerarReporteObservaciones}
+                      disabled={descargandoObservaciones}
+                      className="flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-amber-700 active:scale-95 disabled:opacity-50"
+                    >
+                      <HiDocumentReport className="h-3 w-3" />
+                      {descargandoObservaciones ? 'Generando...' : 'Generar'}
+                    </button>
+                  </div>
+
+                  {/* Hint */}
+                  <p className="mt-2 text-[10px] text-gray-400">
+                    Se descarga un Excel con las observaciones registradas ese día.
                   </p>
                 </div>
               </div>
