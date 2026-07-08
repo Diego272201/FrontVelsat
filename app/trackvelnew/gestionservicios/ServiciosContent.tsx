@@ -114,7 +114,8 @@ export default function Page() {
   const conductorDropdownMensualRef = useRef<HTMLDivElement>(null);
 
   // Reporte de observaciones
-  const [fechaObservaciones, setFechaObservaciones] = useState('');
+  const [fechaInicioObservaciones, setFechaInicioObservaciones] = useState('');
+  const [fechaFinObservaciones, setFechaFinObservaciones] = useState('');
   const [descargandoObservaciones, setDescargandoObservaciones] = useState(false);
 
   const conductoresModal = useMemo(
@@ -581,8 +582,12 @@ export default function Page() {
       toast.error('Esperando datos de sesión, intente nuevamente');
       return;
     }
-    if (!fechaObservaciones) {
-      toast.error('Seleccione la fecha a consultar');
+    if (!fechaInicioObservaciones || !fechaFinObservaciones) {
+      toast.error('Seleccione el rango de fechas a consultar');
+      return;
+    }
+    if (new Date(fechaInicioObservaciones) > new Date(fechaFinObservaciones)) {
+      toast.error('La fecha inicial no puede ser mayor a la fecha final');
       return;
     }
 
@@ -590,7 +595,8 @@ export default function Page() {
     const toastId = toast.loading('Generando reporte de observaciones...');
     try {
       const params = new URLSearchParams({
-        fecha: fechaObservaciones,
+        fechaInicio: fechaInicioObservaciones,
+        fechaFin: fechaFinObservaciones,
         usuario: username,
       });
       const res = await fetch(
@@ -600,17 +606,18 @@ export default function Page() {
       const blob = await res.blob();
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
-      link.download = `Observaciones_${fechaObservaciones}.xlsx`;
+      link.download = `Observaciones_${fechaInicioObservaciones}_a_${fechaFinObservaciones}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(link.href);
       toast.dismiss(toastId);
       toast.success('Reporte descargado');
-      setFechaObservaciones('');
+      setFechaInicioObservaciones('');
+      setFechaFinObservaciones('');
     } catch {
       toast.dismiss(toastId);
-      toast.error('No hay observaciones para la fecha seleccionada.');
+      toast.error('No hay observaciones para el rango de fechas seleccionado.');
     } finally {
       setDescargandoObservaciones(false);
     }
@@ -1124,9 +1131,18 @@ export default function Page() {
                   <div className="flex flex-wrap items-end gap-2">
                     <input
                       type="date"
-                      value={fechaObservaciones}
-                      onChange={(e) => setFechaObservaciones(e.target.value)}
-                      className="w-[145px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                      value={fechaInicioObservaciones}
+                      onChange={(e) => setFechaInicioObservaciones(e.target.value)}
+                      className="w-[135px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
+                    />
+
+                    <span className="pb-1.5 text-[11px] text-gray-400">a</span>
+
+                    <input
+                      type="date"
+                      value={fechaFinObservaciones}
+                      onChange={(e) => setFechaFinObservaciones(e.target.value)}
+                      className="w-[135px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                     />
 
                     <button
@@ -1141,7 +1157,7 @@ export default function Page() {
 
                   {/* Hint */}
                   <p className="mt-2 text-[10px] text-gray-400">
-                    Se descarga un Excel con las observaciones registradas ese día.
+                    Se descarga un Excel con las observaciones registradas en el rango seleccionado.
                   </p>
                 </div>
               </div>
