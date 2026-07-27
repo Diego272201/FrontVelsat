@@ -62,14 +62,16 @@ export default function ModalLatam({
 
       // Detectar en qué fila están los encabezados (busca la fila que contenga 'SERV.')
       const headerRowIndex = rows.findIndex((r) =>
-        r.some((c: any) => String(c ?? '').trim() === 'SERV.')
+        r.some((c: any) => String(c ?? '').trim() === 'SERV.'),
       );
       if (headerRowIndex === -1) {
         toast.error('No se encontró la fila de encabezados (columna SERV.).');
         setRegistros([]);
         return;
       }
-      const headers: string[] = rows[headerRowIndex].map((h: any) => String(h ?? '').trim());
+      const headers: string[] = rows[headerRowIndex].map((h: any) =>
+        String(h ?? '').trim(),
+      );
 
       const idx = {
         serv: headers.findIndex((h) => h === 'SERV.'),
