@@ -16,6 +16,7 @@ interface SidebarProps {
   centerMap: () => void;
   centerUnit: (coords: { latitud: number; longitud: number }) => void;
   onFilteredIdsChange?: (ids: string[] | null) => void;
+  sharedDeviceList?: UnidadData[];
 }
 
 interface UnidadData {
@@ -25,7 +26,7 @@ interface UnidadData {
   lastValidLongitude: number;
 }
 
-export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: SidebarProps) {
+export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sharedDeviceList }: SidebarProps) {
   const { data: session } = useSession();
   const [unidades, setUnidades] = useState<UnidadData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,13 +84,18 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
     }
   }, [username, baseUrl]);
 
-  // Inicializar polling
   useEffect(() => {
+    if (sharedDeviceList) {
+      setUnidades(sharedDeviceList);
+      setIsLoading(false);
+      setConnectionStatus('Connected');
+      setIsPollingActive(true);
+      return;
+    }
+
     if (username && baseUrl) {
-      // Llamada inicial
       fetchDataFromAPI();
-      
-      // Configurar polling cada 20 segundos
+
       pollingIntervalRef.current = setInterval(() => {
         fetchDataFromAPI();
       }, 20000);
@@ -101,7 +107,7 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange }: 
         pollingIntervalRef.current = null;
       }
     };
-  }, [username, baseUrl, fetchDataFromAPI]);
+  }, [username, baseUrl, fetchDataFromAPI, sharedDeviceList]);
 
   useEffect(() => {
     const fetchFiltroSedapal = async () => {
@@ -356,9 +362,9 @@ const filteredUnidades = useMemo(() => {
                 <Spinner />
               </div>
             ) : (
-              filteredUnidades.map((unidad, index) => (
+              filteredUnidades.map((unidad) => (
                 <Unidad
-                  key={index}
+                  key={unidad.deviceId}
                   codigoUnidad={unidad.deviceId.toUpperCase()}
                   velocidad={unidad.lastValidSpeed}
                   latitud={unidad.lastValidLatitude}

@@ -1276,122 +1276,146 @@ const Tollbar: React.FC = () => {
         </ul>
       </div>
 
-      {/* Modales */}
-      <AppModalReportes
-        isOpen={modals.general}
-        onClose={() => closeModal('general')}
-        titulo="REPORTE GENERAL"
-        nameurl="reportegeneral"
-        namedown="downloadExcelG"
-        namedesc="general"
-        showDownloadButton={true}
-        icono={<SiGoogledocs size={25} />}
-      />
+      {/* Modales - solo se montan cuando están abiertos */}
+      {modals.general && (
+        <AppModalReportes
+          isOpen={modals.general}
+          onClose={() => closeModal('general')}
+          titulo="REPORTE GENERAL"
+          nameurl="reportegeneral"
+          namedown="downloadExcelG"
+          namedesc="general"
+          showDownloadButton={true}
+          icono={<SiGoogledocs size={25} />}
+        />
+      )}
 
-      <AppModalReportes
-        isOpen={modals.stops}
-        onClose={() => closeModal('stops')}
-        titulo="REPORTE DE PARADAS"
-        nameurl="reporteparadas"
-        namedown="downloadExcelS"
-        namedesc="paradas"
-        showDownloadButton={true}
-        icono={<BsFillSignStopFill size={25} />}
-      />
+      {modals.stops && (
+        <AppModalReportes
+          isOpen={modals.stops}
+          onClose={() => closeModal('stops')}
+          titulo="REPORTE DE PARADAS"
+          nameurl="reporteparadas"
+          namedown="downloadExcelS"
+          namedesc="paradas"
+          showDownloadButton={true}
+          icono={<BsFillSignStopFill size={25} />}
+        />
+      )}
 
-      <AppModalReportes
-        isOpen={modals.details}
-        onClose={() => closeModal('details')}
-        titulo="DETALLE RECORRIDO"
-        nameurl="detallerecorrido"
-        namedown=""
-        namedesc=""
-        showDownloadButton={false}
-        icono={<FaRoad size={25} />}
-      />
+      {modals.details && (
+        <AppModalReportes
+          isOpen={modals.details}
+          onClose={() => closeModal('details')}
+          titulo="DETALLE RECORRIDO"
+          nameurl="detallerecorrido"
+          namedown=""
+          namedesc=""
+          showDownloadButton={false}
+          icono={<FaRoad size={25} />}
+        />
+      )}
 
-      <AppModalVelocidad
-        isOpen={modals.velocity}
-        onClose={() => closeModal('velocity')}
-        titulo="REPORTE VELOCIDAD"
-        nameurl="reportevelocidad"
-        namedown="downloadExcelV"
-        namedesc="velocidad"
-        showDownloadButton={true}
-        icono={<IoSpeedometer size={25} />}
-      />
+      {modals.velocity && (
+        <AppModalVelocidad
+          isOpen={modals.velocity}
+          onClose={() => closeModal('velocity')}
+          titulo="REPORTE VELOCIDAD"
+          nameurl="reportevelocidad"
+          namedown="downloadExcelV"
+          namedesc="velocidad"
+          showDownloadButton={true}
+          icono={<IoSpeedometer size={25} />}
+        />
+      )}
 
-      <AppModalReportes
-        isOpen={modals.kilometers}
-        onClose={() => closeModal('kilometers')}
-        titulo="REPORTE DE KILOMETRAJE"
-        nameurl="reportekilometraje"
-        namedown="downloadExcelK"
-        namedesc="kilometraje"
-        showDownloadButton={true}
-        useSelectAll={true}
-      />
+      {modals.kilometers && (
+        <AppModalReportes
+          isOpen={modals.kilometers}
+          onClose={() => closeModal('kilometers')}
+          titulo="REPORTE DE KILOMETRAJE"
+          nameurl="reportekilometraje"
+          namedown="downloadExcelK"
+          namedesc="kilometraje"
+          showDownloadButton={true}
+          useSelectAll={true}
+        />
+      )}
 
-      <AppModalServicios
-        isOpen={modals.servicios}
-        onClose={() => closeModal('servicios')}
-        titulo="REPORTE DE RECORRIDO DE SERVICIOS"
-        nameurl="detallerecorridoservicios"
-        namedown="downloadExcelG"
-        namedesc="general"
-        showDownloadButton={true}
-      />
+      {modals.servicios && (
+        <AppModalServicios
+          isOpen={modals.servicios}
+          onClose={() => closeModal('servicios')}
+          titulo="REPORTE DE RECORRIDO DE SERVICIOS"
+          nameurl="detallerecorridoservicios"
+          namedown="downloadExcelG"
+          namedesc="general"
+          showDownloadButton={true}
+        />
+      )}
 
-      <AppModalDetalleServicios
-        isOpen={modals.detalleServicios}
-        onClose={() => closeModal('detalleServicios')}
-        titulo="DETALLE DE SERVICIOS"
-        nameurl="detalleservicios"
-        namedown="downloadExcelDS"
-        namedesc="detalleservicios"
-        showDownloadButton={true}
-      />
+      {modals.detalleServicios && (
+        <AppModalDetalleServicios
+          isOpen={modals.detalleServicios}
+          onClose={() => closeModal('detalleServicios')}
+          titulo="DETALLE DE SERVICIOS"
+          nameurl="detalleservicios"
+          namedown="downloadExcelDS"
+          namedesc="detalleservicios"
+          showDownloadButton={true}
+        />
+      )}
 
-      <AppModalDuracionServicios
-        isOpen={modals.duracionservicios}
-        onClose={() => closeModal('duracionservicios')}
-        titulo="DURACIÓN DE SERVICIOS"
-        nameurl="detalleservicios"
-        namedown="downloadExcelDS"
-        namedesc="detalleservicios"
-        showDownloadButton={true}
-      />
+      {modals.duracionservicios && (
+        <AppModalDuracionServicios
+          isOpen={modals.duracionservicios}
+          onClose={() => closeModal('duracionservicios')}
+          titulo="DURACIÓN DE SERVICIOS"
+          nameurl="detalleservicios"
+          namedown="downloadExcelDS"
+          namedesc="detalleservicios"
+          showDownloadButton={true}
+        />
+      )}
 
-      <AppModalUnidadesCercanas
-        isOpen={modals.unidadesCercanas}
-        onClose={() => closeModal('unidadesCercanas')}
-        titulo="UNIDADES CERCANAS"
-        useSelectAll={true}
-        icono={<RiGpsFill size={25} />}
-      />
+      {modals.unidadesCercanas && (
+        <AppModalUnidadesCercanas
+          isOpen={modals.unidadesCercanas}
+          onClose={() => closeModal('unidadesCercanas')}
+          titulo="UNIDADES CERCANAS"
+          useSelectAll={true}
+          icono={<RiGpsFill size={25} />}
+        />
+      )}
 
-      <AppModalCargaLatam
-        isOpen={modals.cargaLatam}
-        onClose={() => closeModal('cargaLatam')}
-        titulo="CARGA DATOS LATAM"
-        useSelectAll={true}
-        icono={<SiGoogledocs size={25} />}
-      />
+      {modals.cargaLatam && (
+        <AppModalCargaLatam
+          isOpen={modals.cargaLatam}
+          onClose={() => closeModal('cargaLatam')}
+          titulo="CARGA DATOS LATAM"
+          useSelectAll={true}
+          icono={<SiGoogledocs size={25} />}
+        />
+      )}
 
-      <AppModalAlertaReporte
-        isOpen={modals.alertasVelocidad}
-        onClose={() => closeModal('alertasVelocidad')}
-        titulo="REPORTE DE ALERTAS DE VELOCIDAD"
-        icono={<IoSpeedometer size={25} />}
-      />
+      {modals.alertasVelocidad && (
+        <AppModalAlertaReporte
+          isOpen={modals.alertasVelocidad}
+          onClose={() => closeModal('alertasVelocidad')}
+          titulo="REPORTE DE ALERTAS DE VELOCIDAD"
+          icono={<IoSpeedometer size={25} />}
+        />
+      )}
 
-      <AppModalReporteEventos
-        isOpen={modals.reporteEventos}
-        onClose={() => closeModal('reporteEventos')}
-        titulo="REPORTE DE EVENTOS"
-        showDownloadButton={true}
-        icono={<MdOutlineEventNote size={25} />}
-      />
+      {modals.reporteEventos && (
+        <AppModalReporteEventos
+          isOpen={modals.reporteEventos}
+          onClose={() => closeModal('reporteEventos')}
+          titulo="REPORTE DE EVENTOS"
+          showDownloadButton={true}
+          icono={<MdOutlineEventNote size={25} />}
+        />
+      )}
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>

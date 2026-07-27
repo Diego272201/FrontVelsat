@@ -2,13 +2,63 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Check, Clock, Copy, Link2, X } from 'lucide-react';
+import { Check, Clock, Copy, Link2 } from 'lucide-react';
 import GoogleMapComponent from '../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import { getMarkerSVG } from '@/app/components/ui/getMarkerSVG';
 import '@/app/styles/popup.css';
 import { toast, Toaster } from 'sonner';
+
+function sanitize(value: string): string {
+  const el = document.createElement('div');
+  el.textContent = value;
+  return el.innerHTML;
+}
+
+let PopupClassCache: (new (position: google.maps.LatLng, content: HTMLElement) => google.maps.OverlayView & { position: google.maps.LatLng; containerDiv: HTMLDivElement }) | null = null;
+
+function getPopupClass() {
+  if (PopupClassCache) return PopupClassCache;
+
+  PopupClassCache = class Popup extends google.maps.OverlayView {
+    position: google.maps.LatLng;
+    containerDiv: HTMLDivElement;
+
+    constructor(position: google.maps.LatLng, content: HTMLElement) {
+      super();
+      this.position = position;
+      content.classList.add('popup-bubble');
+      const bubbleAnchor = document.createElement('div');
+      bubbleAnchor.appendChild(content);
+      this.containerDiv = document.createElement('div');
+      this.containerDiv.classList.add('popup-container');
+      this.containerDiv.appendChild(bubbleAnchor);
+      Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
+    }
+
+    onAdd() {
+      this.getPanes()!.floatPane.appendChild(this.containerDiv);
+    }
+
+    onRemove() {
+      if (this.containerDiv.parentElement) {
+        this.containerDiv.parentElement.removeChild(this.containerDiv);
+      }
+    }
+
+    draw() {
+      if (!this.getProjection() || !this.position || !this.containerDiv) return;
+      const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
+      this.containerDiv.style.left = `${divPosition.x}px`;
+      this.containerDiv.style.top = `${divPosition.y}px`;
+      this.containerDiv.style.display = 'block';
+    }
+  } as any;
+
+  return PopupClassCache!;
+}
+
 const initialCenter = {
   lat: -12.046591525826495,
   lng: -77.04689047482863,
@@ -37,9 +87,8 @@ interface Props {
 
 interface MarkerData {
   marker: google.maps.Marker;
-  popup1: any; // Custom popup overlay
-  popup2: any; // Custom popup overlay
-  intervalId?: NodeJS.Timeout;
+  popup1: any;
+  popup2: any;
 }
 
 interface StaticMarkerData {
@@ -68,6 +117,7 @@ export default function SeguirUnidadPage({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasInitialCentered, setHasInitialCentered] = useState(false);
   const [isStreetViewOpen, setIsStreetViewOpen] = useState(false);
+  const [isStreetViewCollapsed, setIsStreetViewCollapsed] = useState(false);
   const [streetViewData, setStreetViewData] = useState<{
     lat: number;
     lng: number;
@@ -78,8 +128,8 @@ export default function SeguirUnidadPage({
   const markerDataRef = useRef<MarkerData | null>(null);
   const staticMarkersRef = useRef<StaticMarkerData[]>([]);
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
-  
-  const servidorUrl = localStorage.getItem('servidorUrl');
+
+  const servidorUrl = typeof window !== 'undefined' ? localStorage.getItem('servidorUrl') : null;
   const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_K;
 
 
@@ -161,7 +211,6 @@ useEffect(() => {
     const deviceIdFinal = deviceId || getDeviceIdFromUrl();
 
     if (!isComponentMounted || !deviceIdFinal) {
-      console.warn('Componente desmontado o deviceId no disponible');
       return;
     }
 
@@ -170,7 +219,6 @@ useEffect(() => {
       !session?.user?.username ||
       !servidorUrl
     ) {
-      console.warn('Sesión no autenticada o datos faltantes');
       return;
     }
 
@@ -205,13 +253,9 @@ useEffect(() => {
       if (updatedDevice) {
         setFechaActual(data.fechaActual);
         setDevice(updatedDevice);
-      } else {
-        console.warn(
-          `Dispositivo ${deviceIdFinal} no encontrado en los datos`
-        );
       }
     } catch (error) {
-      console.error('❌ Error obteniendo datos del dispositivo:', error);
+      console.error('Error obteniendo datos del dispositivo:', error);
     }
   };
 
@@ -219,19 +263,12 @@ useEffect(() => {
     if (!isComponentMounted) return;
 
     if (document.visibilityState === 'visible') {
-      console.log('🔍 Pestaña activa - Reanudando polling...');
-      
-      // Llamar inmediatamente al activar
       fetchDeviceData();
-      
-      // Reiniciar intervalo si no existe
+
       if (!intervalId) {
         intervalId = setInterval(fetchDeviceData, 8000);
       }
     } else {
-      console.log('😴 Pestaña inactiva - Pausando polling');
-      
-      // Pausar polling cuando la pestaña está inactiva (opcional)
       if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
@@ -239,19 +276,11 @@ useEffect(() => {
     }
   };
 
-  // Agregar event listener para visibilidad
   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  // Iniciar el polling
-  console.log('🚀 Iniciando polling de datos del dispositivo cada 8 segundos...');
-  
-  // Llamada inmediata
   fetchDeviceData();
-  
-  // Configurar intervalo de 8 segundos
   intervalId = setInterval(fetchDeviceData, 8000);
 
-  // Cleanup
   return () => {
     isComponentMounted = false;
 
@@ -261,8 +290,6 @@ useEffect(() => {
     }
 
     document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-    console.log('🧹 Cleanup: Polling detenido');
   };
 }, [status, session, deviceId, servidorUrl, searchParams]);
 
@@ -275,13 +302,7 @@ useEffect(() => {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
 
-    return `
-      <span class="text-gray-300 text-[12px]">
-        Fecha: <span class="ml-1 text-white font-medium">${day}/${month}/${year}</span>
-        <span class="mx-2"></span>
-        Hora: <span class="ml-1 text-white font-medium">${hours}:${minutes}</span>
-      </span>
-    `;
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   }, []);
 
   const getDireccion = useCallback((heading: number) => {
@@ -336,124 +357,64 @@ useEffect(() => {
     return speed > 0 ? 'En Movimiento' : 'Estacionado';
   }, []);
 
-  // Custom Popup class for Google Maps - define as function to avoid early execution
-  const createPopupClass = useCallback(() => {
-    if (typeof window === 'undefined' || !window.google?.maps) {
-      return null;
-    }
-
-    class Popup extends google.maps.OverlayView {
-      position: google.maps.LatLng;
-      containerDiv: HTMLDivElement;
-
-      constructor(position: google.maps.LatLng, content: HTMLElement) {
-        super();
-        this.position = position;
-        content.classList.add('popup-bubble');
-        const bubbleAnchor = document.createElement('div');
-        bubbleAnchor.appendChild(content);
-        this.containerDiv = document.createElement('div');
-        this.containerDiv.classList.add('popup-container');
-        this.containerDiv.appendChild(bubbleAnchor);
-        Popup.preventMapHitsAndGesturesFrom(this.containerDiv);
-      }
-
-      onAdd() {
-        this.getPanes()!.floatPane.appendChild(this.containerDiv);
-      }
-
-      onRemove() {
-        if (this.containerDiv.parentElement) {
-          this.containerDiv.parentElement.removeChild(this.containerDiv);
-        }
-      }
-
-      draw() {
-        if (!this.getProjection() || !this.position || !this.containerDiv) return;
-
-        const divPosition = this.getProjection().fromLatLngToDivPixel(this.position)!;
-        this.containerDiv.style.left = `${divPosition.x}px`;
-        this.containerDiv.style.top = `${divPosition.y}px`;
-        this.containerDiv.style.display = 'block';
-      }
-    }
-
-    return Popup;
-  }, []);
 
   const getPopupContent = useCallback(
     (device: Device) => {
+      const safeDeviceId = sanitize(device.deviceId);
+      const safeDireccion = sanitize(device.direccion);
+      const speed = device.lastValidSpeed.toFixed(0);
+      const estado = getEstado(device.lastValidSpeed);
+      const isMoving = device.lastValidSpeed > 0;
+      const statusColor = isMoving ? '#008000' : '#ef4444';
+      const statusBg = isMoving ? '#dcfce7' : '#fee2e2';
+      const statusDot = isMoving ? '#008000' : '#ef4444';
+
       return `
     <div style="
-      background-color: #1f2937 !important;
-      color: #ffffff !important;
-      padding: 16px !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-      border: 1px solid #4b5563 !important;
-      min-width: 300px !important;
-      border-radius: 8px !important;
-      font-size: 12px !important;
-      line-height: 1.4 !important;
+      background: #ffffff !important;
+      color: #1e293b !important;
+      padding: 0 !important;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08) !important;
+      border: none !important;
+      width: 260px !important;
+      border-radius: 6px !important;
+      font-size: 11px !important;
+      line-height: 1.5 !important;
       position: relative !important;
-      font-family: system-ui, -apple-system, sans-serif !important;
-    " id="content2-${device.deviceId}">
-      <button id="close-btn-${device.deviceId}" style="
-        position: absolute !important;
-        top: 0 !important;
-        right: 12px !important;
-        color: #d1d5db !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
-        cursor: pointer !important;
-        border: none !important;
-        background: transparent !important;
-        transition: color 0.15s ease !important;
-      " onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#d1d5db'">&times;</button>
-      
-      <div style="margin-bottom: 8px !important;">
-        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-          <span style="color: #d1d5db !important;">Unidad:</span> 
-          <strong style="color: #93c5fd !important; margin-left: 4px !important;">${device.deviceId.toUpperCase()}</strong>
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      overflow: hidden !important;
+    " id="content2-${safeDeviceId}">
+      <div style="background: #113EB9 !important; padding: 8px 12px !important; display: flex !important; align-items: center !important; justify-content: space-between !important;">
+        <div style="display: flex !important; align-items: center !important;">
+          <span style="color: #ffffff !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.3px !important;">${safeDeviceId.toUpperCase()}</span>
         </div>
-        
-        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-          <span style="color: #d1d5db !important;">Velocidad:</span> 
-          <strong style="color: #86efac !important; margin-left: 4px !important;">${device.lastValidSpeed.toFixed(0)} Km/h</strong>
-        </div>
-        
-        <div style="display: flex !important; align-items: center !important; margin-bottom: 4px !important;">
-          <span style="color: #d1d5db !important;">Estado:</span> 
-          <strong style="color: #fde047 !important; margin-left: 4px !important;">${getEstado(device.lastValidSpeed)}</strong>
-        </div>
+        <button id="close-btn-${safeDeviceId}" style="color: rgba(255,255,255,0.7) !important; font-size: 16px !important; cursor: pointer !important; border: none !important; background: none !important; padding: 0 !important; line-height: 1 !important;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">&times;</button>
       </div>
 
-      <hr style="border: none !important; border-top: 1px solid #4b5563 !important; margin: 8px 0 !important;">
-      
-      <h4 style="
-        font-weight: 600 !important;
-        color: #e5e7eb !important;
-        text-transform: uppercase !important;
-        font-size: 10px !important;
-        margin-bottom: 4px !important;
-        margin-left: 2px !important;
-      ">
-        <strong>Último Reporte</strong>
-      </h4>
-      
-      <div style="background-color: #374151 !important; padding: 8px !important; border-radius: 4px !important;">
-        <div style="margin-bottom: 5px !important;">
-            <strong>${formatFecha(fechaActual)}</strong>
-        </div>
-        
-        <div>
-          <div style="margin-bottom: 4px !important;">
-            <span style="color: #d1d5db !important; font-size: 12px !important;">Dirección:</span> 
-            <span style="color: #ffffff !important;">${getDireccion(device.lastValidHeading)}</span>
+      <div style="padding: 10px 12px 8px !important;">
+        <div style="display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; margin-bottom: 8px !important;">
+          <div style="background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 4px !important; padding: 6px 8px !important; text-align: center !important;">
+            <div style="font-size: 15px !important; font-weight: 700 !important; color: #0f172a !important;">${speed}</div>
+            <div style="font-size: 9px !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Km/h</div>
           </div>
-          
-          <div>
-            <span style="color: #d1d5db !important; font-size: 12px !important;">Ubicación:</span> 
-            <span style="color: #ffffff !important; font-size: 12px !important;">${device.direccion}</span>
+          <div style="background: ${statusBg} !important; border: 1px solid ${isMoving ? '#bbf7d0' : '#fecaca'} !important; border-radius: 4px !important; padding: 6px 8px !important; text-align: center !important;">
+            <div style="font-size: 11px !important; font-weight: 600 !important; color: #000000 !important;">${estado}</div>
+            <div style="font-size: 9px !important; color: #000000 !important; opacity: 0.6 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Estado</div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0 !important; padding-top: 8px !important;">
+          <div style="display: flex !important; justify-content: space-between !important; margin-bottom: 4px !important;">
+            <span style="color: #64748b !important; font-size: 12px !important;">Dirección</span>
+            <span style="color: #1e293b !important; font-weight: 500 !important; font-size: 12px !important;">${getDireccion(device.lastValidHeading)}</span>
+          </div>
+          <div style="margin-bottom: 4px !important;">
+            <span style="color: #64748b !important; font-size: 12px !important;">Ubicación</span>
+            <div style="color: #1e293b !important; font-size: 12px !important; margin-top: 2px !important; line-height: 1.3 !important;">${safeDireccion}</div>
+          </div>
+          <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-top: 6px !important; padding-top: 6px !important; border-top: 1px solid #f1f5f9 !important;">
+            <span style="color: #94a3b8 !important; font-size: 11px !important;">Último reporte</span>
+            <span style="color: #475569 !important; font-size: 11px !important; font-weight: 500 !important;">${formatFecha(fechaActual)}</span>
           </div>
         </div>
       </div>
@@ -497,7 +458,7 @@ useEffect(() => {
     (map: google.maps.Map) => {
       if (!device || !window.google?.maps) return;
 
-      const PopupClass = createPopupClass();
+      const PopupClass = getPopupClass();
       if (!PopupClass) return;
 
       const position = new google.maps.LatLng(
@@ -506,13 +467,13 @@ useEffect(() => {
       );
 
       if (markerDataRef.current) {
-        // Update existing marker - SIN mover el mapa
         const markerData = markerDataRef.current;
 
-        // Solo actualizar posición del marcador, NO del mapa
         markerData.marker.setPosition(position);
         markerData.popup1.position = position;
         markerData.popup2.position = position;
+
+        map.panTo(position);
 
         // Update icon
         const newIcon = getMarkerIcon(device.lastValidHeading);
@@ -549,35 +510,22 @@ useEffect(() => {
         }
       } else {
         // Create new marker
+        const safeId = sanitize(device.deviceId);
         const popup1Content = document.createElement('div');
         popup1Content.innerHTML = `
-          <div style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 16px;
-            position: relative;
-          ">
+          <div style="display:flex; flex-direction:column; align-items:center; margin-top:12px;">
             <div id="content" style="
-              background-color: #fca311 !important;
-              color: #1f2937 !important;
-              padding: 6px 8px !important;
-              border: 1px solid #fca311 !important;
+              background: #113EB9 !important;
+              color: #f8fafc !important;
+              padding: 5px 12px !important;
               font-size: 12px !important;
-              font-weight: 700 !important;
-              font-family: system-ui, -apple-system, sans-serif !important;
-              border-radius: 4px !important;
-            ">
-              ${device.deviceId.toUpperCase()}
-            </div>
-            <div style="
-              width: 0 !important;
-              height: 0 !important;
-              border-left: 8px solid transparent !important;
-              border-right: 8px solid transparent !important;
-              border-top: 8px solid #fca311 !important;
-              margin-top: -1px !important;
-            "></div>
+              font-weight: 600 !important;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+              border-radius: 3px !important;
+              letter-spacing: 0.4px !important;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+            ">${safeId.toUpperCase()}</div>
+            <div style="width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:6px solid #113EB9; margin-top:-1px;"></div>
           </div>
         `;
 
@@ -588,7 +536,15 @@ useEffect(() => {
         const popup2 = new PopupClass(position, popup2Content);
 
         popup1.setMap(map);
-        popup2.setMap(null);
+        popup2.setMap(map);
+
+        setStreetViewData({
+          lat: device.lastValidLatitude,
+          lng: device.lastValidLongitude,
+          markerId: device.deviceId,
+          title: device.deviceId.toUpperCase(),
+        });
+        setIsStreetViewOpen(true);
 
         const icon = getMarkerIcon(device.lastValidHeading);
         const marker = new google.maps.Marker({
@@ -597,30 +553,17 @@ useEffect(() => {
           icon: icon || undefined,
         });
 
-        let popup2IsOpen = false;
+        let popup2IsOpen = true;
 
         marker.addListener('click', () => {
           if (!popup2IsOpen) {
             popup1.setMap(null);
             popup2.setMap(map);
             popup2IsOpen = true;
-            
-            // Open Street View automatically
-            setStreetViewData({
-              lat: device.lastValidLatitude,
-              lng: device.lastValidLongitude,
-              markerId: device.deviceId,
-              title: device.deviceId.toUpperCase(),
-            });
-            setIsStreetViewOpen(true);
           } else {
             popup2.setMap(null);
             popup1.setMap(map);
             popup2IsOpen = false;
-            
-            // Close Street View
-            setIsStreetViewOpen(false);
-            setStreetViewData(null);
           }
         });
 
@@ -633,8 +576,6 @@ useEffect(() => {
               popup2.setMap(null);
               popup1.setMap(map);
               popup2IsOpen = false;
-              setIsStreetViewOpen(false);
-              setStreetViewData(null);
             });
           }
         }, 100);
@@ -646,7 +587,7 @@ useEffect(() => {
         };
       }
     },
-    [device, getMarkerIcon, getPopupContent, createPopupClass],
+    [device, getMarkerIcon, getPopupContent],
   );
 
   const handleMapLoad = useCallback(
@@ -677,14 +618,10 @@ useEffect(() => {
   );
 
   const handleMapUnmount = useCallback(() => {
-    // Clean up markers
     if (markerDataRef.current) {
       markerDataRef.current.marker.setMap(null);
       markerDataRef.current.popup1.setMap(null);
       markerDataRef.current.popup2.setMap(null);
-      if (markerDataRef.current.intervalId) {
-        clearInterval(markerDataRef.current.intervalId);
-      }
     }
     markerDataRef.current = null;
 
@@ -700,15 +637,14 @@ useEffect(() => {
 
   useEffect(() => {
     if (device && mapLoaded && mapRef.current && !hasInitialCentered) {
-      const center = {
+      mapRef.current.setCenter({
         lat: device.lastValidLatitude,
         lng: device.lastValidLongitude,
-      };
-      mapRef.current.setCenter(center);
-      mapRef.current.setZoom(15);
+      });
+      mapRef.current.setZoom(17);
       setHasInitialCentered(true);
     }
-  }, [mapLoaded, hasInitialCentered]);
+  }, [device, mapLoaded, hasInitialCentered]);
 
   useEffect(() => {
     if (mapRef.current && device && mapLoaded) {
@@ -724,7 +660,7 @@ useEffect(() => {
 
   const currentStreetViewData =
     streetViewData ||
-    (device && isStreetViewOpen
+    (device
       ? {
           lat: device.lastValidLatitude,
           lng: device.lastValidLongitude,
@@ -778,12 +714,6 @@ const handleGenerateLink = async () => {
     const link = `${baseUrl}/trackvelnew/seguimientounidad?token=${uniqueToken}`;
     setGeneratedLink(link);
     
-    console.log('✅ Link generado:', {
-      token: uniqueToken,
-      duracionMinutos,
-      expiresAt: new Date(Date.now() + duracionMinutos * 60000).toISOString()
-    });
-    
   } catch (error) {
 
       toast.error('Error generando el link de seguimiento');
@@ -802,45 +732,20 @@ const handleGenerateLink = async () => {
         minHeight: height,
       }}
     >
-      {/* Botón fullscreen */}
-      <div className="absolute right-4 top-4 z-[1000] flex flex-col gap-2">
+      <Toaster richColors />
 
-
-    <Toaster  richColors />
-
-
-
+      <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-1.5">
         <button
           onClick={toggleFullscreen}
-          className="rounded-md border border-gray-300 bg-white p-2 shadow-lg transition-colors duration-200 hover:bg-gray-100"
-          title={
-            isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
-          }
+          className="rounded border border-slate-200 bg-white p-1.5 shadow-sm transition-colors hover:bg-slate-50"
+          title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
         >
           {isFullscreen ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
             </svg>
           ) : (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
             </svg>
           )}
@@ -849,94 +754,69 @@ const handleGenerateLink = async () => {
 
 
 
-{/* Panel de Compartir Seguimiento - SUPERIOR IZQUIERDA FIJO */}
-
 {session?.user?.username === 'movilbus' && (
-  <div className="absolute left-4 top-4 z-[1000] bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-2xl overflow-hidden w-80">
-    {/* Header con gradiente */}
-    <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
-      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-        <Link2 size={18} className="text-blue-200" />
-        Compartir Seguimiento
+  <div className="absolute left-3 top-3 z-[1000] bg-white rounded-md shadow-lg overflow-hidden w-64 border border-slate-200">
+    <div className="bg-slate-900 px-3 py-2 flex items-center justify-between">
+      <h3 className="text-[11px] font-semibold text-slate-100 flex items-center gap-1.5 tracking-wide uppercase">
+        <Link2 size={13} className="text-slate-400" />
+        Compartir
       </h3>
+      <span className="text-[9px] text-slate-400">Max 24h</span>
     </div>
-    
-    <div className="p-4 space-y-4">
-      {/* Input de horas con icono - SOLO FLECHITAS */}
-      <div>
-        <label className="flex text-xs font-semibold text-gray-700 mb-2 items-center gap-1">
-          <Clock size={14} className="text-gray-500" />
-          Duración del enlace
-        </label>
-        <div className="relative">
+
+    <div className="p-3 space-y-2.5">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
           <input
             type="number"
             value={shareHours}
             onChange={(e) => setShareHours(Number(e.target.value))}
-            onKeyDown={(e) => e.preventDefault()} 
+            onKeyDown={(e) => e.preventDefault()}
             min="1"
             max="24"
-            className="w-full px-4 py-2.5 pr-16 border-2 border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer select-none"
-            placeholder="4"
-            readOnly={false} 
+            className="w-full px-3 py-1.5 pr-12 border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 transition-all"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 pointer-events-none">
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">
             horas
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-1 ml-1">
-          Máximo: 24 horas (1 día) 
-        </p>
+        <button
+          onClick={handleGenerateLink}
+          disabled={isGeneratingLink || !device}
+          className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white px-3 py-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
+        >
+          {isGeneratingLink ? (
+            <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
+          ) : (
+            <Link2 size={12} />
+          )}
+          Generar
+        </button>
       </div>
 
-      {/* Botón generar con animación */}
-      <button
-        onClick={handleGenerateLink}
-        disabled={isGeneratingLink || !device}
-        className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 group"
-      >
-        {isGeneratingLink ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-            Generando...
-          </>
-        ) : (
-          <>
-            <Link2 size={16} className="group-hover:rotate-12 transition-transform" />
-            Generar Enlace
-          </>
-        )}
-      </button>
-
-      {/* Link generado con animación */}
       {generatedLink && (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200 animate-fadeIn">
-          <label className="flex text-xs font-semibold text-green-800 mb-2 items-center gap-1">
-            <Check size={14} className="text-green-600" />
-            Enlace generado exitosamente
-          </label>
-          <div className="flex gap-2">
+        <div className="bg-slate-50 p-2 rounded border border-slate-200">
+          <div className="flex gap-1.5">
             <input
               type="text"
               value={generatedLink}
               readOnly
-              className="flex-1 px-3 py-2 text-xs bg-white border border-green-300 rounded-lg font-mono text-gray-700 focus:outline-none"
+              className="flex-1 px-2 py-1 text-[10px] bg-white border border-slate-200 rounded font-mono text-slate-600 focus:outline-none truncate"
             />
             <button
               onClick={() => {
                 navigator.clipboard.writeText(generatedLink);
-                toast.success('¡Link copiado al portapapeles!');
+                toast.success('Link copiado');
               }}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-1.5 group"
-              title="Copiar enlace"
+              className="bg-slate-900 hover:bg-slate-700 text-white px-2 py-1 rounded text-[10px] font-medium transition-colors flex items-center gap-1"
+              title="Copiar"
             >
-              <Copy size={14} className="group-hover:scale-110 transition-transform" />
-              Copiar
+              <Copy size={11} />
             </button>
           </div>
-          <p className="text-xs text-green-700 mt-2 flex items-center gap-1">
-            <Clock size={12} />
-            Expira en {shareHours} {shareHours === 1 ? 'hora' : 'horas'}
+          <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1">
+            <Check size={10} className="text-emerald-500" />
+            Expira en {shareHours}h
           </p>
         </div>
       )}
@@ -954,79 +834,28 @@ const handleGenerateLink = async () => {
         zoom={6}
       />
 
-      {/* Street View Panel */}
-      {currentStreetViewData && isStreetViewOpen && (
+      {currentStreetViewData && (
         <div
           style={{
             position: 'absolute',
-            bottom: '2%',
-            left: '2%',
-            width: '35%',
-            height: '55%',
-            backgroundColor: 'white',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+            bottom: '10px',
+            left: '10px',
+            width: '18%',
+            height: '24%',
+            minWidth: '180px',
+            minHeight: '120px',
+            backgroundColor: '#fff',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
             zIndex: 1000,
-            border: '2px solid #e0e0e0',
-            borderRadius: '8px',
-            fontFamily: 'Segoe UI, sans-serif',
+            border: '3px solid #ffffff',
+            borderRadius: '6px',
             overflow: 'hidden',
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              padding: '0px 12px',
-              borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#fff',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              minHeight: '25px',
-            }}
-          >
-            <h3
-              style={{
-                margin: '0',
-                color: '#333',
-                fontSize: '13px',
-                fontWeight: 'bold',
-              }}
-            >
-              {currentStreetViewData.title}
-            </h3>
-            <button
-              onClick={closeStreetView}
-              style={{
-                width: '18px',
-                height: '18px',
-                border: 'none',
-                backgroundColor: '#ff4757',
-                color: 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '4px',
-                fontWeight: 'bold',
-              }}
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          {/* Street View Content */}
-          <div
-            style={{
-              position: 'relative',
-              height: 'calc(100% - 25px)',
-            }}
-          >
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
             {GOOGLE_MAPS_API_KEY ? (
               <iframe
-                src={getStreetViewEmbedUrl(
-                  currentStreetViewData.lat,
-                  currentStreetViewData.lng,
-                )}
+                src={getStreetViewEmbedUrl(currentStreetViewData.lat, currentStreetViewData.lng)}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -1036,17 +865,8 @@ const handleGenerateLink = async () => {
                 title={`Street View - ${currentStreetViewData.title}`}
               />
             ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '100%',
-                  backgroundColor: '#f5f5f5',
-                  color: '#666',
-                }}
-              >
-                <p>Street View no disponible - API Key faltante</p>
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', backgroundColor: '#f8fafc', color: '#64748b', fontSize: '11px' }}>
+                Street View no disponible
               </div>
             )}
           </div>

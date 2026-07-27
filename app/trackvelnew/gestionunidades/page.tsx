@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   FileText,
-  Settings,
   Trash2,
   CheckCircle,
   AlertCircle,
   X,
   Car,
+  Loader2,
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/app/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -48,14 +46,9 @@ export default function Page() {
   const [searchText, setSearchText] = useState('');
   const [unidades, setUnidades] = useState<Unidad[]>([]);
   const [selectedUnidad, setSelectedUnidad] = useState<string | null>(null);
-  const [accion, setAccion] = useState<'habilitar' | 'deshabilitar' | null>(
-    null,
-  );
+  const [accion, setAccion] = useState<'habilitar' | 'deshabilitar' | null>(null);
   const [loading, setLoading] = useState(false);
-  const tableRef = useRef(null);
-  const [selectedUnidadLiberar, setSelectedUnidadLiberar] = useState<
-    string | null
-  >(null);
+  const [selectedUnidadLiberar, setSelectedUnidadLiberar] = useState<string | null>(null);
   const [showLiberarDialog, setShowLiberarDialog] = useState(false);
   const [loadingLiberar, setLoadingLiberar] = useState(false);
   const [showLiberarTodasDialog, setShowLiberarTodasDialog] = useState(false);
@@ -65,10 +58,7 @@ export default function Page() {
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newNotification: Notification = { id, type, message };
-
-    setNotifications((prev) => [...prev, newNotification]);
-
+    setNotifications((prev) => [...prev, { id, type, message }]);
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 4000);
@@ -84,53 +74,43 @@ export default function Page() {
 
   const fetchUnidades = async () => {
     if (!isReady) return;
-
     setLoadingInicial(true);
 
-    const res = await fetch(
-      `https://do.velsat.pe:2083/api/Preplan/carros/${username}`,
-    );
-    const data = await res.json();
-    setUnidades(
-      data
-        .map((u: UnidadAPI) => ({
-          codunidad: u.codunidad,
-          habilitado: u.habilitado,
-        }))
-        .sort(
-          (a: Unidad, b: Unidad) => Number(b.habilitado) - Number(a.habilitado),
-        ),
-    );
-
-    setLoadingInicial(false);
+    try {
+      const res = await fetch(
+        `https://do.velsat.pe:2083/api/Preplan/carros/${username}`,
+      );
+      const data = await res.json();
+      setUnidades(
+        data
+          .map((u: UnidadAPI) => ({
+            codunidad: u.codunidad,
+            habilitado: u.habilitado,
+          }))
+          .sort((a: Unidad, b: Unidad) => Number(b.habilitado) - Number(a.habilitado)),
+      );
+    } catch {
+      showNotification('error', 'Error al cargar las unidades');
+    } finally {
+      setLoadingInicial(false);
+    }
   };
 
   const handleLiberarTodasUnidades = async () => {
     setLoadingLiberarTodas(true);
-
     try {
       const response = await fetch(
         'https://do.velsat.pe:2083/api/Preplan/LiberarTotal',
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-        },
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' } },
       );
-
       if (response.ok) {
-        showNotification(
-          'success',
-          'Todas las unidades han sido liberadas exitosamente',
-        );
+        showNotification('success', 'Todas las unidades han sido liberadas exitosamente');
         fetchUnidades();
       } else {
         showNotification('error', 'Error al liberar todas las unidades');
       }
     } catch {
-      showNotification(
-        'error',
-        'Error de conexión al liberar todas las unidades',
-      );
+      showNotification('error', 'Error de conexión al liberar todas las unidades');
     } finally {
       setLoadingLiberarTodas(false);
       setShowLiberarTodasDialog(false);
@@ -139,13 +119,11 @@ export default function Page() {
 
   const handleLiberarUnidad = async (placa: string) => {
     setLoadingLiberar(true);
-
     try {
       const response = await fetch(
         `https://do.velsat.pe:2083/api/Caja/LiberarUnidad/${placa}`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' } },
       );
-
       if (response.ok) {
         showNotification('success', `Unidad ${placa} liberada exitosamente`);
         fetchUnidades();
@@ -153,10 +131,7 @@ export default function Page() {
         showNotification('error', `Error al liberar la unidad ${placa}`);
       }
     } catch {
-      showNotification(
-        'error',
-        `Error de conexión al liberar la unidad ${placa}`,
-      );
+      showNotification('error', `Error de conexión al liberar la unidad ${placa}`);
     } finally {
       setLoadingLiberar(false);
       setShowLiberarDialog(false);
@@ -167,7 +142,6 @@ export default function Page() {
   const handleHabilitarDeshabilitar = async () => {
     if (!selectedUnidad || !accion) return;
     setLoading(true);
-
     try {
       const url =
         accion === 'habilitar'
@@ -175,20 +149,14 @@ export default function Page() {
           : `https://do.velsat.pe:2083/api/Preplan/DeshabilitarUnidad/${selectedUnidad}`;
 
       const response = await fetch(url, { method: 'POST' });
-
       if (response.ok) {
         showNotification(
           'success',
-          `Unidad ${selectedUnidad} ${
-            accion === 'habilitar' ? 'habilitada' : 'deshabilitada'
-          } exitosamente`,
+          `Unidad ${selectedUnidad} ${accion === 'habilitar' ? 'habilitada' : 'deshabilitada'} exitosamente`,
         );
         fetchUnidades();
       } else {
-        showNotification(
-          'error',
-          `Error al ${accion} la unidad ${selectedUnidad}`,
-        );
+        showNotification('error', `Error al ${accion} la unidad ${selectedUnidad}`);
       }
     } catch {
       showNotification('error', `Error de conexión al ${accion} la unidad`);
@@ -206,224 +174,182 @@ export default function Page() {
     .sort((a, b) => Number(b.habilitado) - Number(a.habilitado));
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* 🔔 Notificaciones */}
+    <div className="min-h-screen bg-gray-100">
+      {/* Notificaciones */}
       <div className="fixed right-4 top-4 z-50 max-w-md space-y-2">
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className={`animate-in slide-in-from-right flex items-center gap-3 rounded-xl border p-4 shadow-xl backdrop-blur-sm duration-300 ${
+            className={`flex items-center gap-2 border px-3 py-2 text-[12px] font-medium shadow-sm ${
               notification.type === 'success'
-                ? 'border-emerald-300 bg-emerald-50/95 text-emerald-900'
-                : 'border-rose-300 bg-rose-50/95 text-rose-900'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
             }`}
           >
             {notification.type === 'success' ? (
-              <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-600" />
+              <CheckCircle className="h-4 w-4 flex-shrink-0 text-green-600" />
             ) : (
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-rose-600" />
+              <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-600" />
             )}
-            <span className="flex-1 text-sm font-medium">
-              {notification.message}
-            </span>
+            <span className="flex-1">{notification.message}</span>
             <button
               onClick={() => removeNotification(notification.id)}
-              className="flex-shrink-0 text-gray-500 transition-colors hover:text-gray-700"
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ))}
       </div>
 
-      <div className="border-b border-gray-200 bg-[#113EB9] shadow-lg">
-        <div className="px-4 py-1.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex h-10 w-10 items-center justify-center  bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 shadow-xl">
-                <Car className="h-6 w-6 text-white drop-shadow-md" />
-              </div>
+      {/* Header + búsqueda en una sola barra */}
+      <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+            <div className="h-5 w-1 bg-[#113EB9]"></div>
+            <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+              Unidades
+            </h1>
+            <span className="bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {unidades.length}
+            </span>
+          </div>
 
-              <div>
-                <h1 className="text-[14px] font-bold uppercase tracking-tight text-white">
-                  Gestión de Unidades
-                </h1>
-                <p className="mt-0 text-[12px] text-gray-200">
-                  Administra y controla todas las unidades del sistema
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className=" px-4 py-1 ">
-                <span className="text-sm font-medium text-white">
-                  Total: {unidadesFiltradas.length} conductores
-                </span>
-              </div>
-            </div>
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por código de unidad..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="block w-full border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+            />
           </div>
         </div>
       </div>
 
-      <div className="mx-auto w-full px-4 py-2">
-        <div className="mb-0 p-0">
-          <div className="flex w-full flex-col items-center gap-4 sm:flex-row">
-            <div className="relative w-full">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Buscar por código de unidad..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="block w-full border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm leading-5 placeholder-gray-500 transition-all duration-200 focus:border-transparent focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              />
-            </div>
+      {/* Tabla */}
+      <div className="p-4">
+        {loadingInicial ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Spinner color="primary" size="md" />
+            <span className="mt-3 text-[12px] text-gray-500">Cargando unidades...</span>
           </div>
-        </div>
-      </div>
-
-      {/* 📋 Tabla con scroll y header sticky */}
-      <div className="max-h-[calc(100vh-150px)] flex-1 overflow-hidden px-4">
-        <div className="flex h-full flex-col overflow-hidden border border-gray-200 bg-white shadow-lg">
-          <div className="relative flex-1 overflow-auto" ref={tableRef}>
-            <table className="min-w-full border-collapse">
-              <thead className="sticky top-0 z-20 bg-gray-100">
-                <tr>
-                  <th className="w-20 py-2 text-center text-xs font-semibold text-gray-800">
-                    ITEM
-                  </th>
-                  <th className="py-2 text-center text-xs font-semibold text-gray-800">
-                    CÓDIGO UNIDAD
-                  </th>
-                  <th className="py-2 text-center text-xs font-semibold text-gray-800">
-                    ESTADO
-                  </th>
-                  <th className="py-2 text-center text-xs font-semibold text-gray-800">
-                    ACCIONES
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {unidadesFiltradas.map((unidad, index) => (
-                  <tr
-                    key={unidad.codunidad}
-                    className="border-b border-gray-100 transition-colors hover:bg-blue-50"
-                  >
-                    <td className="whitespace-nowrap px-6 py-2 text-sm font-medium text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="py-2 text-center text-xs">
-                      {unidad.codunidad}
-                    </td>
-                    <td className="py-2 text-center">
-                      <Badge
-                        className={`px-3 py-1 font-medium ${
-                          unidad.habilitado === '1'
-                            ? 'border border-emerald-300 bg-emerald-100 text-emerald-800'
-                            : 'border border-gray-300 bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {unidad.habilitado === '1'
-                          ? 'Habilitada'
-                          : 'Deshabilitada'}
-                      </Badge>
-                    </td>
-                    <td className="py-2 text-center">
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                          onClick={() =>
-                            window.open(
-                              `/trackvelnew/gestionunidades/gestiondocs?deviceID=${unidad.codunidad}`,
-                              '_blank',
-                            )
-                          }
-                          size="sm"
-                          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transition-all hover:from-blue-700 hover:to-blue-800"
-                        >
-                          <FileText className="mr-1 h-4 w-4" />
-                          Documentos
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          className={`shadow-md transition-all ${
-                            unidad.habilitado === '1'
-                              ? 'bg-gradient-to-r from-rose-600 to-rose-700 text-white hover:from-rose-700 hover:to-rose-800'
-                              : 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800'
-                          }`}
-                          onClick={() => {
-                            setSelectedUnidad(unidad.codunidad);
-                            setAccion(
-                              unidad.habilitado === '1'
-                                ? 'deshabilitar'
-                                : 'habilitar',
-                            );
-                          }}
-                          disabled={loading || loadingLiberarTodas}
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" />
-                          {unidad.habilitado === '1'
-                            ? 'Deshabilitar'
-                            : 'Habilitar'}
-                        </Button>
-                      </div>
-                    </td>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="max-h-[calc(100vh-80px)] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-[#113eb9]">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                      #
+                    </th>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                      Código Unidad
+                    </th>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                      Estado
+                    </th>
+                    <th className="px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                      Acciones
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {unidadesFiltradas.map((unidad, index) => (
+                    <tr
+                      key={unidad.codunidad}
+                      className="transition-colors hover:bg-blue-50/40"
+                    >
+                      <td className="whitespace-nowrap px-4 py-1.5 text-[12px] font-medium text-gray-500">
+                        {index + 1}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-1.5 text-[12px] font-medium text-gray-900">
+                        {unidad.codunidad}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-1.5">
+                        {unidad.habilitado === '1' ? (
+                          <span className="inline-block bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
+                            Habilitada
+                          </span>
+                        ) : (
+                          <span className="inline-block bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 border border-gray-200">
+                            Deshabilitada
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-1.5">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() =>
+                              window.open(
+                                `/trackvelnew/gestionunidades/gestiondocs?deviceID=${unidad.codunidad}`,
+                                '_blank',
+                              )
+                            }
+                            className="inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
+                          >
+                            <FileText size={12} />
+                            Documentos
+                          </button>
 
-            {loadingInicial ? (
-              <div className="flex flex-1 items-center justify-center p-8">
-                <div className="text-center">
-                  <Spinner className="mx-auto mb-4 h-12 w-12 text-gray-500" />
-                  <p className="text-sm font-medium text-gray-700">
-                    Cargando unidades...
-                  </p>
+                          <button
+                            onClick={() => {
+                              setSelectedUnidad(unidad.codunidad);
+                              setAccion(unidad.habilitado === '1' ? 'deshabilitar' : 'habilitar');
+                            }}
+                            disabled={loading || loadingLiberarTodas}
+                            className={`inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
+                              unidad.habilitado === '1'
+                                ? 'text-red-600 hover:bg-red-50'
+                                : 'text-green-600 hover:bg-green-50'
+                            }`}
+                          >
+                            {unidad.habilitado === '1' ? (
+                              <Trash2 size={12} />
+                            ) : (
+                              <CheckCircle size={12} />
+                            )}
+                            {unidad.habilitado === '1' ? 'Deshabilitar' : 'Habilitar'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {!loadingInicial && unidadesFiltradas.length === 0 && (
+                <div className="flex items-center justify-center bg-white py-12">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-500">No se encontraron unidades</p>
+                    <p className="mt-1 text-[12px] text-gray-400">Intenta con otro término de búsqueda</p>
+                  </div>
                 </div>
-              </div>
-            ) : unidadesFiltradas.length === 0 ? (
-              <div className="flex flex-1 items-center justify-center p-8 text-gray-500">
-                <div className="text-center">
-                  <Search className="mx-auto mb-4 h-16 w-16 opacity-30" />
-                  <p className="text-lg font-medium">
-                    No se encontraron unidades
-                  </p>
-                  <p className="mt-2 text-sm">
-                    Intenta con otro término de búsqueda
-                  </p>
-                </div>
-              </div>
-            ) : null}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* 🧩 Diálogos */}
-      <AlertDialog
-        open={showLiberarTodasDialog}
-        onOpenChange={setShowLiberarTodasDialog}
-      >
-        <AlertDialogContent className="rounded-xl">
+      {/* Diálogos */}
+      <AlertDialog open={showLiberarTodasDialog} onOpenChange={setShowLiberarTodasDialog}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg text-gray-900">
-              ¿Estás seguro que deseas liberar <strong>TODAS</strong> las
-              unidades?
+            <AlertDialogTitle>
+              ¿Estás seguro que deseas liberar <strong>TODAS</strong> las unidades?
               <br />
-              <span className="text-base font-normal text-rose-600">
+              <span className="text-sm font-normal text-red-600">
                 Esta acción eliminará las rutas actuales de todas las unidades.
               </span>
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg">
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLiberarTodasUnidades}
               disabled={loadingLiberarTodas}
-              className="rounded-lg bg-rose-600 hover:bg-rose-700"
+              className="bg-red-600 hover:bg-red-700"
             >
               {loadingLiberarTodas ? 'Liberando todas...' : 'Confirmar'}
             </AlertDialogAction>
@@ -432,28 +358,22 @@ export default function Page() {
       </AlertDialog>
 
       <AlertDialog open={showLiberarDialog} onOpenChange={setShowLiberarDialog}>
-        <AlertDialogContent className="rounded-xl">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg text-gray-900">
-              ¿Estás seguro que deseas liberar la unidad{' '}
-              <strong>{selectedUnidadLiberar}</strong>?
+            <AlertDialogTitle>
+              ¿Estás seguro que deseas liberar la unidad <strong>{selectedUnidadLiberar}</strong>?
               <br />
-              <span className="text-base text-amber-600">
+              <span className="text-sm font-normal text-amber-600">
                 Esto eliminará la ruta actual.
               </span>
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg">
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() =>
-                selectedUnidadLiberar &&
-                handleLiberarUnidad(selectedUnidadLiberar)
-              }
+              onClick={() => selectedUnidadLiberar && handleLiberarUnidad(selectedUnidadLiberar)}
               disabled={loadingLiberar || loadingLiberarTodas}
-              className="rounded-lg bg-blue-600 hover:bg-blue-700"
+              className="bg-[#113EB9] hover:bg-blue-700"
             >
               {loadingLiberar ? 'Liberando...' : 'Confirmar'}
             </AlertDialogAction>
@@ -461,25 +381,19 @@ export default function Page() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={!!selectedUnidad}
-        onOpenChange={() => setSelectedUnidad(null)}
-      >
-        <AlertDialogContent className="rounded-xl">
+      <AlertDialog open={!!selectedUnidad} onOpenChange={() => setSelectedUnidad(null)}>
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg text-gray-900">
-              ¿Estás seguro que deseas {accion} la unidad{' '}
-              <strong>{selectedUnidad}</strong>?
+            <AlertDialogTitle>
+              ¿Estás seguro que deseas {accion} la unidad <strong>{selectedUnidad}</strong>?
             </AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg">
-              Cancelar
-            </AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleHabilitarDeshabilitar}
               disabled={loading || loadingLiberarTodas}
-              className="rounded-lg bg-blue-600 hover:bg-blue-700"
+              className="bg-[#113EB9] hover:bg-blue-700"
             >
               {loading ? 'Procesando...' : 'Confirmar'}
             </AlertDialogAction>
