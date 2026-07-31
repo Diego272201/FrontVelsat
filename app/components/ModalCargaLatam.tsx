@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { AlertTriangle, Briefcase, CheckCircle, FileSpreadsheet, Upload, Users, X } from 'lucide-react';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 interface LatamPassenger {
   idunico: string;
@@ -585,220 +586,175 @@ const handleEnviarDatos = async () => {
   return (
     <>
       {/* Modal Principal con Tailwind */}
-{isOpen && !showPreviewModal && !showReportModal && (
-
-   <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-  <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-    {/* Header */}
-    <div className="relative flex flex-col gap-0 rounded-t-2xl border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
-      <div className="flex items-center justify-center gap-2">
-        <FileSpreadsheet className="h-5 w-5 text-blue-600" />
-        <h2 className="text-sm font-bold uppercase tracking-wide text-gray-800">
-          {titulo}
-        </h2>
-      </div>
-      
-      {/* Botón X para cerrar */}
-      <button
-        onClick={handleModalClose}
-        disabled={isProcessing || isSending}
-        className="absolute right-4 top-4 rounded-full p-1.5 text-gray-400 transition-all hover:bg-white hover:text-gray-600 hover:rotate-90 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Cerrar modal"
-      >
-        <X className="h-5 w-5" />
-      </button>
-    </div>
-
-    {/* Body */}
-    <div className="space-y-4 px-8 py-6">
-      <div className="space-y-3">
-        <div
-          className={`group relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-300 ${
-            isProcessing || isSending
-              ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50'
-              : isDragOver
-                ? 'border-blue-500 bg-blue-50 shadow-lg scale-[1.02]'
-                : archivoExcel
-                  ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-md'
-                  : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
-          }`}
-          onDragOver={!isProcessing && !isSending ? handleDragOver : undefined}
-          onDragLeave={!isProcessing && !isSending ? handleDragLeave : undefined}
-          onDrop={!isProcessing && !isSending ? handleDrop : undefined}
-          onClick={!isProcessing && !isSending ? handleCargarArchivo : undefined}
+      {/* Modal Principal con BaseModal */}
+      {isOpen && !showPreviewModal && !showReportModal && (
+        <BaseModal
+          isOpen={true}
+          onClose={handleModalClose}
+          title={titulo || 'Carga Latam'}
+          subtitle="Seleccione o arrastre el archivo Excel de datos Latam"
+          icon={<FileSpreadsheet className="h-4 w-4 text-blue-600" />}
+          iconBgColor="bg-blue-100"
+          size="2xl"
+          confirmText={isProcessing ? 'Procesando...' : 'Procesar Datos'}
+          confirmIcon={<CheckCircle className="h-3.5 w-3.5" />}
+          onConfirm={handleCargarDatos}
+          onCancel={handleModalClose}
+          isLoading={isProcessing || isSending}
+          isConfirmDisabled={!archivoExcel}
+          confirmButtonClass="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileChange}
-            disabled={isProcessing || isSending}
-            className="hidden"
-          />
+          <div className="space-y-3 py-1">
+            <div
+              className={`group relative cursor-pointer rounded-xl border-2 border-dashed p-5 text-center transition-all duration-300 ${
+                isProcessing || isSending
+                  ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-50'
+                  : isDragOver
+                    ? 'border-blue-500 bg-blue-50 shadow-md scale-[1.01]'
+                    : archivoExcel
+                      ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-sm'
+                      : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 hover:shadow-sm'
+              }`}
+              onDragOver={!isProcessing && !isSending ? handleDragOver : undefined}
+              onDragLeave={!isProcessing && !isSending ? handleDragLeave : undefined}
+              onDrop={!isProcessing && !isSending ? handleDrop : undefined}
+              onClick={!isProcessing && !isSending ? handleCargarArchivo : undefined}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileChange}
+                disabled={isProcessing || isSending}
+                className="hidden"
+              />
 
-          {archivoExcel ? (
-            <div className="flex flex-col items-center gap-3">
-              <div className="rounded-full bg-green-100 p-3">
-                <CheckCircle className="h-14 w-14 text-green-600" />
-              </div>
-              <div>
-                <p className="text-[13px] font-bold text-green-700">
-                  {archivoExcel.name}
-                </p>
-                <p className="text-sm font-medium text-green-600">
-                  {(archivoExcel.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-              <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-green-600 px-4 py-1.5">
-                <CheckCircle className="h-4 w-4 text-white" />
-                <span className="text-sm font-semibold text-white">
-                  Archivo cargado exitosamente
-                </span>
-              </div>
+              {archivoExcel ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="rounded-full bg-green-100 p-2.5">
+                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-green-700">
+                      {archivoExcel.name}
+                    </p>
+                    <p className="text-xs font-medium text-green-600">
+                      {(archivoExcel.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1">
+                    <CheckCircle className="h-3.5 w-3.5 text-white" />
+                    <span className="text-xs font-semibold text-white">
+                      Archivo cargado exitosamente
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="rounded-full bg-gray-100 p-3 transition-all group-hover:bg-blue-100 group-hover:scale-105">
+                    <Upload className="h-8 w-8 text-gray-400 transition-colors group-hover:text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-sm font-bold text-gray-700">
+                      Arrastra tu archivo Excel aquí
+                    </p>
+                    <p className="mb-3 text-xs text-gray-500">
+                      o haz clic para seleccionar desde tu dispositivo
+                    </p>
+                    <div className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow transition-all hover:from-blue-700 hover:to-indigo-700 hover:scale-105">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Seleccionar Archivo
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-4">
-              <div className="rounded-full bg-gray-100 p-4 transition-all group-hover:bg-blue-100 group-hover:scale-110">
-                <Upload className="h-16 w-16 text-gray-400 transition-colors group-hover:text-blue-500" />
+
+            <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span>Formatos soportados: .xlsx, .xls</span>
+            </div>
+
+            {isProcessing && (
+              <div className="flex items-center justify-center gap-3 rounded-lg bg-blue-50 p-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                <p className="text-xs font-bold text-blue-700">
+                  Procesando archivo Excel...
+                </p>
               </div>
-              <div>
-                <p className="mb-2 text-base font-bold text-gray-700">
-                  Arrastra tu archivo Excel aquí
-                </p>
-                <p className="mb-4 text-sm text-gray-500">
-                  o haz clic para seleccionar desde tu dispositivo
-                </p>
-                <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-xl hover:scale-105">
-                  <FileSpreadsheet className="h-5 w-5" />
-                  Seleccionar Archivo
+            )}
+
+            {isSending && (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-lg bg-blue-50 p-4">
+                <div className="relative h-16 w-16">
+                  <svg className="h-16 w-16 -rotate-90 transform">
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      fill="transparent"
+                      className="text-gray-200"
+                    />
+                    <circle
+                      cx="32"
+                      cy="32"
+                      r="28"
+                      stroke="currentColor"
+                      strokeWidth="6"
+                      fill="transparent"
+                      strokeDasharray={175.9}
+                      strokeDashoffset={175.9 - (175.9 * uploadProgress.percentage) / 100}
+                      className="text-blue-600 transition-all duration-500"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-black text-blue-600">
+                      {uploadProgress.percentage}%
+                    </span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-bold text-blue-700">
+                    Enviando datos a la API...
+                  </p>
+                  <p className="text-[11px] font-medium text-blue-600">
+                    Lote {uploadProgress.current} de {uploadProgress.total}
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        <div className="flex items-center justify-center gap-2 text-xs font-medium text-gray-500">
-          <FileSpreadsheet className="h-4 w-4" />
-          <span>Formatos soportados: .xlsx, .xls</span>
-        </div>
-      </div>
-
-      {isProcessing && (
-        <div className="flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 shadow-inner">
-          <div className="h-6 w-6 animate-spin rounded-full border-3 border-blue-600 border-t-transparent"></div>
-          <p className="font-bold text-blue-700">
-            Procesando archivo Excel...
-          </p>
-        </div>
-      )}
-
-{isSending && (
-  <div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-inner">
-    <div className="relative h-20 w-20">
-      <svg className="h-20 w-20 -rotate-90 transform">
-        <circle
-          cx="40"
-          cy="40"
-          r="36"
-          stroke="currentColor"
-          strokeWidth="8"
-          fill="transparent"
-          className="text-gray-200"
-        />
-        <circle
-          cx="40"
-          cy="40"
-          r="36"
-          stroke="currentColor"
-          strokeWidth="8"
-          fill="transparent"
-          strokeDasharray={226.2}
-          strokeDashoffset={226.2 - (226.2 * uploadProgress.percentage) / 100}
-          className="text-blue-600 transition-all duration-500"
-          strokeLinecap="round"
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-black text-blue-600">
-          {uploadProgress.percentage}%
-        </span>
-      </div>
-    </div>
-    <div className="text-center">
-      <p className="text-[13px] font-bold text-blue-700">
-        Enviando datos a la API...
-      </p>
-      <p className="text-sm font-medium text-blue-600">
-        Lote {uploadProgress.current} de {uploadProgress.total}
-      </p>
-    </div>
-    <div className="w-full max-w-md">
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-500"
-          style={{ width: `${uploadProgress.percentage}%` }}
-        />
-      </div>
-    </div>
-  </div>
-)}
-
-      {processedGroups.length > 0 && !isProcessing && !isSending && (
-        <div className="grid grid-cols-2 gap-4 rounded-xl bg-gradient-to-br from-slate-50 to-gray-100 p-4 shadow-inner">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="rounded-full bg-blue-100 p-2">
-              <Briefcase className="h-6 w-6 text-blue-600" />
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-              Servicios
-            </p>
-            <p className="text-3xl font-black text-blue-600">
-              {processedGroups.length}
-            </p>
+            {processedGroups.length > 0 && !isProcessing && !isSending && (
+              <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3">
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <div className="rounded-full bg-blue-100 p-1.5">
+                    <Briefcase className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                    Servicios
+                  </p>
+                  <p className="text-xl font-black text-blue-600">
+                    {processedGroups.length}
+                  </p>
+                </div>
+                <div className="flex flex-col items-center gap-1 text-center">
+                  <div className="rounded-full bg-emerald-100 p-1.5">
+                    <Users className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+                    Pasajeros
+                  </p>
+                  <p className="text-xl font-black text-emerald-600">
+                    {processedGroups.reduce((sum, group) => sum + group.length, 0)}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex flex-col items-center gap-2 text-center">
-            <div className="rounded-full bg-emerald-100 p-2">
-              <Users className="h-6 w-6 text-emerald-600" />
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-              Pasajeros
-            </p>
-            <p className="text-3xl font-black text-emerald-600">
-              {processedGroups.reduce((sum, group) => sum + group.length, 0)}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-
-    {/* Footer */}
-    <div className="rounded-b-2xl border-t border-gray-200 bg-gradient-to-r from-gray-50 to-slate-50 px-8 py-5">
-      <div className="flex w-full gap-3">
-        <button
-          onClick={handleModalClose}
-          disabled={isProcessing || isSending}
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 py-2.5 font-bold text-white shadow-lg transition-all hover:from-red-700 hover:to-red-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 text-[13px]"
-        >
-          <X className="h-5 w-5" />
-          Cancelar
-        </button>
-
-        <button
-          onClick={handleCargarDatos}
-          disabled={isProcessing || isSending || !archivoExcel}
-          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 py-2.5 font-bold text-white shadow-lg transition-all hover:from-green-700 hover:to-emerald-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 text-[13px]"
-        >
-          <CheckCircle className="h-5 w-5" />
-          {isProcessing ? 'Procesando...' : 'Procesar Datos'}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-
+        </BaseModal>
       )}
 
       <Toaster />

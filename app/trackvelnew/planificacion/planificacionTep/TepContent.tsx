@@ -532,37 +532,41 @@ export default function TepContent() {
     <div className="containerTep bg-blue-50">
       <Toaster richColors />
       <div>
-        <div className="cabecera sticky top-0 z-50 py-1">
-          <div className="progressAndTitle">
-            <div className="contenedorcabecera">
-              <div className="pl-1">
-                <span className="titulocabecera">
-                  MÓDULO DE PLANIFICACIÓN DE SERVICIOS
-                </span>
+        <div className="sticky top-0 z-50 border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+                <div className="h-5 w-1 bg-brandPrimary"></div>
+                <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+                  Planificación de Servicios
+                </h1>
+              </div>
+              <div className="w-48">
+                <ProgressBar value={porcentajeLlenado} />
               </div>
             </div>
-            <div className="h-[30px] w-px bg-white"></div>
 
-            <ProgressBar value={porcentajeLlenado}></ProgressBar>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                Filtros
+              </span>
+              <label className="inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  onChange={toggleContent}
+                  checked={isVisible}
+                />
+                <div className="peer relative h-5 w-9 rounded-full bg-gray-300 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#113EB9] peer-checked:after:translate-x-4 peer-checked:after:border-white"></div>
+              </label>
+            </div>
           </div>
-          <label className="inline-flex cursor-pointer items-center px-2">
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              onChange={toggleContent}
-              checked={isVisible}
-            />
-            <div
-              className="peer relative h-6 bg-gray-200 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-md after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-[32px] peer-checked:after:border-white rtl:peer-checked:after:-translate-x-[32px] dark:border-gray-600 dark:bg-gray-400 dark:peer-checked:bg-orange-500"
-              style={{ width: '58px', borderRadius: '6px' }}
-            ></div>
-          </label>
         </div>
 
         {isVisible && (
           <div
             id="contenido"
-            className="mx-2 border-b-1 border-gray-300 bg-blue-50"
+            className="border-b border-gray-200 bg-[#f8fafc] p-2.5"
           >
             <div className="fristFileT">
               <div className="cargaArchivos">
@@ -584,7 +588,7 @@ export default function TepContent() {
 
                       <label
                         htmlFor="uploadExcel"
-                        className="ml-auto block w-max cursor-pointer rounded-r  bg-[#d62828] px-3 py-2 text-[12px] text-white outline-none hover:bg-gray-700"
+                        className="ml-auto block w-max cursor-pointer rounded-r bg-[#113eb9] px-3 py-2 text-[12px] font-semibold text-white outline-none hover:bg-blue-700 transition-colors"
                       >
                         Subir
                       </label>
@@ -725,7 +729,7 @@ export default function TepContent() {
 
                   <div className="buttonsTep">
                     <button
-                      className="flex items-center gap-2 rounded  bg-blue-500 p-[7px] text-[12px] text-white hover:bg-blue-600 focus:outline-none"
+                      className="flex items-center gap-2 rounded bg-brandPrimary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandPrimary-hover focus:outline-none shadow-xs"
                       onClick={() => {
                         onOpen();
                       }}
@@ -735,7 +739,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center gap-2 rounded  bg-[#348357] p-[7px] text-[12px] text-[#fff] hover:bg-green-600 focus:outline-none"
+                      className="flex items-center gap-2 rounded bg-brandSecondary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandSecondary-hover focus:outline-none shadow-xs"
                       onClick={() => guardar(false)}
                     >
                       Guardar
@@ -749,7 +753,7 @@ export default function TepContent() {
                     />
 
                     <button
-                      className="flex items-center space-x-2 rounded bg-gradient-to-r from-purple-500 to-purple-600 px-4 py-2  text-xs font-medium text-white shadow-sm transition-all duration-200 hover:from-purple-600 hover:to-purple-700"
+                      className="flex items-center space-x-2 rounded bg-brandPrimary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandPrimary-hover focus:outline-none shadow-xs"
                       onClick={handlePublicar}
                     >
                       <span>Publicar</span>
@@ -841,7 +845,7 @@ export default function TepContent() {
                     </button>
 
                     <button
-                      className="flex items-center gap-2 rounded bg-green-700 p-[6px] text-[12px] text-white hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
+                      className="flex items-center gap-2 rounded bg-brandSecondary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandSecondary-hover focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
                       onClick={() => setModalNuevoGrupoOpen(true)}
                       disabled={!empresaConfirmada || !dato}
                       title={

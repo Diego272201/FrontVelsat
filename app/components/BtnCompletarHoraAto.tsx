@@ -149,12 +149,9 @@ export default function BtnCompletarHoraAto({ data }: Props) {
   return (
     <button
       onClick={handleCompletarHoraRealAto}
-      className="flex flex-col items-center rounded-md border border-green-200 bg-green-50 px-4 py-3 transition-all hover:bg-green-100 active:scale-95"
+      className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-brandPrimary px-2.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-brandPrimary-hover whitespace-nowrap"
     >
-      <span className="text-[10px] text-gray-500">GEOCERCA</span>
-      <span className="text-[11px] font-bold text-green-700">
-        Completar hora ATO
-      </span>
+      Geocerca Completar hora ATO
     </button>
   );
 }

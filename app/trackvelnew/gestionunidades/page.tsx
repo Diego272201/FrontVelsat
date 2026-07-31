@@ -180,7 +180,7 @@ export default function Page() {
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className={`flex items-center gap-2 border px-3 py-2 text-[12px] font-medium shadow-sm ${
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-[12px] font-medium shadow-sm ${
               notification.type === 'success'
                 ? 'border-green-200 bg-green-50 text-green-800'
                 : 'border-red-200 bg-red-50 text-red-800'
@@ -210,7 +210,7 @@ export default function Page() {
             <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
               Unidades
             </h1>
-            <span className="bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            <span className="rounded-md bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {unidades.length}
             </span>
           </div>
@@ -222,7 +222,7 @@ export default function Page() {
               placeholder="Buscar por código de unidad..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="block w-full border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+              className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function Page() {
             <span className="mt-3 text-[12px] text-gray-500">Cargando unidades...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
             <div className="max-h-[calc(100vh-80px)] overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-[#113eb9]">
@@ -267,16 +267,8 @@ export default function Page() {
                       <td className="whitespace-nowrap px-4 py-1.5 text-[12px] font-medium text-gray-900">
                         {unidad.codunidad}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-1.5">
-                        {unidad.habilitado === '1' ? (
-                          <span className="inline-block bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
-                            Habilitada
-                          </span>
-                        ) : (
-                          <span className="inline-block bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 border border-gray-200">
-                            Deshabilitada
-                          </span>
-                        )}
+                      <td className="whitespace-nowrap px-4 py-1.5 text-[12px] text-gray-900">
+                        {unidad.habilitado === '1' ? 'Habilitada' : 'Deshabilitada'}
                       </td>
                       <td className="whitespace-nowrap px-4 py-1.5">
                         <div className="flex gap-1">
@@ -287,7 +279,7 @@ export default function Page() {
                                 '_blank',
                               )
                             }
-                            className="inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
                           >
                             <FileText size={12} />
                             Documentos
@@ -299,7 +291,7 @@ export default function Page() {
                               setAccion(unidad.habilitado === '1' ? 'deshabilitar' : 'habilitar');
                             }}
                             disabled={loading || loadingLiberarTodas}
-                            className={`inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
+                            className={`inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
                               unidad.habilitado === '1'
                                 ? 'text-red-600 hover:bg-red-50'
                                 : 'text-green-600 hover:bg-green-50'

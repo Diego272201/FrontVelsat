@@ -3,12 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { toast, Toaster } from 'sonner';
 import {
   Search,
-  MapPin,
-  Plane,
-  User,
   X,
   RotateCcw,
-  Filter,
   Loader2
 } from 'lucide-react';
 import ModalAddService from './ModalAddService';
@@ -116,8 +112,7 @@ const ServicesSearchSystem: React.FC = () => {
   const [tipo, setTipo] = useState('');
   const [aerolinea, setAerolinea] = useState('');
   const [estado, setEstado] = useState('');
-  const { username, isReady } = useUsername(); // ✅ Agregar esta línea
-
+  const { username, isReady } = useUsername();
   // Estados para la API
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
@@ -168,7 +163,6 @@ const ServicesSearchSystem: React.FC = () => {
   const [isFirstTimeFromDate, setIsFirstTimeFromDate] = useState(true);
   const [isFirstTimeToDate, setIsFirstTimeToDate] = useState(true);
 
-  // Función para transformar datos de la API
   // Función para transformar datos de la API
   const transformApiData = (apiData: ApiService[]): Service[] => {
     return apiData.map((item) => {
@@ -244,8 +238,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingPasajeros(true);
     try {
-      const url = `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${username}`; // ✅ Cambio aquí
-      const response = await fetch(url);
+      const url = `https://do.velsat.pe:2083/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(palabra)}&codusuario=${username}`;      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
@@ -255,7 +248,6 @@ const ServicesSearchSystem: React.FC = () => {
       setPasajeroSuggestions(data);
       setShowPasajeroSuggestions(true);
     } catch (err) {
-      console.error('Error al buscar pasajeros:', err);
       setPasajeroSuggestions([]);
       setShowPasajeroSuggestions(false);
     } finally {
@@ -278,8 +270,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingConductores(true);
     try {
-      const url = `https://do.velsat.pe:2083/api/Preplan/conductores?usuario=${username}`; // ✅ Cambio aquí
-      const response = await fetch(url);
+      const url = `https://do.velsat.pe:2083/api/Preplan/conductores?usuario=${username}`;      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
@@ -296,7 +287,6 @@ const ServicesSearchSystem: React.FC = () => {
       setConductorSuggestions(filteredData);
       setShowConductorSuggestions(true);
     } catch (err) {
-      console.error('Error al buscar conductores:', err);
       setConductorSuggestions([]);
       setShowConductorSuggestions(false);
     } finally {
@@ -319,8 +309,7 @@ const ServicesSearchSystem: React.FC = () => {
 
     setLoadingUnidades(true);
     try {
-      const url = `https://do.velsat.pe:2083/api/Preplan/carros/${username}`; // ✅ Cambio aquí
-      const response = await fetch(url);
+      const url = `https://do.velsat.pe:2083/api/Preplan/carros/${username}`;      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
@@ -337,7 +326,6 @@ const ServicesSearchSystem: React.FC = () => {
       setUnidadSuggestions(filteredData);
       setShowUnidadSuggestions(true);
     } catch (err) {
-      console.error('Error al buscar unidades:', err);
       setUnidadSuggestions([]);
       setShowUnidadSuggestions(false);
     } finally {
@@ -368,7 +356,6 @@ const ServicesSearchSystem: React.FC = () => {
 
         const response = await fetch(url);
 
-        // ✅ Manejo específico para 404
         if (response.status === 404) {
           toast.info('No hay servicios para las fechas ingresadas');
           setServices([]);
@@ -390,7 +377,6 @@ const ServicesSearchSystem: React.FC = () => {
 
         const response = await fetch(url);
 
-        // ✅ Manejo específico para 404
         if (response.status === 404) {
           toast.info('No hay servicios para las fechas ingresadas');
           setServices([]);
@@ -424,7 +410,6 @@ const ServicesSearchSystem: React.FC = () => {
     }
   };
 
-  // Debounce para las búsquedas
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (pasajeroInput && !selectedPasajero) {
@@ -452,14 +437,12 @@ const ServicesSearchSystem: React.FC = () => {
     return () => clearTimeout(timeoutId);
   }, [unidadInput, selectedUnidad]);
 
-  // Buscar automáticamente cuando se selecciona un pasajero
   useEffect(() => {
     if (selectedPasajero && dateFrom) {
       fetchServices();
     }
   }, [selectedPasajero]);
 
-  // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -488,7 +471,6 @@ const ServicesSearchSystem: React.FC = () => {
     };
   }, []);
 
-  // Obtener opciones únicas para los filtros
   const getUniqueOptions = (field: keyof Service) => {
     const uniqueSet = new Set(services.map((service) => service[field]));
     const uniqueValues = Array.from(uniqueSet);
@@ -501,7 +483,6 @@ const ServicesSearchSystem: React.FC = () => {
         ? prev.filter((serviceId) => serviceId !== id)
         : [...prev, id];
 
-      console.log('Códigos de servicio seleccionados:', newSelected);
       return newSelected;
     });
   };
@@ -510,7 +491,6 @@ const ServicesSearchSystem: React.FC = () => {
     setSelectedServices(filteredServices.map((service) => service.id));
   };
 
-  // Handlers para pasajeros
   const handlePasajeroInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -563,13 +543,10 @@ const ServicesSearchSystem: React.FC = () => {
         },
       );
 
-      console.log(JSON.stringify(payload));
-
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
-      // AGREGAR ESTE BLOQUE - Actualizar los servicios localmente
       setServices((prevServices) =>
         prevServices.map((service) => {
           if (selectedServices.includes(service.id)) {
@@ -588,7 +565,6 @@ const ServicesSearchSystem: React.FC = () => {
       clearConductorSelection();
       clearUnidadSelection();
     } catch (error) {
-      console.error('Error al asignar servicios:', error);
       toast.error('Error al enviar la asignación.');
     } finally {
       setLoadingAsignacion(false);
@@ -614,7 +590,6 @@ const ServicesSearchSystem: React.FC = () => {
         id: toastId,
       });
     } catch (error) {
-      console.error('Error al reiniciar servicio:', error);
       toast.error('Error al reiniciar el servicio', { id: toastId });
     }
   };
@@ -661,7 +636,6 @@ const ServicesSearchSystem: React.FC = () => {
           'success',
         );
       } catch (error) {
-        console.error('Error al cancelar servicio:', error);
         toast.error('Error al cancelar el servicio', { id: toastId });
 
         Swal.fire('Error!', 'No se pudo cancelar el servicio.', 'error');
@@ -676,12 +650,6 @@ const ServicesSearchSystem: React.FC = () => {
     });
     setPasajeroInput(pasajero.apepate);
     setShowPasajeroSuggestions(false);
-    console.log(
-      'Pasajero seleccionado - Codlan:',
-      pasajero.codlan,
-      'Nombre:',
-      pasajero.apepate,
-    );
   };
 
   const clearPasajeroSelection = () => {
@@ -710,12 +678,6 @@ const ServicesSearchSystem: React.FC = () => {
     });
     setConductorInput(conductor.apepate);
     setShowConductorSuggestions(false);
-    console.log(
-      'Conductor seleccionado - Código:',
-      conductor.codigo,
-      'Nombre:',
-      conductor.apepate,
-    );
   };
 
   const clearConductorSelection = () => {
@@ -741,7 +703,6 @@ const ServicesSearchSystem: React.FC = () => {
     });
     setUnidadInput(unidad.codunidad);
     setShowUnidadSuggestions(false);
-    console.log('Unidad seleccionada - Código:', unidad.codunidad);
   };
 
   const clearUnidadSelection = () => {
@@ -802,349 +763,204 @@ const ServicesSearchSystem: React.FC = () => {
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gray-100">
       <Toaster richColors />
 
-      <div className="bg-blue-800 p-2 text-center text-[13px] font-bold text-white shadow-md">
-        ADMINISTRACIÓN DE SERVICIOS
+      <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+            <div className="h-5 w-1 bg-[#113EB9]"></div>
+            <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+              Administración de Servicios
+            </h1>
+            <span className="bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {filteredServices.length}
+            </span>
+          </div>
+
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar servicio por número, conductor o unidad..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="mx-auto space-y-3">
-        {/* Header */}
-        <div className="border-slate-200 px-3 py-2">
-          <h1 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
-            <Search className="h-4 w-4 text-blue-600" />
-            Búsqueda de Servicios
-          </h1>
-
-          {/* Search Filters */}
-          <div className="mb-0 grid grid-cols-1 gap-3 lg:grid-cols-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-[12px] font-medium text-slate-700">
-                  Desde:
-                </label>
-                <div className="relative">
-                  <input
-                    type="datetime-local"
-                    value={dateFrom}
-                    onChange={handleDateFromChange}
-                    className="w-full rounded-lg border border-slate-300 py-1 pl-2 pr-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[12px] font-medium text-slate-700">
-                  Hasta:
-                </label>
-                <div className="relative">
-                  <input
-                    type="datetime-local"
-                    value={dateTo}
-                    onChange={handleDateToChange}
-                    className="w-full rounded-lg border border-slate-300 py-1 pl-2 pr-2 text-sm transition-colors focus:border-blue-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Grupo:
-              </label>
+      <div className="mx-auto space-y-0">
+        {/* Búsqueda de Servicios */}
+        <div className="border-b border-gray-200 bg-white px-3 py-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase">Búsqueda</span>
+            <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-6">
+              <input
+                type="datetime-local"
+                value={dateFrom}
+                onChange={handleDateFromChange}
+                className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
+              />
+              <input
+                type="datetime-local"
+                value={dateTo}
+                onChange={handleDateToChange}
+                className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
+              />
               <select
                 value={grupo}
                 onChange={(e) => setGrupo(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
               >
-                <option value="">Todos</option>
+                <option value="">Grupo: Todos</option>
                 {getUniqueOptions('tierra').map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
+                  <option key={option} value={option}>{option}</option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Tipo:
-              </label>
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm transition-colors focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
               >
-                <option value="">Todos</option>
+                <option value="">Tipo: Todos</option>
                 {getUniqueOptions('tipo').map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
+                  <option key={option} value={option}>{option}</option>
                 ))}
               </select>
-            </div>
-
-            <div className="flex items-end gap-2">
               <button
                 onClick={fetchServices}
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-1 rounded-md bg-blue-600 px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-1 rounded-md bg-brandPrimary px-3 py-1 text-[11px] font-medium text-white hover:bg-brandPrimary-hover disabled:opacity-50"
               >
-                {loading ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Search className="h-3 w-3" />
-                )}
-                {loading
-                  ? 'Cargando...'
-                  : selectedPasajero
-                    ? 'Buscar por Pasajero'
-                    : 'Buscar Servicios'}
+                {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                {loading ? 'Cargando...' : selectedPasajero ? 'Por Pasajero' : 'Buscar'}
               </button>
-
               <ModalAddService onServiceAdded={refreshServices} />
             </div>
           </div>
         </div>
 
-        {/* Driver Assignment */}
-        <div className="bg-gray-100 px-3 py-2">
-          <h2 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
-            <User className="h-4 w-4 text-blue-600" />
-            Asignación Conductor/Unidad
-          </h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {/* Autocomplete Unidad */}
-            <div className="relative" ref={unidadAutocompleteRef}>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Unidad:
-              </label>
-              <div className="relative">
-                <input
-                  ref={unidadInputRef}
-                  type="text"
-                  value={unidadInput}
-                  onChange={handleUnidadInputChange}
-                  onFocus={() => {
-                    if (unidadSuggestions.length > 0) {
-                      setShowUnidadSuggestions(true);
-                    }
-                  }}
-                  className={`w-full rounded-lg border py-[5px] pl-2 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedUnidad
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-slate-300'
-                  }`}
-                  placeholder="Buscar unidad..."
-                />
-                {loadingUnidades && (
-                  <Loader2 className="absolute right-8 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />
-                )}
-                {unidadInput && (
-                  <button
-                    onClick={clearUnidadSelection}
-                    className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+        {/* Asignación + Filtros en una sola fila */}
+        <div className="border-b border-gray-200 bg-gray-50 px-3 py-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase whitespace-nowrap">Asignar</span>
+            <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-6">
+              {/* Unidad */}
+              <div className="relative" ref={unidadAutocompleteRef}>
+                <div className="relative">
+                  <input
+                    ref={unidadInputRef}
+                    type="text"
+                    value={unidadInput}
+                    onChange={handleUnidadInputChange}
+                    onFocus={() => { if (unidadSuggestions.length > 0) setShowUnidadSuggestions(true); }}
+                    className={`w-full rounded-md border px-2 py-1 pr-7 text-[11px] focus:border-[#113EB9] focus:outline-none ${selectedUnidad ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
+                    placeholder="Unidad..."
+                  />
+                  {loadingUnidades && <Loader2 className="absolute right-7 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />}
+                  {unidadInput && (
+                    <button onClick={clearUnidadSelection} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                {showUnidadSuggestions && unidadSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                    {unidadSuggestions.map((unidad) => (
+                      <div key={unidad.codunidad} onClick={() => handleSelectUnidad(unidad)} className="cursor-pointer border-b border-gray-100 px-2 py-1.5 text-[11px] hover:bg-blue-50">
+                        <div className="font-medium text-gray-900">{unidad.codunidad}</div>
+                        <div className="text-[10px] text-gray-500">Tipo: {unidad.tipo} • {unidad.habilitado === '1' ? 'Hab.' : 'No hab.'}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Suggestions Dropdown Unidad */}
-              {showUnidadSuggestions && unidadSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-                  {unidadSuggestions.map((unidad) => (
-                    <div
-                      key={unidad.codunidad}
-                      onClick={() => handleSelectUnidad(unidad)}
-                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
-                    >
-                      <div className="text-sm font-medium text-slate-900">
-                        {unidad.codunidad}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        Tipo: {unidad.tipo} • Habilitado:{' '}
-                        {unidad.habilitado === '1' ? 'Sí' : 'No'}
-                      </div>
-                    </div>
-                  ))}
+              {/* Conductor */}
+              <div className="relative" ref={conductorAutocompleteRef}>
+                <div className="relative">
+                  <input
+                    ref={conductorInputRef}
+                    type="text"
+                    value={conductorInput}
+                    onChange={handleConductorInputChange}
+                    onFocus={() => { if (conductorSuggestions.length > 0) setShowConductorSuggestions(true); }}
+                    className={`w-full rounded-md border px-2 py-1 pr-7 text-[11px] focus:border-[#113EB9] focus:outline-none ${selectedConductor ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
+                    placeholder="Conductor..."
+                  />
+                  {loadingConductores && <Loader2 className="absolute right-7 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />}
+                  {conductorInput && (
+                    <button onClick={clearConductorSelection} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-
-            {/* Autocomplete Conductor */}
-            <div className="relative" ref={conductorAutocompleteRef}>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Conductor:
-              </label>
-              <div className="relative">
-                <input
-                  ref={conductorInputRef}
-                  type="text"
-                  value={conductorInput}
-                  onChange={handleConductorInputChange}
-                  onFocus={() => {
-                    if (conductorSuggestions.length > 0) {
-                      setShowConductorSuggestions(true);
-                    }
-                  }}
-                  className={`w-full rounded-lg border py-[5px] pl-2 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedConductor
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-slate-300'
-                  }`}
-                  placeholder="Buscar conductor..."
-                />
-                {loadingConductores && (
-                  <Loader2 className="absolute right-8 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />
-                )}
-                {conductorInput && (
-                  <button
-                    onClick={clearConductorSelection}
-                    className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                {showConductorSuggestions && conductorSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                    {conductorSuggestions.map((conductor) => (
+                      <div key={conductor.codigo} onClick={() => handleSelectConductor(conductor)} className="cursor-pointer border-b border-gray-100 px-2 py-1.5 text-[11px] hover:bg-blue-50">
+                        <div className="font-medium text-gray-900">{conductor.apepate}</div>
+                        <div className="text-[10px] text-gray-500">Cód: {conductor.codigo}{conductor.telefono ? ` • ${conductor.telefono}` : ''}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Suggestions Dropdown Conductor */}
-              {showConductorSuggestions && conductorSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-                  {conductorSuggestions.map((conductor) => (
-                    <div
-                      key={conductor.codigo}
-                      onClick={() => handleSelectConductor(conductor)}
-                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
-                    >
-                      <div className="text-sm font-medium text-slate-900">
-                        {conductor.apepate}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        Código: {conductor.codigo}
-                      </div>
-                      {conductor.telefono && (
-                        <div className="text-xs text-slate-400">
-                          Tel: {conductor.telefono}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-end">
               <button
                 onClick={asignarServicios}
-                disabled={
-                  !selectedConductor ||
-                  !selectedUnidad ||
-                  selectedServices.length === 0 ||
-                  loadingAsignacion
-                }
-                className="w-full rounded-lg bg-blue-600 px-4 py-[6px] text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                disabled={!selectedConductor || !selectedUnidad || selectedServices.length === 0 || loadingAsignacion}
+                className="inline-flex items-center justify-center gap-1 rounded-md bg-[#fb7b0f] px-3 py-1 text-[11px] font-medium text-white hover:bg-orange-500 disabled:opacity-50"
               >
-                {loadingAsignacion ? (
-                  <>
-                    <Loader2 className="mr-1 inline h-3 w-3 animate-spin" />
-                    Cargando...
-                  </>
-                ) : (
-                  'Asignar'
-                )}
+                {loadingAsignacion ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                {loadingAsignacion ? 'Asignando...' : 'Asignar'}
               </button>
-            </div>
-          </div>
-        </div>
 
-        {/* Filters */}
-        <div className="bg-white px-3 py-2">
-          <h2 className="mb-2 flex items-center gap-2 text-[12px] font-semibold text-slate-800">
-            <Filter className="h-4 w-4 text-blue-600" />
-            Filtros
-          </h2>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div className="relative" ref={pasajeroAutocompleteRef}>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Búsqueda Pasajero:
-              </label>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 transform text-slate-400" />
-                <input
-                  ref={pasajeroInputRef}
-                  type="text"
-                  value={pasajeroInput}
-                  onChange={handlePasajeroInputChange}
-                  onFocus={() => {
-                    if (pasajeroSuggestions.length > 0) {
-                      setShowPasajeroSuggestions(true);
-                    }
-                  }}
-                  className={`w-full rounded-lg border py-[5px] pl-7 pr-8 text-sm transition-colors focus:border-blue-500 focus:outline-none ${
-                    selectedPasajero
-                      ? 'border-green-300 bg-green-50'
-                      : 'border-slate-300'
-                  }`}
-                  placeholder="Buscar Pasajero..."
-                />
-                {loadingPasajeros && (
-                  <Loader2 className="absolute right-8 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />
-                )}
-                {pasajeroInput && (
-                  <button
-                    onClick={clearPasajeroSelection}
-                    className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+              {/* Pasajero */}
+              <div className="relative" ref={pasajeroAutocompleteRef}>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
+                  <input
+                    ref={pasajeroInputRef}
+                    type="text"
+                    value={pasajeroInput}
+                    onChange={handlePasajeroInputChange}
+                    onFocus={() => { if (pasajeroSuggestions.length > 0) setShowPasajeroSuggestions(true); }}
+                    className={`w-full rounded-md border px-2 py-1 pl-6 pr-7 text-[11px] focus:border-[#113EB9] focus:outline-none ${selectedPasajero ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}
+                    placeholder="Pasajero..."
+                  />
+                  {loadingPasajeros && <Loader2 className="absolute right-7 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-blue-500" />}
+                  {pasajeroInput && (
+                    <button onClick={clearPasajeroSelection} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                {showPasajeroSuggestions && pasajeroSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                    {pasajeroSuggestions.map((pasajero) => (
+                      <div key={pasajero.codlan} onClick={() => handleSelectPasajero(pasajero)} className="cursor-pointer border-b border-gray-100 px-2 py-1.5 text-[11px] hover:bg-blue-50">
+                        <div className="font-medium text-gray-900">{pasajero.apepate}</div>
+                        <div className="text-[10px] text-gray-500">{pasajero.codlan} • {pasajero.lugar.distrito}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              {/* Suggestions Dropdown */}
-              {showPasajeroSuggestions && pasajeroSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-                  {pasajeroSuggestions.map((pasajero) => (
-                    <div
-                      key={pasajero.codlan}
-                      onClick={() => handleSelectPasajero(pasajero)}
-                      className="cursor-pointer border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
-                    >
-                      <div className="text-sm font-medium text-slate-900">
-                        {pasajero.apepate}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        Código: {pasajero.codlan} • {pasajero.lugar.distrito}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {pasajero.lugar.direccion}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-700">
-                Aerolíneas:
-              </label>
               <select
                 value={aerolinea}
                 onChange={(e) => setAerolinea(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-2 py-[5px] text-sm transition-colors focus:border-blue-500 focus:outline-none"
+                className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
               >
-                <option value="">Todas</option>
+                <option value="">Aerolínea: Todas</option>
                 {getUniqueOptions('aerolinea').map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
+                  <option key={option} value={option}>{option}</option>
                 ))}
               </select>
-            </div>
 
-            <div className="flex items-end">
               <button
                 onClick={() => {
                   setSearchTerm('');
@@ -1157,9 +973,10 @@ const ServicesSearchSystem: React.FC = () => {
                   setEstado('');
                   toast.success('Filtros limpiados');
                 }}
-                className="w-full rounded-lg bg-slate-600 px-4 py-[6px] text-sm font-medium text-white transition-colors hover:bg-slate-700"
+                className="inline-flex items-center justify-center gap-1 rounded-md border border-gray-200 bg-white px-3 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
               >
-                Limpiar Filtros
+                <RotateCcw className="h-3 w-3" />
+                Limpiar
               </button>
             </div>
           </div>
@@ -1173,11 +990,11 @@ const ServicesSearchSystem: React.FC = () => {
         )}
 
         {/* Services List */}
-        <div className="mx-2 overflow-hidden border border-slate-200 bg-white shadow-md">
+        <div className="mx-2 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-3">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-[12px] font-semibold text-slate-800">
-                <MapPin className="h-4 w-4 text-blue-600" />
+                <Search className="h-4 w-4 text-[#113EB9]" />
                 Lista de Servicios ({filteredServices.length})
                 {loading && (
                   <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -1192,23 +1009,23 @@ const ServicesSearchSystem: React.FC = () => {
           </div>
 
           {/* Table Header */}
-          <div className="grid grid-cols-12 gap-2 border-b border-slate-200 bg-slate-50 p-2 text-xs font-semibold text-slate-700">
-            <div className="col-span-1 flex items-center justify-center">
+          <div className="grid grid-cols-12 gap-2 border-b border-slate-200 bg-[#113eb9] p-2 text-xs font-semibold text-slate-700">
+            <div className="col-span-1 flex items-center justify-center text-gray-50">
               Sel.
             </div>
-            <div className="col-span-1">Número</div>
-            <div className="col-span-1">Grupo</div>
-            <div className="col-span-1">Tipo</div>
-            <div className="col-span-2">Fecha Aeropuerto</div>
-            <div className="col-span-2">Conductor</div>
-            <div className="col-span-1">Unidad</div>
-            <div className="col-span-1">Aerolínea</div>
-            <div className="col-span-2">Acciones</div>
+            <div className="col-span-1 text-gray-50">Número</div>
+            <div className="col-span-1 text-gray-50">Grupo</div>
+            <div className="col-span-1 text-gray-50">Tipo</div>
+            <div className="col-span-2 text-gray-50">Fecha Aeropuerto</div>
+            <div className="col-span-2 text-gray-50">Conductor</div>
+            <div className="col-span-1 text-gray-50">Unidad</div>
+            <div className="col-span-1 text-gray-50">Aerolínea</div>
+            <div className="col-span-2 text-gray-50">Acciones</div>
           </div>
 
           {/* Table Body */}
-          <div className="h-[calc(100vh-450px)] divide-y divide-slate-100 overflow-y-auto">
-            {filteredServices.map((service) => (
+          <div className="h-[calc(100vh-230px)] min-h-[200px] divide-y divide-slate-100 overflow-y-auto">
+            {!loading && filteredServices.map((service) => (
               <div
                 key={service.id}
                 className={`grid grid-cols-12 gap-2 p-2 transition-colors hover:bg-slate-50 ${
@@ -1256,14 +1073,11 @@ const ServicesSearchSystem: React.FC = () => {
                 <div className="col-span-2 flex items-center text-xs text-slate-900">
                   {service.conductor}
                 </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">
-                    {service.unidad}
-                  </span>
+                <div className="col-span-1 flex items-center font-mono text-xs text-slate-700">
+                  {service.unidad}
                 </div>
                 <div className="col-span-1 flex items-center">
-                  <span className="flex items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-800">
-                    <Plane className="h-2 w-2" />
+                  <span className="text-xs text-gray-700">
                     {service.aerolinea}
                   </span>
                 </div>
@@ -1300,35 +1114,34 @@ const ServicesSearchSystem: React.FC = () => {
                 </div>
               </div>
             ))}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="flex h-[calc(100vh-280px)] items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-[#113EB9]" />
+                  <p className="text-[12px] text-gray-500">Cargando servicios...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && filteredServices.length === 0 && (
+              <div className="flex h-[calc(100vh-280px)] items-center justify-center">
+                <div className="text-center">
+                  <Search className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+                  <h3 className="mb-1 text-base font-medium text-slate-500">
+                    No se encontraron servicios
+                  </h3>
+                  <p className="text-sm text-slate-400">
+                    {services.length === 0
+                      ? 'Haz clic en "Buscar Servicios" para cargar los datos'
+                      : 'Ajusta los filtros de búsqueda para ver más resultados.'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Empty State */}
-          {!loading && filteredServices.length === 0 && (
-            <div className="p-8 text-center">
-              <Search className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-              <h3 className="mb-1 text-base font-medium text-slate-500">
-                No se encontraron servicios
-              </h3>
-              <p className="text-sm text-slate-400">
-                {services.length === 0
-                  ? 'Haz clic en "Buscar Servicios" para cargar los datos'
-                  : 'Ajusta los filtros de búsqueda para ver más resultados.'}
-              </p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <div className="p-8 text-center">
-              <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-blue-600" />
-              <h3 className="mb-1 text-base font-medium text-slate-600">
-                Cargando servicios...
-              </h3>
-              <p className="text-sm text-slate-400">
-                Obteniendo datos de la API
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Selected Services Summary */}
@@ -1353,27 +1166,6 @@ const ServicesSearchSystem: React.FC = () => {
           </div>
         )}
 
-        {/* Debug info - Remover en producción */}
-        {(selectedPasajero || selectedConductor || selectedUnidad) && (
-          <div className="mx-2 rounded-lg bg-gray-100 p-2 text-xs text-gray-600">
-            <strong>Debug:</strong>
-            {selectedPasajero && (
-              <span className="ml-2">
-                Pasajero: {selectedPasajero.apepate} (Codlan:{' '}
-                {selectedPasajero.codlan})
-              </span>
-            )}
-            {selectedConductor && (
-              <span className="ml-2">
-                Conductor: {selectedConductor.apepate} (Código:{' '}
-                {selectedConductor.codigo})
-              </span>
-            )}
-            {selectedUnidad && (
-              <span className="ml-2">Unidad: {selectedUnidad.codunidad}</span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

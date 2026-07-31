@@ -83,6 +83,7 @@ interface Props {
   marcadores?: { lat: number; lng: number }[];
   centro?: { lat: number; lng: number } | null;
   resetMap?: boolean;
+  showStreetView?: boolean;
 }
 
 interface MarkerData {
@@ -101,6 +102,7 @@ export default function SeguirUnidadPage({
   marcadores = [],
   centro = null,
   resetMap = false,
+  showStreetView = true,
 }: Props) {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
@@ -473,7 +475,10 @@ useEffect(() => {
         markerData.popup1.position = position;
         markerData.popup2.position = position;
 
-        map.panTo(position);
+        map.panTo({
+          lat: device.lastValidLatitude - 0.0035,
+          lng: device.lastValidLongitude,
+        });
 
         // Update icon
         const newIcon = getMarkerIcon(device.lastValidHeading);
@@ -638,10 +643,10 @@ useEffect(() => {
   useEffect(() => {
     if (device && mapLoaded && mapRef.current && !hasInitialCentered) {
       mapRef.current.setCenter({
-        lat: device.lastValidLatitude,
+        lat: device.lastValidLatitude - 0.0035,
         lng: device.lastValidLongitude,
       });
-      mapRef.current.setZoom(17);
+      mapRef.current.setZoom(16);
       setHasInitialCentered(true);
     }
   }, [device, mapLoaded, hasInitialCentered]);

@@ -1,29 +1,7 @@
-'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
-import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-  Input,
-  Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
-  Select,
-  SelectItem,
-  Tooltip,
-} from '@nextui-org/react';
-
-import { ChevronDownIcon } from './ChevronDownIcon';
+import { Input, Select, SelectItem } from '@nextui-org/react';
 import { SearchIcon } from './SearchIcon';
-import { capitalize } from './utils';
 import ModalTurnos from './ModalTurnos';
 import ModalTurnoEdit from './ModalTurnoEdit';
 import Swal from 'sweetalert2';
@@ -31,19 +9,20 @@ import { MdDelete } from 'react-icons/md';
 import { useUsername } from '@/hooks/useUsername';
 
 const columns = [
-  { name: 'N°', uid: 'n', sortable: true },
-  { name: 'EMPRESA', uid: 'empresa', sortable: true },
-  { name: 'ÁREA', uid: 'area', sortable: true },
-  { name: 'SUB ÁREA', uid: 'subarea', sortable: true },
+  { name: 'N°', uid: 'n' },
+  { name: 'EMPRESA', uid: 'empresa' },
+  { name: 'ÁREA', uid: 'area' },
+  { name: 'SUB ÁREA', uid: 'subarea' },
   { name: 'ROL', uid: 'rol' },
   { name: 'HORA', uid: 'hora' },
-  { name: 'PRO', uid: 'programacion', sortable: true },
+  { name: 'PRO', uid: 'programacion' },
   { name: 'OPERACIONES', uid: 'operaciones' },
 ];
 
 interface User {
   id: number;
   codigo: string;
+  n: number;
   empresa: string;
   area: string;
   subarea: string;
@@ -66,28 +45,21 @@ export default function App({
   onEditSuccess,
 }: TablaTurnoProps) {
   const { username, isReady } = useUsername();
-
+  const containerRef = useRef<HTMLDivElement>(null);
   const [filterValue, setFilterValue] = useState('');
-  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
-  const [visibleColumns, setVisibleColumns] = useState<Selection>(
-    new Set(columns.map((c) => c.uid)),
-  );
-  const [areaFilter, setAreaFilter] = useState<Selection>(new Set(['all']));
-  const [rowsPerPage, setRowsPerPage] = useState(8);
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: 'n',
-    direction: 'ascending',
-  });
+  const [areaFilter, setAreaFilter] = useState<string>('all');
+  const [rowsPerPage, setRowsPerPage] = useState(12);
   const [page, setPage] = useState(1);
   const [uniqueEmpresas, setUniqueEmpresas] = useState<string[]>([]);
 
   useEffect(() => {
     const calculateRowsPerPage = () => {
-      const totalHeight = window.innerHeight;
-      const availableHeight = totalHeight - 90;
-      const rowHeight = 40;
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const remainingHeight = window.innerHeight - rect.top - 185;
+      const rowHeight = 32;
       const calculatedRows = Math.max(
-        Math.floor(availableHeight / rowHeight),
+        Math.floor(remainingHeight / rowHeight),
         5,
       );
       setRowsPerPage(calculatedRows);
@@ -96,18 +68,17 @@ export default function App({
     calculateRowsPerPage();
     window.addEventListener('resize', calculateRowsPerPage);
 
-    return () => window.removeEventListener('resize', calculateRowsPerPage);
+    return () => {
+      window.removeEventListener('resize', calculateRowsPerPage);
+    };
   }, []);
 
   useEffect(() => {
-    console.log('username:', username, 'isReady:', isReady);
     if (!isReady || !username) return;
 
     axios
       .get(`https://do.velsat.pe:2083/api/Turnos/empresa/${username}`)
       .then((response) => {
-        console.log('Empresas:', response.data);
-        console.log('uniqueEmpresas:', uniqueEmpresas); // 👈 fuera del useEffect
         setUniqueEmpresas(response.data);
       })
       .catch((error) => {
@@ -115,66 +86,38 @@ export default function App({
       });
   }, [username, isReady, users]);
 
-  const pages = Math.ceil(users.length / rowsPerPage);
-
-  const hasSearchFilter = Boolean(filterValue);
-
-  const headerColumns = React.useMemo(() => {
-    if (visibleColumns === 'all') return columns;
-    return columns.filter((column) =>
-      Array.from(visibleColumns).includes(column.uid),
-    );
-  }, [visibleColumns]);
-
-  const filteredItems = React.useMemo(() => {
+  const filteredItems = useMemo(() => {
     let filteredUsers = [...users];
 
-    if (hasSearchFilter) {
+    if (filterValue) {
       filteredUsers = filteredUsers.filter((user) =>
         user.rol.toLowerCase().includes(filterValue.toLowerCase()),
       );
     }
-    const selectedAreas = Array.from(areaFilter);
 
-    if (!selectedAreas.includes('all') && selectedAreas.length > 0) {
-      filteredUsers = filteredUsers.filter((user) =>
-        selectedAreas.includes(user.empresa),
-      );
+    if (areaFilter !== 'all' && areaFilter) {
+      filteredUsers = filteredUsers.filter((user) => user.empresa === areaFilter);
     }
 
     return filteredUsers;
   }, [users, filterValue, areaFilter]);
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
+  const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
-  const items = React.useMemo(() => {
+  const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
-  const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: any, b: any) => {
-      const first = a[sortDescriptor.column as keyof (typeof users)[0]] as
-        | number
-        | string;
-      const second = b[sortDescriptor.column as keyof (typeof users)[0]] as
-        | number
-        | string;
-      const cmp = first < second ? -1 : first > second ? 1 : 0;
-
-      return sortDescriptor.direction === 'descending' ? -cmp : cmp;
-    });
-  }, [sortDescriptor, items]);
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   const handleDelete = async (codigo: number) => {
     try {
       await axios.delete(`https://do.velsat.pe:2083/api/Turnos/${codigo}`);
       onSaveSuccess();
-      console.log('Elimnado ...');
     } catch (error) {
       console.error('Error deleting record:', error);
     }
@@ -197,257 +140,194 @@ export default function App({
     });
   };
 
-  const renderCell = React.useCallback((user: any, columnKey: React.Key) => {
-    const cellValue = user[columnKey as keyof typeof user];
-    switch (columnKey) {
-      case 'rol':
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold rowTable text-small capitalize">
-              {cellValue}
-            </p>
-          </div>
-        );
-      case 'operaciones':
-        return (
-          <div className="relative flex items-center justify-center gap-3">
-            <ModalTurnoEdit
-              user={user}
-              titleM={title}
-              onEditSuccess={onEditSuccess}
-            />
-
-            <div className="relative inline-block h-6 w-7">
-              <div className="group relative h-full w-full">
-                <button
-                  onClick={() => confirmDelete(user.codigo)}
-                  type="button"
-                  className="flex h-full w-full items-center justify-center rounded-lg bg-red-100 hover:bg-red-200 focus:outline-none"
-                >
-                  <MdDelete size={16} className="text-red-700" />
-                </button>
-
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  Eliminar turno
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      default:
-        return cellValue;
-    }
-  }, []);
-
-  const onSearchChange = React.useCallback((value?: string) => {
-    if (value) {
-      setFilterValue(value);
-      setPage(1);
-    } else {
-      setFilterValue('');
-    }
-  }, []);
-
-  const onAreaFilterChange = (selected: Selection) => {
-    if (selected instanceof Set) {
-      setAreaFilter(new Set(selected));
-    } else if (typeof selected === 'string') {
-      setAreaFilter(new Set([selected]));
-    }
-    setPage(1);
-  };
-
-  const topContent = React.useMemo(() => {
-    return (
-      <div className="flex flex-col gap-4 ">
-        <h2 className="tituloTunos text-900 font-medium">TURNOS DE {title}</h2>
-        <div className="flex items-end justify-between gap-3 px-1">
-          <Input
-            isClearable
-            classNames={{
-              base: 'w-full sm:max-w-[44%] bg-[#fff] rounded-[10px]',
-              inputWrapper: 'border-1',
-            }}
-            placeholder="Buscar por Rol"
-            size="sm"
-            startContent={
-              <SearchIcon className="colorIcono text-default-300" />
-            }
-            value={filterValue}
-            variant="bordered"
-            onClear={() => setFilterValue('')}
-            onValueChange={onSearchChange}
-          />
-
-          <Select
-            aria-label="Filtrar por Empresa"
-            style={{ background: '#fff' }}
-            placeholder="Filtrar por Empresa"
-            labelPlacement="outside"
-            size="sm"
-            className="max-w-xs"
-            disableSelectorIconRotation
-            onSelectionChange={onAreaFilterChange}
-          >
-            {uniqueEmpresas.map((empresa) => (
-              <SelectItem key={empresa}>{empresa}</SelectItem>
-            ))}
-          </Select>
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  style={{ background: '#1C5ED8', color: 'white' }}
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Columnas
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-            <ModalTurnos
-              titleM={title}
-              onSaveSuccess={onSaveSuccess}
-            ></ModalTurnos>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="totalItems text-small text-default-400">
-            Total : {users.length} items
+  return (
+    <div ref={containerRef} className="flex flex-col h-full w-full overflow-hidden bg-white">
+      <div className="flex flex-col bg-white border-b border-slate-200 w-full flex-shrink-0">
+        <div className="flex items-center justify-between bg-[#113eb9] px-3 py-1.5 text-white">
+          <h2 className="text-xs font-bold uppercase tracking-wider">TURNOS DE {title}</h2>
+          <span className="rounded bg-blue-900/60 px-2 py-0.5 text-[10px] font-semibold text-blue-100 border border-blue-400/30">
+            Total: {filteredItems.length}
           </span>
         </div>
+
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+          <div className="flex items-center gap-2">
+            <Input
+              isClearable
+              classNames={{
+                base: 'w-[160px] sm:w-[170px]',
+                inputWrapper: 'h-8 min-h-[32px] border border-slate-300 bg-white rounded-md text-xs px-2 shadow-none hover:border-slate-400 focus-within:border-blue-500',
+                input: 'text-xs text-slate-800 placeholder:text-slate-400',
+              }}
+              placeholder="Buscar por Rol"
+              size="sm"
+              startContent={
+                <SearchIcon className="text-slate-400 text-xs flex-shrink-0 mr-1" />
+              }
+              value={filterValue}
+              variant="bordered"
+              onClear={() => { setFilterValue(''); setPage(1); }}
+              onValueChange={(val) => { setFilterValue(val); setPage(1); }}
+            />
+
+            <Select
+              aria-label="Filtrar por Empresa"
+              placeholder="Empresa"
+              size="sm"
+              className="w-[150px] sm:w-[160px]"
+              classNames={{
+                trigger: 'h-8 min-h-[32px] border border-slate-300 bg-white rounded-md text-xs px-2 shadow-none hover:border-slate-400 focus-within:border-blue-500',
+                value: 'text-xs text-slate-800',
+              }}
+              disableSelectorIconRotation
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0]?.toString() || 'all';
+                setAreaFilter(selected);
+                setPage(1);
+              }}
+            >
+              {uniqueEmpresas.map((empresa) => (
+                <SelectItem key={empresa} className="text-xs">{empresa}</SelectItem>
+              ))}
+            </Select>
+          </div>
+          <ModalTurnos
+            titleM={title}
+            onSaveSuccess={onSaveSuccess}
+          />
+        </div>
       </div>
-    );
-  }, [
-    filterValue,
-    visibleColumns,
-    onSearchChange,
-    users.length,
-    hasSearchFilter,
-    uniqueEmpresas
-  ]);
 
-  const bottomContent = React.useMemo(() => {
-    const maxVisiblePages = 6;
-    const startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(pages, startPage + maxVisiblePages - 1);
+      <div className="flex-1 overflow-hidden w-full">
+        <table className="w-full border-collapse text-left text-xs">
+          <thead className="sticky top-0 z-10 bg-slate-200 text-slate-700 text-[11px] font-semibold uppercase border-b border-slate-300">
+            <tr>
+              {columns.map((col) => (
+                <th key={col.uid} className="px-3 py-1.5 border-r border-slate-300 last:border-r-0 whitespace-nowrap">
+                  {col.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-xs">
+                  No se encontraron registros
+                </td>
+              </tr>
+            ) : (
+              items.map((row, index) => (
+                <tr
+                  key={row.id || index}
+                  className={`${
+                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
+                  } hover:bg-blue-50 transition-colors h-[32px]`}
+                >
+                  <td className="px-3 py-1 text-[11px] font-medium text-slate-900 border-r border-slate-100">
+                    {row.n}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                    {row.empresa}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                    {row.area}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                    {row.subarea}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] font-medium text-slate-900 border-r border-slate-100 capitalize">
+                    {row.rol}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] font-mono text-slate-700 border-r border-slate-100">
+                    {row.hora}
+                  </td>
+                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                    {row.programacion}
+                  </td>
+                  <td className="px-3 py-1 text-[11px]">
+                    <div className="flex items-center justify-center gap-2">
+                      <ModalTurnoEdit
+                        user={row}
+                        titleM={title}
+                        onEditSuccess={onEditSuccess}
+                      />
 
-    return (
-      <div className="flex items-center rounded bg-gray-100 px-2 py-1">
-        <div className="flex items-center gap-2">
+                      <div className="relative h-6 w-6">
+                        <div className="group relative h-full w-full">
+                          <button
+                            onClick={() => confirmDelete(parseInt(row.codigo))}
+                            type="button"
+                            className="flex h-full w-full items-center justify-center rounded bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none transition-colors"
+                          >
+                            <MdDelete size={15} />
+                          </button>
+
+                          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded bg-red-800 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-md">
+                            Eliminar turno
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 border-t border-slate-200 text-xs flex-shrink-0">
+        <div className="flex items-center gap-1.5">
           {page > 1 && (
             <button
               onClick={() => handlePageChange(page - 1)}
-              className="rounded-lg border border-blue-500 bg-white px-4 py-2 text-[12px] text-blue-500 hover:bg-blue-100"
+              className="rounded border border-blue-500 bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
             >
               Anterior
             </button>
           )}
 
-          {Array.from({ length: endPage - startPage + 1 }, (_, index) => {
-            const pageNumber = startPage + index;
-            return (
-              <button
-                key={pageNumber}
-                onClick={() => handlePageChange(pageNumber)}
-                className={`rounded-lg px-3 py-2 text-[12px] 
-                  ${
+          {Array.from({ length: pages }, (_, index) => {
+            const pageNumber = index + 1;
+            if (
+              pageNumber === 1 ||
+              pageNumber === pages ||
+              Math.abs(pageNumber - page) <= 2
+            ) {
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
+                  className={`rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
                     page === pageNumber
-                      ? 'bg-blue-500 text-white'
-                      : 'border border-blue-500 bg-white text-blue-500 hover:bg-blue-100'
-                  }
-                `}
-              >
-                {pageNumber}
-              </button>
-            );
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            }
+            if (pageNumber === page - 3 || pageNumber === page + 3) {
+              return <span key={`dot-${pageNumber}`} className="text-slate-400 text-xs px-1">...</span>;
+            }
+            return null;
           })}
 
           {page < pages && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="rounded-lg border border-blue-500 bg-white px-2 py-2 text-[12px] text-blue-500 hover:bg-blue-100"
+              className="rounded border border-blue-500 bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
             >
               Siguiente
             </button>
           )}
-
-          <span className="ml-4 text-sm text-blue-500">
-            {page}/{pages}
-          </span>
         </div>
+        <span className="text-[11px] font-medium text-slate-500">
+          Página {page} de {pages}
+        </span>
       </div>
-    );
-  }, [page, pages, users.length]);
-
-  const classNames = React.useMemo(
-    () => ({
-      wrapper: ['max-h-[382px]', 'max-w-3xl'],
-      th: ['bg-transparent', 'text-default-500', 'border-b', 'border-divider'],
-      td: [
-        'group-data-[first=true]:first:before:rounded-none',
-        'group-data-[first=true]:last:before:rounded-none',
-        'group-data-[middle=true]:before:rounded-none',
-
-        'group-data-[last=true]:first:before:rounded-none',
-        'group-data-[last=true]:last:before:rounded-none',
-      ],
-    }),
-    [],
-  );
-
-  return (
-    <Table
-      className="tableScrooll"
-      isCompact
-      removeWrapper
-      aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      classNames={classNames}
-      sortDescriptor={sortDescriptor}
-      topContent={topContent}
-      topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
-      onSortChange={setSortDescriptor}
-    >
-      <TableHeader columns={headerColumns}>
-        {(column) => (
-          <TableColumn
-            className="headTabla"
-            key={column.uid}
-            allowsSorting={column.sortable}
-          >
-            {column.name}
-          </TableColumn>
-        )}
-      </TableHeader>
-      <TableBody emptyContent={'No items found'} items={sortedItems}>
-        {(item) => (
-          <TableRow key={item.id} className="bg-gray-50">
-            {(columnKey) => (
-              <TableCell className="rowTable">
-                {renderCell(item, columnKey)}
-              </TableCell>
-            )}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    </div>
   );
 }

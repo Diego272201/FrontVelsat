@@ -401,10 +401,10 @@ export default function App({
                   Cerrar
                 </Button>
                 <Button
-                  color="primary"
                   onPress={handleAgregarTodos}
                   isLoading={agregandoPasajeros}
                   isDisabled={pasajerosSeleccionados.length === 0}
+                  className="bg-[#113eb9] hover:bg-blue-700 font-semibold text-white transition-colors"
                 >
                   {agregandoPasajeros
                     ? `Agregando ${pasajerosSeleccionados.length} pasajero(s)...`

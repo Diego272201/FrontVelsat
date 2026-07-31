@@ -21,13 +21,20 @@ const config: Config = {
           600: '#2F6FEB',
         },
         customOrange: '#FB7B0F',
-
+        brandPrimary: {
+          DEFAULT: 'var(--color-brand-primary)',
+          hover: 'var(--color-brand-primary-hover)',
+        },
+        brandSecondary: {
+          DEFAULT: 'var(--color-brand-secondary)',
+          hover: 'var(--color-brand-secondary-hover)',
+        },
       },
-    },
-    keyframes: {
-      shimmer: {
-        '100%': {
-          transform: 'translateX(100%)',
+      keyframes: {
+        shimmer: {
+          '100%': {
+            transform: 'translateX(100%)',
+          },
         },
       },
     },

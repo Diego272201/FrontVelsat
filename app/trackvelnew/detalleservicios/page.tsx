@@ -159,6 +159,11 @@ function PageContent() {
 
       const response = await fetch(apiUrl);
 
+      if (response.status === 404) {
+        setData([]);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`Error en la API: ${response.status}`);
       }
@@ -192,15 +197,77 @@ function PageContent() {
 
   // Efecto para cargar datos cuando cambien las fechas o el username
   useEffect(() => {
-    if (username) {
-      fetchData();
-    }
-  }, [startDate, endDate, username]);
+    let isMounted = true;
 
-  // Efecto para cargar datos cuando cambien las fechas
-  useEffect(() => {
+    const fetchData = async () => {
+      if (!startDate || !endDate) {
+        setLoading(false);
+        return;
+      }
+
+      if (!username) {
+        setError('No se pudo obtener el nombre de usuario');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!fechaIni || !fechaFin) {
+          setError(
+            'Las fechas de inicio y fin son requeridas en los parámetros de la URL',
+          );
+          return;
+        }
+
+        const apiUrl = `https://do.velsat.pe:2083/api/Gacela/DetalleServicios?usuario=${encodeURIComponent(username)}&fechaIni=${encodeURIComponent(fechaIni)}&fechaFin=${encodeURIComponent(fechaFin)}`;
+
+        const response = await fetch(apiUrl);
+
+        if (response.status === 404) {
+          if (isMounted) setData([]);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Error en la API: ${response.status}`);
+        }
+
+        const apiData: ApiResponse[] = await response.json();
+
+        const mappedData: TransportService[] = apiData.map((item, index) => ({
+          servicio: parseInt(item.numero) || index + 1,
+          tierraAire: item.servicio?.grupo || 'N/A',
+          ingresoSalida: item.servicio?.tipo || 'N/A',
+          conductor: item.servicio?.conductor?.apepate?.trim() || 'N/A',
+          unidad: item.servicio?.unidad?.codunidad || 'N/A',
+          pasajero: item.pasajero?.nombre || 'N/A',
+          calificacion: item.calificacion || 'SIN CALIFICACION',
+          fechaServicio: item.servicio?.fecha || 'N/A',
+          fechaPasajero: item.fecha || 'N/A',
+          fechAt: item.fechaini || '',
+          lugar: item.lugar?.direccion || 'N/A',
+          distrito: item.lugar?.distrito || 'N/A',
+          empresa: item.empresa || 'N/A',
+        }));
+
+        if (isMounted) setData(mappedData);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        if (isMounted) setError(err instanceof Error ? err.message : 'Error desconocido');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     fetchData();
-  }, [startDate, endDate]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [startDate, endDate, username, fechaIni, fechaFin]);
 
   // Función para calcular la diferencia entre fechas
   const calculateDifference = (start: string, end: string) => {
@@ -225,12 +292,26 @@ function PageContent() {
 
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
+  const servicioColorMap = useMemo(() => {
+    const groupColors = ['bg-blue-50', 'bg-green-50', 'bg-yellow-50'];
+    const map: Record<string, string> = {};
+    let colorIndex = 0;
+
+    data.forEach((row) => {
+      if (!map[row.servicio]) {
+        map[row.servicio] = groupColors[colorIndex % groupColors.length];
+        colorIndex++;
+      }
+    });
+    return map;
+  }, [data]);
+
   if (loading) {
     return (
       <div>
         <ReporteHeader
-          title="DETALLE DEL SERVICIO"
-          deviceId={deviceId ?? ''}
+          title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
+          deviceId={empresaName}
           startDate={startDate ?? ''}
           endDate={endDate ?? ''}
           extraInfo={extraInfo}
@@ -250,8 +331,8 @@ function PageContent() {
     return (
       <div>
         <ReporteHeader
-          title="DETALLE DEL SERVICIO"
-          deviceId={deviceId ?? ''}
+          title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
+          deviceId={empresaName}
           startDate={startDate ?? ''}
           endDate={endDate ?? ''}
           extraInfo={extraInfo}
@@ -270,19 +351,6 @@ function PageContent() {
     );
   }
 
-  const groupColors = ['bg-blue-50', 'bg-green-50', 'bg-yellow-50'];
-
-  const servicioColorMap: Record<string, string> = {};
-  let colorIndex = 0;
-
-  data.forEach((row) => {
-    if (!servicioColorMap[row.servicio]) {
-      servicioColorMap[row.servicio] =
-        groupColors[colorIndex % groupColors.length];
-      colorIndex++;
-    }
-  });
-
   return (
     <div>
       <ReporteHeader
@@ -300,7 +368,7 @@ function PageContent() {
           {/* Scroll vertical con altura máxima */}
           <div className="h-[calc(100vh-125px)] overflow-y-auto">
             <table className="w-full min-w-max">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow">
                 <tr className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
                   <th className="border-r border-gray-500 px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider last:border-r-0">
                     Servicio
@@ -348,10 +416,14 @@ function PageContent() {
                   <tr>
                     <td
                       colSpan={13}
-                      className="px-4 py-8 text-center text-gray-500"
+                      className="px-4 py-12 text-center text-gray-500"
                     >
-                      No se encontraron servicios para el rango de fechas
-                      seleccionado
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <BiSolidReport className="h-8 w-8 text-gray-400" />
+                        <span className="font-normal text-gray-500 text-[12px]">
+                          No se encontraron servicios para el rango de fechas seleccionado
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ) : (

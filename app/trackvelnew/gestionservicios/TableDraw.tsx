@@ -554,14 +554,14 @@ const DragAndDropTable = forwardRef(
           >
             <div className="ml-2 bg-white">
               <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-blue-300">
-                    <th className="border p-2">Orden</th>
-                    <th className="border p-2">Área</th>
-                    <th className="border p-2">Nombre</th>
-                    <th className="border p-2">Dirección</th>
-                    <th className="border p-2">Distrito</th>
-                    <th className="border p-2">Estado</th>
+                <thead className="bg-[#113eb9] text-white">
+                  <tr className="bg-[#113eb9] text-white text-[11px] font-semibold uppercase">
+                    <th className="border border-blue-800 p-2">Orden</th>
+                    <th className="border border-blue-800 p-2">Área</th>
+                    <th className="border border-blue-800 p-2">Nombre</th>
+                    <th className="border border-blue-800 p-2">Dirección</th>
+                    <th className="border border-blue-800 p-2">Distrito</th>
+                    <th className="border border-blue-800 p-2">Estado</th>
                   </tr>
                 </thead>
 

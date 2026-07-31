@@ -7,73 +7,25 @@ import {
   Download,
   Eye,
   Trash2,
-  X,
   Calendar,
   Loader2,
   AlertCircle,
+  FileText,
+  CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import Tesseract from 'tesseract.js';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-type ToastType = 'success' | 'error' | 'warning';
-
-interface ToastItem {
-  id: number;
-  message: string;
-  type: ToastType;
-}
-
-const ToastContainer = ({
-  toasts,
-  onRemove,
-}: {
-  toasts: ToastItem[];
-  onRemove: (id: number) => void;
-}) => {
-  const icons = {
-    success: <span className="text-green-500">✓</span>,
-    error: <span className="text-red-500">✕</span>,
-    warning: <span className="text-yellow-500">⚠</span>,
-  };
-  const bars = {
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    warning: 'bg-yellow-500',
-  };
-
-  return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className="relative w-80 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-gray-100"
-        >
-          {/* barra de color arriba */}
-          <div className={`h-1 w-full ${bars[toast.type]}`} />
-          <div className="flex items-start gap-3 px-4 py-3">
-            <span className="mt-0.5 text-base">{icons[toast.type]}</span>
-            <p className="flex-1 text-sm text-gray-700">{toast.message}</p>
-            <button
-              onClick={() => onRemove(toast.id)}
-              className="text-gray-300 transition-colors hover:text-gray-500"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+import BaseModal from '@/app/components/ui/BaseModal';
+import { Toaster, toast } from 'sonner';
 
 interface Document {
   id: string;
   name: string;
   fileName: string;
   size: number;
-  expiryDate: Date;
+  expiryDate: Date | null;
   status: 'vencido' | 'proximo' | 'vigente' | 'sin_vencimiento';
   daysMessage: string;
   archivo_url: string;
@@ -117,24 +69,8 @@ const DocumentManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
   const [docToDelete, setDocToDelete] = useState<Document | null>(null);
 
-  const [documentName, setDocumentName] = useState<string>('');
   const [tipoDocumento, setTipoDocumento] = useState<string>('');
   const [observaciones, setObservaciones] = useState<string>('');
-
-  // ── Toasts ────────────────────────────────────────────────────────────────────
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const toast = (message: string, type: ToastType = 'success') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(
-      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
-      4000,
-    );
-  };
-
-  const removeToast = (id: number) =>
-    setToasts((prev) => prev.filter((t) => t.id !== id));
 
   const calculateStatus = (
     expiryDate: Date | null,
@@ -153,8 +89,8 @@ const DocumentManagement = () => {
     const diffDays = Math.ceil(
       (expiryDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
     );
-    if (diffDays < 0) return `VENCIDO HACE ${Math.abs(diffDays)} DÍAS`;
-    if (diffDays <= 30) return `Faltan ${diffDays} días`;
+    if (diffDays < 0) return `Vencido hace ${Math.abs(diffDays)} días`;
+    if (diffDays <= 30) return `Faltan ${diffDays} días para vencer`;
     return 'Vigente';
   };
 
@@ -179,11 +115,11 @@ const DocumentManagement = () => {
           url: result.imageUrl,
         };
       } else {
-        toast('Error al subir el documento', 'error');
+        toast.error('Error al subir el documento');
         return null;
       }
     } catch (error) {
-      toast('Error al subir el documento', 'error');
+      toast.error('Error al subir el documento');
       return null;
     } finally {
       setIsUploading(false);
@@ -208,7 +144,7 @@ const DocumentManagement = () => {
   };
 
   // Cargar PDF.js
-  React.useEffect(() => {
+  useEffect(() => {
     const script = document.createElement('script');
     script.src =
       'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
@@ -222,13 +158,15 @@ const DocumentManagement = () => {
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
   const fetchDocuments = async () => {
     if (!deviceID) {
-      setError('No se proporcionó deviceID en la URL');
+      setError('No se proporcionó el código de unidad (deviceID) en la URL');
       setLoading(false);
       return;
     }
@@ -242,20 +180,22 @@ const DocumentManagement = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Error al obtener los documentos');
+        setDocuments([]);
+        return;
       }
 
       const result = await response.json();
 
-      if (result.success && result.data) {
-        const mappedDocuments: Document[] = result.data.map(
+      const docArray = result?.data || (Array.isArray(result) ? result : []);
+
+      if (Array.isArray(docArray) && docArray.length > 0) {
+        const mappedDocuments: Document[] = docArray.map(
           (doc: DocumentAPI) => {
             const expiryDate = doc.fecha_vencimiento
               ? new Date(doc.fecha_vencimiento)
               : null;
             const status = calculateStatus(expiryDate);
 
-            // Asegurar que la URL tenga la variante /public
             let imageUrl = doc.archivo_url;
             if (
               imageUrl &&
@@ -275,7 +215,7 @@ const DocumentManagement = () => {
               daysMessage: calculateDaysMessage(expiryDate),
               archivo_url: imageUrl,
               observaciones: doc.observaciones,
-              cloudflareImageId: imageUrl.split('/').slice(-2, -1)[0] || '',
+              cloudflareImageId: imageUrl ? imageUrl.split('/').slice(-2, -1)[0] || '' : '',
               cloudflareImageUrl: imageUrl,
             };
           },
@@ -286,10 +226,8 @@ const DocumentManagement = () => {
         setDocuments([]);
       }
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Error desconocido';
-      setError(errorMessage);
-      console.error('Error fetching documents:', err);
+      console.log('Error o sin documentos para deviceID:', deviceID, err);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -316,20 +254,18 @@ const DocumentManagement = () => {
       );
 
       if (response.ok) {
-        // Eliminar de Cloudflare si existe
         if (docToDelete.cloudflareImageId) {
           await deleteFromCloudflare(docToDelete.cloudflareImageId);
         }
 
-        // Eliminar del estado local
         setDocuments(documents.filter((doc) => doc.id !== docToDelete.id));
-        toast('Documento eliminado');
+        toast.success('Documento eliminado correctamente');
       } else {
-        toast('Error al eliminar el documento', 'error');
+        toast.error('Error al eliminar el documento');
       }
     } catch (error) {
       console.error('Error al eliminar documento:', error);
-      toast('Error de conexión al eliminar el documento', 'error');
+      toast.error('Error de conexión al eliminar el documento');
     } finally {
       setDeletingDocId(null);
       setShowDeleteDialog(false);
@@ -340,15 +276,15 @@ const DocumentManagement = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'vencido':
-        return 'border-red-500';
+        return 'border-red-500 bg-red-50/20';
       case 'proximo':
-        return 'border-yellow-500';
+        return 'border-amber-500 bg-amber-50/20';
       case 'vigente':
-        return 'border-green-500';
+        return 'border-emerald-500 bg-emerald-50/20';
       case 'sin_vencimiento':
-        return 'border-gray-300';
+        return 'border-slate-300 bg-slate-50/20';
       default:
-        return 'border-gray-300';
+        return 'border-slate-300';
     }
   };
 
@@ -356,27 +292,29 @@ const DocumentManagement = () => {
     switch (status) {
       case 'vencido':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700">
-            <X className="h-3 w-3" />
+          <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700">
+            <AlertCircle className="h-3 w-3" />
             Vencido
           </span>
         );
       case 'proximo':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-medium text-yellow-700">
-            ⚠ Próximo a vencer
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+            <AlertTriangle className="h-3 w-3" />
+            Próximo a vencer
           </span>
         );
       case 'vigente':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-            ✓ Vigente
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+            <CheckCircle className="h-3 w-3" />
+            Vigente
           </span>
         );
       case 'sin_vencimiento':
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-500">
-            — Sin vencimiento
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+            Sin vencimiento
           </span>
         );
     }
@@ -393,7 +331,6 @@ const DocumentManagement = () => {
     try {
       let extractedText = '';
 
-      // Si es una imagen, usar Tesseract OCR
       if (file.type.startsWith('image/')) {
         const result = await Tesseract.recognize(file, 'spa', {
           logger: (m) => {
@@ -404,213 +341,48 @@ const DocumentManagement = () => {
         });
         extractedText = result.data.text;
       }
-      // Si es PDF, convertir primera página a imagen y usar OCR
-      else if (file.type === 'application/pdf') {
-        setOcrProgress(10);
-        // Para PDFs, necesitamos convertirlos a imagen primero
-        const arrayBuffer = await file.arrayBuffer();
 
-        if (!window.pdfjsLib) {
-          throw new Error('PDF.js no está cargado');
+      if (extractedText) {
+        const detectedDate = findExpiryDateInText(extractedText);
+        if (detectedDate) {
+          setOcrDate(detectedDate);
+          toast.success('Fecha de vencimiento detectada automáticamente');
         }
-
-        setOcrProgress(20);
-        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer })
-          .promise;
-        const page = await pdf.getPage(1);
-
-        setOcrProgress(30);
-        const viewport = page.getViewport({ scale: 2.0 });
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d')!;
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        await page.render({
-          canvasContext: context,
-          viewport: viewport,
-        }).promise;
-
-        setOcrProgress(50);
-
-        // Convertir canvas a blob para Tesseract
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob((blob) => resolve(blob!), 'image/png');
-        });
-
-        const result = await Tesseract.recognize(blob, 'spa', {
-          logger: (m) => {
-            if (m.status === 'recognizing text') {
-              setOcrProgress(50 + Math.round(m.progress * 50));
-            }
-          },
-        });
-        extractedText = result.data.text;
       }
-
-      console.log('Texto extraído:', extractedText);
-
-      // Buscar fechas en el texto extraído
-      const detectedDate = extractDateFromText(extractedText);
-
-      if (detectedDate) {
-        setOcrDate(detectedDate);
-      } else {
-        toast(
-          'No se detectó fecha automáticamente. Ingrésala manualmente.',
-          'warning',
-        );
-      }
-
+    } catch (err) {
+      console.error('Error en OCR:', err);
+    } finally {
       setIsProcessing(false);
-      setOcrProgress(100);
-    } catch (error) {
-      console.error('Error en OCR:', error);
-      toast(
-        'Error al procesar el documento. Ingresa la fecha manualmente.',
-        'error',
-      );
-      setIsProcessing(false);
-      setOcrProgress(0);
     }
   };
 
-  // Función para extraer fechas del texto
-  const extractDateFromText = (text: string): string | null => {
-    // Patrones de fecha comunes en documentos peruanos
-    const patterns = [
-      // DD/MM/YYYY o DD-MM-YYYY
-      /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
-      // DD de MMMM de YYYY
-      /\b(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})\b/gi,
-      // YYYY-MM-DD
-      /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/g,
+  const findExpiryDateInText = (text: string): string | null => {
+    const dateRegexes = [
+      /(?:vencimiento|vence|hasta|vigencia)[:\s]*(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4})/i,
+      /(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/,
     ];
 
-    const monthNames: { [key: string]: number } = {
-      enero: 1,
-      febrero: 2,
-      marzo: 3,
-      abril: 4,
-      mayo: 5,
-      junio: 6,
-      julio: 7,
-      agosto: 8,
-      septiembre: 9,
-      octubre: 10,
-      noviembre: 11,
-      diciembre: 12,
-    };
-
-    // Buscar palabras clave cerca de las fechas
-    const keywords = [
-      'vence',
-      'vencimiento',
-      'vigencia',
-      'válido hasta',
-      'expira',
-    ];
-
-    const lines = text.split('\n');
-    const dates: Array<{ date: Date; score: number }> = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Verificar si la línea contiene palabras clave
-      const hasKeyword = keywords.some((keyword) =>
-        line.toLowerCase().includes(keyword),
-      );
-
-      // Patrón DD/MM/YYYY o DD-MM-YYYY
-      let match = line.match(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/);
+    for (const regex of dateRegexes) {
+      const match = text.match(regex);
       if (match) {
-        const day = parseInt(match[1]);
-        const month = parseInt(match[2]);
-        const year = parseInt(match[3]);
-
-        if (
-          day >= 1 &&
-          day <= 31 &&
-          month >= 1 &&
-          month <= 12 &&
-          year >= 2020 &&
-          year <= 2040
-        ) {
-          const date = new Date(year, month - 1, day);
-          dates.push({
-            date,
-            score: hasKeyword ? 10 : 5,
-          });
-        }
-      }
-
-      // Patrón DD de MMMM de YYYY
-      match = line.match(/\b(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})\b/i);
-      if (match) {
-        const day = parseInt(match[1]);
-        const monthName = match[2].toLowerCase();
-        const year = parseInt(match[3]);
-        const month = monthNames[monthName];
-
-        if (month && day >= 1 && day <= 31 && year >= 2020 && year <= 2040) {
-          const date = new Date(year, month - 1, day);
-          dates.push({
-            date,
-            score: hasKeyword ? 10 : 5,
-          });
-        }
-      }
-
-      // Patrón YYYY-MM-DD
-      match = line.match(/\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/);
-      if (match) {
-        const year = parseInt(match[1]);
-        const month = parseInt(match[2]);
-        const day = parseInt(match[3]);
-
-        if (
-          day >= 1 &&
-          day <= 31 &&
-          month >= 1 &&
-          month <= 12 &&
-          year >= 2020 &&
-          year <= 2040
-        ) {
-          const date = new Date(year, month - 1, day);
-          dates.push({
-            date,
-            score: hasKeyword ? 10 : 5,
-          });
-        }
+        const day = match[1].padStart(2, '0');
+        const month = match[2].padStart(2, '0');
+        let year = match[3];
+        if (year.length === 2) year = `20${year}`;
+        return `${year}-${month}-${day}`;
       }
     }
-
-    // Ordenar por score (fechas con palabras clave primero) y luego por fecha más lejana
-    dates.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      return b.date.getTime() - a.date.getTime();
-    });
-
-    if (dates.length > 0) {
-      const selectedDate = dates[0].date;
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
     return null;
   };
 
   const handleSaveDocument = async () => {
     if (status !== 'authenticated' || !username) {
-    toast('Debes iniciar sesión para guardar documentos', 'error');
-    return;
-  }
+      toast.error('Debes iniciar sesión para guardar documentos');
+      return;
+    }
 
     if ((!uploadedFile && !skipImage) || !tipoDocumento || !deviceID) {
-      toast('Completa todos los campos', 'warning');
+      toast.warning('Completa todos los campos requeridos');
       return;
     }
 
@@ -619,13 +391,12 @@ const DocumentManagement = () => {
     if (!skipImage && uploadedFile) {
       cloudflareResult = await uploadToCloudflare(uploadedFile);
       if (!cloudflareResult) {
-        toast('Error al subir. Intenta nuevamente.', 'error');
+        toast.error('Error al subir el archivo. Intenta nuevamente.');
         return;
       }
     }
 
     try {
-      // Guardar en la base de datos
       const response = await fetch(
         'https://do.velsat.pe:2083/api/Doc/CreateDocUnidad',
         {
@@ -639,7 +410,7 @@ const DocumentManagement = () => {
             archivo_url: cloudflareResult?.url || '',
             fecha_vencimiento: ocrDate ? new Date(ocrDate).toISOString() : null,
             observaciones: observaciones || '',
-            usuario: username || ''
+            usuario: username || '',
           }),
         },
       );
@@ -650,11 +421,10 @@ const DocumentManagement = () => {
 
       handleCloseModal();
       await fetchDocuments();
-
-      toast('¡Documento guardado exitosamente!');
+      toast.success('¡Documento guardado exitosamente!');
     } catch (error) {
       console.error('Error al guardar documento:', error);
-      toast('Error al guardar en la base de datos.', 'error');
+      toast.error('Error al guardar el documento en la base de datos.');
     }
   };
 
@@ -662,7 +432,6 @@ const DocumentManagement = () => {
     setShowModal(false);
     setUploadedFile(null);
     setOcrDate('');
-    setDocumentName('');
     setTipoDocumento('');
     setObservaciones('');
     setIsProcessing(false);
@@ -678,49 +447,59 @@ const DocumentManagement = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      {/* Header */}
-      <div className="mx-auto mb-8 max-w-7xl">
-        <div className="mb-2 flex items-start justify-between">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 font-sans">
+      <Toaster richColors position="top-right" />
+
+      {/* Top Banner / Title */}
+      <div className="mx-auto mb-6 max-w-7xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl bg-white border border-slate-200 p-5 shadow-xs">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Repositorio Central
-            </h1>
-            <p className="mt-1 text-gray-600">
-              {deviceID
-                ? `Documentos de ${deviceID}`
-                : 'Administra y organiza toda tu documentación legal en un solo lugar.'}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-[#113eb9]">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div>
+                <h1 className="text-lg font-bold text-slate-800 uppercase tracking-wide">
+                  GESTIÓN DE DOCUMENTOS
+                </h1>
+                <p className="text-xs text-slate-500">
+                  {deviceID
+                    ? `Documentación asignada a la unidad ${deviceID}`
+                    : 'Administra y organiza los documentos legales de la unidad'}
+                </p>
+              </div>
+            </div>
           </div>
+
           <button
             onClick={() => setShowModal(true)}
             disabled={status !== 'authenticated'}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white shadow-lg shadow-indigo-200 transition-colors hover:bg-indigo-700"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brandSecondary px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brandSecondary-hover disabled:opacity-50"
           >
-            <Upload className="h-5 w-5" />
+            <Upload className="h-4 w-4" />
             Cargar Documento
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="mx-auto mb-6 max-w-7xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-xl font-bold text-gray-900">Mis Documentos</h2>
-        <div className="flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+      {/* Search & Filter Toolbar */}
+      <div className="mx-auto mb-6 max-w-7xl rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar..."
+              placeholder="Buscar por tipo de documento..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+              className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#113eb9] focus:outline-none"
             />
           </div>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
+            className="h-9 w-full sm:w-[180px] rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:border-[#113eb9] focus:outline-none"
           >
             <option value="all">Todos los estados</option>
             <option value="vencido">Vencido</option>
@@ -732,29 +511,28 @@ const DocumentManagement = () => {
       </div>
 
       {/* Documents Grid */}
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {loading ? (
-          <div className="col-span-full flex items-center justify-center py-12">
+          <div className="col-span-full flex items-center justify-center py-16">
             <div className="text-center">
-              <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-indigo-600" />
-              <p className="text-gray-600">Cargando documentos...</p>
+              <Loader2 className="mx-auto mb-3 h-10 w-10 animate-spin text-[#113eb9]" />
+              <p className="text-xs font-medium text-slate-600">Cargando documentos de la unidad...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="col-span-full flex items-center justify-center py-12">
+          <div className="col-span-full flex items-center justify-center py-16">
             <div className="text-center">
-              <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-600" />
-              <p className="mb-2 font-semibold text-red-600">
-                Error al cargar documentos
-              </p>
-              <p className="text-sm text-gray-600">{error}</p>
+              <AlertCircle className="mx-auto mb-3 h-10 w-10 text-red-600" />
+              <p className="mb-1 text-xs font-bold text-red-600">Error al cargar documentos</p>
+              <p className="text-xs text-slate-500">{error}</p>
             </div>
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="col-span-full flex items-center justify-center py-12">
+          <div className="col-span-full flex items-center justify-center py-16 bg-white rounded-xl border border-slate-200">
             <div className="text-center">
-              <p className="text-gray-600">
-                No se encontraron documentos para esta unidad
+              <FileText className="mx-auto mb-2 h-10 w-10 text-slate-300" />
+              <p className="text-xs font-medium text-slate-500">
+                No se encontraron documentos registrados para esta unidad
               </p>
             </div>
           </div>
@@ -762,55 +540,44 @@ const DocumentManagement = () => {
           filteredDocuments.map((doc) => (
             <div
               key={doc.id}
-              className={`rounded-xl border-t-4 bg-white shadow-sm ${getStatusColor(doc.status)} overflow-hidden transition-shadow hover:shadow-md`}
+              className={`rounded-xl border-t-4 bg-white shadow-xs border border-slate-200 ${getStatusColor(
+                doc.status,
+              )} overflow-hidden transition-all hover:shadow-md flex flex-col justify-between`}
             >
-              <div className="p-6">
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
-                    <svg
-                      className="h-6 w-6 text-gray-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
+              <div className="p-4">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-[#113eb9] border border-blue-100 flex-shrink-0">
+                    <FileText className="h-5 w-5" />
                   </div>
-                  {getStatusBadge(doc.status)}
+                  <div>{getStatusBadge(doc.status)}</div>
                 </div>
 
-                <h3 className="mb-2 text-lg font-bold text-gray-900">
+                <h3 className="mb-2 text-xs font-bold text-slate-800 uppercase tracking-wide">
                   {doc.name}
                 </h3>
 
                 {/* Preview de la imagen */}
-                {doc.cloudflareImageUrl && (
-                  <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
+                {doc.cloudflareImageUrl ? (
+                  <div className="mb-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                     <img
                       src={doc.cloudflareImageUrl}
                       alt={doc.name}
-                      className="h-32 w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
+                      className="h-36 w-full cursor-pointer object-cover transition-transform hover:scale-105"
                       onClick={() =>
                         window.open(doc.cloudflareImageUrl, '_blank')
                       }
                       onError={(e) => {
-                        // Si falla la imagen, ocultar el elemento
                         e.currentTarget.style.display = 'none';
                       }}
                     />
                   </div>
-                )}
+                ) : null}
 
                 {doc.expiryDate && (
-                  <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4" />
+                  <div className="mb-2 flex items-center gap-1.5 text-xs text-slate-600">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
                     <span>Vence:</span>
-                    <span className="font-medium">
+                    <span className="font-semibold text-slate-800">
                       {doc.expiryDate.toLocaleDateString('es-PE', {
                         year: 'numeric',
                         month: '2-digit',
@@ -820,362 +587,281 @@ const DocumentManagement = () => {
                   </div>
                 )}
 
-                <div className="mb-3 h-1 rounded-full bg-gray-100">
-                  <div
-                    className={`h-full rounded-full ${
-                      doc.status === 'vencido'
-                        ? 'bg-red-500'
-                        : doc.status === 'proximo'
-                          ? 'bg-yellow-500'
-                          : doc.status === 'vigente'
-                            ? 'bg-green-500'
-                            : 'bg-gray-300'
-                    }`}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
                 <p
-                  className={`mb-4 text-xs font-semibold ${
+                  className={`mb-2 text-[11px] font-semibold ${
                     doc.status === 'vencido'
                       ? 'text-red-600'
                       : doc.status === 'proximo'
-                        ? 'text-yellow-600'
+                        ? 'text-amber-600'
                         : doc.status === 'vigente'
-                          ? 'text-green-600'
-                          : 'text-gray-400'
+                          ? 'text-emerald-600'
+                          : 'text-slate-400'
                   }`}
                 >
                   {doc.daysMessage}
                 </p>
 
                 {doc.observaciones && (
-                  <p className="mb-4 text-xs italic text-gray-500">
-                    {doc.observaciones}
+                  <p className="mb-3 text-[11px] italic text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
+                    "{doc.observaciones}"
                   </p>
                 )}
+              </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={async () => {
-                      if (!doc.cloudflareImageUrl && !doc.archivo_url) return;
+              <div className="border-t border-slate-100 bg-slate-50/60 p-3 flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (!doc.cloudflareImageUrl && !doc.archivo_url) return;
 
-                      try {
-                        const url = doc.cloudflareImageUrl || doc.archivo_url;
-                        const response = await fetch(url);
-                        const blob = await response.blob();
-                        const blobUrl = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = blobUrl;
-                        a.download = `${doc.name.replace(/\s+/g, '_')}_${doc.id}.jpg`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(blobUrl);
-                        document.body.removeChild(a);
-                      } catch (error) {
-                        console.error('Error al descargar:', error);
-                        toast('Error al descargar el documento', 'error');
-                      }
-                    }}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                  >
-                    <Download className="h-4 w-4" />
-                    Descargar
-                  </button>
-                  <a
-                    href={doc.cloudflareImageUrl || doc.archivo_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Ver
-                  </a>
-                  <button
-                    onClick={() => {
-                      setDocToDelete(doc);
-                      setShowDeleteDialog(true);
-                    }}
-                    disabled={deletingDocId === doc.id}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                  >
-                    {deletingDocId === doc.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                    try {
+                      const url = doc.cloudflareImageUrl || doc.archivo_url;
+                      const response = await fetch(url);
+                      const blob = await response.blob();
+                      const blobUrl = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = blobUrl;
+                      a.download = `${doc.name.replace(/\s+/g, '_')}_${doc.id}.jpg`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(blobUrl);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error('Error al descargar:', error);
+                      toast.error('Error al descargar el documento');
+                    }
+                  }}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5 text-slate-500" />
+                  Descargar
+                </button>
+
+                <a
+                  href={doc.cloudflareImageUrl || doc.archivo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                >
+                  <Eye className="h-3.5 w-3.5 text-slate-500" />
+                  Ver
+                </a>
+
+                <button
+                  onClick={() => {
+                    setDocToDelete(doc);
+                    setShowDeleteDialog(true);
+                  }}
+                  disabled={deletingDocId === doc.id}
+                  className="flex items-center justify-center rounded-md border border-red-200 bg-red-50 p-1.5 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  title="Eliminar documento"
+                >
+                  {deletingDocId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
 
-      {/* Upload Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Cargar Documento
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 transition-colors hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
+      {/* Upload Modal (BaseModal) */}
+      <BaseModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        title="CARGAR NUEVO DOCUMENTO"
+        subtitle={deviceID ? `Unidad: ${deviceID}` : undefined}
+        icon={<Upload className="h-4 w-4 text-[#113eb9]" />}
+        iconBgColor="bg-blue-100"
+        size="2xl"
+        onConfirm={handleSaveDocument}
+        onCancel={handleCloseModal}
+        confirmText="Guardar Documento"
+        cancelText="Cancelar"
+        isConfirmDisabled={
+          (!uploadedFile && !skipImage) ||
+          !tipoDocumento ||
+          isProcessing ||
+          isUploading
+        }
+        isLoading={isUploading}
+      >
+        <div className="space-y-4 text-xs">
+          {!deviceID && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+              ⚠️ No se detectó un deviceID. Asegúrate de acceder desde el botón Documentos de una unidad.
             </div>
+          )}
 
-            <div className="space-y-6 p-6">
-              {!deviceID && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                  <p className="text-sm font-medium text-red-700">
-                    ⚠️ No se detectó un deviceID. Asegúrate de acceder desde el
-                    botón Documentos de una unidad.
+          {/* Toggle: omitir imagen */}
+          <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <span className="font-medium text-slate-700">
+              Subir archivo/imagen del documento
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSkipImage((v) => !v);
+                setUploadedFile(null);
+                setOcrDate('');
+                setOcrProgress(0);
+              }}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                skipImage ? 'bg-slate-300' : 'bg-[#113eb9]'
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                  skipImage ? 'translate-x-1' : 'translate-x-4.5'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Upload Dropzone */}
+          {!skipImage && (
+            <div>
+              <label className="mb-1 block font-semibold text-slate-700">
+                Imagen o PDF
+              </label>
+              <div className="rounded-lg border-2 border-dashed border-slate-300 p-6 text-center transition-colors hover:border-[#113eb9] bg-white">
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
+                  <Upload className="mb-2 h-8 w-8 text-slate-400" />
+                  <p className="text-xs text-slate-600">
+                    {uploadedFile ? (
+                      <span className="font-semibold text-[#113eb9]">
+                        {uploadedFile.name}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-[#113eb9]">
+                          Haz clic para subir
+                        </span>{' '}
+                        o arrastra el archivo aquí
+                      </>
+                    )}
                   </p>
-                </div>
-              )}
+                </label>
+              </div>
+            </div>
+          )}
 
-              {/* Toggle: omitir imagen */}
-              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                <span className="text-sm font-medium text-gray-700">
-                  Subir imagen del documento
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSkipImage((v) => !v);
-                    setUploadedFile(null);
-                    setOcrDate('');
-                    setOcrProgress(0);
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    skipImage ? 'bg-gray-300' : 'bg-indigo-600'
-                  }`}
+          {/* Processing Indicator */}
+          {isProcessing && (
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+              <div className="mb-1.5 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-[#113eb9]" />
+                <p className="font-medium text-[#113eb9]">
+                  Procesando con OCR... {ocrProgress}%
+                </p>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-blue-200">
+                <div
+                  className="h-1.5 rounded-full bg-[#113eb9] transition-all duration-300"
+                  style={{ width: `${ocrProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {(skipImage || uploadedFile) && !isProcessing && (
+            <>
+              {/* Tipo de Documento */}
+              <div>
+                <label className="mb-1 block font-semibold text-slate-700">
+                  Tipo de Documento <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={tipoDocumento}
+                  onChange={(e) => setTipoDocumento(e.target.value)}
+                  className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:border-[#113eb9] focus:outline-none"
                 >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      skipImage ? 'translate-x-1' : 'translate-x-6'
-                    }`}
-                  />
-                </button>
+                  <option value="">Selecciona un tipo</option>
+                  <option value="TARJETA DE PROPIEDAD">TARJETA DE PROPIEDAD</option>
+                  <option value="SOAT">SOAT</option>
+                  <option value="REVISIÓN TÉCNICA">REVISIÓN TÉCNICA</option>
+                  <option value="PÓLIZA DE SEGURO">PÓLIZA DE SEGURO</option>
+                </select>
               </div>
 
-              {/* Upload de archivo — solo si NO se omite */}
-              {!skipImage && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Imagen (JPG o PNG)
-                  </label>
-                  <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center transition-colors hover:border-indigo-500">
-                    <input
-                      type="file"
-                      accept=".pdf,image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                      <p className="text-sm text-gray-600">
-                        {uploadedFile ? (
-                          <span className="font-medium text-indigo-600">
-                            {uploadedFile.name}
-                          </span>
-                        ) : (
-                          <>
-                            <span className="font-medium text-indigo-600">
-                              Haz clic para subir
-                            </span>{' '}
-                            o arrastra el archivo
-                          </>
-                        )}
-                      </p>
-                    </label>
+              {/* Observaciones */}
+              <div>
+                <label className="mb-1 block font-semibold text-slate-700">
+                  Observaciones <span className="font-normal text-slate-400">(Opcional)</span>
+                </label>
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Ej: Documento renovado, Pendiente de actualización, etc."
+                  rows={2}
+                  className="w-full rounded-md border border-slate-300 bg-white p-2 text-xs text-slate-800 focus:border-[#113eb9] focus:outline-none"
+                />
+              </div>
+
+              {/* Fecha de vencimiento */}
+              <div>
+                <label className="mb-1 block font-semibold text-slate-700">
+                  Fecha de Vencimiento <span className="font-normal text-slate-400">(Opcional)</span>
+                </label>
+                {ocrDate && !skipImage && (
+                  <div className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+                    ✓ Fecha detectada automáticamente por OCR. Puedes modificarla si es necesario.
                   </div>
-                </div>
-              )}
-
-              {/* Processing Indicator */}
-              {isProcessing && (
-                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                  <div className="mb-2 flex items-center gap-3">
-                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-600"></div>
-                    <p className="text-sm font-medium text-indigo-700">
-                      Procesando con OCR... {ocrProgress}%
-                    </p>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-indigo-200">
-                    <div
-                      className="h-2 rounded-full bg-indigo-600 transition-all duration-300"
-                      style={{ width: `${ocrProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Indicator */}
-              {isUploading && (
-                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-green-600"></div>
-                    <p className="text-sm font-medium text-green-700">
-                      Subiendo a Cloudflare...
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {(skipImage || uploadedFile) && !isProcessing && (
-                <>
-                  {/* Tipo de Documento */}
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Tipo de Documento
-                    </label>
-                    <select
-                      value={tipoDocumento}
-                      onChange={(e) => setTipoDocumento(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="">Selecciona un tipo</option>
-                      <option value="TARJETA DE PROPIEDAD">TARJETA DE PROPIEDAD</option>
-                      <option value="SOAT">SOAT</option>
-                      <option value="REVISIÓN TÉCNICA">REVISIÓN TÉCNICA</option>
-                      <option value="PÓLIZA DE SEGURO">PÓLIZA DE SEGURO</option>
-                    </select>
-                  </div>
-
-                  {/* Observaciones */}
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Observaciones (Opcional)
-                    </label>
-                    <textarea
-                      value={observaciones}
-                      onChange={(e) => setObservaciones(e.target.value)}
-                      placeholder="Ej: Documento renovado, Pendiente de actualización, etc."
-                      rows={3}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-
-                  {/* Fecha de vencimiento */}
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Fecha de Vencimiento{' '}
-                      <span className="font-normal text-gray-400">
-                        (Opcional)
-                      </span>
-                    </label>
-                    {ocrDate && !skipImage && (
-                      <div className="mb-2 rounded-lg border border-green-200 bg-green-50 p-3">
-                        <p className="text-sm text-green-700">
-                          ✓ Fecha detectada automáticamente por OCR. Puedes
-                          modificarla si es incorrecta.
-                        </p>
-                      </div>
-                    )}
-                    <input
-                      type="date"
-                      value={ocrDate}
-                      onChange={(e) => setOcrDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-indigo-500"
-                    />
-                    {ocrDate && (
-                      <button
-                        type="button"
-                        onClick={() => setOcrDate('')}
-                        className="mt-1 text-xs text-gray-400 hover:text-gray-600"
-                      >
-                        × Quitar fecha
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 p-6">
-              <button
-                onClick={handleCloseModal}
-                className="rounded-lg border border-gray-300 px-6 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveDocument}
-                disabled={
-                  (!uploadedFile && !skipImage) ||
-                  !tipoDocumento ||
-                  isProcessing ||
-                  isUploading
-                }
-                className="rounded-lg bg-indigo-600 px-6 py-2 font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Guardar Documento
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && docToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-            <div className="border-b border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                Confirmar Eliminación
-              </h2>
-            </div>
-
-            <div className="p-6">
-              <p className="text-gray-700">
-                ¿Estás seguro de que deseas eliminar el documento{' '}
-                <span className="font-bold">{docToDelete.name}</span>?
-              </p>
-              <p className="mt-2 text-sm text-red-600">
-                Esta acción no se puede deshacer.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3 border-t border-gray-200 p-6">
-              <button
-                onClick={() => {
-                  setShowDeleteDialog(false);
-                  setDocToDelete(null);
-                }}
-                disabled={deletingDocId !== null}
-                className="rounded-lg border border-gray-300 px-6 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteDocument}
-                disabled={deletingDocId !== null}
-                className="flex items-center gap-2 rounded-lg bg-red-600 px-6 py-2 font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                {deletingDocId ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Eliminando...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Eliminar
-                  </>
                 )}
-              </button>
-            </div>
-          </div>
+                <input
+                  type="date"
+                  value={ocrDate}
+                  onChange={(e) => setOcrDate(e.target.value)}
+                  className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:border-[#113eb9] focus:outline-none"
+                />
+              </div>
+            </>
+          )}
         </div>
-      )}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      </BaseModal>
+
+      {/* Delete Confirmation Modal (BaseModal) */}
+      <BaseModal
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setDocToDelete(null);
+        }}
+        title="CONFIRMAR ELIMINACIÓN"
+        icon={<AlertCircle className="h-4 w-4 text-red-600" />}
+        iconBgColor="bg-red-100"
+        size="md"
+        onConfirm={handleDeleteDocument}
+        onCancel={() => {
+          setShowDeleteDialog(false);
+          setDocToDelete(null);
+        }}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        confirmButtonClass="bg-red-600 hover:bg-red-700 text-white"
+        confirmIcon={<Trash2 className="h-3.5 w-3.5" />}
+        isLoading={deletingDocId !== null}
+        loadingText="Eliminando..."
+      >
+        <div className="text-xs text-slate-700">
+          <p>
+            ¿Estás seguro de que deseas eliminar el documento{' '}
+            <span className="font-bold text-slate-900">{docToDelete?.name}</span>?
+          </p>
+          <p className="mt-2 text-red-600 font-semibold">
+            Esta acción no se puede deshacer.
+          </p>
+        </div>
+      </BaseModal>
     </div>
   );
 };

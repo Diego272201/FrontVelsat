@@ -58,11 +58,10 @@
 
 
 .tableScrooll {
-  height: 99vh;
   overflow-y: auto;
-  padding-left: 5px;
-  padding-right: 5px;
-  background: #f1f7fd;
+  padding-left: 0px;
+  padding-right: 0px;
+  background: #ffffff;
 }
 
 .tableScrooll::-webkit-scrollbar {

@@ -35,7 +35,7 @@ export default function TurnosContent() {
             : item.programa === '2'
               ? 'Fecha Futura'
               : item.programa === '3'
-                ? 'Fecha pasada'
+                ? 'Fecha Pasada'
                 : 'Desconocido',
       }));
 
@@ -66,10 +66,7 @@ export default function TurnosContent() {
   };
 
   const handleSaveSuccess = () => {
-    setRefreshKey((prev) => prev + 1); // Forzar re-render
-    setTimeout(() => {
-      fetchData();
-    }, 100);
+    setRefreshKey((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -77,10 +74,10 @@ export default function TurnosContent() {
   }, [baseUrl, username, isReady, refreshKey]);
 
   return (
-    <div className="contenetTurnos">
+    <div className="flex flex-col lg:flex-row p-0 m-0 bg-white h-[calc(100vh-15px)] w-full overflow-hidden border-none">
       <Toaster richColors />
 
-      <div className="ingreso">
+      <div className="w-full lg:w-1/2 flex flex-col h-full bg-white overflow-hidden border-r border-slate-200">
         <TablaTurno
           users={ingresoData}
           title="INGRESO"
@@ -88,8 +85,8 @@ export default function TurnosContent() {
           onEditSuccess={handleSaveSuccess}
         />
       </div>
-      <div className="w-[5px]"></div>
-      <div className="salida">
+
+      <div className="w-full lg:w-1/2 flex flex-col h-full bg-white overflow-hidden">
         <TablaTurno
           users={salidaData}
           title="SALIDA"

@@ -318,7 +318,7 @@ export default function ModalMapa({
             ) : (
               <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
                 <div className="text-center">
-                  <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#d62828]" />
+                  <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#113eb9]" />
                   <p className="text-sm font-medium text-gray-600">Cargando mapa...</p>
                 </div>
               </div>
@@ -330,7 +330,7 @@ export default function ModalMapa({
         <div className="flex justify-end gap-3 border-t border-gray-200 px-8 py-5">
           <button
             onClick={handleClose}
-            className="rounded-lg bg-[#d62828] px-6 py-3 font-medium text-white transition-all hover:bg-[#c02222] focus:outline-none focus:ring-2 focus:ring-[#d62828] focus:ring-offset-2"
+            className="rounded-lg bg-[#113eb9] px-6 py-3 font-medium text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#113eb9] focus:ring-offset-2"
           >
             Cerrar
           </button>

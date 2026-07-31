@@ -1,12 +1,4 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/app/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import {
@@ -24,9 +16,6 @@ import {
   Key,
   Phone,
   Mail,
-  Save,
-  X,
-  Loader2,
   Edit,
   Eye,
   EyeOff,
@@ -35,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUsername } from '@/hooks/useUsername';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 type FormField =
   | 'apellidos'
@@ -248,238 +238,221 @@ export default function ConductorDialogModificar({
     setIsOpen(true);
   };
 
-  const inputClass = "w-full border border-gray-200 bg-white px-3 py-2 text-[12px] transition-colors focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50";
-  const labelClass = "flex items-center gap-1.5 text-[12px] font-medium text-gray-700";
+  const inputClass =
+    'w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] transition-colors focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50';
+  const labelClass = 'flex items-center gap-1.5 text-[12px] font-medium text-gray-700';
 
   return (
     <div>
       <button
         onClick={handleOpenModal}
-        className="inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
+        className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
       >
         <Edit size={12} />
         Modificar
       </button>
 
-      <Dialog open={isOpen} onOpenChange={!loading ? setIsOpen : undefined}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border border-gray-200 bg-white shadow-lg sm:max-w-[600px]">
-          <DialogHeader className="pb-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center bg-[#113EB9]">
-                <Edit className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <DialogTitle className="text-[14px] font-bold uppercase text-[#113EB9]">
-                  Modificar Conductor
-                </DialogTitle>
-                <p className="text-[11px] text-gray-500">
-                  Edite la información del conductor
-                </p>
-              </div>
-            </div>
-          </DialogHeader>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleCerrar}
+        title="Modificar Conductor"
+        subtitle="Edite la información del conductor"
+        icon={<Edit className="h-4 w-4 text-[#113EB9]" />}
+        iconBgColor="bg-[#e8eeff]"
+        size="2xl"
+        confirmText="Guardar Cambios"
+        loadingText="Modificando..."
+        onConfirm={handleGuardar}
+        onCancel={handleCerrar}
+        isLoading={loading}
+        confirmButtonClass="bg-[#008000] hover:bg-[#006600] text-white"
+      >
+        <div className="space-y-2 py-1">
+          <div className="space-y-1">
+            <Label htmlFor="apellidos" className={labelClass}>
+              <User className="h-3.5 w-3.5 text-[#fb7b0f]" />
+              Nombre Completo <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="apellidos"
+              type="text"
+              value={formData.apellidos}
+              onChange={(e) => handleInputChange('apellidos', e.target.value)}
+              disabled={loading}
+              className={inputClass}
+              placeholder="Ingrese nombre completo"
+            />
+          </div>
 
-          <div className="space-y-3 py-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="apellidos" className={labelClass}>
-                <User className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                Nombre Completo <span className="text-red-500">*</span>
+              <Label htmlFor="dni" className={labelClass}>
+                <CreditCard className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                DNI
               </Label>
               <Input
-                id="apellidos"
+                id="dni"
                 type="text"
-                value={formData.apellidos}
-                onChange={(e) => handleInputChange('apellidos', e.target.value)}
+                value={formData.dni}
+                onChange={(e) => handleInputChange('dni', e.target.value)}
                 disabled={loading}
                 className={inputClass}
-                placeholder="Ingrese nombre completo"
+                placeholder="Ingrese dni"
+                maxLength={8}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="dni" className={labelClass}>
-                  <CreditCard className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  DNI
-                </Label>
+            <div className="space-y-1">
+              <Label htmlFor="sexo" className={labelClass}>
+                <Users className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                Género <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.sexo}
+                onValueChange={(value) => handleInputChange('sexo', value)}
+                disabled={loading}
+              >
+                <SelectTrigger className={inputClass}>
+                  <SelectValue placeholder="Seleccione" />
+                </SelectTrigger>
+                <SelectContent className="border-gray-200 bg-white shadow-lg">
+                  <SelectItem value="masculino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                    Masculino
+                  </SelectItem>
+                  <SelectItem value="femenino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                    Femenino
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="login" className={labelClass}>
+                <Key className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                Usuario <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="login"
+                type="text"
+                value={formData.login}
+                onChange={(e) => handleInputChange('login', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Ingrese usuario"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="clave" className={labelClass}>
+                <Lock className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                Contraseña <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
                 <Input
-                  id="dni"
-                  type="text"
-                  value={formData.dni}
-                  onChange={(e) => handleInputChange('dni', e.target.value)}
+                  id="clave"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.clave}
+                  onChange={(e) => handleInputChange('clave', e.target.value)}
                   disabled={loading}
                   className={inputClass}
-                  placeholder="Ingrese dni"
-                  maxLength={8}
+                  placeholder="Ingrese contraseña"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-[#113EB9]"
+                >
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="telefono" className={labelClass}>
+                <Phone className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                Teléfono
+              </Label>
+              <Input
+                id="telefono"
+                type="tel"
+                value={formData.telefono}
+                onChange={(e) => handleInputChange('telefono', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Ingrese teléfono"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="email" className={labelClass}>
+                <Mail className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                Correo Electrónico
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Ingrese correo"
+              />
+            </div>
+          </div>
+
+          {username === 'movilbus' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="unidadasig" className={labelClass}>
+                  <Truck className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                  Unidad Asignada
+                </Label>
+                <Input
+                  id="unidadasig"
+                  type="text"
+                  value={formData.unidadasig}
+                  onChange={(e) => handleInputChange('unidadasig', e.target.value)}
+                  disabled={loading}
+                  className={inputClass}
+                  placeholder="Ingrese unidad"
                 />
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="sexo" className={labelClass}>
-                  <Users className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Género <span className="text-red-500">*</span>
+                <Label htmlFor="tipo" className={labelClass}>
+                  <Route className="h-3.5 w-3.5 text-[#fb7b0f]" />
+                  Tipo
                 </Label>
                 <Select
-                  value={formData.sexo}
-                  onValueChange={(value) => handleInputChange('sexo', value)}
+                  value={formData.tipo}
+                  onValueChange={(value) => handleInputChange('tipo', value)}
                   disabled={loading}
                 >
                   <SelectTrigger className={inputClass}>
                     <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
                   <SelectContent className="border-gray-200 bg-white shadow-lg">
-                    <SelectItem value="masculino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">Masculino</SelectItem>
-                    <SelectItem value="femenino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">Femenino</SelectItem>
+                    <SelectItem value="Tdp Menores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                      Tdp Menores
+                    </SelectItem>
+                    <SelectItem value="Turismo" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                      Turismo
+                    </SelectItem>
+                    <SelectItem value="Tdp Mayores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                      Tdp Mayores
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="login" className={labelClass}>
-                  <Key className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Usuario <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="login"
-                  type="text"
-                  value={formData.login}
-                  onChange={(e) => handleInputChange('login', e.target.value)}
-                  disabled={loading}
-                  className={inputClass}
-                  placeholder="Ingrese usuario"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="clave" className={labelClass}>
-                  <Lock className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Contraseña <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="clave"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.clave}
-                    onChange={(e) => handleInputChange('clave', e.target.value)}
-                    disabled={loading}
-                    className={inputClass}
-                    placeholder="Ingrese contraseña"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                    className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-[#113EB9]"
-                  >
-                    {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="telefono" className={labelClass}>
-                  <Phone className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Teléfono
-                </Label>
-                <Input
-                  id="telefono"
-                  type="tel"
-                  value={formData.telefono}
-                  onChange={(e) => handleInputChange('telefono', e.target.value)}
-                  disabled={loading}
-                  className={inputClass}
-                  placeholder="Ingrese teléfono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="email" className={labelClass}>
-                  <Mail className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Correo Electrónico
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  disabled={loading}
-                  className={inputClass}
-                  placeholder="Ingrese correo"
-                />
-              </div>
-            </div>
-
-            {username === 'movilbus' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="unidadasig" className={labelClass}>
-                    <Truck className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                    Unidad Asignada
-                  </Label>
-                  <Input
-                    id="unidadasig"
-                    type="text"
-                    value={formData.unidadasig}
-                    onChange={(e) => handleInputChange('unidadasig', e.target.value)}
-                    disabled={loading}
-                    className={inputClass}
-                    placeholder="Ingrese unidad"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="tipo" className={labelClass}>
-                    <Route className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                    Tipo
-                  </Label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(value) => handleInputChange('tipo', value)}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className={inputClass}>
-                      <SelectValue placeholder="Seleccione" />
-                    </SelectTrigger>
-                    <SelectContent className="border-gray-200 bg-white shadow-lg">
-                      <SelectItem value="Tdp Menores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">Tdp Menores</SelectItem>
-                      <SelectItem value="Turismo" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">Turismo</SelectItem>
-                      <SelectItem value="Tdp Mayores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">Tdp Mayores</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2 pt-3">
-            <Button
-              onClick={handleCerrar}
-              disabled={loading}
-              className="bg-gray-100 px-4 py-2 text-[12px] font-medium text-gray-700 shadow-none hover:bg-gray-200"
-            >
-              <X className="mr-1.5 h-3.5 w-3.5" />
-              Cancelar
-            </Button>
-
-            <Button
-              onClick={handleGuardar}
-              disabled={loading}
-              className="bg-[#113EB9] px-4 py-2 text-[12px] font-medium text-white shadow-none hover:bg-blue-700"
-            >
-              {loading ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="mr-1.5 h-3.5 w-3.5" />
-              )}
-              {loading ? 'Modificando...' : 'Guardar Cambios'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          )}
+        </div>
+      </BaseModal>
     </div>
   );
 }

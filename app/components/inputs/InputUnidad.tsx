@@ -12,30 +12,29 @@ interface InputUnidadProps {
   value: string;
   onChange: (value: string) => void;
   onSelect?: (codunidad: string) => void;
-  bgColor?: 'gray-100' | 'gray-200' | 'white'; 
-
+  bgColor?: string; 
   padding?: string;
-  usuario: string; // Nuevo prop requerido
+  heightClass?: string;
+  usuario: string;
 }
 
 const InputUnidad: React.FC<InputUnidadProps> = ({ 
   value, 
   onChange, 
   onSelect, 
-  bgColor = 'gray-50', 
-  padding = 'p-2',
-  usuario // Nuevo prop
+  bgColor = 'white', 
+  heightClass = 'h-8',
+  usuario 
 }) => {
-
   const [unidades, setUnidades] = useState<Unidad[]>([]);
   const [filtered, setFiltered] = useState<Unidad[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    axios.get(getApiUnidadesUrl(usuario)) // Usar la función con el parámetro usuario
+    axios.get(getApiUnidadesUrl(usuario))
       .then(res => setUnidades(res.data))
       .catch(err => console.error('Error al obtener unidades:', err));
-  }, [usuario]); // Agregar usuario como dependencia
+  }, [usuario]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -56,25 +55,25 @@ const InputUnidad: React.FC<InputUnidadProps> = ({
   };
   
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         type="text"
-        className={`w-full border rounded border-gray-300 bg-${bgColor} ${padding} ps-11 text-[11px] placeholder-zinc-500 focus:border-blue-400 focus:outline-none focus:ring-0`} 
+        className={`w-full ${heightClass} rounded-md border border-gray-200 bg-${bgColor} pl-7 pr-2 text-[11px] placeholder-gray-400 focus:border-[#113EB9] focus:outline-none`} 
         placeholder="Unidad"
         value={value}
         onChange={handleInputChange}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
-      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4">
-        <FaCar className='text-gray-400' />
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+        <FaCar className="h-3.5 w-3.5 text-gray-400" />
       </div>
       {showDropdown && filtered.length > 0 && (
-        <ul className="fixed z-[9999] mt-1 max-h-60 w-[200px] overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">
+        <ul className="fixed z-[9999] mt-1 max-h-60 w-[200px] overflow-y-auto rounded-lg border border-gray-300 bg-white text-[11px] shadow-lg">
           {filtered.map((u) => (
             <li
               key={u.id}
-              className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+              className="cursor-pointer px-3 py-1.5 hover:bg-blue-50"
               onClick={() => onSelect?.(u.codunidad)}
             >
               {u.codunidad}

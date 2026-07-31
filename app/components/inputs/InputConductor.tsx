@@ -14,15 +14,15 @@ interface InputConductorProps {
   onChange: (value: string) => void;
   onSelect?: (codigo: number, apepate: string) => void;
   bgColor?: 'gray-100' | 'gray-200' | 'white'; 
-
-
+  heightClass?: string;
 }
 
 const InputConductor: React.FC<InputConductorProps> = ({
   value,
   onChange,
   onSelect,
-  bgColor = 'gray-100' 
+  bgColor = 'gray-100',
+  heightClass = 'h-8',
 }) => {
   const { data: session } = useSession();
   const username = session?.user.username;
@@ -63,25 +63,25 @@ const InputConductor: React.FC<InputConductorProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         type="text"
-        className={`w-full border rounded border-gray-300 bg-${bgColor} p-2 ps-11 text-[12px] placeholder-zinc-500 focus:border-blue-400 focus:outline-none focus:ring-0`}
+        className={`w-full ${heightClass} rounded-md border border-gray-200 bg-${bgColor} pl-7 pr-2 text-[11px] placeholder-gray-400 focus:border-brandPrimary focus:outline-none`}
         placeholder="Conductor"
         value={value}
         onChange={handleInputChange}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
-      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4">
-        <FaUserTie className='text-gray-400' />
+      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+        <FaUserTie className="h-3.5 w-3.5 text-gray-400" />
       </div>
       {showDropdown && filtered.length > 0 && (
-        <ul className="fixed z-[9999] mt-1 max-h-60 w-96 overflow-y-auto rounded-lg border border-gray-300 bg-white text-[12px] shadow-lg">
+        <ul className="fixed z-[9999] mt-1 max-h-60 w-96 overflow-y-auto rounded-lg border border-gray-300 bg-white text-[11px] shadow-lg">
           {filtered.map((c) => (
             <li
               key={c.codigo}
-              className="cursor-pointer px-4 py-2 hover:bg-gray-200"
+              className="cursor-pointer px-3 py-1.5 hover:bg-blue-50"
               onClick={() => onSelect?.(c.codigo, c.apepate)}
             >
               {c.apepate}

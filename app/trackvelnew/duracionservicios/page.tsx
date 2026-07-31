@@ -6,6 +6,8 @@ import { BiSolidReport } from 'react-icons/bi';
 import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useSearchParams } from 'next/navigation';
 import { useUsername } from '@/hooks/useUsername';
+import { Spinner } from '@nextui-org/react';
+import { AlertCircle } from 'lucide-react';
 
 interface APIResponse {
   codservicio: string | null;
@@ -138,6 +140,11 @@ function DuracionServiciosContent() {
 
         const response = await fetch(apiUrl);
 
+        if (response.status === 404) {
+          setData([]);
+          return;
+        }
+
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
@@ -199,16 +206,17 @@ function DuracionServiciosContent() {
     return (
       <div>
         <ReporteHeader
-          title="REPORTE GENERAL DE LA UNIDAD - Camioneta 01"
-          deviceId="ABC123"
+          title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
+          deviceId={empresaName}
           startDate={startDate ?? ''}
           endDate={endDate ?? ''}
-          extraInfo="Generado por: Luis Castrejon"
+          extraInfo={extraInfo}
           formatDate={formatDate}
           icon={<BiSolidReport size={25} />}
         />
-        <div className="flex h-64 items-center justify-center">
-          <div className="text-gray-600">Cargando datos...</div>
+        <div className="flex flex-col items-center justify-center gap-2 p-8">
+          <Spinner color="primary" />
+          <span className="text-gray-600">Cargando Servicios</span>
         </div>
       </div>
     );
@@ -218,16 +226,20 @@ function DuracionServiciosContent() {
     return (
       <div>
         <ReporteHeader
-          title="REPORTE GENERAL DE LA UNIDAD - Camioneta 01"
-          deviceId="ABC123"
+          title="REPORTE DE SERVICIOS ATENDIDOS EMPRESA"
+          deviceId={empresaName}
           startDate={startDate ?? ''}
           endDate={endDate ?? ''}
           extraInfo={extraInfo}
           formatDate={formatDate}
           icon={<BiSolidReport size={25} />}
         />
-        <div className="flex h-64 items-center justify-center">
-          <div className="text-red-600">Error al cargar datos: {error}</div>
+        <div className="flex items-center justify-center p-6">
+          <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span className="font-medium">Error al cargar los datos:</span>
+            <span>{error}</span>
+          </div>
         </div>
       </div>
     );
@@ -249,7 +261,7 @@ function DuracionServiciosContent() {
         <div className="overflow-hidden border border-gray-200 bg-white shadow-sm">
           <div className="h-[calc(100vh-125px)] overflow-y-auto">
             <table className="w-full min-w-max">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow">
                 <tr className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
                   <th className="sticky top-0 z-10 border-r border-gray-500 bg-gradient-to-r from-gray-700 to-gray-700 px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wider last:border-r-0">
                     Servicio
@@ -282,46 +294,62 @@ function DuracionServiciosContent() {
               </thead>
 
               <tbody className="divide-y divide-gray-100 bg-white">
-                {data.map((row, index) => (
-                  <tr
-                    key={row.servicio}
-                    className={`${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                    } transition-colors duration-200 hover:bg-blue-50`}
-                  >
-                    <td className="border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                      {row.servicio}
-                    </td>
-                    <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                      {row.tierraAire}
-                    </td>
-                    <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
-                      {row.ingresoSalida}
-                    </td>
-                    <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
-                      <div className="line-clamp-2 whitespace-normal break-words leading-tight">
-                        {row.conductor}
+                {data.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-4 py-12 text-center text-gray-500"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <BiSolidReport className="h-8 w-8 text-gray-400" />
+                        <span className="font-normal text-gray-500 text-[14px]">
+                          No se encontraron servicios para el rango de fechas seleccionado
+                        </span>
                       </div>
                     </td>
-                    <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                      <span className="rounded bg-gray-100 px-2 py-1 text-xs">
-                        {row.unidad}
-                      </span>
-                    </td>
-                    <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                      <div className="text-xs">{row.fechaServicio}</div>
-                    </td>
-                    <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                      <div className="text-xs">{row.fechaInicio || '-'}</div>
-                    </td>
-                    <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
-                      <div className="text-xs">{row.fechaFinal || '-'}</div>
-                    </td>
-                    <td className="px-4 py-4 text-[11px] text-gray-700">
-                      {row.empresa}
-                    </td>
                   </tr>
-                ))}
+                ) : (
+                  data.map((row, index) => (
+                    <tr
+                      key={row.servicio}
+                      className={`${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      } transition-colors duration-200 hover:bg-blue-50`}
+                    >
+                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                        {row.servicio}
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                        {row.tierraAire}
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 text-[11px] text-gray-700">
+                        {row.ingresoSalida}
+                      </td>
+                      <td className="max-w-[200px] border-r border-gray-100 px-4 py-4 text-[11px] font-medium text-gray-900">
+                        <div className="line-clamp-2 whitespace-normal break-words leading-tight">
+                          {row.conductor}
+                        </div>
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                        <span className="rounded bg-gray-100 px-2 py-1 text-xs">
+                          {row.unidad}
+                        </span>
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                        <div className="text-xs">{row.fechaServicio}</div>
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                        <div className="text-xs">{row.fechaInicio || '-'}</div>
+                      </td>
+                      <td className="border-r border-gray-100 px-4 py-4 font-mono text-[11px] text-gray-700">
+                        <div className="text-xs">{row.fechaFinal || '-'}</div>
+                      </td>
+                      <td className="px-4 py-4 text-[11px] text-gray-700">
+                        {row.empresa}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

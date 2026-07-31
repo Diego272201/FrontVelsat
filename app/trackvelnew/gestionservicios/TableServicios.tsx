@@ -1,12 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Modal,
-  ModalContent,
-  ModalBody,
-  ModalFooter,
-  Button,
-  useDisclosure,
-} from '@nextui-org/react';
+import { useDisclosure } from '@nextui-org/react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { FaCar, FaUserTie } from 'react-icons/fa';
@@ -20,6 +13,7 @@ import { RiSaveFill } from 'react-icons/ri';
 import { BiSolidEdit } from 'react-icons/bi';
 import { useUsername } from '@/hooks/useUsername';
 import { useApi } from '@/context/ApiContext';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 const SeguirUnidad = dynamic(() => import('@/app/request/seguirUnidad'), {
   ssr: false,
@@ -638,7 +632,15 @@ export default function App({
   useEffect(() => {
     setSelectedKeys([]);
     onSelectionChange([]);
-  }, [selectedDate]);
+  }, [
+    selectedArea,
+    selectedEmpresa,
+    selecteServicio,
+    selecteNumServicio,
+    selectedUnidad,
+    selectedPasajeroCodlan,
+    selectedDate,
+  ]);
 
   useEffect(() => {
     console.log('Empresa es' + selectedEmpresa);
@@ -1014,9 +1016,9 @@ export default function App({
 
   const altura =
     isVisible && isVisibleAsignar
-      ? 280
+      ? 340
       : isVisible
-        ? 200
+        ? 280
         : isVisibleAsignar
           ? 120
           : 60;
@@ -1049,12 +1051,12 @@ export default function App({
           style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
         >
           <table className="w-full text-left">
-            <thead className="sticky top-0 z-10 bg-gray-100">
+            <thead className="sticky top-0 z-10 bg-[#113eb9]">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-gray-800"
+                    className="px-4 py-2 uppercase text-slate-200"
                     style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
                   >
                     {column.label}
@@ -1081,12 +1083,12 @@ export default function App({
           style={{ height: `calc(100vh - ${altura}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-gray-200">
+            <thead className="sticky top-0 z-10 bg-[#113eb9]">
               <tr>
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-gray-800"
+                    className="px-4 py-2 uppercase text-white"
                     style={{ fontSize: '11px' }}
                   >
                     {column.label}
@@ -1159,29 +1161,39 @@ export default function App({
         </div>
       )}
 
-      <Modal
+      <BaseModal
         isOpen={isOpen}
-        onOpenChange={(open) => {
+        onClose={() => {
           onOpenChange();
-          if (!open) {
-            handleLimpiarAll();
-          }
+          handleLimpiarAll();
         }}
-        className="full max-w-none bg-gray-100"
-        scrollBehavior="inside"
+        title={
+          selectedRow
+            ? `DETALLE DEL SERVICIO N° ${selectedRow.numServicio || selectedRow.codServicio || ''}`
+            : 'DETALLE DEL SERVICIO'
+        }
+        icon={<FaCar className="h-4 w-4 text-blue-600" />}
+        iconBgColor="bg-blue-100"
+        size="5xl"
+        className="!max-w-[90vw] !w-[90vw] my-auto"
+        onConfirm={async () => {
+          await handleGuardarHoras();
+          await tableRef.current?.actualizarOrdenEnServidor();
+          handleGuardarHoraAto();
+          onOpenChange();
+          handleLimpiarAll();
+        }}
+        onCancel={() => {
+          onOpenChange();
+          handleLimpiarAll();
+        }}
+        confirmText="Guardar"
+        cancelText="Cerrar"
       >
-        <ModalContent style={{ marginTop: '80px' }}>
-          {(onClose) => (
-            <>
-              <ModalBody>
                 {selectedRow ? (
                   <div>
-                    <div className="flex  p-2" style={{ fontSize: '13px' }}>
+                    <div className="flex  px-2" style={{ fontSize: '13px' }}>
                       <div className="mr-4 flex-1">
-                        <h2 className="text-center text-[14px] font-semibold">
-                          SERVICIO
-                        </h2>
-
                         <div className="mt-2 border border-gray-300">
                           <div className="grid grid-cols-5 items-center border-b border-gray-300 p-2">
                             <p className="font-semibold">Destino:</p>
@@ -1527,7 +1539,7 @@ export default function App({
                       </div>
 
                       <div
-                        className="rounded-lgp-3 flex w-[170px] flex-col items-center justify-center text-center"
+                        className="rounded-lg p-3 flex w-[170px] flex-col items-center justify-center text-center relative z-[100]"
                         style={{ backgroundColor: selectedRow.color }}
                       >
                         <p className="text-lg font-bold">
@@ -1540,7 +1552,7 @@ export default function App({
 
                         {!['FA', 'FT', 'CN'].includes(selectedRow.estado) && (
                           <div
-                            className="relative mt-2 inline-block text-left"
+                            className="relative z-[9999] mt-2 inline-block text-left"
                             ref={dropdownRef}
                           >
                             <button
@@ -1551,7 +1563,7 @@ export default function App({
                             </button>
 
                             {isOpenD && (
-                              <div className="z-9999 absolute mt-2 w-[150px] rounded-md border border-gray-300 bg-white shadow-lg">
+                              <div className="z-[9999] absolute left-0 mt-2 w-[160px] rounded-md border border-gray-300 bg-white shadow-2xl">
                                 <ul className="py-1">
                                   {['AS', 'NI', 'NA'].includes(
                                     selectedRow.estado,
@@ -1702,10 +1714,10 @@ export default function App({
                           />
                         ) : (
                           <div
-                            className="rounded-lg bg-white p-3"
+                            className="rounded-lg border border-gray-200 bg-white p-2 shadow-xs"
                             style={{
-                              height: '30vh',
-                              maxHeight: '30vh',
+                              height: '400px',
+                              minHeight: '400px',
                               overflow: 'hidden',
                             }}
                           >
@@ -1715,6 +1727,7 @@ export default function App({
                               marcadores={coordenadas}
                               centro={centroMapa}
                               resetMap={resetMap}
+                              showStreetView={true}
                             />
                           </div>
                         )}
@@ -1724,34 +1737,7 @@ export default function App({
                 ) : (
                   <p>No hay datos seleccionados</p>
                 )}
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  color="success"
-                  onPress={async () => {
-                    await handleGuardarHoras();
-                    await tableRef.current?.actualizarOrdenEnServidor();
-                    handleGuardarHoraAto();
-                    onClose();
-                    handleLimpiarAll();
-                  }}
-                >
-                  Guardar
-                </Button>
-                <Button
-                  color="danger"
-                  onPress={() => {
-                    onClose();
-                    handleLimpiarAll();
-                  }}
-                >
-                  Cerrar
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      </BaseModal>
 
       <ModalUpdDestino
         isOpen={isModalDestinoOpen}

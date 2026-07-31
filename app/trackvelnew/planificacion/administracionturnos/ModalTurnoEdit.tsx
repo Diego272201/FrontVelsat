@@ -1,26 +1,21 @@
 import { useForm } from 'react-hook-form';
 import React, { useState } from 'react';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
   useDisclosure,
+  Input,
+  Select,
+  SelectItem,
+  TimeInput,
 } from '@nextui-org/react';
-import { Input } from '@nextui-org/react';
-import { Select, SelectItem } from '@nextui-org/react';
 import { ImUserPlus } from 'react-icons/im';
-import { MdAddToPhotos, MdEdit } from 'react-icons/md';
-import { TimeInput } from '@nextui-org/react';
+import { MdEdit } from 'react-icons/md';
 import { ClockCircleLinearIcon } from './ClockCircleLinearIcon';
 import { Time } from '@internationalized/date';
 import { SelectorIcon } from './SelectorIcon';
-import { IoSave } from 'react-icons/io5';
-import { IoMdCloseCircle } from 'react-icons/io';
 import axios from 'axios';
 import { toast } from 'sonner';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 interface User {
   codigo: string;
@@ -117,175 +112,183 @@ export default function App({ titleM, user, onEditSuccess }: Props) {
           `https://do.velsat.pe:2083/api/Turnos/${user.codigo}`,
           putData,
         );
-        console.log('Datos actualizados correctamente', putData);
         onEditSuccess();
         toast.success('Turno actualizado exitosamente');
         onClose();
       } catch (error) {
         console.error('Error al actualizar los datos:', error);
+        toast.error('Error al actualizar el turno');
       } finally {
         setIsSubmitting(false);
-
       }
-    } else {
-      console.log('Errores de validación:', errors);
     }
+  };
+
+  const handleClose = () => {
+    onOpenChange();
   };
 
   return (
     <>
-      <div className="inline-block6 relative h-6 w-7">
+      <div className="relative h-6 w-6">
         <div className="group relative h-full w-full">
           <button
             onClick={onOpen}
             type="button"
-            className="flex h-full w-full items-center justify-center rounded-lg bg-blue-200 text-white hover:bg-blue-300 focus:outline-none"
+            className="flex h-full w-full items-center justify-center rounded bg-blue-100 text-blue-700 hover:bg-blue-200 focus:outline-none transition-colors"
           >
-            <MdEdit size={18} className="text-blue-800" />
+            <MdEdit size={15} />
           </button>
 
-          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-500 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded bg-blue-800 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-md">
             Editar turno
           </div>
         </div>
       </div>
 
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
-        <form
-          action=""
-          onSubmit={handleSubmit((data) => onSubmit(data, onOpenChange))}
-        >
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader className="titleModal flex gap-1">
-                  Modificar Turno / {titleM}
-                  <MdAddToPhotos />
-                </ModalHeader>
-                <ModalBody>
-                  <div className="contenidoModal contenidoEdit flex flex-col gap-4">
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <div className="mensajeR">
-                        <Input
-                          type="text"
-                          label="Área"
-                          placeholder="Área"
-                          labelPlacement="outside"
-                          {...register('area', {
-                            required: true,
-                          })}
-                        />
-                        {errors.area && (
-                          <span className="errorMesageUserI">
-                            Nombre de área es requerido
-                          </span>
-                        )}
-                      </div>
-                      <div className="mensajeR">
-                        <Input
-                          type="text"
-                          label="Sub Área"
-                          placeholder="Sub área"
-                          labelPlacement="outside"
-                          {...register('subarea', {
-                            required: true,
-                          })}
-                        />
-                        {errors.subarea && (
-                          <span className="errorMesageUserI">
-                            Nombre de sub área es requerido
-                          </span>
-                        )}
-                      </div>
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={`Modificar Turno / ${titleM}`}
+        subtitle={`Empresa: ${user.empresa}`}
+        icon={<MdEdit className="h-4 w-4 text-blue-600" />}
+        iconBgColor="bg-blue-100"
+        size="2xl"
+        confirmText="Guardar Cambios"
+        cancelText="Cancelar"
+        onConfirm={handleSubmit((data) => onSubmit(data, handleClose))}
+        isLoading={isSubmitting}
+        confirmButtonClass="bg-brandPrimary hover:bg-brandPrimary-hover text-white"
+      >
+        <form onSubmit={handleSubmit((data) => onSubmit(data, handleClose))} className="space-y-4 pt-1">
+          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-1">
+                <Input
+                  type="text"
+                  label="Área"
+                  placeholder="Área"
+                  labelPlacement="outside"
+                  size="sm"
+                  classNames={{
+                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
+                    label: 'text-xs font-medium text-slate-700',
+                  }}
+                  {...register('area', {
+                    required: true,
+                  })}
+                />
+                {errors.area && (
+                  <span className="text-[11px] text-red-600 font-medium">
+                    Área requerida
+                  </span>
+                )}
+              </div>
 
-                      <div className="mensajeR">
-                        <Input
-                          type="text"
-                          label="Rol"
-                          placeholder="Rol"
-                          labelPlacement="outside"
-                          endContent={
-                            <div className="pointer-events-none flex items-center">
-                              <span className="text-small text-default-400">
-                                <ImUserPlus />
-                              </span>
-                            </div>
-                          }
-                          {...register('rol', {
-                            required: true,
-                          })}
-                        />
+              <div className="flex flex-col gap-1">
+                <Input
+                  type="text"
+                  label="Sub Área"
+                  placeholder="Sub área"
+                  labelPlacement="outside"
+                  size="sm"
+                  classNames={{
+                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
+                    label: 'text-xs font-medium text-slate-700',
+                  }}
+                  {...register('subarea', {
+                    required: true,
+                  })}
+                />
+                {errors.subarea && (
+                  <span className="text-[11px] text-red-600 font-medium">
+                    Sub área requerida
+                  </span>
+                )}
+              </div>
 
-                        {errors.rol && (
-                          <span className="errorMesageUserI">
-                            Rol es requerido
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
-                      <TimeInput
-                        label="Hora"
-                        labelPlacement="outside"
-                        value={hora}
-                        onChange={(value) => setHora(value)}
-                        startContent={
-                          <ClockCircleLinearIcon className="pointer-events-none flex-shrink-0 text-xl text-default-400" />
-                        }
-                      />
+              <div className="flex flex-col gap-1">
+                <Input
+                  type="text"
+                  label="Rol"
+                  placeholder="Rol"
+                  labelPlacement="outside"
+                  size="sm"
+                  classNames={{
+                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
+                    label: 'text-xs font-medium text-slate-700',
+                  }}
+                  endContent={
+                    <ImUserPlus className="text-slate-400 text-sm" />
+                  }
+                  {...register('rol', {
+                    required: true,
+                  })}
+                />
+                {errors.rol && (
+                  <span className="text-[11px] text-red-600 font-medium">
+                    Rol requerido
+                  </span>
+                )}
+              </div>
+            </div>
 
-                      <div className="mensajeR anchoP">
-                        <Select
-                          label="Programación"
-                          placeholder="Seleccione una Programación"
-                          labelPlacement="outside"
-                          className="max-w-xs"
-                          disableSelectorIconRotation
-                          selectorIcon={<SelectorIcon />}
-                          {...register('programacion', {
-                            required: true,
-                          })}
-                        >
-                          <SelectItem key="actual" value="actual">
-                            Fecha Actual
-                          </SelectItem>
-                          <SelectItem key="futura" value="futura">
-                            Fecha Futura
-                          </SelectItem>
-                          <SelectItem key="pasada" value="pasada">
-                            Fecha Pasada
-                          </SelectItem>
-                        </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <TimeInput
+                  label="Hora"
+                  labelPlacement="outside"
+                  size="sm"
+                  value={hora}
+                  onChange={(value) => setHora(value)}
+                  startContent={
+                    <ClockCircleLinearIcon className="pointer-events-none flex-shrink-0 text-base text-slate-400" />
+                  }
+                  classNames={{
+                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
+                    label: 'text-xs font-medium text-slate-700',
+                  }}
+                />
+              </div>
 
-                        {errors.programacion && (
-                          <span className="errorMesageUserI">
-                            Programación es requerido
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </ModalBody>
+              <div className="flex flex-col gap-1">
+                <Select
+                  label="Programación"
+                  placeholder="Seleccione Programación"
+                  labelPlacement="outside"
+                  size="sm"
+                  className="w-full"
+                  classNames={{
+                    trigger: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
+                    label: 'text-xs font-medium text-slate-700',
+                  }}
+                  disableSelectorIconRotation
+                  selectorIcon={<SelectorIcon />}
+                  {...register('programacion', {
+                    required: true,
+                  })}
+                >
+                  <SelectItem key="actual" value="actual" className="text-xs">
+                    Fecha Actual
+                  </SelectItem>
+                  <SelectItem key="futura" value="futura" className="text-xs">
+                    Fecha Futura
+                  </SelectItem>
+                  <SelectItem key="pasada" value="pasada" className="text-xs">
+                    Fecha Pasada
+                  </SelectItem>
+                </Select>
 
-                <ModalFooter>
-                  <Button color="danger" onPress={onClose}>
-                    Cerrar
-                    <IoMdCloseCircle size={16} />
-                  </Button>
-                  <Button
-                    color="primary"
-                    type="submit"
-                    isDisabled={isSubmitting}
-                  >
-                    Guardar
-                    <IoSave size={16} />
-                  </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
+                {errors.programacion && (
+                  <span className="text-[11px] text-red-600 font-medium">
+                    Programación requerida
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </form>
-      </Modal>
+      </BaseModal>
     </>
   );
 }

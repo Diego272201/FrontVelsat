@@ -1,21 +1,10 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  useDisclosure,
-  useDraggable,
-  Input,
-  Select,
-  SelectItem,
-} from '@nextui-org/react';
-import { Plus, Search, Trash2, Save, Plane, User } from 'lucide-react';
+import { useDisclosure, Button } from '@nextui-org/react';
+import { Plus, Search, Trash2, Plane, User } from 'lucide-react';
 import { toast } from 'sonner';
 import PasajeroAutocompleteInput from './PasajeroAutocompleteInputProps';
 import { useUsername } from '@/hooks/useUsername';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 interface ModalAddServiceProps {
   onServiceAdded?: () => void;
@@ -24,13 +13,7 @@ interface ModalAddServiceProps {
 export default function ModalAddService({
   onServiceAdded,
 }: ModalAddServiceProps) {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const targetRef = React.useRef(null);
-  const { moveProps } = useDraggable({
-    targetRef,
-    canOverflow: true,
-    isDisabled: !isOpen,
-  });
+  const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
 
   const [formData, setFormData] = useState({
     numero: '',
@@ -328,291 +311,237 @@ export default function ModalAddService({
     <>
       <button
         onClick={onOpen}
-        className="flex flex-1 items-center justify-center gap-1 rounded-md bg-green-600 px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-green-700"
+        className="flex flex-1 items-center justify-center gap-1 rounded-md bg-brandSecondary px-3 py-[12px] text-xs font-medium leading-none text-white transition-colors hover:bg-brandSecondary-hover"
       >
         <Plus className="h-3 w-3" />
         Nuevo Servicio
       </button>
 
-      <Modal
-        ref={targetRef}
+      <BaseModal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        size="5xl"
-        scrollBehavior="inside"
-        isDismissable={!isLoading}
-        classNames={{
-          base: 'bg-white',
-          header: 'border-b border-gray-200',
-          body: 'py-6',
-          footer: 'border-t border-gray-200',
-        }}
+        onClose={onClose}
+        title="Ingreso de Nuevo Servicio"
+        subtitle="Complete la información y agregue los pasajeros"
+        icon={<Plane className="h-4 w-4 text-blue-600" />}
+        iconBgColor="bg-blue-100"
+        size="3xl"
+        confirmText="Guardar Servicio"
+        onConfirm={() => handleGuardar(onClose)}
+        isLoading={isLoading}
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader {...moveProps} className="flex flex-col gap-1">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-100 p-2">
-                    <Plane className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-800">
-                      Ingreso de Nuevo Servicio
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Complete la información y agregue los pasajeros
-                    </p>
-                  </div>
-                </div>
-              </ModalHeader>
+        <div className="space-y-3">
+          {/* Información del Vuelo */}
+          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
+            <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-700">
+              Información del Vuelo
+            </h3>
 
-              <ModalBody>
-                <div className="space-y-6">
-                  {/* Información del Vuelo */}
-                  <div className="rounded-lg bg-gray-50 p-4">
-                    <h3 className="mb-4 text-lg font-semibold text-gray-800">
-                      Información del Vuelo
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <Input
-                        label="Número"
-                        placeholder="Ingrese el número de vuelo"
-                        value={formData.numero}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({ ...prev, numero: value }))
-                        }
-                        variant="bordered"
-                        size="md"
-                        isRequired
-                        classNames={{
-                          input: 'text-center font-semibold',
-                          label: 'text-gray-700 font-medium',
-                        }}
-                      />
+            {/* Fila 1: Datos principales */}
+            <div className="grid grid-cols-12 gap-2">
+              <div className="col-span-3">
+                <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                  Número <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="N° Vuelo"
+                  value={formData.numero}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, numero: e.target.value }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              </div>
 
-                      <Select
-                        label="Aire/Tierra"
-                        placeholder="Seleccione tipo"
-                        selectedKeys={[formData.aireTierra]}
-                        onSelectionChange={(keys) => {
-                          const selected = Array.from(keys)[0] as string;
-                          setFormData((prev) => ({
-                            ...prev,
-                            aireTierra: selected,
-                          }));
-                        }}
-                        variant="bordered"
-                        size="md"
-                        isRequired
-                        classNames={{
-                          label: 'text-gray-700 font-medium',
-                        }}
-                      >
-                        {aireTierraOptions.map((option) => (
-                          <SelectItem key={option.key} value={option.key}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </Select>
-
-                      <Select
-                        label="Tipo"
-                        placeholder="Seleccione tipo"
-                        selectedKeys={[formData.tipo]}
-                        onSelectionChange={(keys) => {
-                          const selected = Array.from(keys)[0] as string;
-                          setFormData((prev) => ({ ...prev, tipo: selected }));
-                        }}
-                        variant="bordered"
-                        size="md"
-                        isRequired
-                        classNames={{
-                          label: 'text-gray-700 font-medium',
-                        }}
-                      >
-                        {tipoOptions.map((option) => (
-                          <SelectItem key={option.key} value={option.key}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-1 items-end gap-4 md:grid-cols-3">
-                      <div className="relative">
-                        <label
-                          htmlFor="horaAeropuerto"
-                          className="mb-2 block text-sm font-medium text-gray-500"
-                        >
-                          Hora Aeropuerto{' '}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          id="horaAeropuerto"
-                          type="datetime-local"
-                          value={formData.horaAeropuerto}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              horaAeropuerto: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-gray-900 transition-all duration-200 hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                          placeholder="dd/mm/yyyy --:-- --"
-                          required
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <label
-                          htmlFor="horaProgramada"
-                          className="mb-2 block text-sm font-medium text-gray-500"
-                        >
-                          Hora Programada{' '}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          id="horaProgramada"
-                          type="datetime-local"
-                          value={formData.horaProgramada}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              horaProgramada: e.target.value,
-                            }))
-                          }
-                          className="w-full rounded-lg border-2 border-gray-300 bg-white px-3 py-2 text-gray-900 transition-all duration-200 hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                          placeholder="dd/mm/yyyy --:-- --"
-                          required
-                        />
-                      </div>
-
-                      <Select
-                        label="Aerolínea"
-                        placeholder="Seleccione aerolínea"
-                        selectedKeys={[formData.aerolinea]}
-                        onSelectionChange={(keys) => {
-                          const selected = Array.from(keys)[0] as string;
-                          setFormData((prev) => ({
-                            ...prev,
-                            aerolinea: selected,
-                          }));
-                        }}
-                        variant="bordered"
-                        size="md"
-                        isRequired
-                        classNames={{
-                          label: 'text-gray-700 font-medium',
-                        }}
-                      >
-                        {getAerolineaOptions().map((option) => (
-                          <SelectItem key={option.key} value={option.key}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Buscar Pasajero */}
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <div className="mb-4 flex items-center gap-2">
-                      <Search className="h-5 w-5 text-blue-600" />
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Buscar Pasajero
-                      </h3>
-                    </div>
-
-                    <PasajeroAutocompleteInput
-                      placeholder="Ingresa el nombre del pasajero..."
-                      onSelectPasajero={handleSelectPasajero}
-                      onManualInput={handleManualInput}
-                      showSearchIcon={false}
-                      allowManualEntry={true}
-                      variant="nextui"
-                      className="w-full"
-                    />
-                  </div>
-
-                  {/* Lista de Pasajeros */}
-                  <div className="rounded-lg bg-gray-50 p-4">
-                    <h3 className="mb-4 text-lg font-semibold text-gray-800">
-                      Lista de Pasajeros ({pasajeros.length})
-                    </h3>
-
-                    {pasajeros.length === 0 ? (
-                      <div className="py-8 text-center text-gray-500">
-                        <User className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-                        <p>No hay pasajeros agregados</p>
-                        <p className="text-sm">
-                          Use el campo de búsqueda para agregar pasajeros
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {pasajeros.map((pasajero, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                                <span className="text-sm font-semibold text-blue-600">
-                                  {index + 1}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-800">
-                                  {pasajero}
-                                </span>
-                                <div className="text-xs text-gray-500">
-                                  Código: {codigosPasajeros[index]?.codigo} |
-                                  Lugar: {codigosPasajeros[index]?.codlugar}
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              isIconOnly
-                              color="danger"
-                              variant="light"
-                              onPress={() => eliminarPasajero(index)}
-                              className="h-8 min-w-8"
-                              isDisabled={isLoading}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </ModalBody>
-
-              <ModalFooter>
-                <Button
-                  color="danger"
-                  variant="light"
-                  onPress={onClose}
-                  isDisabled={isLoading}
+              <div className="col-span-3">
+                <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                  Aire/Tierra <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.aireTierra}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      aireTierra: e.target.value,
+                    }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
                 >
-                  Cancelar
-                </Button>
-                <Button
-                  color="success"
-                  onPress={() => handleGuardar(onClose)}
-                  startContent={isLoading ? null : <Save className="h-4 w-4" />}
-                  isLoading={isLoading}
-                  isDisabled={isLoading}
+                  <option value="">Seleccionar</option>
+                  {aireTierraOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-span-3">
+                <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                  Tipo <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.tipo}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, tipo: e.target.value }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
                 >
-                  {isLoading ? 'Guardando...' : 'Guardar Servicio'}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+                  <option value="">Seleccionar</option>
+                  {tipoOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-span-3">
+                <label className="mb-1 block text-[11px] font-medium text-slate-600">
+                  Aerolínea <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.aerolinea}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      aerolinea: e.target.value,
+                    }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Seleccionar</option>
+                  {getAerolineaOptions().map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Fila 2: Fechas y Horas */}
+            <div className="mt-2 grid grid-cols-12 gap-2">
+              <div className="col-span-6">
+                <label
+                  htmlFor="horaAeropuerto"
+                  className="mb-1 block text-[11px] font-medium text-slate-600"
+                >
+                  Hora Aeropuerto <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="horaAeropuerto"
+                  type="datetime-local"
+                  value={formData.horaAeropuerto}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      horaAeropuerto: e.target.value,
+                    }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="col-span-6">
+                <label
+                  htmlFor="horaProgramada"
+                  className="mb-1 block text-[11px] font-medium text-slate-600"
+                >
+                  Hora Programada <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="horaProgramada"
+                  type="datetime-local"
+                  value={formData.horaProgramada}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      horaProgramada: e.target.value,
+                    }))
+                  }
+                  className="h-8 w-full rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-800 transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Buscar Pasajero */}
+          <div className="rounded-md border border-blue-200 bg-blue-50/50 p-2.5">
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5 text-blue-600" />
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-blue-900">
+                Buscar Pasajero
+              </h3>
+            </div>
+
+            <PasajeroAutocompleteInput
+              placeholder="Ingresa el nombre del pasajero..."
+              onSelectPasajero={handleSelectPasajero}
+              onManualInput={handleManualInput}
+              showSearchIcon={false}
+              allowManualEntry={true}
+              variant="nextui"
+              size="sm"
+              className="w-full"
+            />
+          </div>
+
+          {/* Lista de Pasajeros */}
+          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-2.5">
+            <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-700">
+              Lista de Pasajeros ({pasajeros.length})
+            </h3>
+
+            {pasajeros.length === 0 ? (
+              <div className="py-3 text-center text-slate-400">
+                <User className="mx-auto mb-1 h-5 w-5 text-slate-300" />
+                <p className="text-[11px]">No hay pasajeros agregados</p>
+              </div>
+            ) : (
+              <div className="max-h-[150px] space-y-1 overflow-y-auto pr-1">
+                {pasajeros.map((pasajero, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded border border-slate-200 bg-white px-2.5 py-1 transition-colors hover:bg-slate-50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-800">
+                          {pasajero}
+                        </span>
+                        <span className="ml-2 text-[10px] text-slate-500">
+                          (Cód: {codigosPasajeros[index]?.codigo} | Lugar: {codigosPasajeros[index]?.codlugar})
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      isIconOnly
+                      color="danger"
+                      variant="light"
+                      size="sm"
+                      onPress={() => eliminarPasajero(index)}
+                      className="h-6 min-w-6 w-6 p-0"
+                      isDisabled={isLoading}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </BaseModal>
     </>
   );
 }

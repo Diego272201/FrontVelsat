@@ -434,9 +434,8 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
             Cancelar
           </Button>
           <Button
-            color="primary"
             onPress={handleSubmit}
-            className="bg-blue-600 text-white"
+            className="bg-[#113eb9] hover:bg-blue-700 font-semibold text-white transition-colors"
             isDisabled={pasajerosSeleccionados.length === 0}
           >
             Crear Grupo ({pasajerosSeleccionados.length} pasajeros)

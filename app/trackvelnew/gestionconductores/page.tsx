@@ -174,7 +174,7 @@ export default function Page() {
             <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
               Conductores
             </h1>
-            <span className="bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            <span className="rounded-md bg-[#113EB9] px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {conductores.length}
             </span>
           </div>
@@ -186,7 +186,7 @@ export default function Page() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={loading}
-              className="block w-full border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50"
+              className="block w-full rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50"
             />
           </div>
 
@@ -208,13 +208,14 @@ export default function Page() {
               <p className="mb-3 text-[12px] text-gray-500">{error}</p>
               <button
                 onClick={fetchConductores}
-                className="bg-[#113EB9] px-4 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-blue-700"
+                className="rounded-md bg-[#113EB9] px-4 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-blue-700"
               >
+                Reintentar
               </button>
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
             <div className="max-h-[calc(100vh-80px)] overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-[#113eb9]">
@@ -265,7 +266,7 @@ export default function Page() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-1.5 text-[12px] text-gray-600">
                         {conductor.tipo ? (
-                          <span className="inline-block bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[#113EB9]">
+                          <span className="inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[#113EB9]">
                             {conductor.tipo}
                           </span>
                         ) : (
@@ -282,7 +283,7 @@ export default function Page() {
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <button
-                                className="inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                                className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                                 disabled={eliminandoLoading === conductor.id}
                               >
                                 {eliminandoLoading === conductor.id ? (
@@ -320,7 +321,7 @@ export default function Page() {
                                 '_blank',
                               )
                             }
-                            className="inline-flex h-7 items-center gap-1 border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
                           >
                             <FileCheck size={12} />
                             Documentos

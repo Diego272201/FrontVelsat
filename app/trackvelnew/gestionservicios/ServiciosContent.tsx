@@ -230,6 +230,8 @@ export default function Page() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchPasajeros = async () => {
       if (!isReady || pasajero.length < 1) {
         setSugerencias([]);
@@ -238,7 +240,8 @@ export default function Page() {
 
       try {
         const response = await axios.get(
-          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${pasajero}&codusuario=${username}`,
+          `${API_BASE_URL125}/api/Preplan/GetPasajeros?palabra=${encodeURIComponent(pasajero)}&codusuario=${username}`,
+          { signal: controller.signal },
         );
 
         const resultados = response.data.map((item: any) => ({
@@ -248,7 +251,9 @@ export default function Page() {
 
         setSugerencias(resultados);
       } catch (error) {
-        console.error('Error al obtener pasajeros:', error);
+        if (!axios.isCancel(error)) {
+          setSugerencias([]);
+        }
       }
     };
 
@@ -256,7 +261,10 @@ export default function Page() {
       fetchPasajeros();
     }, 300);
 
-    return () => clearTimeout(delayDebounce);
+    return () => {
+      clearTimeout(delayDebounce);
+      controller.abort();
+    };
   }, [pasajero, seleccionado, username, isReady]);
 
   const seleccionarPasajero = (nombre: string, codlan: string) => {
@@ -285,6 +293,7 @@ export default function Page() {
     setNumeroServicio('');
     setUnidadSeleccionada('');
     setPasajeroCodlan(null);
+    setSelectedServices([]);
 
     toast('Filtros reseteados', {
       style: {
@@ -329,6 +338,7 @@ export default function Page() {
       setUnidadSeleccionadaAsignar('');
       setApepateConductor('');
       setCodConductor(null);
+      setSelectedServices([]);
     } catch (error) {
       toast.error('Error al enviar la asignación.');
     }
@@ -360,6 +370,7 @@ export default function Page() {
       });
 
       toast.success('Eliminado con éxito.');
+      setSelectedServices([]);
       setRefreshFlag((prev) => !prev);
     } catch (error) {
       toast.error('Error al eliminar el servicio.');
@@ -375,7 +386,7 @@ export default function Page() {
     return `${year}-${month}-${day} ${hora}`;
   };
 
-  const handleDescarga = () => {
+  const handleDescarga = async () => {
     if (!selectedDate || !empresaSelecRes) {
       toast.error('Falta seleccionar fecha y/o empresa');
       return;
@@ -386,21 +397,29 @@ export default function Page() {
     const fecfin = encodeURIComponent(fecfinRaw);
     const aerolinea = empresaSelecRes;
 
-    const url = `${API_BASE_URL125}/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=${username}`;
+    const url = `${API_BASE_URL125}/api/Preplan/ServiciosExcel?fecini=${fecini}&fecfin=${fecfin}&aerolinea=${aerolinea}&usuario=${username || ''}`;
 
     const toastId = toast.loading('Generando resumen...');
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `Resumen_${aerolinea}_${selectedDate}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
 
-    setTimeout(() => {
       toast.dismiss(toastId);
-      toast.success('Resumen descargado');
-    }, 5000);
+      toast.success('Resumen descargado exitosamente');
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('No hay datos para la fecha y empresa seleccionadas.');
+    }
   };
 
   useEffect(() => {
@@ -468,12 +487,14 @@ export default function Page() {
       const res = await fetch(url);
       if (!res.ok) throw new Error();
       const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = downloadUrl;
       link.download = `Reporte_${conductorSeleccionado.apellidos}_${formatF(fechaConductorIni)}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
       toast.dismiss(toastId);
       toast.success('Reporte descargado');
     } catch {
@@ -523,14 +544,16 @@ export default function Page() {
       const res = await fetch(url);
       if (!res.ok) throw new Error();
       const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = downloadUrl;
       link.download = usarRangoConductor
         ? `Reporte_Todos_${formatF(fechaConductorIni)}_al_${formatF(fechaConductorFin)}.xlsx`
         : `Reporte_Todos_${formatF(fechaConductorIni)}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
 
       toast.dismiss(toastId);
       toast.success('Reporte descargado');
@@ -561,12 +584,14 @@ export default function Page() {
       );
       if (!res.ok) throw new Error();
       const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = window.URL.createObjectURL(blob);
+      link.href = downloadUrl;
       link.download = `Resumen_Mensual_${mesMensual}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
       toast.dismiss(toastId);
       toast.success('Resumen descargado');
     } catch {
@@ -623,754 +648,667 @@ export default function Page() {
     }
   };
 
-  useEffect(() => {
-    console.log('Nuevo valor de UnidadSeleccionado:', unidadSeleccionada);
-  }, [unidadSeleccionada]);
-
-  useEffect(() => {
-    console.log('Nuevo valor de ccodigosServicios:', selectedServices);
-  }, [selectedServices]);
-
   return (
     <div className="containerTep">
       <Toaster richColors />
       <div>
-        <div className="cabecera sticky top-0 z-50 py-1">
-          <div className="progressAndTitle">
-            <div className="contenedorcabecera">
-              <span className="titulocabecera text-[13px]">
-                CONTROL DE SERVICIOS
-              </span>
+        <div className="sticky top-0 z-50 border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+                <div className="h-5 w-1 bg-brandPrimary"></div>
+                <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+                  Control de Servicios
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onOpen}
+                  className="flex items-center gap-1.5 rounded-md bg-brandSecondary px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-brandSecondary-hover"
+                >
+                  <MdNewLabel size={14} color="#ffffff" />
+                  Nuevo Servicio
+                </button>
+
+                <ModalNuevoServicio
+                  isOpen={isOpen}
+                  onOpenChange={onOpenChange}
+                  onServicioAgregado={() =>
+                    setRefreshFlagServicio((prev) => !prev)
+                  }
+                />
+
+                <button
+                  className="flex items-center gap-1.5 rounded-md bg-brandPrimary px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-brandPrimary-hover"
+                  onClick={() => setIsVisibleAsignar((prev) => !prev)}
+                >
+                  <MdDesignServices size={14} color="#ffffff" />
+                  Asignar Servicio
+                </button>
+              </div>
             </div>
-            <div className="h-[30px] w-px bg-white"></div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={onOpen}
-                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-400"
-              >
-                <MdNewLabel size={20} color="#343a40" />
-                Nuevo Servicio
-              </button>
-
-              <ModalNuevoServicio
-                isOpen={isOpen}
-                onOpenChange={onOpenChange}
-                onServicioAgregado={() =>
-                  setRefreshFlagServicio((prev) => !prev)
-                }
-              />
-
-              <button
-                className="flex cursor-pointer items-center gap-2 rounded bg-[#f3ae24] px-4 py-1 text-[12px] font-medium text-[#2d2d2e] transition-all duration-200 ease-in hover:bg-orange-200"
-                onClick={() => setIsVisibleAsignar((prev) => !prev)}
-              >
-                <MdDesignServices size={20} color="#343a40" />
-                Asignar Servicio
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                Filtros
+              </span>
+              <label className="inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  onChange={toggleContent}
+                  checked={isVisible}
+                />
+                <div className="peer relative h-5 w-9 rounded-full bg-gray-300 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#113EB9] peer-checked:after:translate-x-4 peer-checked:after:border-white"></div>
+              </label>
             </div>
           </div>
-          <label className="inline-flex cursor-pointer items-center px-2">
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              onChange={toggleContent}
-              checked={isVisible}
-            />
-            <div
-              className="peer relative h-6 bg-gray-200 ring-0 after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-md after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-orange-500 peer-checked:after:translate-x-[32px] peer-checked:after:border-white rtl:peer-checked:after:-translate-x-[32px] dark:border-gray-600 dark:bg-gray-400 dark:peer-checked:bg-orange-500"
-              style={{ width: '58px', borderRadius: '6px' }}
-            ></div>
-          </label>
         </div>
 
         {isVisible && (
-          <div id="contenido" className="mx-2 space-y-3">
-            {/* Fecha a Consultar + Reporte Diferencias de Tiempo - Separados */}
-            <div className="flex gap-3">
-              {/* Fecha a Consultar */}
+          <div id="contenido-filtros" className="border-b border-gray-200 bg-[#f8fafc] p-2.5 flex flex-col gap-2 w-full">
+            {/* FILAS 1 A 3 (50% / 50%) */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 w-full">
+              {/* FILA 1 - COLUMNA 1 (50%): FECHA A CONSULTAR */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  FECHA
+                </span>
+                <input
+                  type="date"
+                  className="h-8 w-[120px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  value={selectedDate || ''}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
 
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <HiCalendarDateRange className="h-4 w-4 text-blue-600" />
-                    Fecha a Consultar
-                  </span>
-                </div>
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandPrimary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandPrimary-hover"
+                  onClick={() => {
+                    setSearchDate(selectedDate);
+                    setRefreshSearch((prev) => prev + 1);
+                  }}
+                >
+                  <IoSearchSharp className="h-3.5 w-3.5" />
+                  Buscar
+                </button>
 
-                <div className="p-3">
-                  <div className="flex-space flex items-end gap-2">
-                    <input
-                      type="date"
-                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      value={selectedDate || ''}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                    />
+                <button
+                  className="inline-flex h-8 items-center rounded-md bg-red-600 px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-red-700"
+                  onClick={() => {
+                    setSelectedDate(null);
+                    setSearchDate(null);
+                    setRefreshSearch((prev) => prev + 1);
+                  }}
+                >
+                  Actual
+                </button>
 
-                    <button
-                      className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95"
-                      onClick={() => {
-                        setSearchDate(selectedDate);
-                        setRefreshSearch((prev) => prev + 1);
-                      }}
-                    >
-                      <IoSearchSharp className="h-3 w-3" />
-                      Buscar
-                    </button>
+                <select
+                  id="empresas"
+                  className="h-8 w-[130px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  value={empresaSelecRes}
+                  onChange={(e) => setEmpresaSelecRes(e.target.value)}
+                >
+                  <option value="">Seleccione Empresa</option>
+                  {(username && username.toLowerCase() !== 'movilbus'
+                    ? empresasG
+                    : empresas
+                  ).map((empresa, index) => (
+                    <option key={index} value={empresa}>
+                      {empresa}
+                    </option>
+                  ))}
+                </select>
 
-                    <button
-                      className="rounded-md bg-gray-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-gray-700 active:scale-95"
-                      onClick={() => {
-                        setSelectedDate(null);
-                        setSearchDate(null);
-                        setRefreshSearch((prev) => prev + 1);
-                      }}
-                    >
-                      Actual
-                    </button>
-
-                    <select
-                      id="empresas"
-                      className="w-[180px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      value={empresaSelecRes}
-                      onChange={(e) => setEmpresaSelecRes(e.target.value)}
-                    >
-                      <option value="">Seleccione Empresa</option>
-                      {(username && username.toLowerCase() !== 'movilbus'
-                        ? empresasG
-                        : empresas
-                      ).map((empresa, index) => (
-                        <option key={index} value={empresa}>
-                          {empresa}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-700 active:scale-95"
-                      onClick={handleDescarga}
-                    >
-                      <FaClipboard className="h-3 w-3" />
-                      Resumen
-                    </button>
-                  </div>
-                </div>
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover ml-auto"
+                  onClick={handleDescarga}
+                >
+                  <FaClipboard className="h-3.5 w-3.5" />
+                  Resumen
+                </button>
               </div>
 
-              {/* Reporte Diferencias de Tiempo */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <HiClock className="h-4 w-4 text-indigo-600" />
-                    Reporte Diferencias de Tiempo
-                  </span>
-                </div>
-
-                <div className="p-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    <input
-                      type="datetime-local"
-                      className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-                      placeholder="Fecha Inicial"
-                      value={fechaInicial || ''}
-                      onChange={(e) => setFechaInicial(e.target.value)}
-                    />
-
-                    <input
-                      type="datetime-local"
-                      className="w-[155px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-                      placeholder="Fecha Final"
-                      value={fechaFinal || ''}
-                      onChange={(e) => setFechaFinal(e.target.value)}
-                    />
-
-                    <select
-                      id="tipoReporte"
-                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
-                      value={tipoReporte}
-                      onChange={(e) => setTipoReporte(e.target.value)}
-                    >
-                      <option value="">Tipo</option>
-                      <option value="RECOJO">Recojo</option>
-                      <option value="REPARTO">Reparto</option>
-                    </select>
-
-                    <button
-                      className="flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-orange-700 active:scale-95"
-                      onClick={handleGenerarReporte}
-                    >
-                      <HiDocumentReport className="h-3 w-3" />
-                      Generar
-                    </button>
-                  </div>
-                </div>
+              {/* FILA 1 - COLUMNA 2 (50%): CARGA LATAM */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  CARGA LATAM
+                </span>
+                <input
+                  type="date"
+                  className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  value={fechaLatam}
+                  onChange={(e) => setFechaLatam(e.target.value)}
+                />
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover ml-auto"
+                  onClick={() => {
+                    if (!fechaLatam) {
+                      toast.error('Seleccione una fecha');
+                      return;
+                    }
+                    setIsModalLatamOpen(true);
+                  }}
+                >
+                  <HiDocumentReport className="h-3.5 w-3.5" />
+                  Completar
+                </button>
               </div>
-            </div>
 
-            {/* Reporte Latam + Servicios por conductor - lado a lado */}
-            <div className="flex gap-3">
-              {/* Reporte Latam */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <FaClipboard className="h-4 w-4 text-blue-600" />
-                    Completar servicios Latam
-                  </span>
+              {/* FILA 2 - COLUMNA 1 (50%): REPORTE DIFERENCIAS DE TIEMPO */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  DIFERENCIAS TIEMPO
+                </span>
+                <input
+                  type="datetime-local"
+                  className="h-8 w-[135px] rounded-md border border-gray-200 bg-white px-1.5 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  placeholder="Fecha Inicial"
+                  value={fechaInicial || ''}
+                  onChange={(e) => setFechaInicial(e.target.value)}
+                />
+
+                <input
+                  type="datetime-local"
+                  className="h-8 w-[135px] rounded-md border border-gray-200 bg-white px-1.5 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  placeholder="Fecha Final"
+                  value={fechaFinal || ''}
+                  onChange={(e) => setFechaFinal(e.target.value)}
+                />
+
+                <select
+                  id="tipoReporte"
+                  className="h-8 w-[80px] rounded-md border border-gray-200 bg-white px-1 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  value={tipoReporte}
+                  onChange={(e) => setTipoReporte(e.target.value)}
+                >
+                  <option value="">Tipo</option>
+                  <option value="RECOJO">Recojo</option>
+                  <option value="REPARTO">Reparto</option>
+                </select>
+
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover ml-auto"
+                  onClick={handleGenerarReporte}
+                >
+                  <HiDocumentReport className="h-3.5 w-3.5" />
+                  Generar
+                </button>
+              </div>
+
+              {/* FILA 2 - COLUMNA 2 (50%): SERVICIOS POR CONDUCTOR */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  POR CONDUCTOR
+                </span>
+
+                <div className="relative w-[145px]" ref={conductorDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder="Buscar conductor..."
+                    value={conductorSearch}
+                    onChange={(e) => {
+                      if (reporteTodos) return;
+                      setConductorSearch(e.target.value);
+                      setShowConductorDropdown(true);
+                      if (!e.target.value) setConductorSeleccionado(null);
+                    }}
+                    onFocus={() => {
+                      if (!reporteTodos) setShowConductorDropdown(true);
+                    }}
+                    disabled={reporteTodos}
+                    className={`h-8 w-full rounded-md border px-2 pr-7 text-[11px] focus:outline-none ${
+                      reporteTodos
+                        ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
+                        : 'border-gray-200 bg-white focus:border-[#113EB9]'
+                    }`}
+                    autoComplete="off"
+                  />
+                  <IoSearchSharp className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  {showConductorDropdown &&
+                    conductorSearch &&
+                    !reporteTodos &&
+                    conductores.filter((c) =>
+                      c.apellidos
+                        .toLowerCase()
+                        .includes(conductorSearch.toLowerCase()),
+                    ).length > 0 && (
+                      <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                        {conductores
+                          .filter((c) =>
+                            c.apellidos
+                              .toLowerCase()
+                              .includes(conductorSearch.toLowerCase()),
+                          )
+                          .map((c) => (
+                            <li
+                              key={c.codigo}
+                              className="cursor-pointer px-3 py-1.5 text-[11px] hover:bg-blue-50"
+                              onMouseDown={() => {
+                                setConductorSeleccionado(c);
+                                setConductorSearch(c.apellidos);
+                                setShowConductorDropdown(false);
+                              }}
+                            >
+                              <span className="font-medium">{c.apellidos}</span>
+                              <span className="ml-2 text-gray-400">
+                                DNI: {c.dni}
+                              </span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
                 </div>
-                <div className="p-3">
-                  <div className="flex items-end gap-2">
+
+                <input
+                  type="date"
+                  value={fechaConductorIni}
+                  onChange={(e) => setFechaConductorIni(e.target.value)}
+                  className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                />
+
+                {usarRangoConductor && (
+                  <input
+                    type="date"
+                    value={fechaConductorFin}
+                    onChange={(e) => setFechaConductorFin(e.target.value)}
+                    className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                  />
+                )}
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-gray-600 font-medium">Rango</span>
+                  <label className="relative inline-flex cursor-pointer items-center">
                     <input
-                      type="date"
-                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] transition-colors hover:border-gray-400 focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500/20"
-                      value={fechaLatam}
-                      onChange={(e) => setFechaLatam(e.target.value)}
-                    />
-                    <button
-                      className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-800 active:scale-95"
-                      onClick={() => {
-                        if (!fechaLatam) {
-                          toast.error('Seleccione una fecha');
-                          return;
-                        }
-                        setIsModalLatamOpen(true);
+                      type="checkbox"
+                      checked={usarRangoConductor}
+                      onChange={(e) => {
+                        setUsarRangoConductor(e.target.checked);
+                        if (!e.target.checked) setFechaConductorFin('');
                       }}
-                    >
-                      <HiDocumentReport className="h-3 w-3" />
-                      Completar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Servicios por conductor */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-indigo-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <HiTruck className="h-4 w-4 text-indigo-600" />
-                    Servicios por conductor
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    {/* Selector conductor - deshabilitado si reporteTodos */}
-                    <div
-                      className="relative w-[200px]"
-                      ref={conductorDropdownRef}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Buscar conductor..."
-                        value={conductorSearch}
-                        onChange={(e) => {
-                          if (reporteTodos) return;
-                          setConductorSearch(e.target.value);
-                          setShowConductorDropdown(true);
-                          if (!e.target.value) setConductorSeleccionado(null);
-                        }}
-                        onFocus={() => {
-                          if (!reporteTodos) setShowConductorDropdown(true);
-                        }}
-                        disabled={reporteTodos}
-                        className={`w-full rounded-md border px-2 py-2 pr-7 text-[11px] focus:outline-none ${
-                          reporteTodos
-                            ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
-                            : 'border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
-                        }`}
-                        autoComplete="off"
-                      />
-                      <IoSearchSharp className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
-                      {showConductorDropdown &&
-                        conductorSearch &&
-                        !reporteTodos &&
-                        conductores.filter((c) =>
-                          c.apellidos
-                            .toLowerCase()
-                            .includes(conductorSearch.toLowerCase()),
-                        ).length > 0 && (
-                          <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                            {conductores
-                              .filter((c) =>
-                                c.apellidos
-                                  .toLowerCase()
-                                  .includes(conductorSearch.toLowerCase()),
-                              )
-                              .map((c) => (
-                                <li
-                                  key={c.codigo}
-                                  className="cursor-pointer px-3 py-2 text-[11px] hover:bg-indigo-50"
-                                  onMouseDown={() => {
-                                    setConductorSeleccionado(c);
-                                    setConductorSearch(c.apellidos);
-                                    setShowConductorDropdown(false);
-                                  }}
-                                >
-                                  <span className="font-medium">
-                                    {c.apellidos}
-                                  </span>
-                                  <span className="ml-2 text-gray-400">
-                                    DNI: {c.dni}
-                                  </span>
-                                </li>
-                              ))}
-                          </ul>
-                        )}
-                    </div>
-
-                    {/* Fecha inicio */}
-                    <input
-                      type="date"
-                      value={fechaConductorIni}
-                      onChange={(e) => setFechaConductorIni(e.target.value)}
-                      className="w-[140px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
+                      className="peer sr-only"
                     />
+                    <div className="peer relative h-4 w-7 rounded-full bg-gray-400 after:absolute after:left-0.5 after:top-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#113EB9] peer-checked:after:translate-x-3"></div>
+                  </label>
+                </div>
 
-                    {/* Fecha fin - deshabilitada si no hay rango*/}
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-gray-600 font-medium">Todos</span>
+                  <label className="relative inline-flex cursor-pointer items-center">
                     <input
-                      type="date"
-                      value={fechaConductorFin}
-                      onChange={(e) => setFechaConductorFin(e.target.value)}
-                      disabled={!usarRangoConductor}
-                      className={`w-[140px] rounded-md border px-2 py-1.5 text-[11px] focus:outline-none ${
-                        usarRangoConductor
-                          ? 'border-gray-300 bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20'
-                          : 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400 opacity-50'
-                      }`}
-                    />
-
-                    {/* Switch Rango*/}
-                    <div className="flex items-center gap-1.5 pb-1">
-                      <span className="text-[10px] text-gray-500">Rango</span>
-                      <label className="relative inline-flex cursor-pointer items-center">
-                        <input
-                          type="checkbox"
-                          checked={usarRangoConductor}
-                          onChange={(e) => {
-                            setUsarRangoConductor(e.target.checked);
-                            if (!e.target.checked) setFechaConductorFin('');
-                          }}
-                          className="peer sr-only"
-                        />
-                        <div className="peer relative h-5 w-9 rounded-full bg-rose-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-500 peer-checked:after:translate-x-4"></div>
-                      </label>
-                    </div>
-
-                    {/* Switch Todos */}
-                    <div className="flex items-center gap-1.5 pb-1">
-                      <span className="text-[10px] text-gray-500">Todos</span>
-                      <label className="relative inline-flex cursor-pointer items-center">
-                        <input
-                          type="checkbox"
-                          checked={reporteTodos}
-                          onChange={(e) => {
-                            setReporteTodos(e.target.checked);
-                            if (e.target.checked) {
-                              setConductorSeleccionado(null);
-                              setConductorSearch('');
-                            } else {
-                              setUsarRangoConductor(false);
-                              setFechaConductorFin('');
-                            }
-                          }}
-                          className="peer sr-only"
-                        />
-                        <div className="peer relative h-5 w-9 rounded-full bg-rose-400 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-4"></div>
-                      </label>
-                    </div>
-
-                    {/* Botón Generar Reporte */}
-                    <button
-                      onClick={() => {
-                        if (!reporteTodos && !conductorSeleccionado) {
-                          toast.error('Seleccione un conductor');
-                          return;
-                        }
-                        if (!fechaConductorIni) {
-                          toast.error('Seleccione la fecha de inicio');
-                          return;
-                        }
-                        if (usarRangoConductor && !fechaConductorFin) {
-                          toast.error('Ingrese la fecha fin');
-                          return;
-                        }
-                        if (reporteTodos) {
-                          handleGenerarReporteTodos();
+                      type="checkbox"
+                      checked={reporteTodos}
+                      onChange={(e) => {
+                        setReporteTodos(e.target.checked);
+                        if (e.target.checked) {
+                          setConductorSeleccionado(null);
+                          setConductorSearch('');
                         } else {
-                          handleGenerarReporteConductor();
+                          setUsarRangoConductor(false);
+                          setFechaConductorFin('');
                         }
                       }}
-                      disabled={descargandoConductor}
-                      className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
-                    >
-                      <HiDocumentReport className="h-3 w-3" />
-                      {descargandoConductor ? 'Generando...' : 'Generar'}
-                    </button>
-
-                    {/* Botón Administrar Horarios */}
-                    <button
-                      onClick={() => setIsModalHorariosOpen(true)}
-                      className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95"
-                    >
-                      <FaUserTie className="h-3 w-3" />
-                      Administrar Horarios
-                    </button>
-                  </div>
+                      className="peer sr-only"
+                    />
+                    <div className="peer relative h-4 w-7 rounded-full bg-gray-400 after:absolute after:left-0.5 after:top-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-[#113EB9] peer-checked:after:translate-x-3"></div>
+                  </label>
                 </div>
+
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <button
+                    onClick={() => {
+                      if (!reporteTodos && !conductorSeleccionado) {
+                        toast.error('Seleccione un conductor');
+                        return;
+                      }
+                      if (!fechaConductorIni) {
+                        toast.error('Seleccione la fecha de inicio');
+                        return;
+                      }
+                      if (usarRangoConductor && !fechaConductorFin) {
+                        toast.error('Ingrese la fecha fin');
+                        return;
+                      }
+                      if (reporteTodos) {
+                        handleGenerarReporteTodos();
+                      } else {
+                        handleGenerarReporteConductor();
+                      }
+                    }}
+                    disabled={descargandoConductor}
+                    className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover disabled:opacity-50"
+                  >
+                    <HiDocumentReport className="h-3.5 w-3.5" />
+                    {descargandoConductor ? 'Generando...' : 'Generar'}
+                  </button>
+
+                  <button
+                    onClick={() => setIsModalHorariosOpen(true)}
+                    className="inline-flex h-8 items-center gap-1 rounded-md bg-brandPrimary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandPrimary-hover"
+                  >
+                    <FaUserTie className="h-3.5 w-3.5" />
+                    Administrar Horarios
+                  </button>
+                </div>
+              </div>
+
+              {/* FILA 3 - COLUMNA 1 (50%): RESUMEN MENSUAL POR CONDUCTOR */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  RESUMEN MENSUAL
+                </span>
+                <input
+                  type="month"
+                  value={mesMensual}
+                  onChange={(e) => setMesMensual(e.target.value)}
+                  className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                />
+
+                <div className="relative w-[140px]" ref={conductorDropdownMensualRef}>
+                  <input
+                    type="text"
+                    placeholder="Conductor (opcional)..."
+                    value={conductorSearchMensual}
+                    onChange={(e) => {
+                      setConductorSearchMensual(e.target.value);
+                      setShowConductorDropdownMensual(true);
+                      if (!e.target.value) setConductorSeleccionadoMensual(null);
+                    }}
+                    onFocus={() => setShowConductorDropdownMensual(true)}
+                    className="h-8 w-full rounded-md border border-gray-200 bg-white px-2 pr-7 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                    autoComplete="off"
+                  />
+                  <IoSearchSharp className="absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  {showConductorDropdownMensual &&
+                    conductorSearchMensual &&
+                    conductores.filter((c) =>
+                      c.apellidos
+                        .toLowerCase()
+                        .includes(conductorSearchMensual.toLowerCase()),
+                    ).length > 0 && (
+                      <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
+                        {conductores
+                          .filter((c) =>
+                            c.apellidos
+                              .toLowerCase()
+                              .includes(conductorSearchMensual.toLowerCase()),
+                          )
+                          .map((c) => (
+                            <li
+                              key={c.codigo}
+                              className="cursor-pointer px-3 py-1.5 text-[11px] hover:bg-blue-50"
+                              onMouseDown={() => {
+                                setConductorSeleccionadoMensual(c);
+                                setConductorSearchMensual(c.apellidos);
+                                setShowConductorDropdownMensual(false);
+                              }}
+                            >
+                              <span className="font-medium">{c.apellidos}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                </div>
+
+                {conductorSeleccionadoMensual && (
+                  <button
+                    onClick={() => {
+                      setConductorSeleccionadoMensual(null);
+                      setConductorSearchMensual('');
+                    }}
+                    className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-[#113EB9] hover:bg-blue-200"
+                  >
+                    {conductorSeleccionadoMensual.apellidos} ✕
+                  </button>
+                )}
+
+                <button
+                  onClick={handleGenerarResumenMensual}
+                  disabled={descargandoMensual}
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover disabled:opacity-50 ml-auto"
+                >
+                  <HiDocumentReport className="h-3.5 w-3.5" />
+                  Generar
+                </button>
+              </div>
+
+              {/* FILA 3 - COLUMNA 2 (50%): REPORTE DE OBSERVACIONES */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  OBSERVACIONES
+                </span>
+                <input
+                  type="date"
+                  value={fechaInicioObservaciones}
+                  onChange={(e) => setFechaInicioObservaciones(e.target.value)}
+                  className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                />
+
+                <span className="text-[11px] text-gray-600 font-medium">a</span>
+
+                <input
+                  type="date"
+                  value={fechaFinObservaciones}
+                  onChange={(e) => setFechaFinObservaciones(e.target.value)}
+                  className="h-8 w-[115px] rounded-md border border-gray-200 bg-white px-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                />
+
+                <button
+                  onClick={handleGenerarReporteObservaciones}
+                  disabled={descargandoObservaciones}
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandSecondary-hover disabled:opacity-50 ml-auto"
+                >
+                  <HiDocumentReport className="h-3.5 w-3.5" />
+                  Generar
+                </button>
               </div>
             </div>
 
-            {/* Resumen Mensual por Conductor + Reporte de Observaciones - lado a lado */}
-            <div className="flex gap-3">
-              {/* Resumen mensual por conductor */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-teal-50 to-teal-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <HiTableCells className="h-4 w-4 text-teal-600" />
-                    Resumen Mensual por Conductor
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    {/* Selector de mes */}
-                    <input
-                      type="month"
-                      value={mesMensual}
-                      onChange={(e) => setMesMensual(e.target.value)}
-                      className="w-[145px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
-                    />
+            {/* FILA 4 (ESPECIAL: 60% / 40%) */}
+            <div className="grid grid-cols-1 xl:grid-cols-10 gap-2 w-full">
+              {/* FILA 4 - COLUMNA 1 (60%): FILTROS DE BÚSQUEDA */}
+              <div className="xl:col-span-6 flex flex-wrap items-center gap-1.5 bg-[#f0f5ff] border border-blue-200/60 rounded-md px-2.5 py-1 shadow-2xs w-full">
+                <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                  BÚSQUEDA
+                </span>
 
-                    {/* Selector conductor (opcional) */}
-                    <div
-                      className="relative w-[200px]"
-                      ref={conductorDropdownMensualRef}
-                    >
-                      <input
-                        type="text"
-                        placeholder="Conductor (opcional)..."
-                        value={conductorSearchMensual}
-                        onChange={(e) => {
-                          setConductorSearchMensual(e.target.value);
-                          setShowConductorDropdownMensual(true);
-                          if (!e.target.value) setConductorSeleccionadoMensual(null);
-                        }}
-                        onFocus={() => setShowConductorDropdownMensual(true)}
-                        className="w-full rounded-md border border-gray-300 bg-white px-2 py-2 pr-7 text-[11px] focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/20"
-                        autoComplete="off"
-                      />
-                      <IoSearchSharp className="absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400" />
-                      {showConductorDropdownMensual &&
-                        conductorSearchMensual &&
-                        conductores.filter((c) =>
-                          c.apellidos
-                            .toLowerCase()
-                            .includes(conductorSearchMensual.toLowerCase()),
-                        ).length > 0 && (
-                          <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg">
-                            {conductores
-                              .filter((c) =>
-                                c.apellidos
-                                  .toLowerCase()
-                                  .includes(conductorSearchMensual.toLowerCase()),
-                              )
-                              .map((c) => (
-                                <li
-                                  key={c.codigo}
-                                  className="cursor-pointer px-3 py-2 text-[11px] hover:bg-teal-50"
-                                  onMouseDown={() => {
-                                    setConductorSeleccionadoMensual(c);
-                                    setConductorSearchMensual(c.apellidos);
-                                    setShowConductorDropdownMensual(false);
-                                  }}
-                                >
-                                  <span className="font-medium">{c.apellidos}</span>
-                                </li>
-                              ))}
-                          </ul>
-                        )}
-                    </div>
+                <select
+                  id="countries"
+                  className="h-8 w-[100px] rounded-md border border-gray-200 bg-white px-2 text-[11px] transition-colors hover:border-gray-400 focus:border-[#113EB9] focus:outline-none"
+                  value={selectedArea}
+                  onChange={(e) => setSelectedArea(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Área
+                  </option>
+                  <option value="TEP">TEP</option>
+                  <option value="TURISMO">TURISMO</option>
+                </select>
 
-                    {/* Chip del conductor seleccionado */}
-                    {conductorSeleccionadoMensual && (
-                      <button
-                        onClick={() => {
-                          setConductorSeleccionadoMensual(null);
-                          setConductorSearchMensual('');
+                <select
+                  id="countries"
+                  className="h-8 w-[130px] rounded-md border border-gray-200 bg-white px-2 text-[11px] transition-colors hover:border-gray-400 focus:border-[#113EB9] focus:outline-none"
+                  value={empresaSeleccionada}
+                  onChange={(e) => setEmpresaSeleccionada(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Cliente
+                  </option>
+                  {(username && username.toLowerCase() !== 'movilbus'
+                    ? empresasG
+                    : empresas
+                  ).map((empresa, index) => (
+                    <option key={index} value={empresa}>
+                      {empresa}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  id="tipo-servicio"
+                  className="h-8 w-[120px] rounded-md border border-gray-200 bg-white px-2 text-[11px] transition-colors hover:border-gray-400 focus:border-[#113EB9] focus:outline-none"
+                  value={tipoServicio}
+                  onChange={(e) => setTipoServicio(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Tipo Servicio
+                  </option>
+                  <option value="RECOJO">Recojo</option>
+                  <option value="REPARTO">Reparto</option>
+                  <option value="TRF IN">TRF IN</option>
+                  <option value="TRF OUT">TRF OUT</option>
+                  <option value="CITY TOUR">CITY TOUR</option>
+                  <option value="VIAJE">VIAJE</option>
+                  <option value="FULLDAY">FULLDAY</option>
+                </select>
+
+                <div className="relative w-[160px]">
+                  <input
+                    id="inputPasajero"
+                    type="text"
+                    className="h-8 w-full rounded-md border border-gray-200 bg-white pl-7 pr-2 text-[11px] focus:border-[#113EB9] focus:outline-none"
+                    placeholder="Buscar pasajero..."
+                    value={pasajero}
+                    onChange={(e) => {
+                      if (seleccionado) {
+                        setSeleccionado(false);
+                        return;
+                      }
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setDropdownPos({
+                        top: rect.bottom + window.scrollY,
+                        left: rect.left + window.scrollX,
+                        width: rect.width,
+                      });
+                      setPasajero(e.target.value);
+                      setMostrarSugerencias(true);
+                    }}
+                    onFocus={(e) => {
+                      if (sugerencias.length > 0 && !seleccionado) {
+                        const rect =
+                          e.currentTarget.getBoundingClientRect();
+                        setDropdownPos({
+                          top: rect.bottom + window.scrollY,
+                          left: rect.left + window.scrollX,
+                          width: rect.width,
+                        });
+                        setMostrarSugerencias(true);
+                      }
+                    }}
+                    onBlur={() =>
+                      setTimeout(() => setMostrarSugerencias(false), 100)
+                    }
+                  />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
+                    <FaUser className="h-3.5 w-3.5 text-gray-400" />
+                  </div>
+
+                  {mostrarSugerencias &&
+                    sugerencias.length > 0 &&
+                    createPortal(
+                      <ul
+                        style={{
+                          position: 'absolute',
+                          top: dropdownPos.top,
+                          left: dropdownPos.left,
+                          width: dropdownPos.width,
+                          zIndex: 99999,
                         }}
-                        className="flex items-center gap-1 rounded-full bg-teal-100 px-2 py-1 text-[10px] font-medium text-teal-700 hover:bg-teal-200"
+                        className="max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg"
                       >
-                        {conductorSeleccionadoMensual.apellidos} ✕
-                      </button>
-                    )}
-
-                    {/* Botón Generar */}
-                    <button
-                      onClick={handleGenerarResumenMensual}
-                      disabled={descargandoMensual}
-                      className="flex items-center gap-1.5 rounded-md bg-teal-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-teal-700 active:scale-95 disabled:opacity-50"
-                    >
-                      <HiDocumentReport className="h-3 w-3" />
-                      {descargandoMensual ? 'Generando...' : 'Generar'}
-                    </button>
-                  </div>
-
-                  {/* Hint */}
-                  <p className="mt-2 text-[10px] text-gray-400">
-                    Sin conductor seleccionado se genera para todos.
-                  </p>
-                </div>
-              </div>
-
-              {/* Reporte de observaciones */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-amber-50 to-amber-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <MdComment className="h-4 w-4 text-amber-600" />
-                    Reporte de Observaciones
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="flex flex-wrap items-end gap-2">
-                    <input
-                      type="date"
-                      value={fechaInicioObservaciones}
-                      onChange={(e) => setFechaInicioObservaciones(e.target.value)}
-                      className="w-[135px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-                    />
-
-                    <span className="pb-1.5 text-[11px] text-gray-400">a</span>
-
-                    <input
-                      type="date"
-                      value={fechaFinObservaciones}
-                      onChange={(e) => setFechaFinObservaciones(e.target.value)}
-                      className="w-[135px] rounded-md border border-gray-300 bg-white px-2 py-1.5 text-[11px] focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
-                    />
-
-                    <button
-                      onClick={handleGenerarReporteObservaciones}
-                      disabled={descargandoObservaciones}
-                      className="flex items-center gap-1.5 rounded-md bg-amber-600 px-3 py-2 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-amber-700 active:scale-95 disabled:opacity-50"
-                    >
-                      <HiDocumentReport className="h-3 w-3" />
-                      {descargandoObservaciones ? 'Generando...' : 'Generar'}
-                    </button>
-                  </div>
-
-                  {/* Hint */}
-                  <p className="mt-2 text-[10px] text-gray-400">
-                    Se descarga un Excel con las observaciones registradas en el rango seleccionado.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Filtros de Búsqueda + Resumen - lado a lado */}
-            <div className="flex gap-2">
-              {/* Filtros de Búsqueda */}
-              <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <AiOutlineFilter className="h-4 w-4 text-blue-600" />
-                    Filtros de Búsqueda
-                  </span>
-                </div>
-
-                <div className="p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      id="countries"
-                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      value={selectedArea}
-                      onChange={(e) => setSelectedArea(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Área
-                      </option>
-                      <option value="TEP">TEP</option>
-                      <option value="TURISMO">TURISMO</option>
-                    </select>
-
-                    <select
-                      id="countries"
-                      className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      value={empresaSeleccionada}
-                      onChange={(e) => setEmpresaSeleccionada(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Cliente
-                      </option>
-                      {(username && username.toLowerCase() !== 'movilbus'
-                        ? empresasG
-                        : empresas
-                      ).map((empresa, index) => (
-                        <option key={index} value={empresa}>
-                          {empresa}
-                        </option>
-                      ))}
-                    </select>
-
-                    <select
-                      id="tipo-servicio"
-                      className="w-[160px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                      value={tipoServicio}
-                      onChange={(e) => setTipoServicio(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        Tipo Servicio
-                      </option>
-                      <option value="RECOJO">Recojo</option>
-                      <option value="REPARTO">Reparto</option>
-                      <option value="TRF IN">TRF IN</option>
-                      <option value="TRF OUT">TRF OUT</option>
-                      <option value="CITY TOUR">CITY TOUR</option>
-                      <option value="VIAJE">VIAJE</option>
-                      <option value="FULLDAY">FULLDAY</option>
-                    </select>
-
-                    <div className="relative w-[220px]">
-                      <input
-                        id="inputPasajero"
-                        type="text"
-                        className="... w-full rounded-md border border-gray-300 bg-white py-2 pl-8 pr-2 text-[11px]"
-                        placeholder="Buscar pasajero..."
-                        value={pasajero}
-                        onChange={(e) => {
-                          if (seleccionado) {
-                            setSeleccionado(false);
-                            return;
-                          }
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setDropdownPos({
-                            top: rect.bottom + window.scrollY,
-                            left: rect.left + window.scrollX,
-                            width: rect.width,
-                          });
-                          setPasajero(e.target.value);
-                          setMostrarSugerencias(true);
-                        }}
-                        onFocus={(e) => {
-                          if (sugerencias.length > 0 && !seleccionado) {
-                            const rect =
-                              e.currentTarget.getBoundingClientRect();
-                            setDropdownPos({
-                              top: rect.bottom + window.scrollY,
-                              left: rect.left + window.scrollX,
-                              width: rect.width,
-                            });
-                            setMostrarSugerencias(true);
-                          }
-                        }}
-                        onBlur={() =>
-                          setTimeout(() => setMostrarSugerencias(false), 100)
-                        }
-                      />
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-                        <FaUser className="h-3 w-3 text-gray-400" />
-                      </div>
-
-                      {mostrarSugerencias &&
-                        sugerencias.length > 0 &&
-                        createPortal(
-                          <ul
-                            style={{
-                              position: 'absolute',
-                              top: dropdownPos.top,
-                              left: dropdownPos.left,
-                              width: dropdownPos.width,
-                              zIndex: 99999,
+                        {sugerencias.map((item, index) => (
+                          <li
+                            key={index}
+                            className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              seleccionarPasajero(
+                                item.apepate,
+                                item.codlan,
+                              );
+                              setMostrarSugerencias(false);
+                              setSugerencias([]);
+                              setTimeout(() => {
+                                document
+                                  .getElementById('inputPasajero')
+                                  ?.blur();
+                              }, 100);
                             }}
-                            className="max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white shadow-lg"
                           >
-                            {sugerencias.map((item, index) => (
-                              <li
-                                key={index}
-                                className="cursor-pointer px-3 py-2 text-[11px] text-gray-700 transition-colors hover:bg-blue-50"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  seleccionarPasajero(
-                                    item.apepate,
-                                    item.codlan,
-                                  );
-                                  setMostrarSugerencias(false);
-                                  setSugerencias([]);
-                                  setTimeout(() => {
-                                    document
-                                      .getElementById('inputPasajero')
-                                      ?.blur();
-                                  }, 100);
-                                }}
-                              >
-                                {item.apepate}
-                              </li>
-                            ))}
-                          </ul>,
-                          document.body,
-                        )}
-                    </div>
-
-                    <input
-                      value={numeroServicio}
-                      onChange={(e) => setNumeroServicio(e.target.value)}
-                      type="number"
-                      id="tentacles"
-                      name="tentacles"
-                      placeholder="N° Servicio"
-                      min="0"
-                      max="100"
-                      className="w-[120px] rounded-md border border-gray-300 bg-white px-2 py-2 text-[11px] transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                    />
-
-                    {username && (
-                      <InputUnidad
-                        value={unidadSeleccionada}
-                        onChange={(value) => setUnidadSeleccionada(value)}
-                        onSelect={(codunidad) => {
-                          setUnidadSeleccionada(codunidad);
-                        }}
-                        padding="p-1.5"
-                        bgColor="white"
-                        usuario={username}
-                      />
+                            {item.apepate}
+                          </li>
+                        ))}
+                      </ul>,
+                      document.body,
                     )}
-
-                    <button
-                      className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
-                      onClick={handleClearFilters}
-                    >
-                      <MdCleaningServices className="h-3 w-3" />
-                      Limpiar
-                    </button>
-                  </div>
                 </div>
+
+                <input
+                  value={numeroServicio}
+                  onChange={(e) => setNumeroServicio(e.target.value)}
+                  type="number"
+                  placeholder="N° Servicio"
+                  className="h-8 w-[85px] rounded-md border border-gray-200 bg-white px-2 text-[11px] transition-colors hover:border-gray-400 focus:border-[#113EB9] focus:outline-none"
+                />
+
+                {username && (
+                  <div className="w-[125px]">
+                    <InputUnidad
+                      value={unidadSeleccionada}
+                      onChange={(value) => setUnidadSeleccionada(value)}
+                      onSelect={(codunidad) => {
+                        setUnidadSeleccionada(codunidad);
+                      }}
+                      bgColor="white"
+                      usuario={username}
+                    />
+                  </div>
+                )}
+
+                <button
+                  className="inline-flex h-8 items-center gap-1 rounded-md bg-red-600 px-2.5 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-red-700 ml-auto"
+                  onClick={handleClearFilters}
+                >
+                  <MdCleaningServices className="h-3.5 w-3.5" />
+                  Limpiar
+                </button>
               </div>
 
-              {/* Conteo de servicios */}
-              <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm">
-                <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100 px-4 py-1.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <HiDocumentReport className="h-4 w-4 text-green-600" />
-                    Resumen
-                  </span>
-                </div>
-                <div className="p-3">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center rounded-md border border-green-200 bg-green-50 px-4 py-2">
-                      <span className="text-[10px] text-gray-500">
-                        SERVICIOS
-                      </span>
-                      <span className="text-[18px] font-bold text-green-700">
-                        {conteoServicios}
-                      </span>
+              {/* FILA 4 - COLUMNA 2 (40%): METRICAS KPI Y BOTÓN GEOCERCA */}
+              <div className="xl:col-span-4 flex items-center justify-between gap-2 bg-white border border-gray-200 rounded-lg px-1.5 py-1 shadow-2xs w-full">
+                {/* Métricas SERVICIOS y CONDUCTORES */}
+                <div className="flex items-center gap-1.5">
+                  {/* KPI SERVICIOS */}
+                  <div className="flex h-8 items-center gap-1.5 px-1">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#00a86b] text-white">
+                      <HiTableCells className="h-3 w-3" />
                     </div>
-                    <div className="flex flex-col items-center rounded-md border border-blue-200 bg-blue-50 px-4 py-2">
-                      <span className="text-[10px] text-gray-500">
-                        CONDUCTORES
-                      </span>
-                      <span className="text-[18px] font-bold text-blue-700">
-                        {conteoConductores}
-                      </span>
-                    </div>
-                    <BtnCompletarHoraAto data={dataServicios} />
+                    <span className="text-[10px] font-bold tracking-wider text-[#008756] uppercase">
+                      SERVICIOS:
+                    </span>
+                    <span className="text-[13px] font-black text-[#005c3b]">
+                      {conteoServicios}
+                    </span>
                   </div>
+
+                  {/* KPI CONDUCTORES */}
+                  <div className="flex h-8 items-center gap-1.5 px-1">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brandPrimary text-white">
+                      <FaUserTie className="h-2.5 w-2.5" />
+                    </div>
+                    <span className="text-[10px] font-bold tracking-wider text-brandPrimary uppercase">
+                      CONDUCTORES:
+                    </span>
+                    <span className="text-[13px] font-black text-brandPrimary">
+                      {conteoConductores}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón Geocerca ATO al final */}
+                <div className="ml-auto flex items-center">
+                  <BtnCompletarHoraAto data={dataServicios} />
                 </div>
               </div>
             </div>
@@ -1378,25 +1316,26 @@ export default function Page() {
         )}
 
         {isVisibleAsignar && (
-          <div>
-            <div
-              className="mt-2 flex justify-between gap-2 border-t bg-gray-50 "
-              style={{ marginLeft: '5px', marginRight: '5px' }}
-            >
-              <div className="flex gap-2">
-                <div className="w-96">
-                  <InputConductor
-                    value={apepateConductor}
-                    onChange={setApepateConductor}
-                    onSelect={(codigo, apepate) => {
-                      setCodConductor(codigo);
-                      setApepateConductor(apepate);
-                    }}
-                    bgColor="white"
-                  />
-                </div>
+          <div id="contenido-asignar" className="border-b border-gray-200 bg-[#f8fafc] p-2.5 flex flex-wrap items-center justify-between gap-2 w-full">
+            <div className="flex flex-wrap items-center gap-2 bg-[#f0f5ff] border border-blue-200/60 rounded-lg px-2.5 py-1 shadow-2xs">
+              <span className="text-[10px] font-semibold text-gray-800 uppercase tracking-wider whitespace-nowrap">
+                ASIGNAR
+              </span>
 
-                {username && (
+              <div className="w-[200px]">
+                <InputConductor
+                  value={apepateConductor}
+                  onChange={setApepateConductor}
+                  onSelect={(codigo, apepate) => {
+                    setCodConductor(codigo);
+                    setApepateConductor(apepate);
+                  }}
+                  bgColor="white"
+                />
+              </div>
+
+              {username && (
+                <div className="w-[130px]">
                   <InputUnidad
                     value={unidadSeleccionadaAsignar}
                     onChange={(value) => setUnidadSeleccionadaAsignar(value)}
@@ -1406,25 +1345,26 @@ export default function Page() {
                     bgColor="white"
                     usuario={username}
                   />
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
-              <div className="flex gap-2 pr-1">
-                <button
-                  className="flex items-center gap-2 rounded-md bg-blue-500 px-4 py-1.5 text-sm text-white transition hover:bg-blue-600"
-                  onClick={asignarServicios}
-                >
-                  Asignar <RiCheckboxMultipleFill className="h-4 w-4" />
-                </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-brandPrimary px-3 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-brandPrimary-hover"
+                onClick={asignarServicios}
+              >
+                <RiCheckboxMultipleFill className="h-3.5 w-3.5" />
+                Asignar
+              </button>
 
-                <button
-                  className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-1.5  text-sm text-white transition hover:bg-red-500"
-                  onClick={eliminarServicio}
-                >
-                  Eliminar <MdDelete className="h-4 w-4" />
-                </button>
-                <div>{unidadSeleccionada}</div>
-              </div>
+              <button
+                className="inline-flex h-8 items-center gap-1 rounded-md bg-red-600 px-3 text-[11px] font-medium text-white shadow-xs transition-all hover:bg-red-700"
+                onClick={eliminarServicio}
+              >
+                <MdDelete className="h-3.5 w-3.5" />
+                Eliminar
+              </button>
             </div>
           </div>
         )}
