@@ -603,7 +603,7 @@ const DocumentManagement = () => {
 
                 {doc.observaciones && (
                   <p className="mb-3 text-[11px] italic text-slate-500 bg-slate-50 p-2 rounded border border-slate-100">
-                    "{doc.observaciones}"
+                    {doc.observaciones}
                   </p>
                 )}
               </div>
