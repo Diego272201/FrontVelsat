@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ChevronRight, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
-import { FaWhatsapp } from 'react-icons/fa';
+import { ChevronRight, Pencil, Trash2, Check, CheckCheck, X, Loader2 } from 'lucide-react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import { SECCIONES_DETALLE, CAMPOS_SERVICIO, SECCIONES_NOTAS } from './constants';
 import DetalleCampo from './DetalleCampo';
@@ -36,6 +35,31 @@ const FilaServicio: React.FC<{
   onSolicitarEliminar,
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
+
+  // Acuse de recibo del conductor en la app. "Confirmado" implica "visto", así que manda
+  // el estado más avanzado. Se pinta la celda completa para que el estado se lea de un vistazo
+  // al recorrer la tabla, igual que los checks de WhatsApp que el cliente ya venía usando.
+  const celdaEstado = Number(servicio.confirmado) === 1
+    ? {
+        clase: 'bg-sky-50',
+        chip: 'bg-sky-100 text-sky-600 ring-sky-200',
+        titulo: 'Confirmado por el conductor',
+        icono: <CheckCheck className="h-3.5 w-3.5" />,
+      }
+    : Number(servicio.visto) === 1
+      ? {
+          clase: 'bg-slate-50',
+          chip: 'bg-slate-200/70 text-slate-500 ring-slate-300/70',
+          titulo: 'Visto por el conductor',
+          icono: <Check className="h-3.5 w-3.5" />,
+        }
+      : {
+          clase: '',
+          chip: '',
+          titulo: 'Sin visualizar por el conductor',
+          icono: null,
+        };
+
   const mostrarDetalle = expandido || editando;
   const puedeAlternar = !bloqueado && !editando;
 
@@ -81,13 +105,6 @@ const FilaServicio: React.FC<{
             className="flex items-center gap-1.5"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              disabled={bloqueado}
-              title="Enviar por WhatsApp (próximamente)"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-green-600 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              <FaWhatsapp className="h-3.5 w-3.5" />
-            </button>
             {editando ? (
               <>
                 <button
@@ -133,11 +150,25 @@ const FilaServicio: React.FC<{
             )}
           </div>
         </td>
+        <td
+          className={`border-l border-slate-100 px-3 py-2 text-center ${celdaEstado.clase}`}
+          title={celdaEstado.titulo}
+        >
+          {celdaEstado.icono ? (
+            <span
+              className={`inline-flex h-6 w-6 items-center justify-center rounded-full ring-1 ${celdaEstado.chip}`}
+            >
+              {celdaEstado.icono}
+            </span>
+          ) : (
+            <span className="text-[12px] text-slate-300">—</span>
+          )}
+        </td>
       </tr>
 
       {mostrarDetalle && (
         <tr className="border-l-4 border-[#113EB9] bg-slate-50/70">
-          <td colSpan={8} className="px-6 py-4">
+          <td colSpan={9} className="px-6 py-4">
             {editando && formEdicion ? (
               <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Vehículo y Piloto */}

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FileSpreadsheet, PlusCircle, Search } from 'lucide-react';
+import { FileSpreadsheet, PlusCircle, RefreshCw, Search } from 'lucide-react';
 
 const BarraFiltros: React.FC<{
   totalServicios: number;
@@ -13,6 +13,7 @@ const BarraFiltros: React.FC<{
   onCambiarHoraFiltro: (valor: string) => void;
   horasDisponibles: string[];
   deshabilitado: boolean;
+  onConsultar: () => void;
   onAgregarServicio: () => void;
   onCargarExcel: () => void;
 }> = ({
@@ -25,6 +26,7 @@ const BarraFiltros: React.FC<{
   onCambiarHoraFiltro,
   horasDisponibles,
   deshabilitado,
+  onConsultar,
   onAgregarServicio,
   onCargarExcel,
 }) => (
@@ -52,6 +54,17 @@ const BarraFiltros: React.FC<{
           onChange={(e) => onCambiarFecha(e.target.value)}
           className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:cursor-not-allowed disabled:opacity-50"
         />
+        {/* Cambiar la fecha ya dispara la consulta; este botón permite además recargar
+            la misma fecha, útil para ver si el conductor ya vio o confirmó sus servicios. */}
+        <button
+          onClick={onConsultar}
+          disabled={deshabilitado}
+          title="Consultar los servicios de la fecha seleccionada"
+          className="inline-flex items-center gap-1.5 rounded-md bg-[#113EB9] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Consultar
+        </button>
       </div>
 
       <div className="relative flex items-center">

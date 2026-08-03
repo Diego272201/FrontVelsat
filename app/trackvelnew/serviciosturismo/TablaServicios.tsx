@@ -106,6 +106,9 @@ const TablaServicios: React.FC<{
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Acciones
               </th>
+              <th className="w-20 px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                Estado
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">

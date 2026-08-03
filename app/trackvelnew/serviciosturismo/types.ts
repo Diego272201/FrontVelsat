@@ -24,14 +24,22 @@ export interface ServicioTurismo {
   observaciones: string | null;
   ejecutivo: string | null;
   cotizacion: string | null;
+  // Acuse de recibo del conductor desde la app móvil (reemplaza el doble check azul de WhatsApp).
+  // visto: el servicio se mostró en su pantalla. confirmado: además deslizó la tarjeta.
+  visto: number | null;
+  confirmado: number | null;
 }
 
 export interface ServicioTurismoVista extends ServicioTurismo {
   placaCombinada: string;
 }
 
-// Claves de ServicioTurismoVista cuyo valor es siempre string | null (excluye idservicio: number).
-export type CampoTexto = Exclude<keyof ServicioTurismoVista, 'idservicio'>;
+// Claves de ServicioTurismoVista cuyo valor es siempre string | null
+// (excluye las numéricas: idservicio, visto y confirmado).
+export type CampoTexto = Exclude<
+  keyof ServicioTurismoVista,
+  'idservicio' | 'visto' | 'confirmado'
+>;
 
 export interface EditFormServicio {
   fechainicio: string; // yyyy-MM-dd (input date)

@@ -60,6 +60,7 @@ const ServiciosTurismoPage: React.FC = () => {
         onCambiarHoraFiltro={setHoraFiltro}
         horasDisponibles={horasDisponibles}
         deshabilitado={hayEdicionActiva}
+        onConsultar={() => fetchServicios(fecha)}
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
       />
