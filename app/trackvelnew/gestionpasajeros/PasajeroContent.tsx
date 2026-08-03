@@ -19,6 +19,19 @@ interface Pasajero {
   apellidos: string;
 }
 
+// Lenguaje visual compartido con gestionconductores.
+const inputClass =
+  'h-8 w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 text-[12px] placeholder-gray-400 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]';
+const tituloSeccionClass =
+  'text-[10px] font-bold uppercase tracking-wider text-gray-500';
+const iconoSeccionClass = 'h-3 w-3 text-gray-400';
+// Cabecera de tarjeta separada del contenido por una línea, como en las fichas
+// de los módulos de gestión.
+const tarjetaClass = 'rounded-md border border-gray-200 bg-white shadow-sm';
+const tarjetaCabeceraClass =
+  'flex items-center gap-1.5 border-b border-gray-100 px-3 py-2';
+const tarjetaCuerpoClass = 'p-3';
+
 export default function PasajeroContent() {
   const [pasajeros, setPasajeros] = useState<
     { value: number; label: string }[]
@@ -159,217 +172,207 @@ export default function PasajeroContent() {
     }
   };
 
+  const [destinoSeleccionado, setDestinoSeleccionado] = useState<string | null>(null);
+
   const handleDestinoSeleccionado = (nombre: string, codigo: string) => {
+    setDestinoSeleccionado(nombre);
     toast.success(`Destino seleccionado: ${nombre}`);
   };
 
   return (
-    <>
-      <div className="cabeceraPasajero sticky top-0 z-50">
-        <div className="contenedorcabecera">
-          <span className="titulocabecera">GESTIÓN DE PASAJEROS</span>
+    <div className="min-h-screen bg-gray-100">
+      {/* Cabecera: identidad y acción de destino */}
+      <div className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-1 bg-[#113EB9]"></div>
+          <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+            Gestión de Pasajeros
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {destinoSeleccionado && (
+            <div className="flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-[#113EB9]">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>
+                Destino: <strong>{destinoSeleccionado}</strong>
+              </span>
+            </div>
+          )}
+          <ModalDestino
+            onDestinoSeleccionado={handleDestinoSeleccionado}
+            trigger={
+              <button className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#113EB9] px-3 text-[11px] font-medium text-white shadow-sm transition-colors hover:bg-[#0e3399]">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>Seleccionar Destino</span>
+              </button>
+            }
+          />
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <User className="h-5 w-5 text-blue-500" />
-            <h3 className="text-base font-semibold text-gray-800">
-              Buscar Pasajero por Nombre
-            </h3>
+      <div className="space-y-3 p-4">
+        {/* Buscar pasajero por nombre + acciones */}
+        <div className={tarjetaClass}>
+          <div className={tarjetaCabeceraClass}>
+            <User className={iconoSeccionClass} />
+            <h3 className={tituloSeccionClass}>Buscar Pasajero por Nombre</h3>
           </div>
 
-          <div className="flex flex-col gap-4 lg:flex-row">
-            <div className="flex-1">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Escriba el nombre del pasajero..."
-                  className="w-full rounded-lg border-2 border-gray-200 bg-white p-2 text-sm 
-                           transition-all duration-200 focus:border-blue-400 focus:outline-none
-                           focus:ring-2 focus:ring-blue-100"
-                  onChange={(e) => {
-                    setInputValue(e.target.value);
-                    handleSearchChange(e.target.value);
-                  }}
-                  value={inputValue}
-                />
-
-                {query.length > 0 && query.length < 2 && (
-                  <div className="absolute right-3 top-3 text-xs text-gray-400">
-                    Escriba al menos 2 caracteres
-                  </div>
-                )}
-
-                {query.length >= 2 && (
-                  <div className="absolute z-20 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
-                    {filteredPasajeros.length > 0 ? (
-                      <div className="max-h-64 overflow-auto">
-                        <div className="border-b bg-gray-50 p-2 text-xs font-medium text-gray-600">
-                          {filteredPasajeros.length} resultado(s) encontrado(s)
-                        </div>
-                        {filteredPasajeros.map((pasajero, index) => (
-                          <div
-                            key={pasajero.value}
-                            onClick={() =>
-                              handleSelectionChange(pasajero.value)
-                            }
-                            className="cursor-pointer border-b border-gray-50 px-4 py-3 text-sm transition-colors
-                                     duration-150 last:border-b-0 hover:bg-blue-50"
-                          >
-                            <div className="font-medium text-gray-800">
-                              {pasajero.label}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Código: {pasajero.value}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 text-center">
-                        <Search className="mx-auto mb-2 h-8 w-8 text-gray-300" />
-                        <div className="text-sm text-gray-400">
-                          No se encontraron pasajeros
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          Intente con otro nombre
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 lg:flex-nowrap">
-              <ModalPasajeros
-                title="Agregar Pasajero"
-                onPasajeroAgregado={() => setReloadPasajeros((prev) => !prev)}
-              />
-              <ModalPasajerosEdit
-                title="DETALLE PASAJERO"
-                codCliente={selectedCodCliente}
-              />
-              <button
-                className="inline-flex h-[40px] items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-red-600"
-                onClick={handleDelete}
-                disabled={!selectedCodCliente}
-              >
-                <BiTrash size={16} />
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-b border-gray-100 px-6 py-2">
-          <div className="mb-3 flex items-center gap-2">
-            <Search className="h-5 w-5 text-purple-500" />
-            <h3 className="text-base font-semibold text-gray-800">
-              Buscar por Código
-            </h3>
-          </div>
-
-          <div className="flex flex-col gap-4 lg:flex-row">
+          <div className={`${tarjetaCuerpoClass} flex items-center gap-2`}>
             <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Ingrese el código del pasajero..."
-                className="w-full rounded-lg border-2 border-gray-200 bg-white p-2 text-sm
-                         transition-all duration-200 focus:border-purple-400 focus:outline-none
-                         focus:ring-2 focus:ring-purple-100"
-                value={codigoInputValue}
+                placeholder="Buscar pasajero por nombre..."
+                className={`${inputClass} pl-9`}
                 onChange={(e) => {
-                  setCodigoInputValue(e.target.value);
-                  setCodigoQuery(e.target.value);
-                  fetchPasajerosPorCodigo(e.target.value);
+                  setInputValue(e.target.value);
+                  handleSearchChange(e.target.value);
                 }}
+                value={inputValue}
               />
 
-              {codigoQuery.length >= 2 && (
-                <div className="absolute z-20 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-xl">
-                  {codigoResultados.length > 0 ? (
+              {query.length > 0 && query.length < 2 && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400">
+                  Mínimo 2 caracteres
+                </span>
+              )}
+
+              {query.length >= 2 && (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                  {filteredPasajeros.length > 0 ? (
                     <div className="max-h-64 overflow-auto">
-                      <div className="border-b bg-gray-50 p-2 text-xs font-medium text-gray-600">
-                        Resultados por código
+                      <div className="border-b border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-medium text-gray-500">
+                        {filteredPasajeros.length} resultado(s)
                       </div>
-                      {codigoResultados.map((item) => (
+                      {filteredPasajeros.map((pasajero) => (
                         <div
-                          key={item.codigo}
-                          onClick={() => {
-                            setCodigoInputValue(
-                              `${item.codlan} - ${item.apepate}`,
-                            );
-                            setSelectedCodigo(item.codigo);
-                            setCodigoQuery('');
-                          }}
-                          className="cursor-pointer border-b border-gray-50 px-4 py-3 transition-colors duration-150
-                                   last:border-b-0 hover:bg-purple-50"
+                          key={pasajero.value}
+                          onClick={() => handleSelectionChange(pasajero.value)}
+                          className="cursor-pointer border-b border-gray-50 px-2.5 py-1.5 last:border-b-0 hover:bg-blue-50"
                         >
-                          <div className="font-medium text-gray-800">
-                            {item.codlan}
+                          <div className="text-[12px] font-medium text-gray-800">
+                            {pasajero.label}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {item.apepate}
+                          <div className="text-[10px] text-gray-500">
+                            Código: {pasajero.value}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-4 text-center">
-                      <div className="text-sm text-gray-400">
-                        No hay resultados
-                      </div>
+                    <div className="px-2.5 py-3 text-center text-[11px] text-gray-400">
+                      No se encontraron pasajeros
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <ModalPasajerosEdit
-              title="📋 Ver Detalle"
-              codCliente={Number(selectedCodigo)}
-            />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ModalPasajeros
+                title="Agregar Pasajero"
+                onPasajeroAgregado={() => setReloadPasajeros((prev) => !prev)}
+              />
+              <ModalPasajerosEdit
+                title="Detalle Pasajero"
+                codCliente={selectedCodCliente}
+              />
+              <button
+                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-red-600 px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleDelete}
+                disabled={!selectedCodCliente}
+              >
+                <BiTrash size={12} />
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Selector de Destino */}
-        <div className="border-b border-gray-100 px-6 py-2">
-          <div className="mb-3 flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-orange-500" />
-            <h3 className="text-base font-semibold text-gray-800">
-              Seleccionar Destino
-            </h3>
-          </div>
-          <ModalDestino onDestinoSeleccionado={handleDestinoSeleccionado} />
-        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {/* Buscar por Código */}
+          <div className={tarjetaClass}>
+            <div className={tarjetaCabeceraClass}>
+              <Search className={iconoSeccionClass} />
+              <h3 className={tituloSeccionClass}>Buscar por Código</h3>
+            </div>
 
-        {/* Carga Masiva - Mejorada */}
-        <div className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Upload className="h-5 w-5 text-green-500" />
-            <h3 className="text-base font-semibold text-gray-800">
-              Carga Masiva de Pasajeros
-            </h3>
+            <div className={`${tarjetaCuerpoClass} flex items-center gap-2`}>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Ingrese el código del pasajero..."
+                  className={inputClass}
+                  value={codigoInputValue}
+                  onChange={(e) => {
+                    setCodigoInputValue(e.target.value);
+                    setCodigoQuery(e.target.value);
+                    fetchPasajerosPorCodigo(e.target.value);
+                  }}
+                />
+
+                {codigoQuery.length >= 2 && (
+                  <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+                    {codigoResultados.length > 0 ? (
+                      <div className="max-h-64 overflow-auto">
+                        <div className="border-b border-gray-100 bg-gray-50 px-2.5 py-1 text-[10px] font-medium text-gray-500">
+                          Resultados por código
+                        </div>
+                        {codigoResultados.map((item) => (
+                          <div
+                            key={item.codigo}
+                            onClick={() => {
+                              setCodigoInputValue(
+                                `${item.codlan} - ${item.apepate}`,
+                              );
+                              setSelectedCodigo(item.codigo);
+                              setCodigoQuery('');
+                            }}
+                            className="cursor-pointer border-b border-gray-50 px-2.5 py-1.5 last:border-b-0 hover:bg-blue-50"
+                          >
+                            <div className="text-[12px] font-medium text-gray-800">
+                              {item.codlan}
+                            </div>
+                            <div className="text-[10px] text-gray-500">
+                              {item.apepate}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-2.5 py-3 text-center text-[11px] text-gray-400">
+                        No hay resultados
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <ModalPasajerosEdit
+                title="Detalle Pasajero"
+                codCliente={Number(selectedCodigo)}
+              />
+            </div>
           </div>
 
-          <form className="space-y-4">
-            <div className="relative">
+          {/* Carga Masiva */}
+          <div className={tarjetaClass}>
+            <div className={tarjetaCabeceraClass}>
+              <Upload className={iconoSeccionClass} />
+              <h3 className={tituloSeccionClass}>Carga Masiva de Pasajeros</h3>
+            </div>
+
+            <form className={`${tarjetaCuerpoClass} flex items-center gap-2`}>
               <label
                 htmlFor="file-input"
-                className="group block w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 
-                         bg-gray-50 p-8 text-center transition-all duration-200
-                         hover:border-green-400 hover:bg-green-50"
+                className="flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50 px-2.5 transition-colors hover:border-[#113EB9] hover:bg-blue-50"
               >
-                <FileText className="mx-auto mb-3 h-12 w-12 text-gray-400 transition-colors group-hover:text-green-500" />
-                <div className="font-medium text-gray-700 group-hover:text-green-700">
-                  Arrastra tus archivos aquí
-                </div>
-                <div className="mt-1 text-sm text-gray-500 group-hover:text-green-600">
-                  o haz clic para seleccionar (Excel, CSV)
-                </div>
+                <FileText className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <span className="truncate text-[11px] text-gray-600">
+                  Selecciona un archivo (Excel, CSV)
+                </span>
                 <input
                   type="file"
                   id="file-input"
@@ -378,30 +381,26 @@ export default function PasajeroContent() {
                   multiple
                 />
               </label>
-            </div>
 
-            <div className="flex gap-3">
               <button
                 type="submit"
-                className="flex items-center gap-2 rounded-lg bg-green-500 px-6 py-3 text-sm
-                         font-medium text-white shadow-sm transition-colors duration-200 hover:bg-green-600"
+                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-brandSecondary-hover"
               >
-                <Upload className="h-4 w-4" />
-                Cargar Archivos
+                <Upload className="h-3 w-3" />
+                Cargar
               </button>
 
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-100 px-4
-                         py-3 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-200"
+                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-3 w-3" />
                 Plantilla
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

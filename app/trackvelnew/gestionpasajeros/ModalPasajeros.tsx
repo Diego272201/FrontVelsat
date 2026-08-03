@@ -214,7 +214,7 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     }
   }, []);
 
-  // Función de búsqueda con Google Places únicamente
+  // Búsqueda en Google Places / Geocoder
   const searchAddress = async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -222,85 +222,81 @@ export default function App({ title, onPasajeroAgregado }: Props) {
       return;
     }
 
-    if (!isLoaded || !autocompleteService || !placesService) {
-      console.error('Google Places no está disponible');
-      setSearchResults([]);
-      setShowSearchResults(false);
-      return;
-    }
+    if (isLoaded && typeof window !== 'undefined' && window.google?.maps) {
+      try {
+        const maps = window.google.maps;
 
-    try {
-      const request: google.maps.places.AutocompletionRequest = {
-        input: query,
-      };
+        // 1. Intentar AutocompleteSuggestion + Place si está disponible
+        if ((maps.places as any)?.AutocompleteSuggestion && (maps.places as any)?.Place) {
+          const response = await (maps.places as any).AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: query,
+            componentRestrictions: { country: 'pe' },
+          });
 
-      autocompleteService.getPlacePredictions(
-        request,
-        (predictions, status) => {
-          if (
-            status === google.maps.places.PlacesServiceStatus.OK &&
-            predictions
-          ) {
-            const processedResults: SearchResult[] = [];
-            let processedCount = 0;
-            const totalPredictions = Math.min(5, predictions.length);
+          const suggestions = response.suggestions || [];
+          const processedResults: SearchResult[] = [];
 
-            if (totalPredictions === 0) {
-              setSearchResults([]);
-              setShowSearchResults(false);
-              return;
+          for (const suggestion of suggestions.slice(0, 5)) {
+            if (suggestion.placePrediction) {
+              try {
+                const place = suggestion.placePrediction.toPlace();
+                await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] });
+                if (place.location) {
+                  processedResults.push({
+                    lat: place.location.lat().toString(),
+                    lon: place.location.lng().toString(),
+                    display_name: place.displayName
+                      ? `${place.displayName} - ${place.formattedAddress}`
+                      : place.formattedAddress || suggestion.placePrediction.text?.text || '',
+                    place_id: suggestion.placePrediction.placeId || '',
+                  });
+                }
+              } catch (e) {
+                // omitir si falla
+              }
             }
-
-            predictions.slice(0, 5).forEach((prediction) => {
-              const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                placeId: prediction.place_id,
-                fields: [
-                  'geometry',
-                  'formatted_address',
-                  'address_components',
-                  'name', // ✅ AÑADE ESTO para obtener el nombre del lugar
-                ],
-              };
-
-              placesService.getDetails(
-                detailsRequest,
-                (place, detailsStatus) => {
-                  if (
-                    detailsStatus ===
-                      google.maps.places.PlacesServiceStatus.OK &&
-                    place &&
-                    place.geometry
-                  ) {
-                    processedResults.push({
-                      lat: place.geometry.location!.lat().toString(),
-                      lon: place.geometry.location!.lng().toString(),
-                      // ✅ MEJORA: prioriza el nombre del lugar si existe
-                      display_name: place.name
-                        ? `${place.name} - ${place.formatted_address}`
-                        : place.formatted_address || prediction.description,
-                      place_id: prediction.place_id,
-                    });
-                  }
-
-                  processedCount++;
-                  if (processedCount === totalPredictions) {
-                    setSearchResults(processedResults);
-                    setShowSearchResults(processedResults.length > 0);
-                  }
-                },
-              );
-            });
-          } else {
-            setSearchResults([]);
-            setShowSearchResults(false);
           }
-        },
-      );
-    } catch (error) {
-      console.error('Error with Google Places:', error);
-      setSearchResults([]);
-      setShowSearchResults(false);
+
+          if (processedResults.length > 0) {
+            setSearchResults(processedResults);
+            setShowSearchResults(true);
+            return;
+          }
+        }
+
+        // 2. Usar Geocoder estándar (no deprecado)
+        if (maps.Geocoder) {
+          const geocoder = new maps.Geocoder();
+          geocoder.geocode(
+            { address: query, componentRestrictions: { country: 'pe' } },
+            (results, status) => {
+              if (status === maps.GeocoderStatus.OK && results && results.length > 0) {
+                const processedResults: SearchResult[] = results.slice(0, 5).map((res) => ({
+                  lat: res.geometry.location.lat().toString(),
+                  lon: res.geometry.location.lng().toString(),
+                  display_name: res.formatted_address,
+                  place_id: res.place_id || '',
+                }));
+                setSearchResults(processedResults);
+                setShowSearchResults(true);
+              } else {
+                setSearchResults([]);
+                setShowSearchResults(false);
+              }
+            }
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error con Google Places:', error);
+        setSearchResults([]);
+        setShowSearchResults(false);
+        return;
+      }
     }
+
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   // Función de geocodificación inversa con Google únicamente
@@ -510,15 +506,13 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   return (
     <>
-      <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-        <button
-          onClick={onOpen}
-          className="inline-flex h-[40px] items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-700"
-        >
-          <IoIosAddCircle className="text-white" size={18} />
-          Nuevo
-        </button>
-      </span>
+      <button
+        onClick={onOpen}
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-brandSecondary-hover"
+      >
+        <IoIosAddCircle size={14} />
+        Nuevo
+      </button>
 
       <Modal
         className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"

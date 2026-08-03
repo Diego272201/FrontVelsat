@@ -279,7 +279,7 @@ export default function Page() {
                                 '_blank',
                               )
                             }
-                            className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#fb7b0f] transition-colors hover:bg-orange-50"
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
                           >
                             <FileText size={12} />
                             Documentos

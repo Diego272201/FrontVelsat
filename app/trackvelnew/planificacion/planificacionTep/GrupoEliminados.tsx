@@ -1,5 +1,4 @@
-import React from 'react';
-import { useDroppable } from '@dnd-kit/core';
+import React, { memo } from 'react';
 import { Item } from './sortable_item';
 import { Trash2 } from 'lucide-react';
 
@@ -8,19 +7,49 @@ interface GrupoEliminadosProps {
   onRestore: (item: any) => void;
 }
 
-export default function GrupoEliminados({
-  items,
+// Cada eliminado en su propio componente memoizado: antes toda la lista se
+// re-renderizaba con cualquier cambio de `grupos`.
+const FilaEliminado = memo(function FilaEliminado({
+  item,
   onRestore,
-}: GrupoEliminadosProps) {
-  const { setNodeRef } = useDroppable({
-    id: 'grupo-eliminados',
-  });
-
+}: {
+  item: any;
+  onRestore: (item: any) => void;
+}) {
   return (
-    <div
-      ref={setNodeRef}
-      className="my-0 min-h-[100px] rounded-lg border-2 border-dashed border-red-300 bg-red-100 p-4 transition-colors hover:bg-red-100"
-    >
+    <div className="flex items-center justify-between rounded-lg border border-red-200 bg-white p-1 shadow-sm transition-shadow hover:shadow-md">
+      <div className="flex-1">
+        <Item {...item} />
+      </div>
+
+      <button
+        onClick={() => onRestore(item)}
+        className="ml-4 flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      >
+        <svg
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+          />
+        </svg>
+        Restaurar
+      </button>
+    </div>
+  );
+});
+
+// Ya no es zona de drop: al aislar el arrastre por grupo no se puede arrastrar
+// hasta aquí. Eliminar se hace con el botón rojo de cada fila.
+function GrupoEliminados({ items, onRestore }: GrupoEliminadosProps) {
+  return (
+    <div className="my-0 min-h-[100px] rounded-lg border-2 border-dashed border-red-300 bg-red-100 p-4 transition-colors hover:bg-red-100">
       {/* Encabezado con advertencia en la misma línea */}
       <div className="mb-2 flex items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500">
@@ -77,34 +106,7 @@ export default function GrupoEliminados({
       ) : (
         <div className="space-y-0">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between rounded-lg border border-red-200 bg-white p-1 shadow-sm transition-shadow hover:shadow-md"
-            >
-              <div className="flex-1">
-                <Item {...item} />
-              </div>
-
-              <button
-                onClick={() => onRestore(item)}
-                className="ml-4 flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                  />
-                </svg>
-                Restaurar
-              </button>
-            </div>
+            <FilaEliminado key={item.id} item={item} onRestore={onRestore} />
           ))}
         </div>
       )}
@@ -121,3 +123,5 @@ export default function GrupoEliminados({
     </div>
   );
 }
+
+export default memo(GrupoEliminados);

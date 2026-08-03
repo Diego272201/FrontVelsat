@@ -64,8 +64,8 @@ const AppModalUnidadesCercanas: React.FC<AppModalProps> = ({
       return;
     }
 
-    // Construir la URL con los parámetros
-    const url = `https://trackvelsystem.velsat.pe/trackvelnew/unidadescercanas?deviceId=${encodeURIComponent(selectedDeviceId)}&distancia=${encodeURIComponent(distancia)}`;
+    // Construir la URL con los parámetros (usar ruta relativa para funcionar tanto en local como en producción)
+    const url = `/trackvelnew/unidadescercanas?deviceId=${encodeURIComponent(selectedDeviceId)}&distancia=${encodeURIComponent(distancia)}`;
 
     window.open(url, '_blank');
   };

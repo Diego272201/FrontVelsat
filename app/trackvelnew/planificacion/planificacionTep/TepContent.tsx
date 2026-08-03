@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDisclosure } from '@nextui-org/react';
 import * as xlsx from 'xlsx';
 import {
@@ -71,9 +71,17 @@ export default function TepContent() {
   };
 
   const intervaloRef = useRef<NodeJS.Timeout | null>(null);
-  const [guardar, setGuardar] = useState<(auto?: boolean) => void>(
-    () => () => {},
-  );
+
+  // `guardar` vive en un ref, no en estado: cambia con cada modificación de los
+  // grupos y como estado provocaba un re-render de todo TepContent por cada
+  // reordenamiento, además de reiniciar el intervalo de autoguardado.
+  const guardarRef = useRef<(auto?: boolean) => void>(() => {});
+  const guardar = useCallback((auto: boolean = false) => {
+    guardarRef.current(auto);
+  }, []);
+  const registrarGuardar = useCallback((fn: () => (auto?: boolean) => void) => {
+    guardarRef.current = fn();
+  }, []);
 
   const alternarEstado = () => {
     setModoVista(modoVista === 'Eliminados' ? 'Total' : 'Eliminados');
@@ -101,22 +109,28 @@ export default function TepContent() {
   const [fechasLlenas, setFechasLlenas] = useState(0);
   const [actualizacion, setActualizacion] = useState(0);
 
-  const actualizarCabeceras = (
-    nuevasCabeceras: { empresa: string; fecha: string }[],
-  ) => {
-    setCabeceras(nuevasCabeceras);
-  };
+  // Memoizados: se pasan a Servicios y una identidad nueva en cada render del
+  // padre se propaga hacia abajo sin motivo.
+  const actualizarCabeceras = useCallback(
+    (nuevasCabeceras: { empresa: string; fecha: string }[]) => {
+      setCabeceras(nuevasCabeceras);
+    },
+    [],
+  );
 
-  const actualizarFechas = ({
-    totalFechas,
-    fechasLlenas,
-  }: {
-    totalFechas: number;
-    fechasLlenas: number;
-  }) => {
-    setTotalFechas(totalFechas);
-    setFechasLlenas(fechasLlenas);
-  };
+  const actualizarFechas = useCallback(
+    ({
+      totalFechas,
+      fechasLlenas,
+    }: {
+      totalFechas: number;
+      fechasLlenas: number;
+    }) => {
+      setTotalFechas(totalFechas);
+      setFechasLlenas(fechasLlenas);
+    },
+    [],
+  );
 
   const porcentajeLlenado =
     totalFechas > 0 ? (fechasLlenas / totalFechas) * 100 : 0;
@@ -131,12 +145,12 @@ export default function TepContent() {
     }
   };
 
-  const actualizarDatosServicios = (datos: {
-    totalGrupos: number;
-    totalPasajeros: number;
-  }) => {
-    setDatosServicios(datos);
-  };
+  const actualizarDatosServicios = useCallback(
+    (datos: { totalGrupos: number; totalPasajeros: number }) => {
+      setDatosServicios(datos);
+    },
+    [],
+  );
 
   const manejarRespuestaModal = (respuesta: string) => {
     setEmpresaConfirmada(empresaSeleccionada); // ← MOVER AQUÍ
@@ -501,24 +515,23 @@ export default function TepContent() {
     setIsVisible(true);
   }, []);
 
+  // `guardar` ahora es estable, así que el intervalo se crea una sola vez.
+  // Antes se recreaba con cada cambio de los grupos, de modo que editando con
+  // frecuencia el autoguardado de 3 minutos podía no dispararse nunca.
   useEffect(() => {
-    if (guardar) {
+    intervaloRef.current = setInterval(
+      () => {
+        guardar(true);
+        toast.success(
+          `Guardado automático a las ${new Date().toLocaleTimeString()}`,
+        );
+      },
+      3 * 60 * 1000,
+    );
+
+    return () => {
       if (intervaloRef.current) clearInterval(intervaloRef.current);
-
-      intervaloRef.current = setInterval(
-        () => {
-          guardar(true);
-          toast.success(
-            `Guardado automático a las ${new Date().toLocaleTimeString()}`,
-          );
-        },
-        3 * 60 * 1000,
-      );
-
-      return () => {
-        if (intervaloRef.current) clearInterval(intervaloRef.current);
-      };
-    }
+    };
   }, [guardar]);
 
   function formatFechaDMY(date: Date): string {
@@ -566,335 +579,262 @@ export default function TepContent() {
         {isVisible && (
           <div
             id="contenido"
-            className="border-b border-gray-200 bg-[#f8fafc] p-2.5"
+            className="border-b border-gray-200 bg-white px-3 py-2 text-[12px] space-y-2 shadow-xs"
           >
-            <div className="fristFileT">
-              <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2">
-                  <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-800 ">
-                    <ArchiveRestore size={15} /> Carga de Archivos
-                  </span>
+            {/* FILA 1: CARGA DE ARCHIVOS + OBTENER DATOS AL FINAL */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold text-gray-800 uppercase flex items-center gap-1.5 whitespace-nowrap">
+                 Carga Archivo
+              </span>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Selector de archivo Excel */}
+                <div className="flex h-8 items-center rounded-md border border-gray-200 bg-gray-50 text-[11px] overflow-hidden">
+                  <div className="flex items-center px-2.5">
+                    <FaFileExcel size={16} color="#307750" className="mr-2 shrink-0" />
+                    <span className="whitespace-nowrap font-medium text-gray-700">
+                      {fileName || 'Ningún archivo seleccionado'}
+                    </span>
+                  </div>
+                  <label
+                    htmlFor="uploadExcel"
+                    className="ml-auto flex h-full items-center justify-center cursor-pointer rounded-r bg-brandPrimary px-3 text-[11px] font-medium text-white hover:bg-brandPrimary-hover transition-colors whitespace-nowrap"
+                  >
+                    Subir
+                  </label>
+                  <input
+                    type="file"
+                    id="uploadExcel"
+                    accept=".xlsx, .xls"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
                 </div>
 
-                <div className="cabeceraArchivos">
-                  <div>
-                    <div className=" flex w-full rounded border border-gray-300 bg-white p-0 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0">
-                      <div className="flex items-center px-4">
-                        <FaFileExcel size={20} color="#307750" />
-                        <p className="ml-3 text-[12px]">
-                          {fileName || 'Ningún archivo seleccionado'}
-                        </p>
-                      </div>
+                {/* Fecha */}
+                <input
+                  type="date"
+                  value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    const [year, month, day] = e.target.value.split('-');
+                    const selectedDateObj = new Date(
+                      Number(year),
+                      Number(month) - 1,
+                      Number(day),
+                    );
+                    setSelectedDate(selectedDateObj);
+                  }}
+                  className="h-8 rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] focus:border-brandPrimary focus:outline-none"
+                />
 
-                      <label
-                        htmlFor="uploadExcel"
-                        className="ml-auto block w-max cursor-pointer rounded-r bg-[#113eb9] px-3 py-2 text-[12px] font-semibold text-white outline-none hover:bg-blue-700 transition-colors"
-                      >
-                        Subir
-                      </label>
-                      <input
-                        type="file"
-                        id="uploadExcel"
-                        accept=".xlsx, .xls"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <input
-                      type="date"
-                      value={
-                        selectedDate
-                          ? selectedDate.toISOString().split('T')[0]
-                          : ''
-                      }
-                      onChange={(e) => {
-                        const [year, month, day] = e.target.value.split('-');
-                        const selectedDate = new Date(
-                          Number(year),
-                          Number(month) - 1,
-                          Number(day),
-                        );
-                        setSelectedDate(selectedDate);
-                      }}
-                      className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
-                    />
-                  </div>
-
-                  <div className="selectTipoA">
-                    <select
-                      className="w-full rounded border border-gray-300 bg-white p-[8.2px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
-                      value={selectedEmpresa}
-                      onChange={(event) =>
-                        setSelectedEmpresa(event.target.value)
-                      }
-                    >
-                      <option value="" disabled>
-                        Seleccione Archivo
+                {/* Tipo de archivo */}
+                <select
+                  className="h-8 rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] focus:border-brandPrimary focus:outline-none"
+                  value={selectedEmpresa}
+                  onChange={(event) => setSelectedEmpresa(event.target.value)}
+                >
+                  <option value="" disabled>
+                    Seleccione Archivo
+                  </option>
+                  {(username === 'movilbus' ? tiposArchivos : tiposArchivosG).map(
+                    (tipo, index) => (
+                      <option key={index} value={tipo}>
+                        {tipo}
                       </option>
+                    ),
+                  )}
+                </select>
 
-                      {(username === 'movilbus'
-                        ? tiposArchivos
-                        : tiposArchivosG
-                      ).map((tipo, index) => (
-                        <option key={index} value={tipo}>
-                          {tipo}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Cargar Archivo Button (Verde) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-brandSecondary px-3 text-[11px] font-medium text-white hover:bg-brandSecondary-hover transition-colors shadow-xs"
+                  onClick={handleReadExcel}
+                >
+                  <FaFileExcel size={14} />
+                  Cargar Archivo
+                </button>
 
-                  <div className="flex gap-2 rounded text-[12px]">
-                    <button
-                      className="container-btn-file rounded"
-                      onClick={handleReadExcel}
-                    >
-                      <svg
-                        fill="#fff"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 50 50"
-                      >
-                        <path
-                          d="M28.8125 .03125L.8125 5.34375C.339844 
-                      5.433594 0 5.863281 0 6.34375L0 43.65625C0 
-                      44.136719 .339844 44.566406 .8125 44.65625L28.8125 
-                      49.96875C28.875 49.980469 28.9375 50 29 50C29.230469 
-                      50 29.445313 49.929688 29.625 49.78125C29.855469 49.589844 
-                      30 49.296875 30 49L30 1C30 .703125 29.855469 .410156 29.625 
-                      .21875C29.394531 .0273438 29.105469 -.0234375 28.8125 .03125ZM32 
-                      6L32 13L34 13L34 15L32 15L32 20L34 20L34 22L32 22L32 27L34 27L34 
-                      29L32 29L32 35L34 35L34 37L32 37L32 44L47 44C48.101563 44 49 
-                      43.101563 49 42L49 8C49 6.898438 48.101563 6 47 6ZM36 13L44 
-                      13L44 15L36 15ZM6.6875 15.6875L11.8125 15.6875L14.5 21.28125C14.710938 
-                      21.722656 14.898438 22.265625 15.0625 22.875L15.09375 22.875C15.199219 
-                      22.511719 15.402344 21.941406 15.6875 21.21875L18.65625 15.6875L23.34375 
-                      15.6875L17.75 24.9375L23.5 34.375L18.53125 34.375L15.28125 
-                      28.28125C15.160156 28.054688 15.035156 27.636719 14.90625 
-                      27.03125L14.875 27.03125C14.8125 27.316406 14.664063 27.761719 
-                      14.4375 28.34375L11.1875 34.375L6.1875 34.375L12.15625 25.03125ZM36 
-                      20L44 20L44 22L36 22ZM36 27L44 27L44 29L36 29ZM36 35L44 35L44 37L36 37Z"
-                        ></path>
-                      </svg>
-                      Cargar Archivo
-                    </button>
+                <ModalReporteErrores
+                  errores={erroresCarga}
+                  isOpen={isModalOpen}
+                  onClose={() => setIsModalOpen(false)}
+                />
 
-                    <ModalReporteErrores
-                      errores={erroresCarga}
-                      isOpen={isModalOpen}
-                      onClose={() => setIsModalOpen(false)}
-                    />
-                    <button
-                      onClick={handleDeleteCarga}
-                      className="flex items-center space-x-2 rounded bg-gradient-to-r from-red-500 to-red-600 px-4 py-2  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
-                    >
-                      <MdDelete size={14} />
-                      <span>Eliminar Carga</span>
-                    </button>
-                  </div>
-                </div>
+                {/* Eliminar Carga Button (Rojo) */}
+                <button
+                  onClick={handleDeleteCarga}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-red-600 px-3 text-[11px] font-medium text-white hover:bg-red-700 transition-colors shadow-xs"
+                >
+                  <MdDelete size={14} />
+                  Eliminar Carga
+                </button>
               </div>
 
-              <div className="cargaArchivos">
-                <div className="relative flex items-center pb-2.5">
-                  <span className="flex items-center gap-2 text-xs font-semibold text-gray-800">
-                    <Database size={15} /> Obtener Datos
-                  </span>
-                </div>
+              {/* SECCIÓN OBTENER DATOS (AL FINAL SI CABE, O AL INICIO SI PASA A LA SIGUIENTE FILA) */}
+              <div className="flex flex-wrap items-center gap-2 ml-0 2xl:ml-auto">
+                <span className="text-[11px] font-semibold text-gray-800 uppercase flex items-center gap-1.5 whitespace-nowrap">
+                   Obtener Datos
+                </span>
 
-                <div className="cabeceraArchivos">
-                  <div className="selectTipoA">
-                    <select
-                      id="countries"
-                      className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
-                      value={empresaSeleccionada}
-                      onChange={handleEmpresaChange}
-                    >
-                      <option value="" selected disabled>
-                        Seleccione Empresa
+                <select
+                  id="countries"
+                  className="h-8 rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] focus:border-brandPrimary focus:outline-none min-w-[140px]"
+                  value={empresaSeleccionada}
+                  onChange={handleEmpresaChange}
+                >
+                  <option value="" disabled>
+                    Seleccione Empresa
+                  </option>
+                  {(username === 'movilbus' ? empresa : empresaG).map(
+                    (nombre, index) => (
+                      <option key={index} value={nombre}>
+                        {nombre}
                       </option>
+                    ),
+                  )}
+                </select>
 
-                      {(username === 'movilbus' ? empresa : empresaG).map(
-                        (nombre, index) => (
-                          <option key={index} value={nombre}>
-                            {nombre}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
+                {/* Obtener (Azul) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-brandPrimary px-3 text-[11px] font-medium text-white hover:bg-brandPrimary-hover transition-colors shadow-xs"
+                  onClick={() => onOpen()}
+                >
+                  Obtener
+                  <IoSendSharp size={12} />
+                </button>
 
-                  <div className="buttonsTep">
-                    <button
-                      className="flex items-center gap-2 rounded bg-brandPrimary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandPrimary-hover focus:outline-none shadow-xs"
-                      onClick={() => {
-                        onOpen();
-                      }}
-                    >
-                      Obtener
-                      <IoSendSharp />
-                    </button>
+                {/* Guardar (Verde) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-brandSecondary px-3 text-[11px] font-medium text-white hover:bg-brandSecondary-hover transition-colors shadow-xs"
+                  onClick={() => guardar(false)}
+                >
+                  Guardar
+                  <IoSave size={12} />
+                </button>
 
-                    <button
-                      className="flex items-center gap-2 rounded bg-brandSecondary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandSecondary-hover focus:outline-none shadow-xs"
-                      onClick={() => guardar(false)}
-                    >
-                      Guardar
-                      <IoSave color="#fff" />
-                    </button>
+                <ModalObtenerServicios
+                  isOpen={isOpen}
+                  onOpenChange={onOpenChange}
+                  onRespuesta={manejarRespuestaModal}
+                />
 
-                    <ModalObtenerServicios
-                      isOpen={isOpen}
-                      onOpenChange={onOpenChange}
-                      onRespuesta={manejarRespuestaModal}
-                    />
-
-                    <button
-                      className="flex items-center space-x-2 rounded bg-brandPrimary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandPrimary-hover focus:outline-none shadow-xs"
-                      onClick={handlePublicar}
-                    >
-                      <span>Publicar</span>
-                    </button>
-                  </div>
-                </div>
+                {/* Publicar (Azul) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-brandPrimary px-3 text-[11px] font-medium text-white hover:bg-brandPrimary-hover transition-colors shadow-xs"
+                  onClick={handlePublicar}
+                >
+                  Publicar
+                </button>
               </div>
             </div>
 
-            <div className="fristFileT">
-              <div className="cargaArchivos">
-                <div className="filtrosPlanificacion">
-                  <div className="relative flex items-center pb-1">
-                    <span className="flex items-center gap-2 text-xs font-semibold text-gray-900">
-                      <Funnel size={15} /> Filtrar Datos
+            {/* FILA 3: FILTRAR DATOS & CONTADORES */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-28 text-[11px] font-semibold text-gray-800 uppercase flex items-center gap-1.5 whitespace-nowrap">
+               Filtrar Datos
+              </span>
+              <div className="flex flex-1 flex-wrap items-center gap-2">
+                <select
+                  onChange={handleFiltrar}
+                  id="countries"
+                  className="h-8 rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] focus:border-brandPrimary focus:outline-none"
+                >
+                  <option value="all">Todos</option>
+                  {cabeceras.map((cabecera, index) => (
+                    <option
+                      key={index}
+                      value={`${cabecera.empresa} | ${cabecera.fecha}`}
+                    >
+                      {cabecera.empresa} - {cabecera.fecha}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  className="h-8 w-60 rounded-md border border-gray-200 bg-gray-50 px-2 text-[11px] focus:border-brandPrimary focus:outline-none"
+                  placeholder="Nombre del pasajero"
+                  value={nombrePasajero}
+                  onChange={(e) => setNombrePasajero(e.target.value)}
+                />
+
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] font-medium text-gray-600">
+                    Hora:
+                  </span>
+                  <FiltroHoras
+                    filtroHora={filtroHora}
+                    setFiltroHora={setFiltroHora}
+                  />
+                  {filtroHora && (
+                    <button
+                      onClick={() => setFiltroHora('')}
+                      className="h-7 rounded bg-gray-500 px-1.5 text-[10px] text-white hover:bg-gray-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Eliminados Button */}
+                <button
+                  onClick={alternarEstado}
+                  className={`inline-flex h-8 items-center justify-center gap-1 rounded-md px-3 text-[11px] font-medium text-white transition-colors shadow-xs ${
+                    modoVista === 'Eliminados'
+                      ? 'bg-brandPrimary hover:bg-brandPrimary-hover'
+                      : 'bg-brandSecondary hover:bg-brandSecondary-hover'
+                  }`}
+                >
+                  {modoVista}
+                </button>
+
+                {/* Limpiar Eliminados (Azul) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-brandPrimary px-3 text-[11px] font-medium text-white hover:bg-brandPrimary-hover transition-colors shadow-xs"
+                  onClick={() => {
+                    if (ejecutarGrupoCeroRef.current) {
+                      ejecutarGrupoCeroRef.current();
+                    }
+                  }}
+                >
+                  Limpiar Eliminados
+                </button>
+
+                {/* + Nuevo Grupo (Verde) */}
+                <button
+                  className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-brandSecondary px-3 text-[11px] font-medium text-white hover:bg-brandSecondary-hover transition-colors disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
+                  onClick={() => setModalNuevoGrupoOpen(true)}
+                  disabled={!empresaConfirmada || !dato}
+                  title={
+                    !empresaConfirmada || !dato
+                      ? 'Primero debe obtener datos de una empresa'
+                      : 'Agregar nuevo grupo'
+                  }
+                >
+                  <MdAdd size={14} />
+                  Nuevo Grupo
+                </button>
+
+                {/* Indicadores de Totales */}
+                <div className="ml-auto flex items-center gap-2">
+                  <div className="inline-flex h-8 items-center gap-2 rounded-md px-2.5 text-[11px]">
+                    <MdHomeRepairService size={14} className="text-blue-700" />
+                    <span className="font-semibold text-blue-800">
+                      Total Servicios:
+                    </span>
+                    <span className="font-bold text-blue-700">
+                      {datosServicios.totalGrupos}
                     </span>
                   </div>
 
-                  <div className="cabeceraArchivos">
-                    <div className="inputFiltros">
-                      <select
-                        onChange={handleFiltrar}
-                        id="countries"
-                        className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0"
-                      >
-                        <option value="all">Todos</option>
-                        {cabeceras.map((cabecera, index) => (
-                          <option
-                            key={index}
-                            value={`${cabecera.empresa} | ${cabecera.fecha}`}
-                          >
-                            {cabecera.empresa} - {cabecera.fecha}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="max-w-lg">
-                      <input
-                        type="text"
-                        id="input-label"
-                        className="w-full rounded border border-gray-300 bg-white p-[7px] text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder-neutral-800"
-                        placeholder="Nombre del pasajero"
-                        style={{ width: '280px' }}
-                        value={nombrePasajero}
-                        onChange={(e) => setNombrePasajero(e.target.value)}
-                      />
-                    </div>
-
-                    {/* REEMPLAZAR la sección actual con esto: */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-medium text-gray-700">
-                        Hora:
-                      </span>
-                      <FiltroHoras
-                        filtroHora={filtroHora}
-                        setFiltroHora={setFiltroHora}
-                      />
-                      {filtroHora && (
-                        <button
-                          onClick={() => setFiltroHora('')}
-                          className="rounded bg-red-500 px-2 py-1.5 text-[10px] text-white hover:bg-gray-600"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={alternarEstado}
-                      className={`rounded px-4 py-[6px] text-[12px] font-medium shadow-sm transition-all duration-200 ${
-                        modoVista === 'Eliminados'
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
-                          : 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-600 hover:to-green-700'
-                      }`}
-                    >
-                      {modoVista}
-                    </button>
-
-                    <button
-                      className="flex items-center space-x-2 rounded bg-gradient-to-r from-red-500 to-red-600 px-4 py-[6px]  text-[12px] font-medium text-white shadow-sm transition-all duration-200 hover:from-red-600 hover:to-red-700"
-                      onClick={() => {
-                        if (ejecutarGrupoCeroRef.current) {
-                          ejecutarGrupoCeroRef.current();
-                        }
-                      }}
-                    >
-                      Limpiar Eliminados
-                    </button>
-
-                    <button
-                      className="flex items-center gap-2 rounded bg-brandSecondary px-3 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-brandSecondary-hover focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 shadow-xs"
-                      onClick={() => setModalNuevoGrupoOpen(true)}
-                      disabled={!empresaConfirmada || !dato}
-                      title={
-                        !empresaConfirmada || !dato
-                          ? 'Primero debe obtener datos de una empresa'
-                          : 'Agregar nuevo grupo'
-                      }
-                    >
-                      <MdAdd size={16} />
-                      Nuevo Grupo
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="cargaArchivos">
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Card Total Servicios - Compacta con fondo azul claro */}
-                  <div className=" flex items-center justify-center rounded border border-blue-200 bg-gradient-to-r from-blue-50 to-blue-100 p-1 shadow-sm">
-                    <div className="flex items-center space-x-2 ">
-                      <div className="rounded-lg bg-blue-600 p-2 shadow-sm">
-                        <MdHomeRepairService size={14} className="text-white" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-blue-700">
-                          Total Servicios
-                        </p>
-                        <p className="text-sm font-bold text-blue-800">
-                          {datosServicios.totalGrupos}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Total Pasajeros - Compacta con fondo verde claro */}
-                  <div className="rounded border border-green-200 bg-gradient-to-r from-green-50 to-emerald-100 p-1 shadow-sm">
-                    <div className="flex items-center space-x-2">
-                      <div className="rounded-lg bg-green-600 p-2 shadow-sm">
-                        <FaUsers size={14} className="text-white" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-green-700">
-                          Total Pasajeros
-                        </p>
-                        <p className="text-sm font-bold text-green-800">
-                          {datosServicios.totalPasajeros}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="inline-flex h-8 items-center gap-2 rounded-md px-2.5 text-[11px]">
+                    <FaUsers size={14} className="text-emerald-700" />
+                    <span className="font-semibold text-emerald-800">
+                      Total Pasajeros:
+                    </span>
+                    <span className="font-bold text-emerald-800">
+                      {datosServicios.totalPasajeros}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -933,7 +873,7 @@ export default function TepContent() {
 
       <div
         className="grupoServicios relative overflow-y-auto"
-        style={{ height: `calc(100vh - ${isVisible ? 240 : 85}px)` }}
+        style={{ height: `calc(100vh - ${isVisible ? 180 : 85}px)` }}
       >
         {!empresaConfirmada || !dato ? (
           <div className="absolute inset-0 ml-2 mr-2 flex items-center justify-center bg-gray-100">
@@ -982,7 +922,7 @@ export default function TepContent() {
               key={`${empresaConfirmada}-${dato}-${actualizacion}`}
               empresa={empresaConfirmada}
               dato={dato}
-              onGuardar={setGuardar}
+              onGuardar={registrarGuardar}
               onActualizarDatos={actualizarDatosServicios}
               onActualizarCabeceras={actualizarCabeceras}
               onActualizarFechas={actualizarFechas}

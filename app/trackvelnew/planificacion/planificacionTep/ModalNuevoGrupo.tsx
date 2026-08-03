@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Select,
-  SelectItem,
-} from '@nextui-org/react';
+import { Select, SelectItem } from '@nextui-org/react';
 import { toast } from 'sonner';
 import InputPasajero from '@/app/components/inputs/InputPasajero';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { MdLibraryAdd, MdDelete } from 'react-icons/md';
 import { useUsername } from '@/hooks/useUsername';
 import InputPasajeroEmpresa from '@/app/components/inputs/InputPasajeroEmpresa';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 interface ModalNuevoGrupoProps {
   isOpen: boolean;
@@ -245,204 +237,166 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   ];
 
   return (
-    <Modal
+    <BaseModal
       isOpen={isOpen}
       onClose={onClose}
+      title="Crear Nuevo Grupo"
+      subtitle="Selecciona pasajeros para crear un nuevo grupo de servicio"
+      icon={<MdLibraryAdd className="h-4 w-4 text-[#113eb9]" />}
+      iconBgColor="bg-blue-100"
       size="3xl"
-      scrollBehavior="inside"
-      classNames={{
-        base: 'bg-white',
-        header: 'border-b border-gray-200',
-        footer: 'border-t border-gray-200',
-      }}
+      confirmText={`Crear Grupo (${pasajerosSeleccionados.length} pasajeros)`}
+      onConfirm={handleSubmit}
+      onCancel={onClose}
+      isConfirmDisabled={pasajerosSeleccionados.length === 0}
+      confirmButtonClass="bg-[#113eb9] hover:bg-blue-700 text-white"
     >
-      <ModalContent>
-        <ModalHeader className="flex items-center gap-2">
-          <MdLibraryAdd size={24} />
-          <div>
-            <h2 className="text-[15px] font-semibold uppercase text-gray-800">
-              Crear Nuevo Grupo
-            </h2>
-            <p className="text-sm text-gray-600">
-              Selecciona pasajeros para crear un nuevo grupo de servicio
-            </p>
-          </div>
-        </ModalHeader>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Configuración del Grupo */}
+        <div className="space-y-4">
+          <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
+            Configuración del Grupo
+          </h3>
 
-        <ModalBody className="gap-4">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {/* Configuración del Grupo */}
-            <div className="space-y-4">
-              <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
-                Configuración del Grupo
-              </h3>
-
-              <Select
-                label="Tipo de grupo"
-                placeholder="Selecciona el tipo"
-                selectedKeys={[formData.tipo]}
-                onChange={(e) => handleInputChange('tipo', e.target.value)}
-              >
-                {tiposGrupo.map((tipo) => (
-                  <SelectItem key={tipo.key} value={tipo.key}>
-                    {tipo.label}
-                  </SelectItem>
-                ))}
-              </Select>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Fecha Inicio {formData.tipo === 'S' ? '*' : '(opcional)'}
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.fechaInicio}
-                  onChange={(e) =>
-                    handleInputChange('fechaInicio', e.target.value)
-                  }
-                  className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.fechaInicio
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-300'
-                  }`}
-                />
-                {errors.fechaInicio && (
-                  <p className="mt-1 text-xs text-red-500">
-                    {errors.fechaInicio}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-600">
-                  Fecha Fin {formData.tipo === 'I' ? '*' : '(opcional)'}
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.fechaFin}
-                  onChange={(e) =>
-                    handleInputChange('fechaFin', e.target.value)
-                  }
-                  className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.fechaFin
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-gray-300'
-                  }`}
-                />
-                {errors.fechaFin && (
-                  <p className="mt-1 text-xs text-red-500">{errors.fechaFin}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Selección de Pasajeros */}
-            <div className="space-y-4">
-              <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
-                Seleccionar Pasajeros
-              </h3>
-
-              {username === 'movilbus' ? (
-                <InputPasajeroEmpresa
-                  onSelectPasajero={handleAgregarPasajero}
-                  clearAfterSelect={true}
-                  empresa={empresaActual}
-                />
-              ) : (
-                <InputPasajero
-                  onSelectPasajero={handleAgregarPasajero}
-                  clearAfterSelect={true}
-                />
-              )}
-
-              {errors.pasajeros && (
-                <p className="text-xs text-red-500">{errors.pasajeros}</p>
-              )}
-
-              {/* Lista de pasajeros seleccionados */}
-              {pasajerosSeleccionados.length > 0 ? (
-                <div className="mt-4">
-                  <h4 className="mb-2 text-sm font-medium text-gray-700">
-                    Pasajeros seleccionados ({pasajerosSeleccionados.length}):
-                  </h4>
-                  <div className="max-h-40 space-y-2 overflow-y-auto">
-                    {pasajerosSeleccionados.map((pasajero, index) => (
-                      <div
-                        key={pasajero.codlan}
-                        className="flex items-center justify-between rounded-lg border bg-gray-50 p-3"
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-800">
-                            {index + 1}. {pasajero.apepate}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            Código: {pasajero.codlan} | Lugar:{' '}
-                            {pasajero.codlugar}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            handleEliminarPasajero(pasajero.codlan)
-                          }
-                          className="ml-2 rounded p-1 text-red-600 hover:bg-red-100"
-                          title="Eliminar pasajero"
-                        >
-                          <MdDelete size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-                  <p className="text-center text-sm text-gray-600">
-                    Aún no has agregado pasajeros al grupo. Por favor selecciona
-                    algunos pasajeros.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Información adicional */}
-          <div className="rounded-lg bg-blue-50 p-4">
-            <h4 className="mb-2 font-medium text-blue-800">Información:</h4>
-            <ul className="space-y-1 text-sm text-blue-700">
-              <li>
-                • Se creará el un<strong> Nuevo Grupo</strong>
-              </li>
-
-              <li>
-                • La empresa será: <strong>{empresaActual}</strong>
-              </li>
-              {formData.tipo === 'I' ? (
-                <li>
-                  • <strong>Tipo Ingreso:</strong> Solo fecha de fin es
-                  obligatoria
-                </li>
-              ) : (
-                <li>
-                  • <strong>Tipo Salida:</strong> Solo fecha de inicio es
-                  obligatoria
-                </li>
-              )}
-            </ul>
-          </div>
-        </ModalBody>
-
-        <ModalFooter>
-          <Button color="danger" onPress={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onPress={handleSubmit}
-            className="bg-[#113eb9] hover:bg-blue-700 font-semibold text-white transition-colors"
-            isDisabled={pasajerosSeleccionados.length === 0}
+          <Select
+            label="Tipo de grupo"
+            placeholder="Selecciona el tipo"
+            selectedKeys={[formData.tipo]}
+            onChange={(e) => handleInputChange('tipo', e.target.value)}
           >
-            Crear Grupo ({pasajerosSeleccionados.length} pasajeros)
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+            {tiposGrupo.map((tipo) => (
+              <SelectItem key={tipo.key} value={tipo.key}>
+                {tipo.label}
+              </SelectItem>
+            ))}
+          </Select>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-600">
+              Fecha Inicio {formData.tipo === 'S' ? '*' : '(opcional)'}
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.fechaInicio}
+              onChange={(e) => handleInputChange('fechaInicio', e.target.value)}
+              className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.fechaInicio
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-gray-300'
+              }`}
+            />
+            {errors.fechaInicio && (
+              <p className="mt-1 text-xs text-red-500">{errors.fechaInicio}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-600">
+              Fecha Fin {formData.tipo === 'I' ? '*' : '(opcional)'}
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.fechaFin}
+              onChange={(e) => handleInputChange('fechaFin', e.target.value)}
+              className={`w-full rounded-xl border-2 bg-gray-50 px-3 py-3 text-sm transition-all duration-200 hover:bg-gray-100 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.fechaFin ? 'border-red-300 bg-red-50' : 'border-gray-300'
+              }`}
+            />
+            {errors.fechaFin && (
+              <p className="mt-1 text-xs text-red-500">{errors.fechaFin}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Selección de Pasajeros */}
+        <div className="space-y-4">
+          <h3 className="border-b pb-2 text-[14px] font-medium text-gray-800">
+            Seleccionar Pasajeros
+          </h3>
+
+          {username === 'movilbus' ? (
+            <InputPasajeroEmpresa
+              onSelectPasajero={handleAgregarPasajero}
+              clearAfterSelect={true}
+              empresa={empresaActual}
+            />
+          ) : (
+            <InputPasajero
+              onSelectPasajero={handleAgregarPasajero}
+              clearAfterSelect={true}
+            />
+          )}
+
+          {errors.pasajeros && (
+            <p className="text-xs text-red-500">{errors.pasajeros}</p>
+          )}
+
+          {/* Lista de pasajeros seleccionados */}
+          {pasajerosSeleccionados.length > 0 ? (
+            <div className="mt-4">
+              <h4 className="mb-2 text-sm font-medium text-gray-700">
+                Pasajeros seleccionados ({pasajerosSeleccionados.length}):
+              </h4>
+              <div className="max-h-40 space-y-2 overflow-y-auto">
+                {pasajerosSeleccionados.map((pasajero, index) => (
+                  <div
+                    key={pasajero.codlan}
+                    className="flex items-center justify-between rounded-lg border bg-gray-50 p-3"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-800">
+                        {index + 1}. {pasajero.apepate}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Código: {pasajero.codlan} | Lugar: {pasajero.codlugar}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleEliminarPasajero(pasajero.codlan)}
+                      className="ml-2 rounded p-1 text-red-600 hover:bg-red-100"
+                      title="Eliminar pasajero"
+                    >
+                      <MdDelete size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+              <p className="text-center text-sm text-gray-600">
+                Aún no has agregado pasajeros al grupo. Por favor selecciona
+                algunos pasajeros.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Información adicional */}
+      <div className="rounded-lg bg-blue-50 p-4">
+        <h4 className="mb-2 font-medium text-blue-800">Información:</h4>
+        <ul className="space-y-1 text-sm text-blue-700">
+          <li>
+            • Se creará el un<strong> Nuevo Grupo</strong>
+          </li>
+
+          <li>
+            • La empresa será: <strong>{empresaActual}</strong>
+          </li>
+          {formData.tipo === 'I' ? (
+            <li>
+              • <strong>Tipo Ingreso:</strong> Solo fecha de fin es obligatoria
+            </li>
+          ) : (
+            <li>
+              • <strong>Tipo Salida:</strong> Solo fecha de inicio es
+              obligatoria
+            </li>
+          )}
+        </ul>
+      </div>
+    </BaseModal>
   );
 };
 

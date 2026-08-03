@@ -85,36 +85,40 @@ interface SearchResult {
 // Hook personalizado para Google Places Autocomplete
 const useGooglePlacesAutocomplete = () => {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [autocompleteService, setAutocompleteService] =
-    useState<google.maps.places.AutocompleteService | null>(null);
-  const [placesService, setPlacesService] =
-    useState<google.maps.places.PlacesService | null>(null);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const checkGoogleMaps = () => {
-      if (window.google && window.google.maps && window.google.maps.places) {
-        setAutocompleteService(
-          new window.google.maps.places.AutocompleteService(),
-        );
-        setPlacesService(
-          new window.google.maps.places.PlacesService(
-            document.createElement('div'),
-          ),
-        );
+      if (typeof window !== 'undefined' && window.google && window.google.maps) {
         setIsLoaded(true);
       } else {
         // Intentar de nuevo en 100ms si no está cargado
-        setTimeout(checkGoogleMaps, 100);
+        timer = setTimeout(checkGoogleMaps, 100);
       }
     };
 
     checkGoogleMaps();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
-  return { isLoaded, autocompleteService, placesService };
+  return { isLoaded };
 };
 
-export default function ModalDireccionAdicional({
+// Wrapper: mientras esté cerrado no monta nada. Este componente se usa dentro
+// de tablas con muchas filas, y montarlo por fila significaba multiplicar sus
+// estados, listeners y el polling de Google Maps por cada fila renderizada.
+export default function ModalDireccionAdicional(
+  props: ModalDireccionAdicionalProps,
+) {
+  if (!props.isOpen) return null;
+  return <ModalDireccionAdicionalContenido {...props} />;
+}
+
+function ModalDireccionAdicionalContenido({
   isOpen,
   onClose,
   codCliente,
@@ -145,8 +149,7 @@ export default function ModalDireccionAdicional({
   ]);
 
   // Hook de Google Places
-  const { isLoaded, autocompleteService, placesService } =
-    useGooglePlacesAutocomplete();
+  const { isLoaded } = useGooglePlacesAutocomplete();
 
   // Manejar cambios de fullscreen
   useEffect(() => {
@@ -199,7 +202,7 @@ export default function ModalDireccionAdicional({
     }
   };
 
-  // Función principal de búsqueda con Google Places
+  // Función principal de búsqueda con Google Places / Geocoder
   const searchAddress = async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -207,86 +210,76 @@ export default function ModalDireccionAdicional({
       return;
     }
 
-    // Usar Google Places Autocomplete si está disponible
-    if (isLoaded && autocompleteService && placesService) {
+    if (isLoaded && typeof window !== 'undefined' && window.google?.maps) {
       try {
-        const request: google.maps.places.AutocompletionRequest = {
-          input: query,
-          componentRestrictions: { country: 'pe' },
-          types: ['address'],
-        };
+        const maps = window.google.maps;
 
-        autocompleteService.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            if (
-              status === google.maps.places.PlacesServiceStatus.OK &&
-              predictions
-            ) {
-              // Obtener detalles de cada predicción
-              const processedResults: SearchResult[] = [];
-              let processedCount = 0;
-              const totalPredictions = Math.min(5, predictions.length);
+        // 1. Intentar con la nueva API AutocompleteSuggestion y Place si están disponibles
+        if ((maps.places as any)?.AutocompleteSuggestion && (maps.places as any)?.Place) {
+          const response = await (maps.places as any).AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: query,
+            componentRestrictions: { country: 'pe' },
+          });
 
-              if (totalPredictions === 0) {
-                fallbackToNominatim(query);
-                return;
+          const suggestions = response.suggestions || [];
+          const processedResults: SearchResult[] = [];
+
+          for (const suggestion of suggestions.slice(0, 5)) {
+            if (suggestion.placePrediction) {
+              try {
+                const place = suggestion.placePrediction.toPlace();
+                await place.fetchFields({ fields: ['location', 'formattedAddress'] });
+                if (place.location) {
+                  processedResults.push({
+                    lat: place.location.lat().toString(),
+                    lon: place.location.lng().toString(),
+                    display_name: place.formattedAddress || suggestion.placePrediction.text?.text || '',
+                    place_id: suggestion.placePrediction.placeId || '',
+                  });
+                }
+              } catch (e) {
+                // omitir si falla
               }
-
-              predictions.slice(0, 5).forEach((prediction) => {
-                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                  placeId: prediction.place_id,
-                  fields: [
-                    'geometry',
-                    'formatted_address',
-                    'address_components',
-                  ],
-                };
-
-                placesService.getDetails(
-                  detailsRequest,
-                  (place, detailsStatus) => {
-                    if (
-                      detailsStatus ===
-                        google.maps.places.PlacesServiceStatus.OK &&
-                      place &&
-                      place.geometry
-                    ) {
-                      processedResults.push({
-                        lat: place.geometry.location!.lat().toString(),
-                        lon: place.geometry.location!.lng().toString(),
-                        display_name:
-                          place.formatted_address || prediction.description,
-                        place_id: prediction.place_id,
-                      });
-                    }
-
-                    processedCount++;
-                    if (processedCount === totalPredictions) {
-                      if (processedResults.length > 0) {
-                        setSearchResults(processedResults);
-                        setShowSearchResults(true);
-                      } else {
-                        fallbackToNominatim(query);
-                      }
-                    }
-                  },
-                );
-              });
-            } else {
-              // Fallback a Nominatim si Google Places falla
-              fallbackToNominatim(query);
             }
-          },
-        );
+          }
+
+          if (processedResults.length > 0) {
+            setSearchResults(processedResults);
+            setShowSearchResults(true);
+            return;
+          }
+        }
+
+        // 2. Usar Geocoder estándar (no deprecado)
+        if (maps.Geocoder) {
+          const geocoder = new maps.Geocoder();
+          geocoder.geocode(
+            { address: query, componentRestrictions: { country: 'pe' } },
+            (results, status) => {
+              if (status === maps.GeocoderStatus.OK && results && results.length > 0) {
+                const processedResults: SearchResult[] = results.slice(0, 5).map((res) => ({
+                  lat: res.geometry.location.lat().toString(),
+                  lon: res.geometry.location.lng().toString(),
+                  display_name: res.formatted_address,
+                  place_id: res.place_id || '',
+                }));
+                setSearchResults(processedResults);
+                setShowSearchResults(true);
+              } else {
+                fallbackToNominatim(query);
+              }
+            }
+          );
+          return;
+        }
       } catch (error) {
-        console.error('Error with Google Places:', error);
+        console.error('Error in Google search:', error);
         fallbackToNominatim(query);
+        return;
       }
-    } else {
-      // Fallback a Nominatim si Google Places no está disponible
-      fallbackToNominatim(query);
     }
+
+    fallbackToNominatim(query);
   };
 
   // Función de fallback para geocodificación inversa

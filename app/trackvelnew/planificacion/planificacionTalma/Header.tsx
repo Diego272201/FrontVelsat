@@ -31,7 +31,7 @@ interface PassengerRecord {
 }
 
 export default function Header({ tablaListRef }: HeaderProps) {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [isExpanded, setIsExpanded] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,19 +49,21 @@ export default function Header({ tablaListRef }: HeaderProps) {
   });
 
   const [errorDetails, setErrorDetails] = useState<any[]>([]);
-const [estadisticas, setEstadisticas] = useState({ totalGrupos: 0, totalPasajeros: 0 });
+  const [estadisticas, setEstadisticas] = useState({
+    totalGrupos: 0,
+    totalPasajeros: 0,
+  });
 
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (tablaListRef.current?.getEstadisticas) {
-      const stats = tablaListRef.current.getEstadisticas();
-      setEstadisticas(stats);
-    }
-  }, 500);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (tablaListRef.current?.getEstadisticas) {
+        const stats = tablaListRef.current.getEstadisticas();
+        setEstadisticas(stats);
+      }
+    }, 500);
 
-  return () => clearInterval(interval);
-}, []);
-
+    return () => clearInterval(interval);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -72,7 +74,9 @@ useEffect(() => {
         .toLowerCase();
 
       if (!validExtensions.includes(fileExtension)) {
-        toast.error('Por favor, selecciona un archivo Excel válido (.xlsx o .xls)');
+        toast.error(
+          'Por favor, selecciona un archivo Excel válido (.xlsx o .xls)',
+        );
         return;
       }
 
@@ -108,7 +112,9 @@ useEffect(() => {
     if (typeof serial === 'number') {
       const excelEpoch = new Date(1900, 0, 1);
       const daysOffset = serial - 2;
-      const date = new Date(excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000);
+      const date = new Date(
+        excelEpoch.getTime() + daysOffset * 24 * 60 * 60 * 1000,
+      );
 
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -177,7 +183,7 @@ useEffect(() => {
 
         // Extraer datos
         const codlan = `TA${dni}`;
-        const tipo = row[4] ? String(row[4]).toUpperCase() : ''; 
+        const tipo = row[4] ? String(row[4]).toUpperCase() : '';
 
         // Columna G (índice 6) - FECHA
         const fecha = row[6] ? excelSerialToDate(row[6]) : '';
@@ -246,9 +252,7 @@ useEffect(() => {
         const promises = currentBatches.map(async (batch, batchIndex) => {
           const actualBatchNumber = i + batchIndex + 1;
 
-          console.log(
-            `\nEnviando Lote ${actualBatchNumber}/${batches.length}`
-          );
+          console.log(`\nEnviando Lote ${actualBatchNumber}/${batches.length}`);
           console.log('Datos a enviar:', JSON.stringify(batch, null, 2));
 
           try {
@@ -260,17 +264,14 @@ useEffect(() => {
               body: JSON.stringify(batch),
             });
 
-            console.log(
-              `Lote ${actualBatchNumber} - Status:`,
-              response.status
-            );
+            console.log(`Lote ${actualBatchNumber} - Status:`, response.status);
             console.log(`Lote ${actualBatchNumber} - OK:`, response.ok);
 
             if (response.ok) {
               const responseData = await response.json();
               console.log(
                 `Lote ${actualBatchNumber} - Respuesta:`,
-                responseData
+                responseData,
               );
 
               if (responseData.errores && Array.isArray(responseData.errores)) {
@@ -295,23 +296,17 @@ useEffect(() => {
               }
 
               console.log(
-                `Lote ${actualBatchNumber} - Exitosos: ${batchSuccess}, Fallidos: ${batchFailed}`
+                `Lote ${actualBatchNumber} - Exitosos: ${batchSuccess}, Fallidos: ${batchFailed}`,
               );
 
               return { success: batchSuccess, failed: batchFailed };
             } else {
               const errorText = await response.text();
-              console.error(
-                `Lote ${actualBatchNumber} - Error:`,
-                errorText
-              );
+              console.error(`Lote ${actualBatchNumber} - Error:`, errorText);
               return { success: 0, failed: batch.length };
             }
           } catch (error) {
-            console.error(
-              `Lote ${actualBatchNumber} - Exception:`,
-              error
-            );
+            console.error(`Lote ${actualBatchNumber} - Exception:`, error);
             return { success: 0, failed: batch.length };
           }
         });
@@ -335,7 +330,7 @@ useEffect(() => {
         });
 
         console.log(
-          `\nProgreso: ${processedCount}/${processedData.length} registros procesados (✅ ${successCount} exitosos, ❌ ${failedCount} fallidos)`
+          `\nProgreso: ${processedCount}/${processedData.length} registros procesados (✅ ${successCount} exitosos, ❌ ${failedCount} fallidos)`,
         );
       }
 
@@ -359,29 +354,30 @@ useEffect(() => {
     }
   };
 
- 
-
   return (
     <>
-      {/* Header Compacto */}
-      <div className="bg-[#113EB9]">
-        <div className=" flex items-center justify-between px-4 py-[5px]">
-          <h1 className="text-[12.5px] font-bold uppercase text-white">
-            Módulo de Planificación de Servicios Talma
-          </h1>
+      {/* Header: mismo patrón que gestionconductores */}
+      <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
+            <div className="h-5 w-1 bg-[#113EB9]"></div>
+            <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
+              Módulo de Planificación de Servicios Talma
+            </h1>
+          </div>
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-white/20 active:scale-95"
+            className="ml-auto inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
           >
             {isExpanded ? (
               <>
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-3.5 w-3.5" />
                 Ocultar
               </>
             ) : (
               <>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5" />
                 Mostrar
               </>
             )}
@@ -391,54 +387,52 @@ useEffect(() => {
 
       {/* Contenido colapsable */}
       {isExpanded && (
-        <div className="px-4 pt-2 pb-0">
-          {/* FILA 1: Carga + Controles + Filtros + Estadísticas */}
-         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_2fr_1fr]">
-
+        <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-[2fr_2fr_1fr]">
             {/* Carga de Archivos */}
-            <div className="rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <Upload className="h-4 w-4 text-blue-600" />
-                <h2 className="text-[12px] font-semibold text-slate-800">
+            <div className="rounded-md border border-gray-200 bg-white p-2 shadow-sm">
+              {/* Título de tarjeta: deliberadamente discreto para no competir
+                  con el título de la página. */}
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <Upload className="h-3 w-3 text-gray-500" />
+                <h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">
                   Carga de Archivos
                 </h2>
               </div>
 
-              <div className="space-y-2">
-                <label className="block">
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    accept=".xlsx,.xls"
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="flex cursor-pointer items-center gap-2 rounded-md border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-[14px] transition-all hover:border-blue-400 hover:bg-blue-50"
-                  >
-                    <Upload className="h-4 w-4 text-slate-400" />
-                    <span className="truncate text-xs text-slate-600">
-                      {selectedFile
-                        ? selectedFile.name
-                        : 'Ningún archivo seleccionado'}
-                    </span>
-                  </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="flex h-7 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-300 bg-gray-50 px-2 transition-colors hover:border-[#113EB9] hover:bg-blue-50"
+                >
+                  <Upload className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  <span className="truncate text-[11px] text-gray-600">
+                    {selectedFile
+                      ? selectedFile.name
+                      : 'Ningún archivo seleccionado'}
+                  </span>
                 </label>
 
                 <button
                   onClick={handleUploadFile}
                   disabled={!selectedFile || isLoading}
-                  className="w-full rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md bg-[#113EB9] px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Procesando...
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Procesando
                     </>
                   ) : (
                     <>
-                      <MonitorUp className="h-4 w-4" />
+                      <MonitorUp className="h-3 w-3" />
                       Subir
                     </>
                   )}
@@ -447,41 +441,36 @@ useEffect(() => {
             </div>
 
             {/* Controles */}
-
             <ObtenerDatos tablaListRef={tablaListRef} />
-             
 
-
-            {/* Estadísticas - En una sola columna */}
-            <div className="flex flex-col gap-3 ">
-              {/* Total Servicios */}
-              <div className="flex-1 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-2 text-white shadow-md">
-                <div className="flex h-full items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs font-medium text-blue-100">
-                      Servicios
-                    </p>
-                    <p className="text-xl font-bold">{estadisticas.totalGrupos}</p>
+            {/* Estadísticas */}
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+              <div className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-2.5 py-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="rounded bg-blue-50 p-1">
+                    <Briefcase className="h-3.5 w-3.5 text-[#113EB9]" />
                   </div>
-                  <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
-                    <Briefcase className="h-4 w-4" />
-                  </div>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                    Servicios
+                  </span>
                 </div>
+                <span className="text-[15px] font-bold text-[#113EB9]">
+                  {estadisticas.totalGrupos}
+                </span>
               </div>
 
-              {/* Total Pasajeros */}
-              <div className="flex-1 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 p-2 text-white shadow-md">
-                <div className="flex h-full items-center justify-between">
-                  <div>
-                    <p className="mb-0.5 text-xs font-medium text-emerald-100">
-                      Pasajeros
-                    </p>
-                    <p className="text-xl font-bold">{estadisticas.totalPasajeros}</p>
+              <div className="flex items-center justify-between rounded-md border border-gray-200 bg-white px-2.5 py-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="rounded bg-emerald-50 p-1">
+                    <Users className="h-3.5 w-3.5 text-emerald-600" />
                   </div>
-                  <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
-                    <Users className="h-4 w-4" />
-                  </div>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                    Pasajeros
+                  </span>
                 </div>
+                <span className="text-[15px] font-bold text-emerald-600">
+                  {estadisticas.totalPasajeros}
+                </span>
               </div>
             </div>
           </div>
@@ -527,8 +516,9 @@ useEffect(() => {
                   {processedData.map((record, index) => (
                     <tr
                       key={index}
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                        } hover:bg-blue-50 transition-colors`}
+                      className={`${
+                        index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                      } transition-colors hover:bg-blue-50`}
                     >
                       <td className="px-4 py-3 text-slate-500">{index + 1}</td>
                       <td className="px-4 py-3 font-medium text-slate-900">
@@ -542,7 +532,9 @@ useEffect(() => {
                       <td className="px-4 py-3 text-slate-700">
                         {record.fecha}
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{record.hora}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {record.hora}
+                      </td>
                       <td className="px-4 py-3 text-slate-700">
                         {record.usuario}
                       </td>
@@ -578,7 +570,7 @@ useEffect(() => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-2xl">
             <div className="text-center">
-              <Spinner color="primary" size='md' />
+              <Spinner color="primary" size="md" />
               <h3 className="mt-4 text-xl font-semibold text-slate-800">
                 Enviando datos a la API
               </h3>
@@ -601,11 +593,10 @@ useEffect(() => {
                       width: `${(sendProgress.current / sendProgress.total) * 100}%`,
                     }}
                   ></div>
-
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   {Math.round(
-                    (sendProgress.current / sendProgress.total) * 100
+                    (sendProgress.current / sendProgress.total) * 100,
                   )}
                   % completado
                 </p>
@@ -620,8 +611,10 @@ useEffect(() => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg bg-white shadow-2xl">
             {/* Header */}
-            <div className="border-b border-slate-200 bg-[#e7ecef]
-           px-6 py-4">
+            <div
+              className="border-b border-slate-200 bg-[#e7ecef]
+           px-6 py-4"
+            >
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-6 w-6 text-black" />
                 <h3 className="text-[15px] font-semibold text-black">
@@ -695,10 +688,12 @@ useEffect(() => {
                 <div className="space-y-2">
                   <button
                     onClick={() => {
-                   
-                      window.open('/trackvelnew/planificacion/planificacionTalma/erroresTalma', '_blank');
+                      window.open(
+                        '/trackvelnew/planificacion/planificacionTalma/erroresTalma',
+                        '_blank',
+                      );
                     }}
-                    className="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95 flex items-center justify-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-red-700 active:scale-95"
                   >
                     <AlertCircle className="h-4 w-4" />
                     Ver Errores ({apiResults.failed})

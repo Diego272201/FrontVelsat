@@ -3,11 +3,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { AiFillCloseCircle } from 'react-icons/ai';
 import { IoMdSave } from 'react-icons/io';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
   useDisclosure,
   Input,
@@ -25,6 +20,7 @@ import dynamic from 'next/dynamic';
 import type { Map as LeafletMap } from 'leaflet';
 import { User } from 'lucide-react';
 import { Controller } from 'react-hook-form';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -238,7 +234,7 @@ export default function App({ title, codCliente }: Props) {
     }
   }, []);
 
-  // Función principal de búsqueda con Google Places
+  // Búsqueda en Google Places / Geocoder
   const searchAddress = async (query: string) => {
     if (query.length < 3) {
       setSearchResults([]);
@@ -246,93 +242,81 @@ export default function App({ title, codCliente }: Props) {
       return;
     }
 
-    // Solo usar Google Places, sin fallback
-    if (isLoaded && autocompleteService && placesService) {
+    if (isLoaded && typeof window !== 'undefined' && window.google?.maps) {
       try {
-        const request: google.maps.places.AutocompletionRequest = {
-          input: query,
-          // ✅ ELIMINADO componentRestrictions para búsqueda mundial
-          // ✅ ELIMINADO types para permitir todo tipo de lugares
-        };
+        const maps = window.google.maps;
 
-        autocompleteService.getPlacePredictions(
-          request,
-          (predictions, status) => {
-            if (
-              status === google.maps.places.PlacesServiceStatus.OK &&
-              predictions
-            ) {
-              const processedResults: SearchResult[] = [];
-              let processedCount = 0;
-              const totalPredictions = Math.min(5, predictions.length);
+        // 1. Intentar AutocompleteSuggestion + Place si está disponible
+        if ((maps.places as any)?.AutocompleteSuggestion && (maps.places as any)?.Place) {
+          const response = await (maps.places as any).AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: query,
+            componentRestrictions: { country: 'pe' },
+          });
 
-              if (totalPredictions === 0) {
+          const suggestions = response.suggestions || [];
+          const processedResults: SearchResult[] = [];
+
+          for (const suggestion of suggestions.slice(0, 5)) {
+            if (suggestion.placePrediction) {
+              try {
+                const place = suggestion.placePrediction.toPlace();
+                await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] });
+                if (place.location) {
+                  processedResults.push({
+                    lat: place.location.lat().toString(),
+                    lon: place.location.lng().toString(),
+                    display_name: place.displayName
+                      ? `${place.displayName} - ${place.formattedAddress}`
+                      : place.formattedAddress || suggestion.placePrediction.text?.text || '',
+                    place_id: suggestion.placePrediction.placeId || '',
+                  });
+                }
+              } catch (e) {
+                // omitir si falla
+              }
+            }
+          }
+
+          if (processedResults.length > 0) {
+            setSearchResults(processedResults);
+            setShowSearchResults(true);
+            return;
+          }
+        }
+
+        // 2. Usar Geocoder estándar (no deprecado)
+        if (maps.Geocoder) {
+          const geocoder = new maps.Geocoder();
+          geocoder.geocode(
+            { address: query, componentRestrictions: { country: 'pe' } },
+            (results, status) => {
+              if (status === maps.GeocoderStatus.OK && results && results.length > 0) {
+                const processedResults: SearchResult[] = results.slice(0, 5).map((res) => ({
+                  lat: res.geometry.location.lat().toString(),
+                  lon: res.geometry.location.lng().toString(),
+                  display_name: res.formatted_address,
+                  place_id: res.place_id || '',
+                }));
+                setSearchResults(processedResults);
+                setShowSearchResults(true);
+              } else {
                 setSearchResults([]);
                 setShowSearchResults(false);
-                return;
               }
-
-              predictions.slice(0, 5).forEach((prediction) => {
-                const detailsRequest: google.maps.places.PlaceDetailsRequest = {
-                  placeId: prediction.place_id,
-                  fields: [
-                    'geometry',
-                    'formatted_address',
-                    'address_components',
-                    'name', // ✅ AGREGADO para obtener nombres de lugares
-                  ],
-                };
-
-                placesService.getDetails(
-                  detailsRequest,
-                  (place, detailsStatus) => {
-                    if (
-                      detailsStatus ===
-                        google.maps.places.PlacesServiceStatus.OK &&
-                      place &&
-                      place.geometry
-                    ) {
-                      processedResults.push({
-                        lat: place.geometry.location!.lat().toString(),
-                        lon: place.geometry.location!.lng().toString(),
-                        // ✅ MEJORADO: incluye nombre del lugar si existe
-                        display_name: place.name
-                          ? `${place.name} - ${place.formatted_address}`
-                          : place.formatted_address || prediction.description,
-                        place_id: prediction.place_id,
-                      });
-                    }
-
-                    processedCount++;
-                    if (processedCount === totalPredictions) {
-                      if (processedResults.length > 0) {
-                        setSearchResults(processedResults);
-                        setShowSearchResults(true);
-                      } else {
-                        setSearchResults([]);
-                        setShowSearchResults(false);
-                      }
-                    }
-                  },
-                );
-              });
-            } else {
-              setSearchResults([]);
-              setShowSearchResults(false);
             }
-          },
-        );
+          );
+          return;
+        }
       } catch (error) {
-        console.error('Error with Google Places:', error);
-        toast.error('Error al conectar con Google Maps');
+        console.error('Error con Google Places:', error);
         setSearchResults([]);
         setShowSearchResults(false);
+        return;
       }
-    } else {
-      toast.warning('Google Maps aún no está disponible, intenta nuevamente');
-      setSearchResults([]);
-      setShowSearchResults(false);
     }
+
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   // Función de geocodificación inversa con Google
@@ -618,34 +602,63 @@ export default function App({ title, codCliente }: Props) {
 
   return (
     <>
-      <span className="cursor-pointer text-lg text-default-400 active:opacity-50">
-        <button
-          onClick={onOpen}
-          className="inline-flex h-[40px] items-center gap-2 rounded-md bg-blue-500 px-4 py-2 text-sm text-white shadow-sm transition hover:bg-blue-600"
-        >
-          <BiEditAlt className="text-white" size={18} />
-          Editar
-        </button>
-      </span>
-
-      <Modal
-        className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        isDismissable={true}
-        isKeyboardDismissDisabled={true}
+      <button
+        onClick={onOpen}
+        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-brandPrimary px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-brandPrimary-hover"
       >
-        <form action="" onSubmit={onSubmit}>
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader className="cabecera flex items-center justify-center gap-2 text-[15px]">
-                  <User className="h-5 w-5" />
-                  Detalle Pasajero
-                </ModalHeader>
+        <BiEditAlt size={14} />
+        {title || 'Detalle Pasajero'}
+      </button>
 
-                <ModalBody>
-                  <div className="flex flex-col gap-4">
+      <BaseModal
+        isOpen={isOpen}
+        onClose={() => {
+          handleClose();
+          onClose();
+        }}
+        title={title || 'Detalle Pasajero'}
+        icon={<User className="h-4 w-4 text-[#113eb9]" />}
+        iconBgColor="bg-blue-100"
+        className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] max-h-[85vh] w-[70%] max-w-none overflow-auto"
+        isDismissable={true}
+        cancelText="Cerrar"
+        onCancel={() => {
+          handleClose();
+          onClose();
+        }}
+        confirmText="Guardar"
+        onConfirm={onSubmit}
+        isLoading={isLoading}
+        confirmButtonClass="bg-brandPrimary hover:bg-brandPrimary-hover text-white"
+        footerExtra={
+          <div className="mr-auto flex flex-1 items-center gap-2 max-w-md">
+            <Input
+              type="text"
+              value={googleMapsLink}
+              readOnly
+              placeholder="Link de Google Maps"
+              className="flex-1"
+              size="sm"
+            />
+            <Button
+              color="success"
+              onPress={handleCopyLink}
+              isIconOnly
+              title="Copiar link"
+              size="sm"
+              className="h-8 w-8 min-w-8 bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              {copied ? (
+                <MdCheck size={16} />
+              ) : (
+                <MdContentCopy size={16} />
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={onSubmit}>
+          <div className="flex flex-col gap-4">
                     <div className="mb-6 flex w-full flex-wrap gap-4 md:mb-0 md:flex-nowrap">
                       <div className="mensajeR w-full">
                         <Input
@@ -1023,59 +1036,8 @@ export default function App({ title, codCliente }: Props) {
                         )}
                     </div>
                   </div>
-                </ModalBody>
-
-                <ModalFooter className="flex items-center justify-between">
-                  <div className="flex flex-1 items-center gap-2">
-                    <Input
-                      type="text"
-                      value={googleMapsLink}
-                      readOnly
-                      placeholder="Link de Google Maps"
-                      className="flex-1"
-                    />
-                    <Button
-                      color="success"
-                      onPress={handleCopyLink}
-                      isIconOnly
-                      title="Copiar link"
-                    >
-                      {copied ? (
-                        <MdCheck size={18} color="#fff" />
-                      ) : (
-                        <MdContentCopy size={18} color="#fff" />
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      color="danger"
-                      onPress={() => {
-                        handleClose();
-                        onClose();
-                      }}
-                      isDisabled={isLoading}
-                    >
-                      Cerrar
-                      <AiFillCloseCircle size={18} />
-                    </Button>
-                    <Button
-                      color="primary"
-                      type="submit"
-                      isLoading={isLoading}
-                      isDisabled={isLoading}
-                    >
-                      {isLoading ? 'Guardando...' : 'Guardar'}
-                      {!isLoading && <IoMdSave size={18} />}
-                    </Button>
-                  </div>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
         </form>
-      </Modal>
+      </BaseModal>
 
       <style jsx global>{`
         @import url('https://unpkg.com/leaflet@1.7.1/dist/leaflet.css');

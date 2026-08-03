@@ -69,33 +69,39 @@ export const obtenerDatosYAgrupar = async (
       dato,
     )}&empresa=${encodeURIComponent(empresa)}&usuario=${username}`
     const response = await axios.get(url)
-    const datosRaw: DataItem[] = response.data
 
-    // ─── Validación: detectar pasajeros con lugar null ───────────────────────
-    const pasajerosSinLugar = datosRaw.filter((item) => !item.lugar)
-    if (pasajerosSinLugar.length > 0) {
+    // ─── Validación: asegurar que datosRaw sea un arreglo ───────────────────────
+    let datosRaw: DataItem[] = []
+    if (Array.isArray(response.data)) {
+      datosRaw = response.data
+    } else if (response.data && Array.isArray(response.data.data)) {
+      datosRaw = response.data.data
+    } else {
       console.warn(
-        "[ADVERTENCIA] Los siguientes pasajeros no tienen lugar asignado y serán omitidos:",
-        pasajerosSinLugar.map((p) => ({
-          id: p.id,
-          codigo: p.codigo,
-          nombre: p.nombre,
-          codcliente: p.codcliente,
-          fecha: p.fecha,
-          empresa: p.empresa,
-        })),
+        "[ADVERTENCIA] La respuesta de la API no contiene una lista válida de datos:",
+        response.data,
       )
+      return []
     }
 
-    // Filtrar solo datos con lugar válido para no romper el flujo
-    const datos: DataItem[] = datosRaw.filter((item) => {
+    // ─── Normalización: asignar valores por defecto a pasajeros sin lugar ────────
+    const datos: DataItem[] = datosRaw.map((item) => {
       if (!item.lugar) {
-        console.error(
-          `[ERROR] Pasajero sin lugar - id: ${item.id} | codigo: ${item.codigo} | nombre: ${item.nombre} | codcliente: ${item.codcliente}`,
+        console.warn(
+          `[ADVERTENCIA] Pasajero sin lugar asignado - id: ${item.id} | codigo: ${item.codigo} | nombre: ${item.nombre} | codcliente: ${item.codcliente}`,
         )
-        return false
       }
-      return true
+      return {
+        ...item,
+        lugar: {
+          codlugar: item.lugar?.codlugar ?? 0,
+          direccion: item.lugar?.direccion || "Sin dirección",
+          distrito: item.lugar?.distrito || "Sin distrito",
+          wx: item.lugar?.wx || "",
+          wy: item.lugar?.wy || "",
+          zona: item.lugar?.zona || "",
+        },
+      }
     })
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -163,10 +169,12 @@ export const obtenerDatosYAgrupar = async (
             orden: Number.parseInt(item.orden!, 10),
           })
 
-          gruposConOrdenMap.get(numGrupo)?.coordenadas.push({
-            wx: item.lugar.wx,
-            wy: item.lugar.wy,
-          })
+          if (item.lugar.wx && item.lugar.wy) {
+            gruposConOrdenMap.get(numGrupo)?.coordenadas.push({
+              wx: item.lugar.wx,
+              wy: item.lugar.wy,
+            })
+          }
         })
 
         // Agregar grupos con orden, ordenando personas por orden
@@ -232,10 +240,12 @@ export const obtenerDatosYAgrupar = async (
                 orden: ordenCounter++,
               })
 
-              grupo.coordenadas.push({
-                wx: currentItem.lugar.wx,
-                wy: currentItem.lugar.wy,
-              })
+              if (currentItem.lugar.wx && currentItem.lugar.wy) {
+                grupo.coordenadas.push({
+                  wx: currentItem.lugar.wx,
+                  wy: currentItem.lugar.wy,
+                })
+              }
 
               datosSinOrdenCopia.splice(it, 1)
             } else {
@@ -248,7 +258,7 @@ export const obtenerDatosYAgrupar = async (
         }
       }
     } else {
-      // Lógica original para Dato 2 (sin cambios)
+      // Lógica original para Dato 2
       while (datos.length >= 1) {
         const item = datos[0]
         const grupo: Grupo = {
@@ -291,10 +301,12 @@ export const obtenerDatosYAgrupar = async (
               wy: currentItem.lugar.wy,
             })
 
-            grupo.coordenadas.push({
-              wx: currentItem.lugar.wx,
-              wy: currentItem.lugar.wy,
-            })
+            if (currentItem.lugar.wx && currentItem.lugar.wy) {
+              grupo.coordenadas.push({
+                wx: currentItem.lugar.wx,
+                wy: currentItem.lugar.wy,
+              })
+            }
 
             datos.splice(it, 1)
           } else {

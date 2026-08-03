@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
+import BaseModal from '@/app/components/ui/BaseModal';
 
 // ─────────────────────────────────────────────
 // Tipos
@@ -161,7 +162,7 @@ const NativeMarkersMap = memo(function NativeMarkersMap({
       buildMarkers();
       onMapReady?.();
     },
-    [buildMarkers, onMapReady]
+    [buildMarkers, onMapReady],
   );
 
   // Si cambian coordenadas/iconos después del montaje, reconstruir
@@ -234,108 +235,79 @@ export default function ModalMapa({
   // ── Error al cargar Maps ──
   if (loadError) {
     return (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-        onClick={handleClose}
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="Error al cargar el mapa"
+        subtitle={`Grupo ${grupo}`}
+        icon={
+          <svg
+            className="h-4 w-4 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+        }
+        iconBgColor="bg-red-100"
+        size="md"
+        cancelText="Cerrar"
       >
-        <div
-          className="relative w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl animate-in fade-in zoom-in duration-200"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={handleClose}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="mb-6">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">Error al cargar el mapa</h2>
-            <p className="mt-2 text-sm text-gray-600">{loadError.message}</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="w-full rounded-lg bg-[#d62828] px-4 py-3 font-medium text-white transition-all hover:bg-[#c02222] focus:outline-none focus:ring-2 focus:ring-[#d62828] focus:ring-offset-2"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
+        <p className="text-sm text-gray-600">{loadError.message}</p>
+      </BaseModal>
     );
   }
 
   // ── Modal principal ──
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      onClick={handleClose}
-    >
-      <div
-        className="relative w-full max-w-4xl rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Botón cerrar */}
-        <button
-          onClick={handleClose}
-          aria-label="Cerrar"
-          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 backdrop-blur text-gray-500 shadow-md transition-all duration-200 hover:bg-red-50 hover:text-red-600 hover:shadow-lg hover:scale-105 active:scale-95"
+    <BaseModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Ruta Programada"
+      subtitle={`Grupo ${grupo}`}
+      icon={
+        <svg
+          className="h-4 w-4 text-[#d62828]"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {/* Header */}
-        <div className="border-b border-gray-200 px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#d62828]/10">
-              <svg className="h-6 w-6 text-[#d62828]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Ruta Programada</h2>
-              <p className="text-sm text-gray-500">Grupo {grupo}</p>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+          />
+        </svg>
+      }
+      iconBgColor="bg-[#d62828]/10"
+      size="4xl"
+      cancelText="Cerrar"
+    >
+      <div className="h-[550px] w-full overflow-hidden rounded-xl shadow-inner ring-1 ring-gray-200">
+        {isLoaded && mapReady && coordenadas && iconUrls.length > 0 ? (
+          <NativeMarkersMap
+            coordenadas={coordenadas}
+            iconUrls={iconUrls}
+            setSelectedMarker={setSelectedMarker}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#113eb9]" />
+              <p className="text-sm font-medium text-gray-600">
+                Cargando mapa...
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* Mapa */}
-        <div className="p-6">
-          <div className="h-[550px] w-full overflow-hidden rounded-xl shadow-inner ring-1 ring-gray-200">
-            {isLoaded && mapReady && coordenadas && iconUrls.length > 0 ? (
-              <NativeMarkersMap
-                coordenadas={coordenadas}
-                iconUrls={iconUrls}
-                setSelectedMarker={setSelectedMarker}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
-                <div className="text-center">
-                  <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#113eb9]" />
-                  <p className="text-sm font-medium text-gray-600">Cargando mapa...</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-3 border-t border-gray-200 px-8 py-5">
-          <button
-            onClick={handleClose}
-            className="rounded-lg bg-[#113eb9] px-6 py-3 font-medium text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#113eb9] focus:ring-offset-2"
-          >
-            Cerrar
-          </button>
-        </div>
+        )}
       </div>
-    </div>
+    </BaseModal>
   );
 }

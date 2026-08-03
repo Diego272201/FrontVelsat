@@ -1,9 +1,12 @@
 'use client';
-import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import React, { memo } from 'react';
+import { useSortable, type AnimateLayoutChanges } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { MdAddBox, MdDelete, MdContentCopy } from 'react-icons/md';
+import { TbGps } from 'react-icons/tb';
 
-interface ItemProps {
+export interface ItemData {
+  id: string;
   numGrupo: number;
   orderItem: number;
   nombre: string;
@@ -11,40 +14,207 @@ interface ItemProps {
   direccion: string;
   fechaItem: string;
   area: string;
-  acciones: React.ReactNode;
+  wx: string;
+  wy: string;
+  codCliente: string;
+  codigo: string;
 }
 
-export function Item(props: ItemProps) {
-  const { orderItem, numGrupo, nombre, distrito, direccion, fechaItem, area, acciones } = props;
+export interface PasajeroDirecciones {
+  codCliente: string;
+  nombre: string;
+  codigo: string;
+}
+
+export interface ItemActionCallbacks {
+  onCopiarLink?: (coords: { lat: number; lng: number }) => void;
+  onMoverAGrupoNuevo?: (idCliente: number) => void;
+  onEliminar?: (idCliente: number) => void;
+  onAbrirDirecciones?: (pasajero: PasajeroDirecciones) => void;
+  /** Recibe el id de la fila; resuelve el grupo por su cuenta para que la
+   *  referencia del callback sea estable y no rompa el memo de las filas. */
+  onToggleSeleccion?: (itemId: string) => void;
+}
+
+type ItemProps = ItemData &
+  ItemActionCallbacks & {
+    seleccionado?: boolean;
+    resaltado?: boolean;
+  };
+
+export const Item = memo(function Item(props: ItemProps) {
+  const {
+    id,
+    orderItem,
+    nombre,
+    distrito,
+    direccion,
+    fechaItem,
+    area,
+    wx,
+    wy,
+    codCliente,
+    codigo,
+    onCopiarLink,
+    onMoverAGrupoNuevo,
+    onEliminar,
+    onAbrirDirecciones,
+    onToggleSeleccion,
+    seleccionado,
+    resaltado,
+  } = props;
+
+  const showActions = !!(onCopiarLink && onMoverAGrupoNuevo && onEliminar);
 
   return (
-    <div style={{
-      width: '100%',
-      height: 40,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      margin: '0px 0px 2.5px 0px',
-      background: '#e9ecef',
-      fontSize: '12px',
-      paddingLeft: '5px',
-    }}>
-      <span className='num'>{orderItem}</span>
-      <span className='nombre'>{nombre}</span>
-      <span className='distrito'>{distrito}</span>
-      <span className='direccion'>{direccion}</span>
-      <span className='fecha'>{fechaItem}</span>
-      <span className='area'>{area}</span>
-      <span className='acciones'>{acciones}</span>
+    <div
+      style={{
+        width: '100%',
+        height: 40,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        margin: '0px 0px 2.5px 0px',
+        background: resaltado
+          ? '#fde68a'
+          : seleccionado
+            ? '#dbeafe'
+            : '#e9ecef',
+        transition: 'background-color 200ms ease',
+        fontSize: '12px',
+        paddingLeft: '5px',
+      }}
+    >
+      <span className="num flex items-center gap-1.5">
+        {onToggleSeleccion && (
+          <input
+            type="checkbox"
+            checked={!!seleccionado}
+            onChange={() => onToggleSeleccion(id)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Seleccionar a ${nombre}`}
+            className="h-3.5 w-3.5 cursor-pointer accent-blue-600"
+          />
+        )}
+        {orderItem}
+      </span>
+      <span className="nombre">{nombre}</span>
+      <span className="distrito">{distrito}</span>
+      <span className="direccion">{direccion}</span>
+      <span className="fecha">{fechaItem}</span>
+      <span className="area">{area}</span>
+      <span className="acciones">
+        {showActions && (
+          <div className="accionesItems">
+            {/* Copiar link de ubicación */}
+            <div className="relative inline-block h-8 w-8">
+              <div className="group relative h-full w-full">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopiarLink({
+                      lat: Number(wy),
+                      lng: Number(wx),
+                    });
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  type="button"
+                  className="flex h-full w-full items-center justify-center rounded bg-blue-500 hover:bg-blue-600 focus:outline-none"
+                >
+                  <MdContentCopy size={16} className="text-white" />
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  Copiar link de ubicación
+                </div>
+              </div>
+            </div>
+
+            {/* Mover a nuevo grupo */}
+            <div className="relative inline-block h-8 w-8">
+              <div className="group relative h-full w-full">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoverAGrupoNuevo(Number(id));
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  type="button"
+                  className="flex h-full w-full items-center justify-center rounded bg-green-500 hover:bg-green-600 focus:outline-none"
+                >
+                  <MdAddBox size={16} className="text-gray-800" />
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-green-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  Mover a nuevo grupo
+                </div>
+              </div>
+            </div>
+
+            {/* Eliminar Pasajero */}
+            <div className="relative inline-block h-8 w-8">
+              <div className="group relative h-full w-full">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEliminar(Number(id));
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  type="button"
+                  className="flex h-full w-full items-center justify-center rounded bg-red-600 hover:bg-red-500 focus:outline-none"
+                >
+                  <MdDelete size={16} className="text-white" />
+                </button>
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  Eliminar Pasajero
+                </div>
+              </div>
+            </div>
+
+            {/* Solo el disparador. El modal se monta una vez en la lista. */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAbrirDirecciones?.({ codCliente, nombre, codigo });
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              type="button"
+              className="flex h-8 items-center gap-2 rounded-lg bg-[#f5a524] px-3 text-xs text-black hover:opacity-80 focus:outline-none"
+            >
+              Dirección
+              <TbGps />
+            </button>
+          </div>
+        )}
+      </span>
     </div>
   );
+});
+
+interface SortableItemProps {
+  id: string;
+  data: ItemData;
+  disabled?: boolean;
+  actionCallbacks?: ItemActionCallbacks;
+  seleccionado?: boolean;
+  resaltado?: boolean;
 }
 
-// ✅ disabled viene directo del padre — sin observers, sin querySelectorAll
-export default function SortableItem(props: { id: string; data: ItemProps; disabled?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+// Las animaciones FLIP al soltar provocan una medición + animación por fila.
+// Con listas grandes eso es lo que hace que el drop se sienta trabado.
+const noLayoutAnimation: AnimateLayoutChanges = () => false;
+
+const SortableItem = memo(function SortableItem(props: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: props.id,
     disabled: props.disabled ?? false,
+    animateLayoutChanges: noLayoutAnimation,
   });
 
   const style = {
@@ -64,7 +234,14 @@ export default function SortableItem(props: { id: string; data: ItemProps; disab
       {...sortableProps}
       data-sortable-disabled={props.disabled}
     >
-      <Item {...props.data} />
+      <Item
+        {...props.data}
+        {...(props.actionCallbacks || {})}
+        seleccionado={props.seleccionado}
+        resaltado={props.resaltado}
+      />
     </div>
   );
-}
+});
+
+export default SortableItem;

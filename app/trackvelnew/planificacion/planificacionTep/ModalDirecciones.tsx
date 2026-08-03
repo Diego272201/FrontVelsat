@@ -1,16 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  useDisclosure,
-  RadioGroup,
-  Radio,
-} from '@nextui-org/react';
-import { TbGps, TbTrash } from 'react-icons/tb';
+import { Button, RadioGroup, Radio } from '@nextui-org/react';
+import BaseModal from '@/app/components/ui/BaseModal';
+import { TbTrash } from 'react-icons/tb';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
@@ -18,10 +9,14 @@ import { GrSelect } from 'react-icons/gr';
 import ModalDireccionAdicional from './ModalDireccionAdicional';
 
 type ModalDireccionesProp = {
+  isOpen: boolean;
+  onClose: () => void;
   codCliente: string;
   nombrePasajero: string;
   codigo: string;
-  setShouldRefetch: React.Dispatch<React.SetStateAction<boolean>>;
+  setShouldRefetch:
+    | React.Dispatch<React.SetStateAction<boolean>>
+    | (() => void);
 };
 
 type Lugar = {
@@ -31,13 +26,21 @@ type Lugar = {
   distrito: string;
 };
 
-export default function ModalDirecciones({
+// Componente controlado: el disparador vive en la fila y este modal se monta
+// una sola vez, a nivel de la lista, solo mientras está abierto.
+export default function ModalDirecciones(props: ModalDireccionesProp) {
+  if (!props.isOpen) return null;
+  return <ModalDireccionesContenido {...props} />;
+}
+
+function ModalDireccionesContenido({
+  isOpen,
+  onClose,
   codCliente,
   nombrePasajero,
   codigo,
   setShouldRefetch,
 }: ModalDireccionesProp) {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [selectedValue, setSelectedValue] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -140,101 +143,76 @@ export default function ModalDirecciones({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button onPress={onOpen} color="warning" size="sm">
-        Dirección
-        <TbGps />
-      </Button>
-
-      <Modal
+    <>
+      <BaseModal
         isOpen={isOpen}
-        scrollBehavior="inside"
-        onOpenChange={onOpenChange}
+        onClose={onClose}
+        title="Seleccione la Dirección"
+        subtitle={nombrePasajero
+          .toLowerCase()
+          .split(' ')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')}
+        icon={<GrSelect className="h-4 w-4 text-[#113eb9]" />}
+        iconBgColor="bg-blue-100"
         size="2xl"
+        cancelText="Cerrar"
+        onCancel={onClose}
+        confirmText="Guardar"
+        onConfirm={() => handleGuardar(onClose)}
+        isLoading={isSaving}
+        footerExtra={
+          <Button
+            size="sm"
+            onPress={() => setIsModalDireccionAdicionalOpen(true)}
+            className="bg-brandPrimary hover:bg-brandPrimary-hover mr-auto h-8 px-3 text-xs font-medium text-white"
+          >
+            Dirección Adicional
+          </Button>
+        }
       >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex items-center  text-[15px] text-gray-800">
-                <div className="flex items-center gap-2">
-                  <GrSelect size={20} />
-                  Seleccione la Dirección del Pasajero:{' '}
-                  {nombrePasajero
-                    .toLowerCase()
-                    .split(' ')
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(' ')}
-                </div>
-              </ModalHeader>
-
-              <ModalBody>
-                {isLoading ? (
-                  <p>Cargando direcciones...</p>
-                ) : lugares.length > 0 ? (
-                  <RadioGroup
-                    color="warning"
-                    label="Direcciones"
-                    value={selectedValue}
-                    onValueChange={setSelectedValue}
+        {isLoading ? (
+          <p className="text-[12px] text-gray-600">Cargando direcciones...</p>
+        ) : lugares.length > 0 ? (
+          <RadioGroup
+            color="warning"
+            label="Direcciones"
+            value={selectedValue}
+            onValueChange={setSelectedValue}
+          >
+            {lugares.map((lugar) => (
+              <div
+                key={lugar.codlugar}
+                className="flex w-full items-center gap-2"
+              >
+                <div className="flex-1">
+                  <Radio
+                    value={String(lugar.codlugar)}
+                    description={lugar.direccion}
                   >
-                    {lugares.map((lugar) => (
-                      <div
-                        key={lugar.codlugar}
-                        className="flex w-full items-center gap-2"
-                      >
-                        <div className="flex-1">
-                          <Radio
-                            value={String(lugar.codlugar)}
-                            description={lugar.direccion}
-                          >
-                            <span className="text-[11px]">
-                              {lugar.distrito}
-                            </span>
-                          </Radio>
-                        </div>
-                        <Button
-                          isIconOnly
-                          size="sm"
-                          color="danger"
-                          variant="light"
-                          onPress={() => handleEliminar(lugar.codlugar)}
-                          isLoading={isDeleting === lugar.codlugar}
-                          className="h-8 min-w-8"
-                        >
-                          <TbTrash size={16} />
-                        </Button>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                ) : (
-                  <p>No hay direcciones disponibles.</p>
-                )}
-              </ModalBody>
-
-              <ModalFooter>
-                <Button color="danger" onPress={onClose}>
-                  Cerrar
-                </Button>
-
+                    <span className="text-[11px]">{lugar.distrito}</span>
+                  </Radio>
+                </div>
                 <Button
-                  color="primary"
-                  onPress={() => handleGuardar(onClose)}
-                  isLoading={isSaving}
+                  isIconOnly
+                  size="sm"
+                  color="danger"
+                  variant="light"
+                  onPress={() => handleEliminar(lugar.codlugar)}
+                  isLoading={isDeleting === lugar.codlugar}
+                  className="h-8 min-w-8"
                 >
-                  Guardar
+                  <TbTrash size={16} />
                 </Button>
-
-                <Button
-                  color="secondary"
-                  onPress={() => setIsModalDireccionAdicionalOpen(true)}
-                >
-                  Dirección Adicional
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              </div>
+            ))}
+          </RadioGroup>
+        ) : (
+          <p className="text-[12px] text-gray-600">
+            No hay direcciones disponibles.
+          </p>
+        )}
+      </BaseModal>
 
       {/* Modal de Dirección Adicional */}
       <ModalDireccionAdicional
@@ -244,6 +222,6 @@ export default function ModalDirecciones({
         nombrePasajero={nombrePasajero}
         onDireccionGuardada={handleDireccionAdicionalGuardada}
       />
-    </div>
+    </>
   );
 }

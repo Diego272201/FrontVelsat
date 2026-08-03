@@ -1,10 +1,45 @@
 .markerlabel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    margin-left: -0px;
-    margin-top: -10px;
-    color: #252424;
-    font-size: 10px;
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin-left: 0px;
+  margin-top: -10px;
+  color: #252424;
+  font-size: 10px;
+}
+
+/* Forzar eliminación de espacio superior (header de Google Maps) y scrollbars */
+.gm-style .gm-style-iw-c {
+  padding: 0 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+  max-height: none !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.gm-style .gm-style-iw-d > div {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.gm-style .gm-style-iw-ch {
+  display: none !important;
+}
+
+.gm-style button.gm-ui-hover-or-focus {
+  top: 2px !important;
+  right: 2px !important;
+  opacity: 0.8 !important;
+}
+
+.gm-style-iw-tc::after {
+  background: white !important;
+}

@@ -1,22 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  rectIntersection,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
-import { MdAddBox, MdDelete, MdContentCopy } from 'react-icons/md';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Container from './container';
-import { Item } from './sortable_item';
+import {
+  type ItemData,
+  type ItemActionCallbacks,
+  type PasajeroDirecciones,
+} from './sortable_item';
+import ModalDirecciones from './ModalDirecciones';
+import ModalMoverGrupo from './ModalMoverGrupo';
+import { TbArrowsExchange } from 'react-icons/tb';
 import { obtenerDatosYAgrupar } from './fomarGrupos/apiService';
 import GrupoEliminados from './GrupoEliminados';
 import { Spinner } from '@nextui-org/react';
 import axios from 'axios';
-import ModalDirecciones from './ModalDirecciones';
 import { parseFechaHora } from '@/app/components/dates/convertToCustomFormat ';
 import { API_BASE_URL125 } from '@/app/components/urlsApi/urlApi';
 import { toast } from 'sonner';
@@ -28,6 +23,14 @@ const wrapperStyle: React.CSSProperties = {
   flexDirection: 'column',
 };
 
+/**
+ * Identificador estable de grupo. El `id` visible se reindexa cada vez que un
+ * grupo se vacía, así que no sirve como clave: al desplazarse invalidaría el
+ * memo de TODOS los contenedores. El uid no cambia nunca durante la sesión.
+ */
+let contadorUid = 0;
+const nuevoUid = () => `g${++contadorUid}`;
+
 type Grupo = {
   tipo: string;
   fecha: string;
@@ -37,7 +40,7 @@ type Grupo = {
 interface ServiciosProps {
   empresa: string;
   dato: string;
-  onGuardar?: (fn: () => void) => void;
+  onGuardar?: (fn: () => (esAutomatico?: boolean) => void) => void;
   onActualizarDatos?: (datos: {
     totalGrupos: number;
     totalPasajeros: number;
@@ -81,6 +84,9 @@ export default function App({
   const { username, isReady } = useUsername();
 
   const [grupos, setGrupos] = useState<any[]>([]);
+  const gruposRef = useRef(grupos);
+  gruposRef.current = grupos;
+
   const [loading, setLoading] = useState(true);
   const [shouldRefetch, setShouldRefetch] = useState(false);
   const [shouldRefetchAddPasajero, setShouldRefetchAddPasajero] =
@@ -114,20 +120,33 @@ export default function App({
     setUnidades((prev) => ({ ...prev, [id]: codigoUnidad }));
   }, []);
 
-  // Función para limpiar grupos vacíos y reindexar
+  // Función para limpiar grupos vacíos y reindexar reservando referencias inmutables
   const limpiarGruposVacios = (gruposActuales: any[]) => {
-    // Filtrar grupos que tienen al menos un pasajero
+    const tieneGruposVacios = gruposActuales.some(
+      (grupo) => !grupo.personas || grupo.personas.length === 0,
+    );
+
+    if (!tieneGruposVacios) {
+      // Si ningún grupo está vacío, verificar si los IDs ya están consecutivos para reutilizar objetos
+      let idsCambian = false;
+      for (let i = 0; i < gruposActuales.length; i++) {
+        if (gruposActuales[i].id !== i + 1) {
+          idsCambian = true;
+          break;
+        }
+      }
+      if (!idsCambian) return gruposActuales;
+    }
+
     const gruposConPasajeros = gruposActuales.filter(
       (grupo) => grupo.personas && grupo.personas.length > 0,
     );
 
-    // Reindexar los grupos para que tengan IDs consecutivos
-    const gruposReindexados = gruposConPasajeros.map((grupo, index) => ({
-      ...grupo,
-      id: index + 1, // IDs consecutivos empezando desde 1
-    }));
-
-    return gruposReindexados;
+    return gruposConPasajeros.map((grupo, index) => {
+      const nuevoId = index + 1;
+      if (grupo.id === nuevoId) return grupo;
+      return { ...grupo, id: nuevoId };
+    });
   };
 
   useEffect(() => {
@@ -139,6 +158,7 @@ export default function App({
 
       const nuevosGrupos = groupedData.map((grupo) => ({
         ...grupo,
+        uid: nuevoUid(),
         personas: grupo.personas.filter(
           (persona: any) => persona.eliminado === '0',
         ),
@@ -160,16 +180,6 @@ export default function App({
       setGrupos(gruposLimpios);
       setEliminados(nuevosEliminados);
       setLoading(false);
-
-      if (onActualizarDatos) {
-        onActualizarDatos({
-          totalGrupos: gruposLimpios.length,
-          totalPasajeros: gruposLimpios.reduce(
-            (acc, grupo) => acc + (grupo.personas?.length || 0),
-            0,
-          ),
-        });
-      }
 
       if (onActualizarCabeceras) {
         const cabeceras = gruposLimpios.map((grupo) => ({
@@ -203,9 +213,9 @@ export default function App({
     fetchData();
   }, [empresa, shouldRefetch, shouldRefetchAddPasajero, dato, username]);
 
-  const handleRefrescarDatos = () => {
+  const handleRefrescarDatos = useCallback(() => {
     setShouldRefetchAddPasajero(true);
-  };
+  }, []);
 
   useEffect(() => {
     if (grupos.length > 0 && onActualizarFechas) {
@@ -223,6 +233,21 @@ export default function App({
 
       onActualizarFechas({ totalFechas, fechasLlenas });
     }
+  }, [grupos]);
+
+  // Los contadores se derivan aquí, no dentro de los updaters de setGrupos.
+  // Antes cada operación los avisaba desde dentro del updater con un setTimeout;
+  // como React ejecuta los updaters dos veces en StrictMode, ese patrón
+  // duplicaba efectos secundarios.
+  useEffect(() => {
+    if (!onActualizarDatos) return;
+    onActualizarDatos({
+      totalGrupos: grupos.length,
+      totalPasajeros: grupos.reduce(
+        (acc, grupo) => acc + (grupo.personas?.length || 0),
+        0,
+      ),
+    });
   }, [grupos]);
 
   const handleUpdateGrupoHoraProg = useCallback(
@@ -266,10 +291,6 @@ export default function App({
       return coincideFecha && coincidePasajero && coincideHora;
     });
   }, [grupos, filtro, nombrePasajero, filtroHora]);
-
-  useEffect(() => {
-    console.log('Grupos filtrados:', gruposFiltrados);
-  }, [gruposFiltrados]);
 
   const handleCopiarLink = useCallback(
     async (coords: { lat: number; lng: number }) => {
@@ -332,34 +353,38 @@ export default function App({
     }
   }, [gruposFiltrados, fechaSeleccionada]);
 
-  const [items, setItems] = useState<
+  const prevItemsCacheRef = useRef<
     Record<
       string,
-      {
-        id: string;
-        numGrupo: number;
-        orderItem: number;
-        nombre: string;
-        distrito: string;
-        direccion: string;
-        fechaItem: string;
-        area: string;
-        acciones: React.ReactNode;
-      }[]
+      { personas: any[]; fecha: string; itemDataArray: ItemData[] }
     >
   >({});
 
-  useEffect(() => {
-    if (gruposFiltrados.length > 0) {
-      const nuevoItems = gruposFiltrados.reduce((acc, grupo, index) => {
-        console.log(`\n--- Procesando Grupo ${grupo.id} para render ---`);
-        console.log(
-          `Grupo.horaprog original: "${grupo.horaprog}" (tipo: ${typeof grupo.horaprog})`,
-        );
+  // Indexado por uid, no por posición: así reindexar los ids visibles no
+  // invalida los arreglos del resto de grupos y su memo puede cortar.
+  const items = useMemo<Record<string, ItemData[]>>(() => {
+    if (gruposFiltrados.length === 0) return {};
+
+    const nextCache: typeof prevItemsCacheRef.current = {};
+
+    const result = gruposFiltrados.reduce<Record<string, ItemData[]>>(
+      (acc, grupo) => {
+        const cacheKey = grupo.uid;
+        const prevCache = prevItemsCacheRef.current[cacheKey];
+
         if (grupo.personas && grupo.personas.length > 0) {
-          acc[`container${index}`] = grupo.personas.map(
-            (persona: any, idx: any) => {
-              return {
+          // Si personas y fecha no han cambiado, reutilizar el arreglo exactamente
+          if (
+            prevCache &&
+            prevCache.personas === grupo.personas &&
+            prevCache.fecha === grupo.fecha &&
+            prevCache.itemDataArray[0]?.numGrupo === grupo.id
+          ) {
+            acc[cacheKey] = prevCache.itemDataArray;
+            nextCache[cacheKey] = prevCache;
+          } else {
+            const itemDataArray: ItemData[] = grupo.personas.map(
+              (persona: any, idx: number) => ({
                 id: String(persona.idCliente),
                 orderItem: idx + 1,
                 nombre: persona.nombre,
@@ -368,407 +393,114 @@ export default function App({
                 fechaItem: grupo.fecha,
                 area: persona.area,
                 numGrupo: grupo.id,
-                tipo: grupo.tipo,
-                destino: grupo.destinoGrupo,
-                empresa: grupo.empresa,
-                fecha: grupo.fecha,
-                horaprog: grupo.horaprog,
-                wx: persona.wx,
-                wy: persona.wy,
-                acciones: (
-                  <div className="accionesItems">
-                    {/* NUEVO BOTÓN */}
-                    <div className="relative inline-block h-8 w-8">
-                      <div className="group relative h-full w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCopiarLink({
-                              lat: Number(persona.wy),
-                              lng: Number(persona.wx),
-                            });
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          type="button"
-                          className="flex h-full w-full items-center justify-center rounded bg-blue-500 hover:bg-blue-600 focus:outline-none"
-                        >
-                          <MdContentCopy size={16} className="text-white" />
-                        </button>
-
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                          Copiar link de ubicación
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="relative inline-block h-8 w-8">
-                      <div className="group relative h-full w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMoverAGrupoNuevo(Number(persona.idCliente));
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          type="button"
-                          className="flex h-full w-full items-center justify-center rounded bg-green-500 hover:bg-green-600 focus:outline-none"
-                        >
-                          <MdAddBox size={16} className="text-gray-800" />
-                        </button>
-
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-green-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                          Mover a nuevo grupo
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="relative inline-block h-8 w-8">
-                      <div className="group relative h-full w-full">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEliminarDelArray(Number(persona.idCliente));
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          type="button"
-                          className="flex h-full w-full items-center justify-center rounded bg-red-600 hover:bg-red-500 focus:outline-none"
-                        >
-                          <MdDelete size={16} className="text-white" />
-                        </button>
-
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                          Eliminar Pasajero
-                        </div>
-                      </div>
-                    </div>
-
-                    <ModalDirecciones
-                      codCliente={persona.codCliente}
-                      nombrePasajero={persona.nombre}
-                      codigo={persona.codigo}
-                      setShouldRefetch={setShouldRefetch}
-                    />
-                  </div>
-                ),
-              };
-            },
-          );
+                wx: persona.wx ?? '',
+                wy: persona.wy ?? '',
+                codCliente: persona.codCliente ?? '',
+                codigo: persona.codigo ?? '',
+              }),
+            );
+            acc[cacheKey] = itemDataArray;
+            nextCache[cacheKey] = {
+              personas: grupo.personas,
+              fecha: grupo.fecha,
+              itemDataArray,
+            };
+          }
         }
         return acc;
-      }, {});
+      },
+      {},
+    );
 
-      setItems(nuevoItems);
-    }
-  }, [grupos, gruposFiltrados]);
+    prevItemsCacheRef.current = nextCache;
+    return result;
+  }, [gruposFiltrados]);
 
   const [eliminados, setEliminados] = useState<any[]>([]);
 
-  const [activeId, setActiveId] = useState<string | null>(null);
+  /**
+   * Único punto de entrada del arrastre. Cada grupo tiene su propio DndContext
+   * y solo reporta hacia aquí el reordenamiento ya resuelto.
+   *
+   * Reemplaza el objeto de UN grupo y devuelve el resto por referencia, que es
+   * lo que permite que reordenar no re-renderice a los demás. No pasa por
+   * limpiarGruposVacios a propósito: reordenar no puede vaciar un grupo, y
+   * reindexar invalidaría contenedores que no han cambiado.
+   */
+  const handleReordenar = useCallback(
+    (uid: string, desdeIndice: number, hastaIndice: number) => {
+      setGrupos((prevGrupos) =>
+        prevGrupos.map((grupo) => {
+          if (grupo.uid !== uid) return grupo;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
+          const personas = [...grupo.personas];
+          if (
+            desdeIndice < 0 ||
+            desdeIndice >= personas.length ||
+            hastaIndice < 0 ||
+            hastaIndice >= personas.length
+          ) {
+            return grupo;
+          }
+
+          const [movido] = personas.splice(desdeIndice, 1);
+          personas.splice(hastaIndice, 0, movido);
+
+          return { ...grupo, personas };
+        }),
+      );
+    },
+    [],
   );
 
-  function findContainer(id: string) {
-    if (id in items) {
-      return id;
-    }
+  // Reescrito de forma inmutable: la versión anterior mutaba `personas` y el
+  // `id` de objetos compartidos con el estado previo, así que el memo de los
+  // contenedores no detectaba el cambio y mostraba números de grupo obsoletos.
+  const handleMoverAGrupoNuevo = useCallback((idCliente: number) => {
+    // Generado fuera del updater: incrementar el contador dentro lo haría
+    // impuro, y StrictMode ejecuta los updaters dos veces.
+    const uidNuevoGrupo = nuevoUid();
 
-    return Object.keys(items).find((key) =>
-      items[key].some((item) => item.id === id),
-    );
-  }
-
-  function handleDragStart(event: any) {
-    const { active } = event;
-    setActiveId(active.id);
-  }
-
-  function handleDragOver(event: any) {
-    // Ahora NO hacemos nada aquí.
-    // Solo si quieres algún efecto visual en el futuro, pero no movemos los datos.
-  }
-
-  async function handleDragEnd(event: any) {
-    const { active, over } = event;
-    setActiveId(null);
-
-    if (!over) {
-      return;
-    }
-
-    const activeId = active.id;
-    const overId = over.id;
-
-    if (overId === 'grupo-eliminados') {
-      handleEliminarDelArray(Number(activeId));
-      return;
-    }
-
-    const activeContainer = findContainer(activeId);
-    const overContainer = findContainer(overId);
-
-    if (!activeContainer || !overContainer) {
-      return;
-    }
-
-    const activeContainerIndex = Number(activeContainer.replace(/\D/g, ''));
-    const overContainerIndex = Number(overContainer.replace(/\D/g, ''));
-
-    const activeIndex = items[activeContainer]?.findIndex(
-      (item) => item.id === activeId,
-    );
-    const overIndex = items[overContainer]?.findIndex(
-      (item) => item.id === overId,
-    );
-
-    const encontrarGrupoPorCliente = (idCliente: number) => {
-      return grupos.findIndex((grupo) =>
+    setGrupos((prevGrupos) => {
+      const origenIndex = prevGrupos.findIndex((grupo) =>
         grupo.personas.some((persona: any) => persona.idCliente === idCliente),
       );
-    };
+      if (origenIndex === -1) return prevGrupos;
 
-    const indiceGrupo = encontrarGrupoPorCliente(Number(activeId));
-
-    console.log(
-      `Intentando mover el item ${activeId} del grupo ${indiceGrupo} al grupo ${overContainerIndex}`,
-    );
-
-    if (indiceGrupo === overContainerIndex) {
-      intercambiarClientes(activeContainerIndex, activeIndex, overIndex);
-      return;
-    }
-
-    const resultado = await Swal.fire({
-      title:
-        '<p style="font-size: 1.4rem; line-height: 1.4;">¿Deseas mover este cliente a otro grupo? Asegúrate de revisar la fecha programada de cada grupo.</p>',
-      text: 'Confirma esta acción antes de continuar.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, mover',
-      cancelButtonText: 'Cancelar',
-    });
-
-    if (resultado.isConfirmed) {
-      // 👇 NUEVO: comparar horaprog entre grupos
-      const horaOrigen = grupos[indiceGrupo]?.horaprog;
-      const horaDestino = grupos[overContainerIndex]?.horaprog;
-
-      const horasDistintas =
-        horaOrigen &&
-        horaDestino &&
-        horaOrigen !== 'null' &&
-        horaDestino !== 'null' &&
-        horaOrigen !== horaDestino;
-
-      if (horasDistintas) {
-        const confirmacionHora = await Swal.fire({
-          title: '⚠️ Diferencia de horario',
-          html: `
-        <p>El grupo de origen tiene hora: <strong>${horaOrigen}</strong></p>
-        <p>El grupo destino tiene hora: <strong>${horaDestino}</strong></p>
-        <p>¿Confirmas el movimiento de todas formas?</p>
-      `,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, confirmar',
-          cancelButtonText: 'Cancelar',
-          confirmButtonColor: '#f0a500',
-          cancelButtonColor: '#3085d6',
-        });
-
-        if (!confirmacionHora.isConfirmed) return; // 👈 cancela si rechaza
-      }
-
-      moverClienteOtroGrupo(
-        Number(activeId),
-        indiceGrupo,
-        overContainerIndex,
-        overIndex ?? 0,
-      );
-    }
-  }
-
-  const intercambiarClientes = (
-    grupoIndex: number,
-    activeIndex: number,
-    overIndex: number,
-  ) => {
-    setGrupos((prevGrupos) => {
-      if (grupoIndex < 0 || grupoIndex >= prevGrupos.length) {
-        console.error(`Error: grupoIndex fuera de rango (${grupoIndex})`);
-        return prevGrupos;
-      }
-
-      let nuevosGrupos = [...prevGrupos];
-      let personasGrupo = [...nuevosGrupos[grupoIndex].personas];
-
-      if (
-        activeIndex < 0 ||
-        activeIndex >= personasGrupo.length ||
-        overIndex < 0 ||
-        overIndex >= personasGrupo.length
-      ) {
-        console.error(`Error: Índices fuera de rango en grupo ${grupoIndex}`, {
-          activeIndex,
-          overIndex,
-        });
-        return prevGrupos;
-      }
-
-      const [movedItem] = personasGrupo.splice(activeIndex, 1);
-      personasGrupo.splice(overIndex, 0, movedItem);
-
-      personasGrupo = personasGrupo.map((persona, index) => ({
-        ...persona,
-        idCliente: nuevosGrupos[grupoIndex].personas[index].idCliente,
-      }));
-
-      nuevosGrupos[grupoIndex] = {
-        ...nuevosGrupos[grupoIndex],
-        personas: personasGrupo,
-      };
-
-      return nuevosGrupos;
-    });
-  };
-
-  const moverClienteOtroGrupo = (
-    idCliente: number,
-    origenIndex: number,
-    destinoIndex: number,
-    overIndex: number,
-  ) => {
-    setGrupos((prevGrupos) => {
-      let nuevosGrupos = JSON.parse(JSON.stringify(prevGrupos));
-      const grupoOrigen = nuevosGrupos[origenIndex];
-      const grupoDestino = nuevosGrupos[destinoIndex];
-      const clienteMovidoIndex = grupoOrigen.personas.findIndex(
+      const grupoOrigen = prevGrupos[origenIndex];
+      const clienteMovido = grupoOrigen.personas.find(
         (persona: any) => persona.idCliente === idCliente,
       );
-      if (clienteMovidoIndex === -1) return prevGrupos;
-      const [clienteMovido] = grupoOrigen.personas.splice(
-        clienteMovidoIndex,
-        1,
-      );
+      if (!clienteMovido) return prevGrupos;
 
-      if (overIndex >= grupoDestino.personas.length) {
-        grupoDestino.personas.push(clienteMovido);
-      } else {
-        grupoDestino.personas.splice(overIndex, 0, clienteMovido);
-      }
+      const nuevosGrupos = [...prevGrupos];
 
-      // Limpiar grupos vacíos y reindexar después del movimiento
+      nuevosGrupos[origenIndex] = {
+        ...grupoOrigen,
+        personas: grupoOrigen.personas.filter(
+          (persona: any) => persona.idCliente !== idCliente,
+        ),
+      };
+
+      nuevosGrupos.splice(origenIndex + 1, 0, {
+        ...grupoOrigen,
+        uid: uidNuevoGrupo,
+        id: grupoOrigen.id + 1,
+        personas: [clienteMovido],
+      });
+
+      // limpiarGruposVacios ya reindexa los ids sin mutar nada.
       const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
 
-      // AGREGAR ESTAS LÍNEAS:
-      if (onActualizarDatos) {
-        setTimeout(() => {
-          onActualizarDatos({
-            totalGrupos: gruposLimpios.length,
-            totalPasajeros: gruposLimpios.reduce(
-              (acc, grupo) => acc + (grupo.personas?.length || 0),
-              0,
-            ),
-          });
-        }, 0);
-      }
 
       return gruposLimpios;
     });
+  }, []);
 
-    setTimeout(() => {
-      setGrupos((prevGrupos) => {
-        let idCounter = 1;
-        const nuevosGrupos = prevGrupos.map((grupo) => ({
-          ...grupo,
-          personas: grupo.personas.map((persona: any) => ({
-            ...persona,
-            idCliente: idCounter++,
-          })),
-        }));
-
-        return nuevosGrupos;
-      });
-    }, 0);
-  };
-
-  const handleMoverAGrupoNuevo = (idCliente: number) => {
-    setGrupos((prevGrupos) => {
-      let nuevosGrupos = [...prevGrupos];
-
-      let grupoOrigenIndex = nuevosGrupos.findIndex((grupo) =>
-        grupo.personas.some((persona: any) => persona.idCliente === idCliente),
-      );
-
-      if (grupoOrigenIndex !== -1) {
-        let clienteMovido = nuevosGrupos[grupoOrigenIndex].personas.find(
-          (persona: any) => persona.idCliente === idCliente,
-        );
-
-        if (clienteMovido) {
-          const grupoOrigen = nuevosGrupos[grupoOrigenIndex];
-
-          console.log('=== ANTES DE CREAR NUEVO GRUPO ===');
-          console.log('grupoOrigen.horaprog:', grupoOrigen.horaprog);
-
-          nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
-            grupoOrigenIndex
-          ].personas.filter((persona: any) => persona.idCliente !== idCliente);
-
-          const nuevoGrupo = {
-            id: grupoOrigen.id + 1,
-            destinoGrupo: grupoOrigen.destinoGrupo,
-            empresa: grupoOrigen.empresa,
-            fecha: grupoOrigen.fecha,
-            tipo: grupoOrigen.tipo,
-            horaprog: grupoOrigen.horaprog,
-            personas: [clienteMovido],
-          };
-
-          console.log('=== NUEVO GRUPO RECIÉN CREADO ===');
-          console.log('nuevoGrupo.horaprog:', nuevoGrupo.horaprog);
-          console.log('nuevoGrupo completo:', nuevoGrupo);
-
-          nuevosGrupos.splice(grupoOrigenIndex + 1, 0, nuevoGrupo);
-
-          for (let i = grupoOrigenIndex + 2; i < nuevosGrupos.length; i++) {
-            nuevosGrupos[i].id += 1;
-          }
-
-          // Limpiar grupos vacíos y reindexar
-          const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
-
-          console.log('=== DESPUÉS DE LIMPIAR GRUPOS ===');
-          gruposLimpios.forEach((g, index) => {
-            console.log(`Grupo ${index}: id=${g.id}, horaprog="${g.horaprog}"`);
-          });
-
-          if (onActualizarDatos) {
-            setTimeout(() => {
-              onActualizarDatos({
-                totalGrupos: gruposLimpios.length,
-                totalPasajeros: gruposLimpios.reduce(
-                  (acc, grupo) => acc + (grupo.personas?.length || 0),
-                  0,
-                ),
-              });
-            }, 0);
-          }
-
-          return gruposLimpios;
-        }
-      }
-
-      return nuevosGrupos;
-    });
-  };
-
-  const handleEliminarDelArray = (idCliente: number) => {
-    // Primero encontramos el grupo que contiene al cliente
-    const grupoOrigenIndex = grupos.findIndex((grupo) =>
+  const handleEliminarDelArray = useCallback((idCliente: number) => {
+    // Usar ref para acceder a grupos actuales
+    const currentGrupos = gruposRef.current;
+    const grupoOrigenIndex = currentGrupos.findIndex((grupo: any) =>
       grupo.personas.some((persona: any) => persona.idCliente === idCliente),
     );
 
@@ -777,7 +509,7 @@ export default function App({
       return;
     }
 
-    const grupoOrigen = grupos[grupoOrigenIndex];
+    const grupoOrigen = currentGrupos[grupoOrigenIndex];
 
     // Verificamos si el grupo tiene solo una persona
     if (grupoOrigen.personas.length === 1) {
@@ -792,79 +524,60 @@ export default function App({
         cancelButtonColor: '#3085d6',
       }).then((result) => {
         if (result.isConfirmed) {
-          // Proceder con la eliminación
-          procederConEliminacion(idCliente, grupoOrigenIndex);
+          procederConEliminacion(idCliente);
         }
       });
       return;
     }
 
     // Si el grupo tiene más de una persona, proceder directamente
-    procederConEliminacion(idCliente, grupoOrigenIndex);
-  };
+    procederConEliminacion(idCliente);
+  }, []);
 
-  // Función auxiliar para realizar la eliminación
-  const procederConEliminacion = (
-    idCliente: number,
-    grupoOrigenIndex: number,
-  ) => {
+  /**
+   * Los updaters de estado deben ser puros. Llamar a setEliminados DENTRO del
+   * updater de setGrupos hacía que, con StrictMode (activo por defecto en dev),
+   * React ejecutase el updater dos veces y el pasajero apareciera duplicado en
+   * la lista de eliminados. Ahora el efecto secundario ocurre fuera.
+   */
+  const procederConEliminacion = useCallback((idCliente: number) => {
+    const grupoOrigen = gruposRef.current.find((grupo: any) =>
+      grupo.personas.some((persona: any) => persona.idCliente === idCliente),
+    );
+    if (!grupoOrigen) return;
+
+    const persona = grupoOrigen.personas.find(
+      (p: any) => p.idCliente === idCliente,
+    );
+    if (!persona) return;
+
+    const clienteEliminado = {
+      ...persona,
+      numGrupo: grupoOrigen.id,
+      ordenOriginal: idCliente,
+    };
+
+    setEliminados((prevEliminados) =>
+      prevEliminados.some((e: any) => e.idCliente === idCliente)
+        ? prevEliminados
+        : [...prevEliminados, clienteEliminado],
+    );
+
     setGrupos((prevGrupos) => {
-      let nuevosGrupos = [...prevGrupos];
+      const indice = prevGrupos.findIndex((g) => g.uid === grupoOrigen.uid);
+      if (indice === -1) return prevGrupos;
 
-      let clienteEliminado = nuevosGrupos[grupoOrigenIndex].personas.find(
-        (persona: any) => persona.idCliente === idCliente,
-      );
+      const nuevosGrupos = [...prevGrupos];
+      nuevosGrupos[indice] = {
+        ...prevGrupos[indice],
+        personas: prevGrupos[indice].personas.filter(
+          (p: any) => p.idCliente !== idCliente,
+        ),
+      };
 
-      if (clienteEliminado) {
-        clienteEliminado = {
-          ...clienteEliminado,
-          numGrupo: nuevosGrupos[grupoOrigenIndex].id,
-          ordenOriginal: idCliente,
-        };
-
-        // Eliminar el cliente del grupo
-        nuevosGrupos[grupoOrigenIndex].personas = nuevosGrupos[
-          grupoOrigenIndex
-        ].personas.filter((persona: any) => persona.idCliente !== idCliente);
-
-        setEliminados((prevEliminados) => {
-          const nuevosEliminados = [...prevEliminados, clienteEliminado];
-
-          console.log(
-            `Cliente eliminado:`,
-            clienteEliminado,
-            `\nViene del grupo:`,
-            clienteEliminado.numGrupo,
-            `\nNuevo estado de eliminados:`,
-            nuevosEliminados,
-          );
-
-          return nuevosEliminados;
-        });
-      }
-
-      // Limpiar grupos vacíos y reindexar después de la eliminación
-      const gruposLimpios = limpiarGruposVacios(nuevosGrupos);
-
-      if (onActualizarDatos) {
-        setTimeout(() => {
-          onActualizarDatos({
-            totalGrupos: gruposLimpios.length,
-            totalPasajeros: gruposLimpios.reduce(
-              (acc, grupo) => acc + (grupo.personas?.length || 0),
-              0,
-            ),
-          });
-        }, 0);
-      }
-
-      return gruposLimpios;
+      return limpiarGruposVacios(nuevosGrupos);
     });
-  };
-
-  useEffect(() => {
-    console.log('Estado actualizado de eliminados:', eliminados);
-  }, [eliminados]);
+  }, []);
 
   const ejecutarGrupoCero = async () => {
     if (!isReady) return;
@@ -915,10 +628,10 @@ export default function App({
 
         const codUnidad = unidades[grupo.id] ?? grupo.unidad ?? '';
 
-        return grupo.personas.map((persona: any, personaIndex: any) => ({
+        return grupo.personas.map((persona: any, personaIndex: number) => ({
           codigo: Number(persona.codigo) || 0,
           horaprog: String(grupo.horaprog),
-          orden: String(persona.idCliente - 1),
+          orden: String(personaIndex),
           numero: String(grupoIndex),
           eliminado: '0',
           codconductor: codConductorStr,
@@ -982,7 +695,7 @@ export default function App({
     }
   }, [guardarCallback]);
 
-  const handleRestore = (item: any) => {
+  const handleRestore = useCallback((item: any) => {
     setEliminados((prevEliminados) =>
       prevEliminados.filter(
         (eliminado) => eliminado.idCliente !== item.idCliente,
@@ -990,51 +703,40 @@ export default function App({
     );
 
     setGrupos((prevGrupos) => {
-      let nuevosGrupos = [...prevGrupos];
-
-      let grupoOriginalIndex = nuevosGrupos.findIndex(
+      const grupoOriginalIndex = prevGrupos.findIndex(
         (grupo) => Number(grupo.id) === Number(item.numGrupo),
       );
-      if (grupoOriginalIndex !== -1) {
-        let existeEnGrupo = nuevosGrupos[grupoOriginalIndex].personas.some(
-          (persona: any) => persona.idCliente === item.idCliente,
-        );
 
-        if (!existeEnGrupo) {
-          nuevosGrupos[grupoOriginalIndex].personas.push(item);
-          console.log(
-            `Item restaurado:`,
-            item,
-            `\nRestaurado al grupo:`,
-            nuevosGrupos[grupoOriginalIndex].id,
-          );
-        } else {
-          console.warn('El cliente ya está en el grupo, evitando duplicados.');
-        }
-      } else {
+      if (grupoOriginalIndex === -1) {
         console.warn(
           'Grupo original no encontrado. No se restauró correctamente.',
         );
-        console.log('Estado actual de grupos:', nuevosGrupos);
-        console.log('Buscando grupo con ID:', item.numGrupo);
+        return prevGrupos;
       }
 
-      if (onActualizarDatos) {
-        setTimeout(() => {
-          const totalPasajeros = nuevosGrupos.reduce(
-            (acc, grupo) => acc + (grupo.personas?.length || 0),
-            0,
-          );
-          onActualizarDatos({
-            totalGrupos: nuevosGrupos.length,
-            totalPasajeros: totalPasajeros,
-          });
-        }, 0);
+      const grupoOriginal = prevGrupos[grupoOriginalIndex];
+      const existeEnGrupo = grupoOriginal.personas.some(
+        (persona: any) => persona.idCliente === item.idCliente,
+      );
+
+      if (existeEnGrupo) {
+        console.warn('El cliente ya está en el grupo, evitando duplicados.');
+        return prevGrupos;
       }
+
+      // Antes hacía personas.push(item), mutando el arreglo del estado: la
+      // caché de items comparaba por referencia, no veía el cambio y el
+      // pasajero restaurado no reaparecía en la lista.
+      const nuevosGrupos = [...prevGrupos];
+      nuevosGrupos[grupoOriginalIndex] = {
+        ...grupoOriginal,
+        personas: [...grupoOriginal.personas, item],
+      };
+
 
       return nuevosGrupos;
     });
-  };
+  }, []);
 
   const handleUpdateDestino = useCallback(
     (id: number, nuevoDestino: string, codigoDestino: string) => {
@@ -1057,20 +759,202 @@ export default function App({
     [],
   );
 
-  // ✅ AGREGAR antes del return
-  const coordenadasPorGrupo = useMemo(() => {
-    return gruposFiltrados.map(
-      (grupo) =>
-        grupo.personas
-          ?.filter((p: any) => p.wx && p.wy)
-          .map((p: any) => ({
-            wx: p.wx,
-            wy: p.wy,
-            nombre: p.nombre,
-            direccion: p.direccion,
-          })) ?? [],
+  const stableHandleRefrescarDatos = useCallback(() => {
+    setShouldRefetch(true);
+  }, []);
+
+  /* ---------------------------------------------------------------------- */
+  /* Selección y movimiento entre grupos                                     */
+  /* ---------------------------------------------------------------------- */
+
+  // Agrupado por uid a propósito: seleccionar en un grupo solo cambia la
+  // referencia de ESE grupo, así los demás no se re-renderizan.
+  const [seleccion, setSeleccion] = useState<Record<string, string[]>>({});
+  const [resaltados, setResaltados] = useState<Record<string, string[]>>({});
+  const [modalMoverAbierto, setModalMoverAbierto] = useState(false);
+
+  const totalSeleccionados = useMemo(
+    () => Object.values(seleccion).reduce((acc, ids) => acc + ids.length, 0),
+    [seleccion],
+  );
+
+  const handleToggleSeleccion = useCallback((itemId: string) => {
+    const grupo = gruposRef.current.find((g) =>
+      g.personas.some((p: any) => String(p.idCliente) === itemId),
     );
-  }, [gruposFiltrados]);
+    if (!grupo) return;
+
+    setSeleccion((prev) => {
+      const actuales = prev[grupo.uid] ?? [];
+      const nuevos = actuales.includes(itemId)
+        ? actuales.filter((id) => id !== itemId)
+        : [...actuales, itemId];
+
+      if (nuevos.length === 0) {
+        const { [grupo.uid]: _descartado, ...resto } = prev;
+        return resto;
+      }
+      return { ...prev, [grupo.uid]: nuevos };
+    });
+  }, []);
+
+  const limpiarSeleccion = useCallback(() => setSeleccion({}), []);
+
+  // Descarta de la selección lo que ya no existe (pasajeros eliminados, grupos
+  // que se vaciaron) para que el contador de la barra nunca mienta.
+  useEffect(() => {
+    setSeleccion((prev) => {
+      const uidsPrevios = Object.keys(prev);
+      if (uidsPrevios.length === 0) return prev;
+
+      const siguiente: Record<string, string[]> = {};
+
+      for (const grupo of grupos) {
+        const ids = prev[grupo.uid];
+        if (!ids) continue;
+
+        const validos = ids.filter((id) =>
+          grupo.personas.some((p: any) => String(p.idCliente) === id),
+        );
+        if (validos.length === 0) continue;
+
+        // Conservar la referencia si no cambió nada, para no re-renderizar.
+        siguiente[grupo.uid] = validos.length === ids.length ? ids : validos;
+      }
+
+      const cambio =
+        Object.keys(siguiente).length !== uidsPrevios.length ||
+        uidsPrevios.some((uid) => siguiente[uid] !== prev[uid]);
+
+      return cambio ? siguiente : prev;
+    });
+  }, [grupos]);
+
+  // Lista de destinos para el modal, con la ocupación actual de cada grupo.
+  const gruposDestino = useMemo(
+    () =>
+      grupos.map((grupo) => ({
+        uid: grupo.uid,
+        id: grupo.id,
+        empresa: grupo.empresa,
+        destinoGrupo: grupo.destinoGrupo,
+        fecha: grupo.fecha,
+        horaprog: grupo.horaprog,
+        ocupacion: grupo.personas?.length ?? 0,
+      })),
+    [grupos],
+  );
+
+  const moverSeleccionAGrupo = useCallback(
+    (uidDestino: string) => {
+      const idsSeleccionados = new Set(Object.values(seleccion).flat());
+      if (idsSeleccionados.size === 0) return;
+
+      // Se calcula fuera del updater: el de setGrupos se ejecuta más tarde (y
+      // dos veces en StrictMode), así que no sirve para producir valores que
+      // necesitamos aquí y ahora.
+      const movidos = gruposRef.current
+        .filter((grupo) => grupo.uid !== uidDestino)
+        .flatMap((grupo) =>
+          grupo.personas.filter((persona: any) =>
+            idsSeleccionados.has(String(persona.idCliente)),
+          ),
+        )
+        .map((persona: any) => String(persona.idCliente));
+
+      if (movidos.length === 0) {
+        setSeleccion({});
+        setModalMoverAbierto(false);
+        return;
+      }
+
+      setGrupos((prevGrupos) => {
+        if (!prevGrupos.some((g) => g.uid === uidDestino)) return prevGrupos;
+
+        // 1. Sacar los seleccionados de sus grupos de origen. Los grupos que no
+        //    pierden a nadie se devuelven por referencia, sin tocar.
+        const extraidos: any[] = [];
+        const sinExtraidos = prevGrupos.map((grupo) => {
+          if (grupo.uid === uidDestino) return grupo;
+
+          const quedan = grupo.personas.filter((persona: any) => {
+            if (idsSeleccionados.has(String(persona.idCliente))) {
+              extraidos.push(persona);
+              return false;
+            }
+            return true;
+          });
+
+          if (quedan.length === grupo.personas.length) return grupo;
+          return { ...grupo, personas: quedan };
+        });
+
+        if (extraidos.length === 0) return prevGrupos;
+
+        // 2. Anexarlos al destino, respetando el orden en que aparecían.
+        const conDestino = sinExtraidos.map((grupo) =>
+          grupo.uid === uidDestino
+            ? { ...grupo, personas: [...grupo.personas, ...extraidos] }
+            : grupo,
+        );
+
+        const gruposLimpios = limpiarGruposVacios(conDestino);
+
+
+        return gruposLimpios;
+      });
+
+      setSeleccion({});
+      setModalMoverAbierto(false);
+
+      // Confirmación visual: bajar al destino y resaltar lo que acaba de llegar.
+      setResaltados({ [uidDestino]: movidos });
+      setTimeout(() => {
+        document
+          .getElementById(`grupo-${uidDestino}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+      setTimeout(() => setResaltados({}), 3000);
+
+      toast.success(
+        movidos.length === 1
+          ? 'Pasajero movido de grupo.'
+          : `${movidos.length} pasajeros movidos de grupo.`,
+      );
+    },
+    [seleccion, onActualizarDatos],
+  );
+
+  // Modal de direcciones centralizado: una sola instancia para toda la lista,
+  // en vez de una por pasajero.
+  const [pasajeroDirecciones, setPasajeroDirecciones] =
+    useState<PasajeroDirecciones | null>(null);
+
+  const handleAbrirDirecciones = useCallback((pasajero: PasajeroDirecciones) => {
+    setPasajeroDirecciones(pasajero);
+  }, []);
+
+  const handleCerrarDirecciones = useCallback(() => {
+    setPasajeroDirecciones(null);
+  }, []);
+
+  // Objeto estable de callbacks de acciones (referencia constante)
+  const actionCallbacks = useMemo<ItemActionCallbacks>(
+    () => ({
+      onCopiarLink: handleCopiarLink,
+      onMoverAGrupoNuevo: handleMoverAGrupoNuevo,
+      onEliminar: handleEliminarDelArray,
+      onAbrirDirecciones: handleAbrirDirecciones,
+      onToggleSeleccion: handleToggleSeleccion,
+    }),
+    [
+      handleCopiarLink,
+      handleMoverAGrupoNuevo,
+      handleEliminarDelArray,
+      handleAbrirDirecciones,
+      handleToggleSeleccion,
+    ],
+  );
 
   return (
     <div style={wrapperStyle}>
@@ -1086,34 +970,28 @@ export default function App({
           <Spinner color="primary" size="lg" />
         </div>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={rectIntersection}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
+        // Ya no hay DndContext aquí: cada grupo monta el suyo dentro de
+        // Container, de modo que un arrastre solo involucra a ese grupo.
+        <>
           {modoVista === 'Eliminados' ? (
             <>
-              {gruposFiltrados.length > 0 &&
-                Object.keys(items).map((key, index) =>
-                  gruposFiltrados[index] ? (
-                    <Container
-                      key={`${key}-${gruposFiltrados[index].id}`} // Key único basado en el ID del grupo
-                      id={key}
-                      items={items[key] || []}
-                      onUpdateDestino={handleUpdateDestino}
-                      grupo={gruposFiltrados[index]}
-                      coordenadas={coordenadasPorGrupo[index]}
-                      onUpdateGrupoHoraProg={(id: number, nuevaFecha: string) =>
-                        handleUpdateGrupoHoraProg(id, nuevaFecha)
-                      }
-                      onUpdateConductor={handleUpdateConductor}
-                      onUpdateUnidad={handleUpdateUnidad}
-                      onRefrescarDatos={handleRefrescarDatos}
-                    />
-                  ) : null,
-                )}
+              {gruposFiltrados.map((grupo) => (
+                <Container
+                  key={grupo.uid}
+                  uid={grupo.uid}
+                  items={items[grupo.uid] || []}
+                  grupo={grupo}
+                  onReordenar={handleReordenar}
+                  onUpdateDestino={handleUpdateDestino}
+                  onUpdateGrupoHoraProg={handleUpdateGrupoHoraProg}
+                  onUpdateConductor={handleUpdateConductor}
+                  onUpdateUnidad={handleUpdateUnidad}
+                  onRefrescarDatos={handleRefrescarDatos}
+                  actionCallbacks={actionCallbacks}
+                  seleccionados={seleccion[grupo.uid]}
+                  resaltados={resaltados[grupo.uid]}
+                />
+              ))}
               <div>
                 <GrupoEliminados items={eliminados} onRestore={handleRestore} />
               </div>
@@ -1123,21 +1001,56 @@ export default function App({
               <GrupoEliminados items={eliminados} onRestore={handleRestore} />
             </div>
           )}
-
-          <DragOverlay>
-            {activeId
-              ? (() => {
-                  const container = findContainer(activeId);
-                  if (!container) return null;
-                  const item = items[container]?.find(
-                    (item) => item.id === activeId,
-                  );
-                  return item ? <Item {...item} /> : null;
-                })()
-              : null}
-          </DragOverlay>
-        </DndContext>
+        </>
       )}
+
+      {/* Barra de acciones: solo aparece cuando hay algo seleccionado */}
+      {totalSeleccionados > 0 && (
+        <div className="sticky bottom-3 z-40 flex w-fit self-center items-center gap-3 rounded-lg border border-blue-200 bg-white px-4 py-2 shadow-lg">
+          <span className="text-[13px] font-medium text-gray-700">
+            {totalSeleccionados}{' '}
+            {totalSeleccionados === 1
+              ? 'pasajero seleccionado'
+              : 'pasajeros seleccionados'}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setModalMoverAbierto(true)}
+            className="inline-flex h-8 items-center gap-x-2 rounded bg-blue-600 px-3 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+          >
+            <TbArrowsExchange size={16} />
+            Mover a grupo
+          </button>
+
+          <button
+            type="button"
+            onClick={limpiarSeleccion}
+            className="text-[13px] text-gray-500 underline hover:text-gray-700"
+          >
+            Limpiar
+          </button>
+        </div>
+      )}
+
+      <ModalMoverGrupo
+        isOpen={modalMoverAbierto}
+        onClose={() => setModalMoverAbierto(false)}
+        grupos={gruposDestino}
+        uidsOrigen={Object.keys(seleccion)}
+        cantidadSeleccionada={totalSeleccionados}
+        onConfirmar={moverSeleccionAGrupo}
+      />
+
+      {/* Única instancia del modal de direcciones para toda la lista */}
+      <ModalDirecciones
+        isOpen={pasajeroDirecciones !== null}
+        onClose={handleCerrarDirecciones}
+        codCliente={pasajeroDirecciones?.codCliente ?? ''}
+        nombrePasajero={pasajeroDirecciones?.nombre ?? ''}
+        codigo={pasajeroDirecciones?.codigo ?? ''}
+        setShouldRefetch={stableHandleRefrescarDatos}
+      />
     </div>
   );
 }
