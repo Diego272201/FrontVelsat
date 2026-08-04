@@ -349,7 +349,7 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
         onCancel={handleModalClose}
         isLoading={isSaving}
         isConfirmDisabled={!camposRequeridosCompletos}
-        confirmButtonClass="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+        confirmButtonClass="bg-brandSecondary hover:bg-brandSecondary-hover text-white font-medium"
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
           {/* Formulario */}

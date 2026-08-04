@@ -102,7 +102,7 @@ const BarraFiltros: React.FC<{
       <button
         onClick={onAgregarServicio}
         disabled={deshabilitado}
-        className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-md bg-brandSecondary px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-brandSecondary-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         <PlusCircle className="h-3.5 w-3.5" />
         Agregar Servicio

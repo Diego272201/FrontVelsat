@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Spinner } from '@nextui-org/react';
-import { CalendarDays, Clock3, UserRound, Building2, MapPin, Navigation } from 'lucide-react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import FilaServicio from './FilaServicio';
 
@@ -68,40 +67,22 @@ const TablaServicios: React.FC<{
             <tr>
               <th className="w-8 px-3 py-2.5"></th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Fecha
-                </span>
+                Fecha
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock3 className="h-3.5 w-3.5" />
-                  Hora Inicio
-                </span>
+                Hora Inicio
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <UserRound className="h-3.5 w-3.5" />
-                  Piloto
-                </span>
+                Piloto
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Cliente
-                </span>
+                Cliente
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  Origen
-                </span>
+                Origen
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                <span className="inline-flex items-center gap-1.5">
-                  <Navigation className="h-3.5 w-3.5" />
-                  Destino
-                </span>
+                Destino
               </th>
               <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Acciones

@@ -427,7 +427,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
           onCancel={handleModalClose}
           isLoading={isProcessing}
           isConfirmDisabled={!archivo}
-          confirmButtonClass="bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+          confirmButtonClass="bg-brandSecondary hover:bg-brandSecondary-hover text-white font-medium"
         >
           <div className="space-y-3 py-1">
             <div
@@ -620,7 +620,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
               </button>
               <button
                 onClick={handleEnviarDatos}
-                className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
+                className="flex items-center gap-2 rounded-md bg-brandSecondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brandSecondary-hover active:scale-95"
               >
                 Cargar Servicios
               </button>

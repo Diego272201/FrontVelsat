@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { ChevronRight, Pencil, Trash2, Check, CheckCheck, X, Loader2 } from 'lucide-react';
+import { ChevronRight, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
+import { IoCheckmarkDone, IoCheckmark } from 'react-icons/io5';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import { SECCIONES_DETALLE, CAMPOS_SERVICIO, SECCIONES_NOTAS } from './constants';
 import DetalleCampo from './DetalleCampo';
@@ -37,24 +38,20 @@ const FilaServicio: React.FC<{
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
   // Acuse de recibo del conductor en la app. "Confirmado" implica "visto", así que manda
-  // el estado más avanzado. Se pinta la celda completa para que el estado se lea de un vistazo
-  // al recorrer la tabla, igual que los checks de WhatsApp que el cliente ya venía usando.
+  // el estado más avanzado. Se muestra con icono limpio e identificable de acuse de lectura.
   const celdaEstado = Number(servicio.confirmado) === 1
     ? {
-        clase: 'bg-sky-50',
-        chip: 'bg-sky-100 text-sky-600 ring-sky-200',
+        chip: 'bg-sky-50 text-sky-600 border border-sky-200/80',
         titulo: 'Confirmado por el conductor',
-        icono: <CheckCheck className="h-3.5 w-3.5" />,
+        icono: <IoCheckmarkDone className="h-5 w-5 text-sky-500" />,
       }
     : Number(servicio.visto) === 1
       ? {
-          clase: 'bg-slate-50',
-          chip: 'bg-slate-200/70 text-slate-500 ring-slate-300/70',
+          chip: 'bg-slate-100 text-slate-500 border border-slate-200',
           titulo: 'Visto por el conductor',
-          icono: <Check className="h-3.5 w-3.5" />,
+          icono: <IoCheckmark className="h-4 w-4 text-slate-500" />,
         }
       : {
-          clase: '',
           chip: '',
           titulo: 'Sin visualizar por el conductor',
           icono: null,
@@ -151,12 +148,12 @@ const FilaServicio: React.FC<{
           </div>
         </td>
         <td
-          className={`border-l border-slate-100 px-3 py-2 text-center ${celdaEstado.clase}`}
+          className="border-l border-slate-100 px-3 py-2 text-center"
           title={celdaEstado.titulo}
         >
           {celdaEstado.icono ? (
             <span
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full ring-1 ${celdaEstado.chip}`}
+              className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 ${celdaEstado.chip}`}
             >
               {celdaEstado.icono}
             </span>
