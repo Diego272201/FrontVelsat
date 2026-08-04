@@ -194,6 +194,12 @@ interface SortableItemProps {
   id: string;
   data: ItemData;
   disabled?: boolean;
+  /**
+   * Desactiva SOLO la zona de drop de la fila, manteniéndola arrastrable.
+   * Es lo que evita que dnd-kit mida las miles de filas de la lista al agarrar:
+   * solo las del grupo que se está arrastrando se registran como droppables.
+   */
+  dropDesactivado?: boolean;
   actionCallbacks?: ItemActionCallbacks;
   seleccionado?: boolean;
   resaltado?: boolean;
@@ -213,7 +219,9 @@ const SortableItem = memo(function SortableItem(props: SortableItemProps) {
     isDragging,
   } = useSortable({
     id: props.id,
-    disabled: props.disabled ?? false,
+    disabled: props.disabled
+      ? true
+      : { draggable: false, droppable: props.dropDesactivado ?? false },
     animateLayoutChanges: noLayoutAnimation,
   });
 

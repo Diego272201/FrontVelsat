@@ -1,22 +1,10 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import SortableItem, {
-  Item,
   type ItemData,
   type ItemActionCallbacks,
 } from './sortable_item';
@@ -241,8 +229,9 @@ interface GrupoFilasProps {
   uid: string;
   items: ItemData[];
   disabled: boolean;
+  /** true solo para el grupo del que se está arrastrando ahora mismo. */
+  esGrupoActivo: boolean;
   actionCallbacks?: ItemActionCallbacks;
-  onReordenar: (uid: string, desdeIndice: number, hastaIndice: number) => void;
   /** Solo los de ESTE grupo. Al venir por grupo, seleccionar en uno no cambia
    *  la referencia que reciben los demás y su memo sigue cortando. */
   seleccionados?: string[];
@@ -250,97 +239,48 @@ interface GrupoFilasProps {
 }
 
 /**
- * Cada grupo tiene su PROPIO DndContext. Es lo que mantiene el arrastre
- * instantáneo: dnd-kit mide y compara únicamente los droppables registrados en
- * su contexto, así que arrastrar entre 12 pasajeros cuesta 12, no 2000.
- * Como contrapartida no se puede arrastrar de un grupo a otro; eso se hace con
- * la acción explícita de mover.
+ * Las filas comparten un único DndContext (definido en Servicios) para poder
+ * arrastrar de un grupo a otro. Lo que evita el congelamiento es que una fila
+ * solo se registra como zona de drop cuando SU grupo es el que se está
+ * arrastrando: al agarrar, dnd-kit mide los contenedores de grupo y las ~12
+ * filas del grupo activo, no las miles de la lista completa.
  */
 const GrupoFilas = memo(function GrupoFilas({
   uid,
   items,
   disabled,
+  esGrupoActivo,
   actionCallbacks,
-  onReordenar,
   seleccionados,
   resaltados,
 }: GrupoFilasProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
   const setSeleccionados = useMemo(
     () => new Set(seleccionados ?? []),
     [seleccionados],
   );
-  const setResaltados = useMemo(
-    () => new Set(resaltados ?? []),
-    [resaltados],
-  );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const setResaltados = useMemo(() => new Set(resaltados ?? []), [resaltados]);
 
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(String(event.active.id));
-  }, []);
-
-  const handleDragCancel = useCallback(() => {
-    setActiveId(null);
-  }, []);
-
-  // El estado se actualiza solo al soltar. Durante el arrastre no tocamos
-  // nada: dnd-kit se encarga de la animación intermedia.
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      setActiveId(null);
-
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const desdeIndice = items.findIndex((item) => item.id === active.id);
-      const hastaIndice = items.findIndex((item) => item.id === over.id);
-      if (desdeIndice === -1 || hastaIndice === -1) return;
-
-      onReordenar(uid, desdeIndice, hastaIndice);
-    },
-    [items, onReordenar, uid],
-  );
-
-  const itemActivo = activeId
-    ? items.find((item) => item.id === activeId)
-    : null;
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
+    <SortableContext
+      id={uid}
+      items={itemIds}
+      strategy={verticalListSortingStrategy}
     >
-      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-        {items.map((item) => (
-          <SortableItem
-            key={item.id}
-            id={item.id}
-            data={item}
-            disabled={disabled}
-            actionCallbacks={actionCallbacks}
-            seleccionado={setSeleccionados.has(item.id)}
-            resaltado={setResaltados.has(item.id)}
-          />
-        ))}
-      </SortableContext>
-
-      <DragOverlay>{itemActivo ? <Item {...itemActivo} /> : null}</DragOverlay>
-    </DndContext>
+      {items.map((item) => (
+        <SortableItem
+          key={item.id}
+          id={item.id}
+          data={item}
+          disabled={disabled}
+          dropDesactivado={!esGrupoActivo}
+          actionCallbacks={actionCallbacks}
+          seleccionado={setSeleccionados.has(item.id)}
+          resaltado={setResaltados.has(item.id)}
+        />
+      ))}
+    </SortableContext>
   );
 });
 
@@ -496,11 +436,15 @@ const GrupoPie = memo(function GrupoPie({
 /* Grupo completo                                                              */
 /* -------------------------------------------------------------------------- */
 
+/** Prefijo del id droppable del grupo, para distinguirlo del id de una fila. */
+export const ID_CONTENEDOR = 'contenedor-';
+
 interface ContainerProps {
   uid: string;
   items: ItemData[];
   grupo: GrupoInfo & { personas?: any[] };
-  onReordenar: (uid: string, desdeIndice: number, hastaIndice: number) => void;
+  esGrupoActivo: boolean;
+  hayArrastre: boolean;
   onUpdateGrupoHoraProg: (id: number, nuevaFecha: string) => void;
   onUpdateConductor?: (id: number, conductorCodigo: number) => void;
   onUpdateUnidad?: (id: number, unidadCodigo: string) => void;
@@ -520,7 +464,8 @@ const Container = memo(function Container({
   uid,
   items,
   grupo,
-  onReordenar,
+  esGrupoActivo,
+  hayArrastre,
   onUpdateGrupoHoraProg,
   onUpdateConductor,
   onUpdateUnidad,
@@ -533,6 +478,9 @@ const Container = memo(function Container({
 }: ContainerProps) {
   const [rutaAbierta, setRutaAbierta] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
+
+  // El grupo entero es zona de drop: soltar aquí mueve el pasajero a este grupo.
+  const { setNodeRef, isOver } = useDroppable({ id: `${ID_CONTENEDOR}${uid}` });
 
   // Identidad estable mientras no cambie ningún campo escalar del grupo, para
   // que reordenar pasajeros no re-renderice cabecera ni pie.
@@ -579,8 +527,12 @@ const Container = memo(function Container({
       }));
   }, [rutaAbierta, items, coordenadasProp]);
 
+  // Se resalta como destino solo mientras se arrastra desde OTRO grupo.
+  const esDestinoValido = hayArrastre && !esGrupoActivo;
+
   return (
     <div
+      ref={setNodeRef}
       // Ancla para poder desplazar la vista hasta este grupo tras un movimiento.
       id={`grupo-${uid}`}
       style={{
@@ -588,7 +540,13 @@ const Container = memo(function Container({
         padding: '0px 0 0px 0px',
         flex: 1,
         marginBottom: 10,
-        border: '1px solid white',
+        border:
+          esDestinoValido && isOver
+            ? '1px solid #113eb9'
+            : '1px solid white',
+        outline:
+          esDestinoValido && isOver ? '2px solid rgba(17,62,185,0.25)' : 'none',
+        transition: 'border-color 120ms ease, outline-color 120ms ease',
       }}
     >
       <GrupoCabecera
@@ -601,8 +559,8 @@ const Container = memo(function Container({
         uid={uid}
         items={items}
         disabled={rutaAbierta}
+        esGrupoActivo={esGrupoActivo}
         actionCallbacks={actionCallbacks}
-        onReordenar={onReordenar}
         seleccionados={seleccionados}
         resaltados={resaltados}
       />

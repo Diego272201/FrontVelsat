@@ -1,6 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Container from './container';
 import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  pointerWithin,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import Container, { ID_CONTENEDOR } from './container';
+import {
+  Item,
   type ItemData,
   type ItemActionCallbacks,
   type PasajeroDirecciones,
@@ -419,8 +434,7 @@ export default function App({
   const [eliminados, setEliminados] = useState<any[]>([]);
 
   /**
-   * Único punto de entrada del arrastre. Cada grupo tiene su propio DndContext
-   * y solo reporta hacia aquí el reordenamiento ya resuelto.
+   * Reordenamiento dentro de un mismo grupo.
    *
    * Reemplaza el objeto de UN grupo y devuelve el resto por referencia, que es
    * lo que permite que reordenar no re-renderice a los demás. No pasa por
@@ -449,6 +463,175 @@ export default function App({
           return { ...grupo, personas };
         }),
       );
+    },
+    [],
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* Arrastre: dentro de un grupo y entre grupos                             */
+  /* ---------------------------------------------------------------------- */
+
+  const [arrastre, setArrastre] = useState<{
+    itemId: string;
+    uidGrupo: string;
+  } | null>(null);
+
+  // Filas resaltadas tras un movimiento, por uid de grupo. Lo comparten el
+  // arrastre entre grupos y el movimiento por lote del modal.
+  const [resaltados, setResaltados] = useState<Record<string, string[]>>({});
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const buscarGrupoDePasajero = useCallback((itemId: string) => {
+    return gruposRef.current.find((grupo) =>
+      grupo.personas.some((p: any) => String(p.idCliente) === itemId),
+    );
+  }, []);
+
+  // Una sola pasada. Se prefiere la fila concreta bajo el cursor; si no hay
+  // ninguna (porque las filas de los otros grupos no son zona de drop), gana el
+  // contenedor del grupo, que es lo que dispara el movimiento entre grupos.
+  const detectarColisiones = useCallback<CollisionDetection>((args) => {
+    const colisiones = pointerWithin(args);
+
+    if (colisiones.length > 0) {
+      for (const colision of colisiones) {
+        if (!String(colision.id).startsWith(ID_CONTENEDOR)) return [colision];
+      }
+      return colisiones;
+    }
+
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter((c) =>
+        String(c.id).startsWith(ID_CONTENEDOR),
+      ),
+    });
+  }, []);
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const itemId = String(event.active.id);
+      const grupo = buscarGrupoDePasajero(itemId);
+      if (!grupo) return;
+      // Marcar el grupo activo activa las zonas de drop de SUS filas.
+      setArrastre({ itemId, uidGrupo: grupo.uid });
+    },
+    [buscarGrupoDePasajero],
+  );
+
+  const handleDragCancel = useCallback(() => setArrastre(null), []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      const arrastreActual = arrastre;
+      setArrastre(null);
+
+      if (!over || !arrastreActual) return;
+
+      const itemId = String(active.id);
+      const overId = String(over.id);
+      if (itemId === overId) return;
+
+      const uidOrigen = arrastreActual.uidGrupo;
+      const grupoOrigen = gruposRef.current.find((g) => g.uid === uidOrigen);
+      if (!grupoOrigen) return;
+
+      const soltadoEnContenedor = overId.startsWith(ID_CONTENEDOR);
+      const uidDestino = soltadoEnContenedor
+        ? overId.slice(ID_CONTENEDOR.length)
+        : buscarGrupoDePasajero(overId)?.uid;
+
+      if (!uidDestino) return;
+
+      // ── Mismo grupo: reordenar ──
+      if (uidDestino === uidOrigen) {
+        if (soltadoEnContenedor) return; // soltado en zona vacía del grupo
+        const desde = grupoOrigen.personas.findIndex(
+          (p: any) => String(p.idCliente) === itemId,
+        );
+        const hasta = grupoOrigen.personas.findIndex(
+          (p: any) => String(p.idCliente) === overId,
+        );
+        if (desde === -1 || hasta === -1) return;
+        handleReordenar(uidOrigen, desde, hasta);
+        return;
+      }
+
+      // ── Otro grupo: confirmar y mover ──
+      const grupoDestino = gruposRef.current.find((g) => g.uid === uidDestino);
+      if (!grupoDestino) return;
+
+      const horaOrigen = grupoOrigen.horaprog;
+      const horaDestino = grupoDestino.horaprog;
+      const horasDistintas =
+        horaOrigen &&
+        horaDestino &&
+        horaOrigen !== 'null' &&
+        horaDestino !== 'null' &&
+        horaOrigen !== horaDestino;
+
+      if (horasDistintas) {
+        const confirmacion = await Swal.fire({
+          title: '⚠️ Diferencia de horario',
+          html: `
+            <p>Grupo de origen: <strong>${horaOrigen}</strong></p>
+            <p>Grupo destino: <strong>${horaDestino}</strong></p>
+            <p>¿Confirmas el movimiento?</p>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, mover',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#f0a500',
+          cancelButtonColor: '#3085d6',
+        });
+        if (!confirmacion.isConfirmed) return;
+      }
+
+      moverPasajeroAGrupo(itemId, uidOrigen, uidDestino);
+    },
+    [arrastre, buscarGrupoDePasajero, handleReordenar],
+  );
+
+  /** Mueve un pasajero al final del grupo destino, por uid. */
+  const moverPasajeroAGrupo = useCallback(
+    (itemId: string, uidOrigen: string, uidDestino: string) => {
+      setGrupos((prevGrupos) => {
+        const origen = prevGrupos.find((g) => g.uid === uidOrigen);
+        const pasajero = origen?.personas.find(
+          (p: any) => String(p.idCliente) === itemId,
+        );
+        if (!pasajero) return prevGrupos;
+
+        const actualizados = prevGrupos.map((grupo) => {
+          if (grupo.uid === uidOrigen) {
+            return {
+              ...grupo,
+              personas: grupo.personas.filter(
+                (p: any) => String(p.idCliente) !== itemId,
+              ),
+            };
+          }
+          if (grupo.uid === uidDestino) {
+            return { ...grupo, personas: [...grupo.personas, pasajero] };
+          }
+          return grupo;
+        });
+
+        return limpiarGruposVacios(actualizados);
+      });
+
+      // Confirmación visual, igual que en el movimiento por lote.
+      setResaltados({ [uidDestino]: [itemId] });
+      setTimeout(() => setResaltados({}), 3000);
+      toast.success('Pasajero movido de grupo.');
     },
     [],
   );
@@ -770,7 +953,6 @@ export default function App({
   // Agrupado por uid a propósito: seleccionar en un grupo solo cambia la
   // referencia de ESE grupo, así los demás no se re-renderizan.
   const [seleccion, setSeleccion] = useState<Record<string, string[]>>({});
-  const [resaltados, setResaltados] = useState<Record<string, string[]>>({});
   const [modalMoverAbierto, setModalMoverAbierto] = useState(false);
 
   const totalSeleccionados = useMemo(
@@ -970,9 +1152,13 @@ export default function App({
           <Spinner color="primary" size="lg" />
         </div>
       ) : (
-        // Ya no hay DndContext aquí: cada grupo monta el suyo dentro de
-        // Container, de modo que un arrastre solo involucra a ese grupo.
-        <>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={detectarColisiones}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
           {modoVista === 'Eliminados' ? (
             <>
               {gruposFiltrados.map((grupo) => (
@@ -981,7 +1167,8 @@ export default function App({
                   uid={grupo.uid}
                   items={items[grupo.uid] || []}
                   grupo={grupo}
-                  onReordenar={handleReordenar}
+                  esGrupoActivo={arrastre?.uidGrupo === grupo.uid}
+                  hayArrastre={arrastre !== null}
                   onUpdateDestino={handleUpdateDestino}
                   onUpdateGrupoHoraProg={handleUpdateGrupoHoraProg}
                   onUpdateConductor={handleUpdateConductor}
@@ -1001,7 +1188,18 @@ export default function App({
               <GrupoEliminados items={eliminados} onRestore={handleRestore} />
             </div>
           )}
-        </>
+
+          <DragOverlay>
+            {arrastre
+              ? (() => {
+                  const item = items[arrastre.uidGrupo]?.find(
+                    (i) => i.id === arrastre.itemId,
+                  );
+                  return item ? <Item {...item} /> : null;
+                })()
+              : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Barra de acciones: solo aparece cuando hay algo seleccionado */}
