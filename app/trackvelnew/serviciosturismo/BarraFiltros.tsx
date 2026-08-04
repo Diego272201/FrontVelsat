@@ -43,7 +43,10 @@ const BarraFiltros: React.FC<{
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="text-[12px] font-medium text-gray-600" htmlFor="fecha-servicio">
+        <label
+          className="text-[12px] font-medium text-gray-600"
+          htmlFor="fecha-servicio"
+        >
           Fecha:
         </label>
         <input
@@ -80,7 +83,10 @@ const BarraFiltros: React.FC<{
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="text-[12px] font-medium text-gray-600" htmlFor="hora-servicio">
+        <label
+          className="text-[12px] font-medium text-gray-600"
+          htmlFor="hora-servicio"
+        >
           Hora:
         </label>
         <select
