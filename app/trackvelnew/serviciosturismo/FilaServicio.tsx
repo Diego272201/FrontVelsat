@@ -4,7 +4,11 @@ import React from 'react';
 import { ChevronRight, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { IoCheckmarkDone, IoCheckmark } from 'react-icons/io5';
 import { EditFormServicio, ServicioTurismoVista } from './types';
-import { SECCIONES_DETALLE, CAMPOS_SERVICIO, SECCIONES_NOTAS } from './constants';
+import {
+  SECCIONES_DETALLE,
+  CAMPOS_SERVICIO,
+  SECCIONES_NOTAS,
+} from './constants';
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
 
@@ -39,23 +43,24 @@ const FilaServicio: React.FC<{
 
   // Acuse de recibo del conductor en la app. "Confirmado" implica "visto", así que manda
   // el estado más avanzado. Se muestra con icono limpio e identificable de acuse de lectura.
-  const celdaEstado = Number(servicio.confirmado) === 1
-    ? {
-        chip: 'bg-sky-50 text-sky-600 border border-sky-200/80',
-        titulo: 'Confirmado por el conductor',
-        icono: <IoCheckmarkDone className="h-5 w-5 text-sky-500" />,
-      }
-    : Number(servicio.visto) === 1
+  const celdaEstado =
+    Number(servicio.confirmado) === 1
       ? {
-          chip: 'bg-slate-100 text-slate-500 border border-slate-200',
-          titulo: 'Visto por el conductor',
-          icono: <IoCheckmark className="h-4 w-4 text-slate-500" />,
+          chip: 'bg-sky-50 text-sky-600 border border-sky-200/80',
+          titulo: 'Confirmado por el conductor',
+          icono: <IoCheckmarkDone className="h-5 w-5 text-sky-500" />,
         }
-      : {
-          chip: '',
-          titulo: 'Sin visualizar por el conductor',
-          icono: null,
-        };
+      : Number(servicio.visto) === 1
+        ? {
+            chip: 'bg-slate-100 text-slate-500 border border-slate-200',
+            titulo: 'Visto por el conductor',
+            icono: <IoCheckmark className="h-4 w-4 text-slate-500" />,
+          }
+        : {
+            chip: '',
+            titulo: 'Sin visualizar por el conductor',
+            icono: null,
+          };
 
   const mostrarDetalle = expandido || editando;
   const puedeAlternar = !bloqueado && !editando;
@@ -65,7 +70,11 @@ const FilaServicio: React.FC<{
       <tr
         onClick={puedeAlternar ? onToggle : undefined}
         className={`group border-l-4 transition-colors ${
-          puedeAlternar ? 'cursor-pointer' : bloqueado ? 'cursor-not-allowed opacity-60' : ''
+          puedeAlternar
+            ? 'cursor-pointer'
+            : bloqueado
+              ? 'cursor-not-allowed opacity-60'
+              : ''
         } ${
           mostrarDetalle
             ? 'border-[#113EB9] bg-blue-50/50'
@@ -336,16 +345,28 @@ const FilaServicio: React.FC<{
                     Vehículo y Piloto
                   </p>
                   <div className="mb-2 grid grid-cols-2 gap-2 border-b border-slate-100 pb-2">
-                    <DetalleCampo label="Placa" value={servicio.placaCombinada} />
-                    <DetalleCampo label="Tipo Unidad" value={servicio.tipounidad} />
+                    <DetalleCampo
+                      label="Placa"
+                      value={servicio.placaCombinada}
+                    />
+                    <DetalleCampo
+                      label="Tipo Unidad"
+                      value={servicio.tipounidad}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                     <DetalleCampo label="Piloto" value={servicio.piloto} />
                     <DetalleCampo label="Copiloto" value={servicio.copiloto} />
                     <DetalleCampo label="Brevete" value={servicio.brevete} />
-                    <DetalleCampo label="Brevete Copiloto" value={servicio.cobrevete} />
+                    <DetalleCampo
+                      label="Brevete Copiloto"
+                      value={servicio.cobrevete}
+                    />
                     <DetalleCampo label="Celular" value={servicio.celular} />
-                    <DetalleCampo label="Celular Copiloto" value={servicio.cocelular} />
+                    <DetalleCampo
+                      label="Celular Copiloto"
+                      value={servicio.cocelular}
+                    />
                   </div>
                 </div>
 
@@ -357,7 +378,10 @@ const FilaServicio: React.FC<{
                   <div className="mb-2 grid grid-cols-3 gap-2 border-b border-slate-100 pb-2">
                     <DetalleCampo label="Fecha" value={servicio.fechainicio} />
                     <DetalleCampo label="Hora" value={servicio.horainicio} />
-                    <DetalleCampo label="Hora Retorno" value={servicio.horaretorno} />
+                    <DetalleCampo
+                      label="Hora Retorno"
+                      value={servicio.horaretorno}
+                    />
                   </div>
                   <div className="space-y-2">
                     {CAMPOS_SERVICIO.map((campo) => (
