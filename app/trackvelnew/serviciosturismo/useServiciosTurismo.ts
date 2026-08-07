@@ -31,16 +31,17 @@ export function useServiciosTurismo() {
   const [loadingUnidades, setLoadingUnidades] = useState(true);
 
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
-  const [busquedaPiloto, setBusquedaPiloto] = useState('');
+  const [busquedaTexto, setBusquedaTexto] = useState('');
   const [horaFiltro, setHoraFiltro] = useState('');
+  const [tipoUnidadFiltro, setTipoUnidadFiltro] = useState('');
 
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [formEdicion, setFormEdicion] = useState<EditFormServicio | null>(null);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
-  const [servicioAEliminar, setServicioAEliminar] =
+  const [servicioACancelar, setServicioACancelar] =
     useState<ServicioTurismoVista | null>(null);
-  const [eliminando, setEliminando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
 
@@ -80,8 +81,9 @@ export function useServiciosTurismo() {
       setExpandidos(new Set());
       setEditandoId(null);
       setFormEdicion(null);
-      setBusquedaPiloto('');
+      setBusquedaTexto('');
       setHoraFiltro('');
+      setTipoUnidadFiltro('');
     } catch {
       setError('No se pudieron cargar los servicios de turismo.');
       setServicios([]);
@@ -147,18 +149,33 @@ export function useServiciosTurismo() {
     return Array.from(horas).sort();
   }, [serviciosVisibles]);
 
+  // Todos los tipos de unidad presentes en los servicios cargados (para el select de filtro).
+  const tiposUnidadDisponibles = useMemo(() => {
+    const tipos = new Set<string>();
+    serviciosVisibles.forEach((servicio) => {
+      if (servicio.tipounidad) tipos.add(servicio.tipounidad);
+    });
+    return Array.from(tipos).sort();
+  }, [serviciosVisibles]);
+
   const serviciosFiltrados = useMemo(() => {
-    const textoPiloto = busquedaPiloto.trim().toLowerCase();
+    const texto = busquedaTexto.trim().toLowerCase();
 
     return serviciosVisibles.filter((servicio) => {
-      const coincidePiloto =
-        textoPiloto === '' ||
-        (servicio.piloto || '').toLowerCase().includes(textoPiloto);
+      const coincideTexto =
+        texto === '' ||
+        (servicio.piloto || '').toLowerCase().includes(texto) ||
+        servicio.placaCombinada.toLowerCase().includes(texto) ||
+        (servicio.cliente || '').toLowerCase().includes(texto) ||
+        (servicio.origen || '').toLowerCase().includes(texto) ||
+        (servicio.grupo || '').toLowerCase().includes(texto);
       const coincideHora =
         horaFiltro === '' || servicio.horainicio === horaFiltro;
-      return coincidePiloto && coincideHora;
+      const coincideTipoUnidad =
+        tipoUnidadFiltro === '' || servicio.tipounidad === tipoUnidadFiltro;
+      return coincideTexto && coincideHora && coincideTipoUnidad;
     });
-  }, [serviciosVisibles, busquedaPiloto, horaFiltro]);
+  }, [serviciosVisibles, busquedaTexto, horaFiltro, tipoUnidadFiltro]);
 
   const toggleExpandido = useCallback((idservicio: number) => {
     setExpandidos((prev) => {
@@ -282,36 +299,37 @@ export function useServiciosTurismo() {
     mostrarNotificacion,
   ]);
 
-  const confirmarEliminar = useCallback(async () => {
-    if (!servicioAEliminar) return;
+  const confirmarCancelar = useCallback(async () => {
+    if (!servicioACancelar) return;
 
-    setEliminando(true);
+    setCancelando(true);
 
     try {
-      const res = await fetch(`${API_BASE}/${servicioAEliminar.idservicio}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `${API_BASE}/${servicioACancelar.idservicio}/cancelar`,
+        { method: 'PATCH' },
+      );
       const data = await res.json().catch(() => null);
 
       if (res.ok) {
         mostrarNotificacion(
           'success',
-          data?.mensaje || 'Servicio eliminado correctamente',
+          data?.mensaje || 'Servicio cancelado correctamente',
         );
-        setServicioAEliminar(null);
+        setServicioACancelar(null);
         fetchServicios(fecha);
       } else {
         mostrarNotificacion(
           'error',
-          data?.error || data?.mensaje || 'Error al eliminar el servicio',
+          data?.error || data?.mensaje || 'Error al cancelar el servicio',
         );
       }
     } catch {
-      mostrarNotificacion('error', 'Error de conexión al eliminar el servicio');
+      mostrarNotificacion('error', 'Error de conexión al cancelar el servicio');
     } finally {
-      setEliminando(false);
+      setCancelando(false);
     }
-  }, [fecha, fetchServicios, mostrarNotificacion, servicioAEliminar]);
+  }, [fecha, fetchServicios, mostrarNotificacion, servicioACancelar]);
 
   const hayEdicionActiva = editandoId !== null;
 
@@ -324,11 +342,14 @@ export function useServiciosTurismo() {
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,
+    tiposUnidadDisponibles,
     listaUnidades,
-    busquedaPiloto,
-    setBusquedaPiloto,
+    busquedaTexto,
+    setBusquedaTexto,
     horaFiltro,
     setHoraFiltro,
+    tipoUnidadFiltro,
+    setTipoUnidadFiltro,
     expandidos,
     toggleExpandido,
     showModalCarga,
@@ -344,10 +365,10 @@ export function useServiciosTurismo() {
     actualizarCampoEdicion,
     guardarEdicion,
     hayEdicionActiva,
-    servicioAEliminar,
-    setServicioAEliminar,
-    eliminando,
-    confirmarEliminar,
+    servicioACancelar,
+    setServicioACancelar,
+    cancelando,
+    confirmarCancelar,
     notificaciones,
   };
 }

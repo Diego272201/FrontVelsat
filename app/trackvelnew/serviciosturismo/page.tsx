@@ -3,7 +3,7 @@
 import React from 'react';
 import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
-import ModalConfirmarEliminarServicio from './ModalConfirmarEliminarServicio';
+import ModalConfirmarCancelarServicio from './ModalConfirmarCancelarServicio';
 import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
@@ -19,11 +19,14 @@ const ServiciosTurismoPage: React.FC = () => {
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,
+    tiposUnidadDisponibles,
     listaUnidades,
-    busquedaPiloto,
-    setBusquedaPiloto,
+    busquedaTexto,
+    setBusquedaTexto,
     horaFiltro,
     setHoraFiltro,
+    tipoUnidadFiltro,
+    setTipoUnidadFiltro,
     expandidos,
     toggleExpandido,
     showModalCarga,
@@ -39,10 +42,10 @@ const ServiciosTurismoPage: React.FC = () => {
     actualizarCampoEdicion,
     guardarEdicion,
     hayEdicionActiva,
-    servicioAEliminar,
-    setServicioAEliminar,
-    eliminando,
-    confirmarEliminar,
+    servicioACancelar,
+    setServicioACancelar,
+    cancelando,
+    confirmarCancelar,
     notificaciones,
   } = useServiciosTurismo();
 
@@ -54,11 +57,14 @@ const ServiciosTurismoPage: React.FC = () => {
         totalServicios={serviciosFiltrados.length}
         fecha={fecha}
         onCambiarFecha={setFecha}
-        busquedaPiloto={busquedaPiloto}
-        onCambiarBusquedaPiloto={setBusquedaPiloto}
+        busquedaTexto={busquedaTexto}
+        onCambiarBusquedaTexto={setBusquedaTexto}
         horaFiltro={horaFiltro}
         onCambiarHoraFiltro={setHoraFiltro}
         horasDisponibles={horasDisponibles}
+        tipoUnidadFiltro={tipoUnidadFiltro}
+        onCambiarTipoUnidadFiltro={setTipoUnidadFiltro}
+        tiposUnidadDisponibles={tiposUnidadDisponibles}
         deshabilitado={hayEdicionActiva}
         onConsultar={() => fetchServicios(fecha)}
         onAgregarServicio={() => setShowModalAgregar(true)}
@@ -94,15 +100,15 @@ const ServiciosTurismoPage: React.FC = () => {
           onIniciarEdicion={iniciarEdicion}
           onCancelarEdicion={cancelarEdicion}
           onGuardarEdicion={guardarEdicion}
-          onSolicitarEliminar={setServicioAEliminar}
+          onSolicitarCancelar={setServicioACancelar}
         />
       </div>
 
-      <ModalConfirmarEliminarServicio
-        servicio={servicioAEliminar}
-        eliminando={eliminando}
-        onCancelar={() => setServicioAEliminar(null)}
-        onConfirmar={confirmarEliminar}
+      <ModalConfirmarCancelarServicio
+        servicio={servicioACancelar}
+        cancelando={cancelando}
+        onCancelar={() => setServicioACancelar(null)}
+        onConfirmar={confirmarCancelar}
       />
     </div>
   );

@@ -20,7 +20,7 @@ const TablaServicios: React.FC<{
   onIniciarEdicion: (servicio: ServicioTurismoVista) => void;
   onCancelarEdicion: () => void;
   onGuardarEdicion: () => void;
-  onSolicitarEliminar: (servicio: ServicioTurismoVista) => void;
+  onSolicitarCancelar: (servicio: ServicioTurismoVista) => void;
 }> = ({
   cargando,
   cargandoUnidades,
@@ -36,7 +36,7 @@ const TablaServicios: React.FC<{
   onIniciarEdicion,
   onCancelarEdicion,
   onGuardarEdicion,
-  onSolicitarEliminar,
+  onSolicitarCancelar,
 }) => {
   if (cargando || cargandoUnidades) {
     return (
@@ -65,29 +65,38 @@ const TablaServicios: React.FC<{
         <table className="w-full">
           <thead className="sticky top-0 z-10 bg-[#113eb9]">
             <tr>
-              <th className="w-8 px-3 py-2.5"></th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="w-6 px-1.5 py-1.5"></th>
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Fecha
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Hora Inicio
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                Tipo Unidad
+              </th>
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                Placa
+              </th>
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Piloto
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Cliente
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+                Grupo
+              </th>
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Origen
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Destino
               </th>
-              <th className="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Acciones
               </th>
-              <th className="w-20 px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-50">
+              <th className="w-20 px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Estado
               </th>
             </tr>
@@ -107,7 +116,7 @@ const TablaServicios: React.FC<{
                 onIniciarEdicion={() => onIniciarEdicion(servicio)}
                 onCancelarEdicion={onCancelarEdicion}
                 onGuardarEdicion={onGuardarEdicion}
-                onSolicitarEliminar={() => onSolicitarEliminar(servicio)}
+                onSolicitarCancelar={() => onSolicitarCancelar(servicio)}
               />
             ))}
           </tbody>

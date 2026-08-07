@@ -7,11 +7,14 @@ const BarraFiltros: React.FC<{
   totalServicios: number;
   fecha: string;
   onCambiarFecha: (valor: string) => void;
-  busquedaPiloto: string;
-  onCambiarBusquedaPiloto: (valor: string) => void;
+  busquedaTexto: string;
+  onCambiarBusquedaTexto: (valor: string) => void;
   horaFiltro: string;
   onCambiarHoraFiltro: (valor: string) => void;
   horasDisponibles: string[];
+  tipoUnidadFiltro: string;
+  onCambiarTipoUnidadFiltro: (valor: string) => void;
+  tiposUnidadDisponibles: string[];
   deshabilitado: boolean;
   onConsultar: () => void;
   onAgregarServicio: () => void;
@@ -20,18 +23,21 @@ const BarraFiltros: React.FC<{
   totalServicios,
   fecha,
   onCambiarFecha,
-  busquedaPiloto,
-  onCambiarBusquedaPiloto,
+  busquedaTexto,
+  onCambiarBusquedaTexto,
   horaFiltro,
   onCambiarHoraFiltro,
   horasDisponibles,
+  tipoUnidadFiltro,
+  onCambiarTipoUnidadFiltro,
+  tiposUnidadDisponibles,
   deshabilitado,
   onConsultar,
   onAgregarServicio,
   onCargarExcel,
 }) => (
   <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
         <div className="h-5 w-1 bg-[#113EB9]"></div>
         <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
@@ -74,11 +80,11 @@ const BarraFiltros: React.FC<{
         <Search className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-gray-400" />
         <input
           type="text"
-          placeholder="Buscar piloto..."
-          value={busquedaPiloto}
+          placeholder="Buscar por unidad, piloto, cliente, grupo u origen..."
+          value={busquedaTexto}
           disabled={deshabilitado}
-          onChange={(e) => onCambiarBusquedaPiloto(e.target.value)}
-          className="w-40 rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-[12px] placeholder-gray-400 focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:cursor-not-allowed disabled:opacity-50"
+          onChange={(e) => onCambiarBusquedaTexto(e.target.value)}
+          className="w-80 rounded-md border border-gray-200 bg-gray-50 py-1.5 pl-7 pr-2 text-[12px] placeholder-gray-400 focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
@@ -100,6 +106,29 @@ const BarraFiltros: React.FC<{
           {horasDisponibles.map((hora) => (
             <option key={hora} value={hora}>
               {hora}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <label
+          className="text-[12px] font-medium text-gray-600"
+          htmlFor="tipo-unidad-servicio"
+        >
+          Tipo Unidad:
+        </label>
+        <select
+          id="tipo-unidad-servicio"
+          value={tipoUnidadFiltro}
+          disabled={deshabilitado}
+          onChange={(e) => onCambiarTipoUnidadFiltro(e.target.value)}
+          className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="">Todos</option>
+          {tiposUnidadDisponibles.map((tipo) => (
+            <option key={tipo} value={tipo}>
+              {tipo}
             </option>
           ))}
         </select>

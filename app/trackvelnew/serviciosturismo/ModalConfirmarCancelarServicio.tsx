@@ -12,46 +12,46 @@ import {
 } from '@/app/components/ui/alert-dialog';
 import { ServicioTurismoVista } from './types';
 
-const ModalConfirmarEliminarServicio: React.FC<{
+const ModalConfirmarCancelarServicio: React.FC<{
   servicio: ServicioTurismoVista | null;
-  eliminando: boolean;
+  cancelando: boolean;
   onCancelar: () => void;
   onConfirmar: () => void;
-}> = ({ servicio, eliminando, onCancelar, onConfirmar }) => (
+}> = ({ servicio, cancelando, onCancelar, onConfirmar }) => (
   <AlertDialog
     open={!!servicio}
     onOpenChange={(open) => {
-      if (!open && !eliminando) onCancelar();
+      if (!open && !cancelando) onCancelar();
     }}
   >
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>
-          ¿Eliminar el servicio de <strong>{servicio?.cliente || 'este servicio'}</strong>?
+          ¿Cancelar el servicio de <strong>{servicio?.cliente || 'este servicio'}</strong>?
           <br />
-          <span className="text-sm font-normal text-red-600">
-            Esta acción no se puede deshacer.
+          <span className="text-sm font-normal text-gray-500">
+            El servicio quedará marcado como Cancelado.
           </span>
         </AlertDialogTitle>
       </AlertDialogHeader>
       <AlertDialogFooter>
         <AlertDialogCancel
-          disabled={eliminando}
+          disabled={cancelando}
           onClick={onCancelar}
           className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
         >
-          Cancelar
+          Volver
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={onConfirmar}
-          disabled={eliminando}
+          disabled={cancelando}
           className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
         >
-          {eliminando ? 'Eliminando...' : 'Eliminar'}
+          {cancelando ? 'Cancelando...' : 'Cancelar Servicio'}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
 );
 
-export default ModalConfirmarEliminarServicio;
+export default ModalConfirmarCancelarServicio;

@@ -24,10 +24,16 @@ export interface ServicioTurismo {
   observaciones: string | null;
   ejecutivo: string | null;
   cotizacion: string | null;
-  // Acuse de recibo del conductor desde la app móvil (reemplaza el doble check azul de WhatsApp).
+  // Acuse de recibo del conductor desde la app móvil.
   // visto: el servicio se mostró en su pantalla. confirmado: además deslizó la tarjeta.
   visto: number | null;
   confirmado: number | null;
+  // Estado visible del servicio: null/"Pendiente", "Visto por Conductor", "Confirmado por Conductor",
+  // "Cancelado". Un servicio "Cancelado" ya no admite ediciones.
+  estado: string | null;
+  // Flag independiente de "estado" (0/1): se marca cuando se reprograma la fecha. Independiente para
+  // que un servicio reprogramado y luego visto/confirmado muestre ambas etiquetas a la vez.
+  reprogramado: number | null;
 }
 
 export interface ServicioTurismoVista extends ServicioTurismo {
@@ -35,10 +41,10 @@ export interface ServicioTurismoVista extends ServicioTurismo {
 }
 
 // Claves de ServicioTurismoVista cuyo valor es siempre string | null
-// (excluye las numéricas: idservicio, visto y confirmado).
+// (excluye las numéricas: idservicio, visto, confirmado y reprogramado).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
-  'idservicio' | 'visto' | 'confirmado'
+  'idservicio' | 'visto' | 'confirmado' | 'reprogramado'
 >;
 
 export interface EditFormServicio {

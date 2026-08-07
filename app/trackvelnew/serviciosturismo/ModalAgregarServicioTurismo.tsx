@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import { ChevronDown, Eye, PlusCircle } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
+import { useUsername } from '@/hooks/useUsername';
 
 interface FormServicioTurismo {
   fechainicio: string; // yyyy-MM-dd (input date)
@@ -40,6 +41,25 @@ interface ModalAgregarServicioTurismoProps {
 }
 
 const API_URL = 'https://do.velsat.pe:2083/api/ServTurismo';
+const API_TAXI = 'https://do.velsat.pe:2083/api/ServTurismo/taxi';
+
+const TIPOS_UNIDAD = [
+  'STARIA',
+  'TAUD',
+  'TBUS',
+  'TBUS JUNIOR',
+  'TH01',
+  'TMNB',
+  'TSPC',
+  'TSPL',
+];
+
+interface Conductor {
+  codtaxi: number;
+  apellidos: string | null;
+  telefono: string | null;
+  brevete: string | null;
+}
 
 function getIsoToday(): string {
   const now = new Date();
@@ -201,6 +221,91 @@ const SelectPlacaBuscable: React.FC<{
   );
 };
 
+const SelectConductorBuscable: React.FC<{
+  value: string;
+  conductores: Conductor[];
+  onSeleccionar: (conductor: Conductor) => void;
+  onChangeTexto: (valor: string) => void;
+}> = ({ value, conductores, onSeleccionar, onChangeTexto }) => {
+  const [query, setQuery] = useState(value);
+  const [abierto, setAbierto] = useState(false);
+  const cerrandoPorClickRef = useRef(false);
+
+  // El value puede cambiar desde fuera (ej. al resetear el formulario); mantener el input sincronizado.
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  const opcionesFiltradas = useMemo(() => {
+    const texto = query.trim().toLowerCase();
+    if (texto === '') return conductores;
+    return conductores.filter((c) =>
+      (c.apellidos || '').toLowerCase().includes(texto),
+    );
+  }, [conductores, query]);
+
+  const seleccionar = (conductor: Conductor) => {
+    setQuery(conductor.apellidos || '');
+    onSeleccionar(conductor);
+    setAbierto(false);
+  };
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={query}
+          onFocus={() => setAbierto(true)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            onChangeTexto(e.target.value);
+            setAbierto(true);
+          }}
+          onBlur={() => {
+            setTimeout(() => {
+              if (!cerrandoPorClickRef.current) {
+                setAbierto(false);
+              }
+              cerrandoPorClickRef.current = false;
+            }, 120);
+          }}
+          placeholder="Buscar conductor..."
+          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 pr-7 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+        />
+        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+      </div>
+
+      {abierto && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+          {opcionesFiltradas.length === 0 ? (
+            <div className="px-3 py-2 text-[12px] text-gray-400">
+              Sin coincidencias
+            </div>
+          ) : (
+            opcionesFiltradas.map((conductor) => (
+              <div
+                key={conductor.codtaxi}
+                onMouseDown={() => {
+                  cerrandoPorClickRef.current = true;
+                  seleccionar(conductor);
+                }}
+                className={`cursor-pointer px-3 py-1.5 text-[12px] hover:bg-blue-50 ${
+                  conductor.apellidos === value
+                    ? 'bg-blue-50 font-semibold text-[#113EB9]'
+                    : 'text-gray-700'
+                }`}
+              >
+                {conductor.apellidos}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FilaPreview: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-1.5 last:border-0">
     <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -222,9 +327,50 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
 }) => {
   const [form, setForm] = useState<FormServicioTurismo>(construirFormularioInicial());
   const [isSaving, setIsSaving] = useState(false);
+  const [conductores, setConductores] = useState<Conductor[]>([]);
+  const { username, isReady } = useUsername();
 
   const actualizarCampo = (campo: keyof FormServicioTurismo) => (valor: string) => {
     setForm((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  // Conductores del usuario logueado, para autocompletar brevete/celular al elegir piloto o copiloto.
+  useEffect(() => {
+    if (!isOpen || !isReady || !username) return;
+
+    const fetchConductores = async () => {
+      try {
+        const res = await fetch(`${API_TAXI}?codusuario=${username}`);
+        if (!res.ok) {
+          setConductores([]);
+          return;
+        }
+        const data = await res.json();
+        setConductores(Array.isArray(data) ? data : []);
+      } catch {
+        setConductores([]);
+      }
+    };
+
+    fetchConductores();
+  }, [isOpen, isReady, username]);
+
+  const seleccionarPiloto = (conductor: Conductor) => {
+    setForm((prev) => ({
+      ...prev,
+      piloto: conductor.apellidos || '',
+      brevete: conductor.brevete || '',
+      celular: conductor.telefono || '',
+    }));
+  };
+
+  const seleccionarCopiloto = (conductor: Conductor) => {
+    setForm((prev) => ({
+      ...prev,
+      copiloto: conductor.apellidos || '',
+      cobrevete: conductor.brevete || '',
+      cocelular: conductor.telefono || '',
+    }));
   };
 
   const camposRequeridosCompletos = useMemo(
@@ -396,16 +542,34 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                     onChange={actualizarCampo('placa')}
                   />
                 </div>
-                <CampoTexto
-                  label="Tipo unidad"
-                  value={form.tipounidad}
-                  onChange={actualizarCampo('tipounidad')}
-                />
-                <CampoTexto
-                  label="Piloto"
-                  value={form.piloto}
-                  onChange={actualizarCampo('piloto')}
-                />
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                    Tipo unidad
+                  </label>
+                  <select
+                    value={form.tipounidad}
+                    onChange={(e) => actualizarCampo('tipounidad')(e.target.value)}
+                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {TIPOS_UNIDAD.map((tipo) => (
+                      <option key={tipo} value={tipo}>
+                        {tipo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                    Piloto
+                  </label>
+                  <SelectConductorBuscable
+                    value={form.piloto}
+                    conductores={conductores}
+                    onSeleccionar={seleccionarPiloto}
+                    onChangeTexto={actualizarCampo('piloto')}
+                  />
+                </div>
                 <CampoTexto
                   label="Brevete"
                   value={form.brevete}
@@ -416,11 +580,17 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                   value={form.celular}
                   onChange={actualizarCampo('celular')}
                 />
-                <CampoTexto
-                  label="Copiloto"
-                  value={form.copiloto}
-                  onChange={actualizarCampo('copiloto')}
-                />
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+                    Copiloto
+                  </label>
+                  <SelectConductorBuscable
+                    value={form.copiloto}
+                    conductores={conductores}
+                    onSeleccionar={seleccionarCopiloto}
+                    onChangeTexto={actualizarCampo('copiloto')}
+                  />
+                </div>
                 <CampoTexto
                   label="Brevete copiloto"
                   value={form.cobrevete}

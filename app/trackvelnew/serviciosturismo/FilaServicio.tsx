@@ -1,8 +1,19 @@
 'use client';
 
 import React from 'react';
-import { ChevronRight, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
-import { IoCheckmarkDone, IoCheckmark } from 'react-icons/io5';
+import {
+  ChevronRight,
+  Pencil,
+  Ban,
+  Check,
+  X,
+  Loader2,
+  Clock,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  CalendarClock,
+} from 'lucide-react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import {
   SECCIONES_DETALLE,
@@ -11,6 +22,46 @@ import {
 } from './constants';
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
+
+// Estado visible del servicio: color + inicial, sin depender de los flags "visto"/"confirmado" por
+// separado. "Reprogramado" es independiente de "estado" (ver ESTADO_REPROGRAMADO) para poder mostrarse
+// junto a Visto/Confirmado cuando ambos aplican al mismo servicio.
+const ESTADOS_SERVICIO: Record<
+  string,
+  { chip: string; sigla: string; icono: React.ReactNode; titulo: string }
+> = {
+  Pendiente: {
+    chip: 'bg-slate-100 text-slate-500 border border-slate-200',
+    sigla: 'P',
+    icono: <Clock className="h-3 w-3" />,
+    titulo: 'Pendiente',
+  },
+  'Visto por Conductor': {
+    chip: 'bg-amber-50 text-amber-600 border border-amber-200/80',
+    sigla: 'VC',
+    icono: <Eye className="h-3 w-3" />,
+    titulo: 'Visto por Conductor',
+  },
+  'Confirmado por Conductor': {
+    chip: 'bg-emerald-50 text-emerald-600 border border-emerald-200/80',
+    sigla: 'CC',
+    icono: <CheckCircle2 className="h-3 w-3" />,
+    titulo: 'Confirmado por Conductor',
+  },
+  Cancelado: {
+    chip: 'bg-red-50 text-red-600 border border-red-200/80',
+    sigla: 'C',
+    icono: <XCircle className="h-3 w-3" />,
+    titulo: 'Cancelado',
+  },
+};
+
+const ESTADO_REPROGRAMADO = {
+  chip: 'bg-violet-50 text-violet-600 border border-violet-200/80',
+  sigla: 'R',
+  icono: <CalendarClock className="h-3 w-3" />,
+  titulo: 'Reprogramado',
+};
 
 const FilaServicio: React.FC<{
   servicio: ServicioTurismoVista;
@@ -24,7 +75,7 @@ const FilaServicio: React.FC<{
   onIniciarEdicion: () => void;
   onCancelarEdicion: () => void;
   onGuardarEdicion: () => void;
-  onSolicitarEliminar: () => void;
+  onSolicitarCancelar: () => void;
 }> = ({
   servicio,
   expandido,
@@ -37,30 +88,13 @@ const FilaServicio: React.FC<{
   onIniciarEdicion,
   onCancelarEdicion,
   onGuardarEdicion,
-  onSolicitarEliminar,
+  onSolicitarCancelar,
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
-  // Acuse de recibo del conductor en la app. "Confirmado" implica "visto", así que manda
-  // el estado más avanzado. Se muestra con icono limpio e identificable de acuse de lectura.
+  const estado = servicio.estado || 'Pendiente';
   const celdaEstado =
-    Number(servicio.confirmado) === 1
-      ? {
-          chip: 'bg-sky-50 text-sky-600 border border-sky-200/80',
-          titulo: 'Confirmado por el conductor',
-          icono: <IoCheckmarkDone className="h-5 w-5 text-sky-500" />,
-        }
-      : Number(servicio.visto) === 1
-        ? {
-            chip: 'bg-slate-100 text-slate-500 border border-slate-200',
-            titulo: 'Visto por el conductor',
-            icono: <IoCheckmark className="h-4 w-4 text-slate-500" />,
-          }
-        : {
-            chip: '',
-            titulo: 'Sin visualizar por el conductor',
-            icono: null,
-          };
+    ESTADOS_SERVICIO[estado] || ESTADOS_SERVICIO['Pendiente'];
 
   const mostrarDetalle = expandido || editando;
   const puedeAlternar = !bloqueado && !editando;
@@ -88,25 +122,34 @@ const FilaServicio: React.FC<{
             }`}
           />
         </td>
-        <td className="whitespace-nowrap px-3 py-2 text-[12px] font-medium text-slate-700">
+        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] font-medium text-slate-700">
           {servicio.fechainicio || '-'}
         </td>
-        <td className="whitespace-nowrap px-3 py-2 text-[12px] text-slate-700">
+        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
           {servicio.horainicio || '-'}
         </td>
-        <td className="max-w-[180px] truncate px-3 py-2 text-[12px] text-slate-700">
+        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
+          {servicio.tipounidad || '-'}
+        </td>
+        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
+          {servicio.placaCombinada || '-'}
+        </td>
+        <td className="max-w-[180px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
           {servicio.piloto || '-'}
         </td>
-        <td className="max-w-[200px] truncate px-3 py-2 text-[12px] font-medium text-slate-800">
+        <td className="max-w-[200px] truncate px-1.5 py-1.5 text-[12px] font-medium text-slate-800">
           {servicio.cliente || '-'}
         </td>
-        <td className="max-w-[220px] truncate px-3 py-2 text-[12px] text-slate-700">
+        <td className="max-w-[160px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
+          {servicio.grupo || '-'}
+        </td>
+        <td className="max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
           {servicio.origen || '-'}
         </td>
-        <td className="max-w-[220px] truncate px-3 py-2 text-[12px] text-slate-700">
+        <td className="max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
           {servicio.destino || '-'}
         </td>
-        <td className="px-3 py-2">
+        <td className="px-1.5 py-1.5">
           <div
             className="flex items-center gap-1.5"
             onClick={(e) => e.stopPropagation()}
@@ -138,43 +181,53 @@ const FilaServicio: React.FC<{
               <>
                 <button
                   onClick={onIniciarEdicion}
-                  disabled={bloqueado}
-                  title="Editar"
+                  disabled={bloqueado || estado === 'Cancelado'}
+                  title={
+                    estado === 'Cancelado'
+                      ? 'No se puede editar: servicio cancelado'
+                      : 'Editar'
+                  }
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#113EB9] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={onSolicitarEliminar}
-                  disabled={bloqueado}
-                  title="Eliminar"
+                  onClick={onSolicitarCancelar}
+                  disabled={bloqueado || estado === 'Cancelado'}
+                  title="Cancelar servicio"
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Ban className="h-3.5 w-3.5" />
                 </button>
               </>
             )}
           </div>
         </td>
-        <td
-          className="border-l border-slate-100 px-3 py-2 text-center"
-          title={celdaEstado.titulo}
-        >
-          {celdaEstado.icono ? (
+        <td className="border-l border-slate-100 px-1.5 py-1.5">
+          <div className="flex items-center gap-1">
+            {Number(servicio.reprogramado) === 1 && (
+              <span
+                title={ESTADO_REPROGRAMADO.titulo}
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${ESTADO_REPROGRAMADO.chip}`}
+              >
+                {ESTADO_REPROGRAMADO.icono}
+                {ESTADO_REPROGRAMADO.sigla}
+              </span>
+            )}
             <span
-              className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 ${celdaEstado.chip}`}
+              title={celdaEstado.titulo}
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${celdaEstado.chip}`}
             >
               {celdaEstado.icono}
+              {celdaEstado.sigla}
             </span>
-          ) : (
-            <span className="text-[12px] text-slate-300">—</span>
-          )}
+          </div>
         </td>
       </tr>
 
       {mostrarDetalle && (
         <tr className="border-l-4 border-[#113EB9] bg-slate-50/70">
-          <td colSpan={9} className="px-6 py-4">
+          <td colSpan={12} className="px-6 py-4">
             {editando && formEdicion ? (
               <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Vehículo y Piloto */}
