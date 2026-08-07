@@ -24,7 +24,10 @@ export function ddMmYyyyToIso(dmy: string | null): string {
 }
 
 // Arma el mismo identificador que usa el sistema de rastreo (codunidad): BUS-PLACA(sin caracteres especiales).
-export function combinarPlaca(bus: string | null, placa: string | null): string {
+export function combinarPlaca(
+  bus: string | null,
+  placa: string | null,
+): string {
   const busLimpio = (bus || '').trim();
   const placaLimpia = (placa || '').replace(/[^a-zA-Z0-9]/g, '').trim();
 
@@ -35,7 +38,9 @@ export function combinarPlaca(bus: string | null, placa: string | null): string 
   return `${busLimpio}-${placaLimpia}`;
 }
 
-export function construirFormDesdeServicio(servicio: ServicioTurismoVista): EditFormServicio {
+export function construirFormDesdeServicio(
+  servicio: ServicioTurismoVista,
+): EditFormServicio {
   return {
     fechainicio: ddMmYyyyToIso(servicio.fechainicio),
     horainicio: servicio.horainicio || '',
