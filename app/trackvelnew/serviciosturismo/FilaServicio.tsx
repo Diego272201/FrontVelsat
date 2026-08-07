@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
+  FlagTriangleRight,
 } from 'lucide-react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import {
@@ -23,11 +24,19 @@ import {
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
 
-// Estado visible del servicio: color + inicial, sin depender de los flags "visto"/"confirmado" por
-// separado. "Reprogramado" es independiente de "estado" (ver ESTADO_REPROGRAMADO) para poder mostrarse
-// junto a Visto/Confirmado cuando ambos aplican al mismo servicio.
+// Estado visible del servicio: color + inicial. Ya no viene como texto combinado desde el backend
+// (columna "estado" eliminada); se deriva acá mismo a partir de las columnas booleanas
+// cancelado/finalizado/confirmado/visto, en ese orden de prioridad. "Reprogramado" es independiente
+// (ver ESTADO_REPROGRAMADO) para poder mostrarse junto a Visto/Confirmado cuando ambos aplican.
+type ClaveEstado =
+  | 'Pendiente'
+  | 'Visto por Conductor'
+  | 'Confirmado por Conductor'
+  | 'Finalizado por Conductor'
+  | 'Cancelado';
+
 const ESTADOS_SERVICIO: Record<
-  string,
+  ClaveEstado,
   { chip: string; sigla: string; icono: React.ReactNode; titulo: string }
 > = {
   Pendiente: {
@@ -48,6 +57,12 @@ const ESTADOS_SERVICIO: Record<
     icono: <CheckCircle2 className="h-3 w-3" />,
     titulo: 'Confirmado por Conductor',
   },
+  'Finalizado por Conductor': {
+    chip: 'bg-red-50 text-red-700 border border-red-200/80',
+    sigla: 'F',
+    icono: <FlagTriangleRight className="h-3 w-3" />,
+    titulo: 'Finalizado por Conductor',
+  },
   Cancelado: {
     chip: 'bg-red-50 text-red-600 border border-red-200/80',
     sigla: 'C',
@@ -55,6 +70,19 @@ const ESTADOS_SERVICIO: Record<
     titulo: 'Cancelado',
   },
 };
+
+function calcularEstado(servicio: {
+  cancelado: number | null;
+  finalizado: number | null;
+  confirmado: number | null;
+  visto: number | null;
+}): ClaveEstado {
+  if (Number(servicio.cancelado) === 1) return 'Cancelado';
+  if (Number(servicio.finalizado) === 1) return 'Finalizado por Conductor';
+  if (Number(servicio.confirmado) === 1) return 'Confirmado por Conductor';
+  if (Number(servicio.visto) === 1) return 'Visto por Conductor';
+  return 'Pendiente';
+}
 
 const ESTADO_REPROGRAMADO = {
   chip: 'bg-violet-50 text-violet-600 border border-violet-200/80',
@@ -92,9 +120,8 @@ const FilaServicio: React.FC<{
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
-  const estado = servicio.estado || 'Pendiente';
-  const celdaEstado =
-    ESTADOS_SERVICIO[estado] || ESTADOS_SERVICIO['Pendiente'];
+  const estado = calcularEstado(servicio);
+  const celdaEstado = ESTADOS_SERVICIO[estado];
 
   const mostrarDetalle = expandido || editando;
   const puedeAlternar = !bloqueado && !editando;

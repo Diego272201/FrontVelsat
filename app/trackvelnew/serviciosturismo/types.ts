@@ -24,15 +24,18 @@ export interface ServicioTurismo {
   observaciones: string | null;
   ejecutivo: string | null;
   cotizacion: string | null;
-  // Acuse de recibo del conductor desde la app móvil.
-  // visto: el servicio se mostró en su pantalla. confirmado: además deslizó la tarjeta.
+  // Acuse de recibo del conductor desde la app móvil. Cada uno es una columna booleana
+  // independiente (ya no hay un campo "estado" de texto combinado):
+  // visto: el servicio se mostró en su pantalla.
+  // confirmado: además deslizó la tarjeta para confirmarlo.
+  // finalizado: deslizó hacia el otro lado y confirmó el modal de advertencia (estado final).
+  // cancelado: se canceló desde este panel; un servicio cancelado ya no admite ediciones.
   visto: number | null;
   confirmado: number | null;
-  // Estado visible del servicio: null/"Pendiente", "Visto por Conductor", "Confirmado por Conductor",
-  // "Cancelado". Un servicio "Cancelado" ya no admite ediciones.
-  estado: string | null;
-  // Flag independiente de "estado" (0/1): se marca cuando se reprograma la fecha. Independiente para
-  // que un servicio reprogramado y luego visto/confirmado muestre ambas etiquetas a la vez.
+  finalizado: number | null;
+  cancelado: number | null;
+  // Se marca cuando se reprograma la fecha del servicio. El backend limpia visto/confirmado/finalizado
+  // al reprogramar, así que puede mostrarse junto a un "Pendiente" recién reiniciado.
   reprogramado: number | null;
 }
 
@@ -41,10 +44,10 @@ export interface ServicioTurismoVista extends ServicioTurismo {
 }
 
 // Claves de ServicioTurismoVista cuyo valor es siempre string | null
-// (excluye las numéricas: idservicio, visto, confirmado y reprogramado).
+// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado y reprogramado).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
-  'idservicio' | 'visto' | 'confirmado' | 'reprogramado'
+  'idservicio' | 'visto' | 'confirmado' | 'finalizado' | 'cancelado' | 'reprogramado'
 >;
 
 export interface EditFormServicio {
