@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronRight,
   Pencil,
@@ -14,6 +14,8 @@ import {
   XCircle,
   CalendarClock,
   FlagTriangleRight,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
 import {
@@ -23,16 +25,23 @@ import {
 } from './constants';
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
+import {
+  Conductor,
+  SelectConductorBuscable,
+  SelectPlacaBuscable,
+  SelectTipoUnidad,
+} from './SelectBuscable';
 
 // Estado visible del servicio: color + inicial. Ya no viene como texto combinado desde el backend
 // (columna "estado" eliminada); se deriva acá mismo a partir de las columnas booleanas
-// cancelado/finalizado/confirmado/visto, en ese orden de prioridad. "Reprogramado" es independiente
-// (ver ESTADO_REPROGRAMADO) para poder mostrarse junto a Visto/Confirmado cuando ambos aplican.
+// cancelado/standby/finalizado/confirmado/visto, en ese orden de prioridad. "Reprogramado" es
+// independiente (ver ESTADO_REPROGRAMADO) para poder mostrarse junto a Visto/Confirmado cuando ambos aplican.
 type ClaveEstado =
   | 'Pendiente'
   | 'Visto por Conductor'
   | 'Confirmado por Conductor'
   | 'Finalizado por Conductor'
+  | 'Stand By'
   | 'Cancelado';
 
 const ESTADOS_SERVICIO: Record<
@@ -63,6 +72,12 @@ const ESTADOS_SERVICIO: Record<
     icono: <FlagTriangleRight className="h-3 w-3" />,
     titulo: 'Finalizado por Conductor',
   },
+  'Stand By': {
+    chip: 'bg-orange-50 text-orange-600 border border-orange-200/80',
+    sigla: 'SB',
+    icono: <PauseCircle className="h-3 w-3" />,
+    titulo: 'Stand By',
+  },
   Cancelado: {
     chip: 'bg-red-50 text-red-600 border border-red-200/80',
     sigla: 'C',
@@ -73,11 +88,13 @@ const ESTADOS_SERVICIO: Record<
 
 function calcularEstado(servicio: {
   cancelado: number | null;
+  standby: number | null;
   finalizado: number | null;
   confirmado: number | null;
   visto: number | null;
 }): ClaveEstado {
   if (Number(servicio.cancelado) === 1) return 'Cancelado';
+  if (Number(servicio.standby) === 1) return 'Stand By';
   if (Number(servicio.finalizado) === 1) return 'Finalizado por Conductor';
   if (Number(servicio.confirmado) === 1) return 'Confirmado por Conductor';
   if (Number(servicio.visto) === 1) return 'Visto por Conductor';
@@ -93,6 +110,8 @@ const ESTADO_REPROGRAMADO = {
 
 const FilaServicio: React.FC<{
   servicio: ServicioTurismoVista;
+  unidades: string[];
+  conductores: Conductor[];
   expandido: boolean;
   onToggle: () => void;
   editando: boolean;
@@ -104,8 +123,13 @@ const FilaServicio: React.FC<{
   onCancelarEdicion: () => void;
   onGuardarEdicion: () => void;
   onSolicitarCancelar: () => void;
+  onPonerEnStandby: () => void;
+  onReanudar: () => void;
+  procesandoStandby: boolean;
 }> = ({
   servicio,
+  unidades,
+  conductores,
   expandido,
   onToggle,
   editando,
@@ -117,8 +141,37 @@ const FilaServicio: React.FC<{
   onCancelarEdicion,
   onGuardarEdicion,
   onSolicitarCancelar,
+  onPonerEnStandby,
+  onReanudar,
+  procesandoStandby,
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
+
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const handleClickFuera = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickFuera);
+    return () => document.removeEventListener('mousedown', handleClickFuera);
+  }, [menuAbierto]);
+
+  const seleccionarPiloto = (conductor: Conductor) => {
+    onCambioCampo('piloto', conductor.apellidos || '');
+    onCambioCampo('brevete', conductor.brevete || '');
+    onCambioCampo('celular', conductor.telefono || '');
+  };
+
+  const seleccionarCopiloto = (conductor: Conductor) => {
+    onCambioCampo('copiloto', conductor.apellidos || '');
+    onCambioCampo('cobrevete', conductor.brevete || '');
+    onCambioCampo('cocelular', conductor.telefono || '');
+  };
 
   const estado = calcularEstado(servicio);
   const celdaEstado = ESTADOS_SERVICIO[estado];
@@ -218,14 +271,53 @@ const FilaServicio: React.FC<{
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
-                <button
-                  onClick={onSolicitarCancelar}
-                  disabled={bloqueado || estado === 'Cancelado'}
-                  title="Cancelar servicio"
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  <Ban className="h-3.5 w-3.5" />
-                </button>
+                {estado === 'Stand By' && (
+                  <button
+                    onClick={onReanudar}
+                    disabled={bloqueado || procesandoStandby}
+                    title="Reanudar servicio"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    {procesandoStandby ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <PlayCircle className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                )}
+                <div className="relative" ref={menuRef}>
+                  <button
+                    onClick={() => setMenuAbierto((v) => !v)}
+                    disabled={bloqueado || estado === 'Cancelado'}
+                    title="Cancelar / Stand By"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <Ban className="h-3.5 w-3.5" />
+                  </button>
+                  {menuAbierto && (
+                    <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                      <button
+                        onClick={() => {
+                          setMenuAbierto(false);
+                          onPonerEnStandby();
+                        }}
+                        disabled={procesandoStandby}
+                        className="block w-full px-3 py-1.5 text-left text-[12px] text-orange-600 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Stand By
+                      </button>
+                      <button
+                        onClick={() => {
+                          setMenuAbierto(false);
+                          onSolicitarCancelar();
+                        }}
+                        className="block w-full px-3 py-1.5 text-left text-[12px] text-red-600 hover:bg-red-50"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -263,28 +355,50 @@ const FilaServicio: React.FC<{
                     Vehículo y Piloto
                   </p>
                   <div className="mb-2 grid grid-cols-2 gap-2 border-b border-slate-100 pb-2">
-                    <CampoEditable
-                      label="Placa"
-                      value={formEdicion.placa}
-                      onChange={(v) => onCambioCampo('placa', v)}
-                    />
-                    <CampoEditable
-                      label="Tipo Unidad"
-                      value={formEdicion.tipounidad}
-                      onChange={(v) => onCambioCampo('tipounidad', v)}
-                    />
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Placa
+                      </label>
+                      <SelectPlacaBuscable
+                        value={formEdicion.placa}
+                        opciones={unidades}
+                        onChange={(v) => onCambioCampo('placa', v)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Tipo Unidad
+                      </label>
+                      <SelectTipoUnidad
+                        value={formEdicion.tipounidad}
+                        onChange={(v) => onCambioCampo('tipounidad', v)}
+                        className="mt-0.5 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-                    <CampoEditable
-                      label="Piloto"
-                      value={formEdicion.piloto}
-                      onChange={(v) => onCambioCampo('piloto', v)}
-                    />
-                    <CampoEditable
-                      label="Copiloto"
-                      value={formEdicion.copiloto}
-                      onChange={(v) => onCambioCampo('copiloto', v)}
-                    />
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Piloto
+                      </label>
+                      <SelectConductorBuscable
+                        value={formEdicion.piloto}
+                        conductores={conductores}
+                        onSeleccionar={seleccionarPiloto}
+                        onChangeTexto={(v) => onCambioCampo('piloto', v)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                        Copiloto
+                      </label>
+                      <SelectConductorBuscable
+                        value={formEdicion.copiloto}
+                        conductores={conductores}
+                        onSeleccionar={seleccionarCopiloto}
+                        onChangeTexto={(v) => onCambioCampo('copiloto', v)}
+                      />
+                    </div>
                     <CampoEditable
                       label="Brevete"
                       value={formEdicion.brevete}

@@ -21,6 +21,7 @@ const ServiciosTurismoPage: React.FC = () => {
     horasDisponibles,
     tiposUnidadDisponibles,
     listaUnidades,
+    conductores,
     busquedaTexto,
     setBusquedaTexto,
     horaFiltro,
@@ -46,6 +47,9 @@ const ServiciosTurismoPage: React.FC = () => {
     setServicioACancelar,
     cancelando,
     confirmarCancelar,
+    procesandoStandbyId,
+    ponerEnStandby,
+    reanudarServicio,
     notificaciones,
   } = useServiciosTurismo();
 
@@ -91,6 +95,8 @@ const ServiciosTurismoPage: React.FC = () => {
           error={error}
           servicios={serviciosFiltrados}
           totalSinFiltrar={serviciosVisibles.length}
+          unidades={listaUnidades}
+          conductores={conductores}
           expandidos={expandidos}
           onToggleExpandido={toggleExpandido}
           editandoId={editandoId}
@@ -101,6 +107,9 @@ const ServiciosTurismoPage: React.FC = () => {
           onCancelarEdicion={cancelarEdicion}
           onGuardarEdicion={guardarEdicion}
           onSolicitarCancelar={setServicioACancelar}
+          onPonerEnStandby={ponerEnStandby}
+          onReanudar={reanudarServicio}
+          procesandoStandbyId={procesandoStandbyId}
         />
       </div>
 

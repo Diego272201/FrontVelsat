@@ -1322,7 +1322,7 @@ export default function Page() {
                 ASIGNAR
               </span>
 
-              <div className="w-[200px]">
+              <div className="w-[400px]">
                 <InputConductor
                   value={apepateConductor}
                   onChange={setApepateConductor}

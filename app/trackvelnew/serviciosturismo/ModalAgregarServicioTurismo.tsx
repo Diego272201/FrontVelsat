@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
-import { ChevronDown, Eye, PlusCircle } from 'lucide-react';
+import { Eye, PlusCircle } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { useUsername } from '@/hooks/useUsername';
+import { API_TAXI } from './constants';
+import {
+  Conductor,
+  SelectConductorBuscable,
+  SelectPlacaBuscable,
+  SelectTipoUnidad,
+} from './SelectBuscable';
 
 interface FormServicioTurismo {
   fechainicio: string; // yyyy-MM-dd (input date)
@@ -41,25 +48,6 @@ interface ModalAgregarServicioTurismoProps {
 }
 
 const API_URL = 'https://do.velsat.pe:2083/api/ServTurismo';
-const API_TAXI = 'https://do.velsat.pe:2083/api/ServTurismo/taxi';
-
-const TIPOS_UNIDAD = [
-  'STARIA',
-  'TAUD',
-  'TBUS',
-  'TBUS JUNIOR',
-  'TH01',
-  'TMNB',
-  'TSPC',
-  'TSPL',
-];
-
-interface Conductor {
-  codtaxi: number;
-  apellidos: string | null;
-  telefono: string | null;
-  brevete: string | null;
-}
 
 function getIsoToday(): string {
   const now = new Date();
@@ -140,171 +128,6 @@ const CampoTexto: React.FC<{
     )}
   </div>
 );
-
-const SelectPlacaBuscable: React.FC<{
-  value: string;
-  opciones: string[];
-  onChange: (valor: string) => void;
-}> = ({ value, opciones, onChange }) => {
-  const [query, setQuery] = useState(value);
-  const [abierto, setAbierto] = useState(false);
-  const cerrandoPorClickRef = useRef(false);
-
-  const opcionesFiltradas = useMemo(() => {
-    const texto = query.trim().toLowerCase();
-    if (texto === '') return opciones;
-    return opciones.filter((op) => op.toLowerCase().includes(texto));
-  }, [opciones, query]);
-
-  const seleccionar = (opcion: string) => {
-    setQuery(opcion);
-    onChange(opcion);
-    setAbierto(false);
-  };
-
-  return (
-    <div className="relative">
-      <div className="relative">
-        <input
-          type="text"
-          value={query}
-          onFocus={() => setAbierto(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            onChange(''); // hasta que no seleccione una opción de la lista, no hay placa válida
-            setAbierto(true);
-          }}
-          onBlur={() => {
-            // pequeño delay para que el click en una opción se registre antes de cerrar
-            setTimeout(() => {
-              if (!cerrandoPorClickRef.current) {
-                setAbierto(false);
-                // si lo que quedó escrito no coincide con la selección, se limpia
-                if (query !== value) {
-                  setQuery(value);
-                }
-              }
-              cerrandoPorClickRef.current = false;
-            }, 120);
-          }}
-          placeholder="Buscar unidad (bus-placa)..."
-          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 pr-7 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
-        />
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-      </div>
-
-      {abierto && (
-        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-          {opcionesFiltradas.length === 0 ? (
-            <div className="px-3 py-2 text-[12px] text-gray-400">
-              Sin coincidencias
-            </div>
-          ) : (
-            opcionesFiltradas.map((opcion) => (
-              <div
-                key={opcion}
-                onMouseDown={() => {
-                  cerrandoPorClickRef.current = true;
-                  seleccionar(opcion);
-                }}
-                className={`cursor-pointer px-3 py-1.5 text-[12px] hover:bg-blue-50 ${
-                  opcion === value ? 'bg-blue-50 font-semibold text-[#113EB9]' : 'text-gray-700'
-                }`}
-              >
-                {opcion}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const SelectConductorBuscable: React.FC<{
-  value: string;
-  conductores: Conductor[];
-  onSeleccionar: (conductor: Conductor) => void;
-  onChangeTexto: (valor: string) => void;
-}> = ({ value, conductores, onSeleccionar, onChangeTexto }) => {
-  const [query, setQuery] = useState(value);
-  const [abierto, setAbierto] = useState(false);
-  const cerrandoPorClickRef = useRef(false);
-
-  // El value puede cambiar desde fuera (ej. al resetear el formulario); mantener el input sincronizado.
-  useEffect(() => {
-    setQuery(value);
-  }, [value]);
-
-  const opcionesFiltradas = useMemo(() => {
-    const texto = query.trim().toLowerCase();
-    if (texto === '') return conductores;
-    return conductores.filter((c) =>
-      (c.apellidos || '').toLowerCase().includes(texto),
-    );
-  }, [conductores, query]);
-
-  const seleccionar = (conductor: Conductor) => {
-    setQuery(conductor.apellidos || '');
-    onSeleccionar(conductor);
-    setAbierto(false);
-  };
-
-  return (
-    <div className="relative">
-      <div className="relative">
-        <input
-          type="text"
-          value={query}
-          onFocus={() => setAbierto(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            onChangeTexto(e.target.value);
-            setAbierto(true);
-          }}
-          onBlur={() => {
-            setTimeout(() => {
-              if (!cerrandoPorClickRef.current) {
-                setAbierto(false);
-              }
-              cerrandoPorClickRef.current = false;
-            }, 120);
-          }}
-          placeholder="Buscar conductor..."
-          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 pr-7 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
-        />
-        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
-      </div>
-
-      {abierto && (
-        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
-          {opcionesFiltradas.length === 0 ? (
-            <div className="px-3 py-2 text-[12px] text-gray-400">
-              Sin coincidencias
-            </div>
-          ) : (
-            opcionesFiltradas.map((conductor) => (
-              <div
-                key={conductor.codtaxi}
-                onMouseDown={() => {
-                  cerrandoPorClickRef.current = true;
-                  seleccionar(conductor);
-                }}
-                className={`cursor-pointer px-3 py-1.5 text-[12px] hover:bg-blue-50 ${
-                  conductor.apellidos === value
-                    ? 'bg-blue-50 font-semibold text-[#113EB9]'
-                    : 'text-gray-700'
-                }`}
-              >
-                {conductor.apellidos}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
 
 const FilaPreview: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-1.5 last:border-0">
@@ -546,18 +369,10 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
                     Tipo unidad
                   </label>
-                  <select
+                  <SelectTipoUnidad
                     value={form.tipounidad}
-                    onChange={(e) => actualizarCampo('tipounidad')(e.target.value)}
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
-                  >
-                    <option value="">Seleccionar...</option>
-                    {TIPOS_UNIDAD.map((tipo) => (
-                      <option key={tipo} value={tipo}>
-                        {tipo}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={actualizarCampo('tipounidad')}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">

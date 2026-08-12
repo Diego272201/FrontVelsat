@@ -34,6 +34,9 @@ export interface ServicioTurismo {
   confirmado: number | null;
   finalizado: number | null;
   cancelado: number | null;
+  // Pausa reversible: el conductor deja de ver el servicio (igual que cancelado), pero a diferencia
+  // de cancelado se puede "reanudar" para que vuelva a estar activo.
+  standby: number | null;
   // Se marca cuando se reprograma la fecha del servicio. El backend limpia visto/confirmado/finalizado
   // al reprogramar, así que puede mostrarse junto a un "Pendiente" recién reiniciado.
   reprogramado: number | null;
@@ -44,10 +47,16 @@ export interface ServicioTurismoVista extends ServicioTurismo {
 }
 
 // Claves de ServicioTurismoVista cuyo valor es siempre string | null
-// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado y reprogramado).
+// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado, standby y reprogramado).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
-  'idservicio' | 'visto' | 'confirmado' | 'finalizado' | 'cancelado' | 'reprogramado'
+  | 'idservicio'
+  | 'visto'
+  | 'confirmado'
+  | 'finalizado'
+  | 'cancelado'
+  | 'standby'
+  | 'reprogramado'
 >;
 
 export interface EditFormServicio {

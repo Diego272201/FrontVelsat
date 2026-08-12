@@ -3,6 +3,7 @@
 import React from 'react';
 import { Spinner } from '@nextui-org/react';
 import { EditFormServicio, ServicioTurismoVista } from './types';
+import { Conductor } from './SelectBuscable';
 import FilaServicio from './FilaServicio';
 
 const TablaServicios: React.FC<{
@@ -11,6 +12,8 @@ const TablaServicios: React.FC<{
   error: string | null;
   servicios: ServicioTurismoVista[];
   totalSinFiltrar: number;
+  unidades: string[];
+  conductores: Conductor[];
   expandidos: Set<number>;
   onToggleExpandido: (idservicio: number) => void;
   editandoId: number | null;
@@ -21,12 +24,17 @@ const TablaServicios: React.FC<{
   onCancelarEdicion: () => void;
   onGuardarEdicion: () => void;
   onSolicitarCancelar: (servicio: ServicioTurismoVista) => void;
+  onPonerEnStandby: (servicio: ServicioTurismoVista) => void;
+  onReanudar: (servicio: ServicioTurismoVista) => void;
+  procesandoStandbyId: number | null;
 }> = ({
   cargando,
   cargandoUnidades,
   error,
   servicios,
   totalSinFiltrar,
+  unidades,
+  conductores,
   expandidos,
   onToggleExpandido,
   editandoId,
@@ -37,6 +45,9 @@ const TablaServicios: React.FC<{
   onCancelarEdicion,
   onGuardarEdicion,
   onSolicitarCancelar,
+  onPonerEnStandby,
+  onReanudar,
+  procesandoStandbyId,
 }) => {
   if (cargando || cargandoUnidades) {
     return (
@@ -106,6 +117,8 @@ const TablaServicios: React.FC<{
               <FilaServicio
                 key={servicio.idservicio}
                 servicio={servicio}
+                unidades={unidades}
+                conductores={conductores}
                 expandido={expandidos.has(servicio.idservicio)}
                 onToggle={() => onToggleExpandido(servicio.idservicio)}
                 editando={editandoId === servicio.idservicio}
@@ -117,6 +130,9 @@ const TablaServicios: React.FC<{
                 onCancelarEdicion={onCancelarEdicion}
                 onGuardarEdicion={onGuardarEdicion}
                 onSolicitarCancelar={() => onSolicitarCancelar(servicio)}
+                onPonerEnStandby={() => onPonerEnStandby(servicio)}
+                onReanudar={() => onReanudar(servicio)}
+                procesandoStandby={procesandoStandbyId === servicio.idservicio}
               />
             ))}
           </tbody>

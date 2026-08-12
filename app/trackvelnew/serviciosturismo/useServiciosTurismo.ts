@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUsername } from '@/hooks/useUsername';
-import { API_BASE, API_UNIDADES } from './constants';
+import { API_BASE, API_TAXI, API_UNIDADES } from './constants';
+import { Conductor } from './SelectBuscable';
 import {
   EditFormServicio,
   Notificacion,
@@ -29,6 +30,7 @@ export function useServiciosTurismo() {
     new Set(),
   );
   const [loadingUnidades, setLoadingUnidades] = useState(true);
+  const [conductores, setConductores] = useState<Conductor[]>([]);
 
   const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
   const [busquedaTexto, setBusquedaTexto] = useState('');
@@ -42,6 +44,9 @@ export function useServiciosTurismo() {
   const [servicioACancelar, setServicioACancelar] =
     useState<ServicioTurismoVista | null>(null);
   const [cancelando, setCancelando] = useState(false);
+  const [procesandoStandbyId, setProcesandoStandbyId] = useState<
+    number | null
+  >(null);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
 
@@ -119,6 +124,27 @@ export function useServiciosTurismo() {
     fetchUnidades();
   }, [isReady, username]);
 
+  // Conductores del usuario logueado, para autocompletar brevete/celular al elegir piloto o copiloto.
+  useEffect(() => {
+    if (!isReady || !username) return;
+
+    const fetchConductores = async () => {
+      try {
+        const res = await fetch(`${API_TAXI}?codusuario=${username}`);
+        if (!res.ok) {
+          setConductores([]);
+          return;
+        }
+        const data = await res.json();
+        setConductores(Array.isArray(data) ? data : []);
+      } catch {
+        setConductores([]);
+      }
+    };
+
+    fetchConductores();
+  }, [isReady, username]);
+
   useEffect(() => {
     if (!isReady) return;
     fetchServicios(fecha);
@@ -130,8 +156,10 @@ export function useServiciosTurismo() {
         ...servicio,
         placaCombinada: combinarPlaca(servicio.bus, servicio.placa),
       }))
-      .filter((servicio) =>
-        unidadesRegistradas.has(servicio.placaCombinada.toUpperCase()),
+      .filter(
+        (servicio) =>
+          servicio.placaCombinada === '' ||
+          unidadesRegistradas.has(servicio.placaCombinada.toUpperCase()),
       );
   }, [servicios, unidadesRegistradas]);
 
@@ -331,6 +359,70 @@ export function useServiciosTurismo() {
     }
   }, [fecha, fetchServicios, mostrarNotificacion, servicioACancelar]);
 
+  const ponerEnStandby = useCallback(
+    async (servicio: ServicioTurismoVista) => {
+      setProcesandoStandbyId(servicio.idservicio);
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/${servicio.idservicio}/standby`,
+          { method: 'PATCH' },
+        );
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          mostrarNotificacion(
+            'success',
+            data?.mensaje || 'Servicio puesto en Stand By',
+          );
+          fetchServicios(fecha);
+        } else {
+          mostrarNotificacion(
+            'error',
+            data?.error || data?.mensaje || 'Error al poner en Stand By',
+          );
+        }
+      } catch {
+        mostrarNotificacion('error', 'Error de conexión al poner en Stand By');
+      } finally {
+        setProcesandoStandbyId(null);
+      }
+    },
+    [fecha, fetchServicios, mostrarNotificacion],
+  );
+
+  const reanudarServicio = useCallback(
+    async (servicio: ServicioTurismoVista) => {
+      setProcesandoStandbyId(servicio.idservicio);
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/${servicio.idservicio}/reanudar`,
+          { method: 'PATCH' },
+        );
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          mostrarNotificacion(
+            'success',
+            data?.mensaje || 'Servicio reanudado',
+          );
+          fetchServicios(fecha);
+        } else {
+          mostrarNotificacion(
+            'error',
+            data?.error || data?.mensaje || 'Error al reanudar el servicio',
+          );
+        }
+      } catch {
+        mostrarNotificacion('error', 'Error de conexión al reanudar el servicio');
+      } finally {
+        setProcesandoStandbyId(null);
+      }
+    },
+    [fecha, fetchServicios, mostrarNotificacion],
+  );
+
   const hayEdicionActiva = editandoId !== null;
 
   return {
@@ -344,6 +436,7 @@ export function useServiciosTurismo() {
     horasDisponibles,
     tiposUnidadDisponibles,
     listaUnidades,
+    conductores,
     busquedaTexto,
     setBusquedaTexto,
     horaFiltro,
@@ -369,6 +462,9 @@ export function useServiciosTurismo() {
     setServicioACancelar,
     cancelando,
     confirmarCancelar,
+    procesandoStandbyId,
+    ponerEnStandby,
+    reanudarServicio,
     notificaciones,
   };
 }
