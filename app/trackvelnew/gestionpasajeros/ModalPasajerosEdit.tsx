@@ -250,7 +250,7 @@ export default function App({ title, codCliente }: Props) {
         if ((maps.places as any)?.AutocompleteSuggestion && (maps.places as any)?.Place) {
           const response = await (maps.places as any).AutocompleteSuggestion.fetchAutocompleteSuggestions({
             input: query,
-            componentRestrictions: { country: 'pe' },
+            includedRegionCodes: ['pe'],
           });
 
           const suggestions = response.suggestions || [];
