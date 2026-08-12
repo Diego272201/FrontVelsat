@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronRight,
   Pencil,
@@ -148,17 +149,45 @@ const FilaServicio: React.FC<{
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [posicionMenu, setPosicionMenu] = useState({ top: 0, left: 0 });
+  const botonMenuRef = useRef<HTMLButtonElement>(null);
+  const menuPortalRef = useRef<HTMLDivElement>(null);
+
+  // El menú se renderiza en un portal (fuera del contenedor con scroll de la tabla) y se posiciona
+  // con "fixed" según la posición real del botón, para que no quede recortado por el overflow-auto
+  // de la tabla en las últimas filas.
+  const toggleMenu = () => {
+    if (!menuAbierto && botonMenuRef.current) {
+      const rect = botonMenuRef.current.getBoundingClientRect();
+      setPosicionMenu({ top: rect.bottom + 4, left: rect.right - 128 });
+    }
+    setMenuAbierto((v) => !v);
+  };
 
   useEffect(() => {
     if (!menuAbierto) return;
     const handleClickFuera = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        botonMenuRef.current &&
+        !botonMenuRef.current.contains(target) &&
+        menuPortalRef.current &&
+        !menuPortalRef.current.contains(target)
+      ) {
         setMenuAbierto(false);
       }
     };
     document.addEventListener('mousedown', handleClickFuera);
     return () => document.removeEventListener('mousedown', handleClickFuera);
+  }, [menuAbierto]);
+
+  // Cierra el menú al hacer scroll (en la tabla o en la página) para que no quede mal posicionado,
+  // ya que su posición se calcula una sola vez al abrirlo.
+  useEffect(() => {
+    if (!menuAbierto) return;
+    const handleScroll = () => setMenuAbierto(false);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
   }, [menuAbierto]);
 
   const seleccionarPiloto = (conductor: Conductor) => {
@@ -285,17 +314,22 @@ const FilaServicio: React.FC<{
                     )}
                   </button>
                 )}
-                <div className="relative" ref={menuRef}>
-                  <button
-                    onClick={() => setMenuAbierto((v) => !v)}
-                    disabled={bloqueado || estado === 'Cancelado'}
-                    title="Cancelar / Stand By"
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <Ban className="h-3.5 w-3.5" />
-                  </button>
-                  {menuAbierto && (
-                    <div className="absolute right-0 z-20 mt-1 w-32 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                <button
+                  ref={botonMenuRef}
+                  onClick={toggleMenu}
+                  disabled={bloqueado || estado === 'Cancelado'}
+                  title="Cancelar / Stand By"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                </button>
+                {menuAbierto &&
+                  createPortal(
+                    <div
+                      ref={menuPortalRef}
+                      style={{ top: posicionMenu.top, left: posicionMenu.left }}
+                      className="fixed z-50 w-32 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                    >
                       <button
                         onClick={() => {
                           setMenuAbierto(false);
@@ -315,9 +349,9 @@ const FilaServicio: React.FC<{
                       >
                         Cancelar
                       </button>
-                    </div>
+                    </div>,
+                    document.body,
                   )}
-                </div>
               </>
             )}
           </div>
