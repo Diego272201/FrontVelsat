@@ -159,7 +159,10 @@ export default function ModalLatam({
       if ((response.data.noEncontrados || []).length === 0) handleClose();
     } catch (error) {
       toast.dismiss(toastId);
-      toast.error('Error al completar los servicios.');
+      const mensaje =
+        (axios.isAxiosError(error) && (error.response?.data?.error ?? error.response?.data)) ||
+        'Error al completar los servicios.';
+      toast.error(typeof mensaje === 'string' ? mensaje : 'Error al completar los servicios.');
     } finally {
       setLoading(false);
     }
