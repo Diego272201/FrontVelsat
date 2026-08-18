@@ -202,6 +202,24 @@ const FilaServicio: React.FC<{
     onCambioCampo('cocelular', conductor.telefono || '');
   };
 
+  // Al borrar el texto del piloto/copiloto (sin seleccionar otro conductor), se limpian
+  // también sus datos autocompletados, ya que esos campos no son editables manualmente.
+  const cambiarTextoPiloto = (valor: string) => {
+    onCambioCampo('piloto', valor);
+    if (valor.trim() === '') {
+      onCambioCampo('brevete', '');
+      onCambioCampo('celular', '');
+    }
+  };
+
+  const cambiarTextoCopiloto = (valor: string) => {
+    onCambioCampo('copiloto', valor);
+    if (valor.trim() === '') {
+      onCambioCampo('cobrevete', '');
+      onCambioCampo('cocelular', '');
+    }
+  };
+
   const estado = calcularEstado(servicio);
   const celdaEstado = ESTADOS_SERVICIO[estado];
 
@@ -419,7 +437,7 @@ const FilaServicio: React.FC<{
                         value={formEdicion.piloto}
                         conductores={conductores}
                         onSeleccionar={seleccionarPiloto}
-                        onChangeTexto={(v) => onCambioCampo('piloto', v)}
+                        onChangeTexto={cambiarTextoPiloto}
                       />
                     </div>
                     <div>
@@ -430,28 +448,32 @@ const FilaServicio: React.FC<{
                         value={formEdicion.copiloto}
                         conductores={conductores}
                         onSeleccionar={seleccionarCopiloto}
-                        onChangeTexto={(v) => onCambioCampo('copiloto', v)}
+                        onChangeTexto={cambiarTextoCopiloto}
                       />
                     </div>
                     <CampoEditable
                       label="Brevete"
                       value={formEdicion.brevete}
                       onChange={(v) => onCambioCampo('brevete', v)}
+                      readOnly
                     />
                     <CampoEditable
                       label="Brevete Copiloto"
                       value={formEdicion.cobrevete}
                       onChange={(v) => onCambioCampo('cobrevete', v)}
+                      readOnly
                     />
                     <CampoEditable
                       label="Celular"
                       value={formEdicion.celular}
                       onChange={(v) => onCambioCampo('celular', v)}
+                      readOnly
                     />
                     <CampoEditable
                       label="Celular Copiloto"
                       value={formEdicion.cocelular}
                       onChange={(v) => onCambioCampo('cocelular', v)}
+                      readOnly
                     />
                   </div>
                 </div>

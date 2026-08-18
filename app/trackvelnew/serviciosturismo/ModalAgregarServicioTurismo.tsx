@@ -103,7 +103,8 @@ const CampoTexto: React.FC<{
   required?: boolean;
   type?: string;
   textarea?: boolean;
-}> = ({ label, value, onChange, placeholder, required, type = 'text', textarea }) => (
+  readOnly?: boolean;
+}> = ({ label, value, onChange, placeholder, required, type = 'text', textarea, readOnly }) => (
   <div className="space-y-1">
     <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
       {label}
@@ -115,7 +116,10 @@ const CampoTexto: React.FC<{
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+        readOnly={readOnly}
+        className={`w-full rounded-md border border-gray-200 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] ${
+          readOnly ? 'cursor-not-allowed bg-gray-100 text-gray-500' : 'bg-gray-50'
+        }`}
       />
     ) : (
       <input
@@ -123,7 +127,10 @@ const CampoTexto: React.FC<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+        readOnly={readOnly}
+        className={`w-full rounded-md border border-gray-200 px-2 py-1.5 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] ${
+          readOnly ? 'cursor-not-allowed bg-gray-100 text-gray-500' : 'bg-gray-50'
+        }`}
       />
     )}
   </div>
@@ -193,6 +200,24 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
       copiloto: conductor.apellidos || '',
       cobrevete: conductor.brevete || '',
       cocelular: conductor.telefono || '',
+    }));
+  };
+
+  // Al borrar el texto del piloto/copiloto (sin seleccionar otro conductor), se limpian
+  // también sus datos autocompletados, ya que esos campos no son editables manualmente.
+  const manejarCambioPiloto = (valor: string) => {
+    setForm((prev) => ({
+      ...prev,
+      piloto: valor,
+      ...(valor.trim() === '' ? { brevete: '', celular: '' } : {}),
+    }));
+  };
+
+  const manejarCambioCopiloto = (valor: string) => {
+    setForm((prev) => ({
+      ...prev,
+      copiloto: valor,
+      ...(valor.trim() === '' ? { cobrevete: '', cocelular: '' } : {}),
     }));
   };
 
@@ -382,18 +407,20 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                     value={form.piloto}
                     conductores={conductores}
                     onSeleccionar={seleccionarPiloto}
-                    onChangeTexto={actualizarCampo('piloto')}
+                    onChangeTexto={manejarCambioPiloto}
                   />
                 </div>
                 <CampoTexto
                   label="Brevete"
                   value={form.brevete}
                   onChange={actualizarCampo('brevete')}
+                  readOnly
                 />
                 <CampoTexto
                   label="Celular"
                   value={form.celular}
                   onChange={actualizarCampo('celular')}
+                  readOnly
                 />
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
@@ -403,18 +430,20 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                     value={form.copiloto}
                     conductores={conductores}
                     onSeleccionar={seleccionarCopiloto}
-                    onChangeTexto={actualizarCampo('copiloto')}
+                    onChangeTexto={manejarCambioCopiloto}
                   />
                 </div>
                 <CampoTexto
                   label="Brevete copiloto"
                   value={form.cobrevete}
                   onChange={actualizarCampo('cobrevete')}
+                  readOnly
                 />
                 <CampoTexto
                   label="Celular copiloto"
                   value={form.cocelular}
                   onChange={actualizarCampo('cocelular')}
+                  readOnly
                 />
               </div>
             </div>
