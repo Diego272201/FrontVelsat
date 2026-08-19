@@ -2,9 +2,29 @@
 
 import React from 'react';
 import { Spinner } from '@nextui-org/react';
-import { EditFormServicio, ServicioTurismoVista } from './types';
+import { X } from 'lucide-react';
+import {
+  AuditoriaCampo,
+  ColumnaFiltrable,
+  EditFormServicio,
+  ServicioTurismoVista,
+} from './types';
 import { Conductor } from './SelectBuscable';
 import FilaServicio from './FilaServicio';
+import FiltroColumna from './FiltroColumna';
+
+// Encabezados con filtro tipo Excel, en el mismo orden en que aparecen en la tabla.
+const COLUMNAS_FILTRABLES: { key: ColumnaFiltrable; titulo: string }[] = [
+  { key: 'fechainicio', titulo: 'Fecha' },
+  { key: 'horainicio', titulo: 'Hora Inicio' },
+  { key: 'tipounidad', titulo: 'Tipo Unidad' },
+  { key: 'placaCombinada', titulo: 'Placa' },
+  { key: 'piloto', titulo: 'Piloto' },
+  { key: 'cliente', titulo: 'Cliente' },
+  { key: 'grupo', titulo: 'Grupo' },
+  { key: 'origen', titulo: 'Origen' },
+  { key: 'destino', titulo: 'Destino' },
+];
 
 const TablaServicios: React.FC<{
   cargando: boolean;
@@ -14,10 +34,20 @@ const TablaServicios: React.FC<{
   totalSinFiltrar: number;
   unidades: string[];
   conductores: Conductor[];
+  valoresPorColumna: Record<ColumnaFiltrable, string[]>;
+  filtrosColumna: Partial<Record<ColumnaFiltrable, string[] | null>>;
+  onCambiarFiltroColumna: (
+    columna: ColumnaFiltrable,
+    valores: string[] | null,
+  ) => void;
+  onLimpiarFiltrosColumna: () => void;
+  hayFiltrosColumnaActivos: boolean;
   expandidos: Set<number>;
   onToggleExpandido: (idservicio: number) => void;
   editandoId: number | null;
   formEdicion: EditFormServicio | null;
+  motivoEdicion: string;
+  onCambiarMotivoEdicion: (valor: string) => void;
   guardandoEdicion: boolean;
   onCambioCampo: (campo: keyof EditFormServicio, valor: string) => void;
   onIniciarEdicion: (servicio: ServicioTurismoVista) => void;
@@ -27,6 +57,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby: (servicio: ServicioTurismoVista) => void;
   onReanudar: (servicio: ServicioTurismoVista) => void;
   procesandoStandbyId: number | null;
+  auditoriaPorServicio: Record<number, AuditoriaCampo[]>;
+  cargandoAuditoriaId: number | null;
 }> = ({
   cargando,
   cargandoUnidades,
@@ -35,10 +67,17 @@ const TablaServicios: React.FC<{
   totalSinFiltrar,
   unidades,
   conductores,
+  valoresPorColumna,
+  filtrosColumna,
+  onCambiarFiltroColumna,
+  onLimpiarFiltrosColumna,
+  hayFiltrosColumnaActivos,
   expandidos,
   onToggleExpandido,
   editandoId,
   formEdicion,
+  motivoEdicion,
+  onCambiarMotivoEdicion,
   guardandoEdicion,
   onCambioCampo,
   onIniciarEdicion,
@@ -48,6 +87,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby,
   onReanudar,
   procesandoStandbyId,
+  auditoriaPorServicio,
+  cargandoAuditoriaId,
 }) => {
   if (cargando || cargandoUnidades) {
     return (
@@ -76,34 +117,30 @@ const TablaServicios: React.FC<{
         <table className="w-full">
           <thead className="sticky top-0 z-10 bg-[#113eb9]">
             <tr>
-              <th className="w-6 px-1.5 py-1.5"></th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Fecha
+              <th className="w-6 px-1.5 py-1.5">
+                {hayFiltrosColumnaActivos && (
+                  <button
+                    type="button"
+                    onClick={onLimpiarFiltrosColumna}
+                    title="Quitar todos los filtros de columna"
+                    className="rounded p-0.5 text-amber-300 hover:bg-white/15"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Hora Inicio
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Tipo Unidad
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Placa
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Piloto
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Cliente
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Grupo
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Origen
-              </th>
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Destino
-              </th>
+              {COLUMNAS_FILTRABLES.map((columna) => (
+                <th key={columna.key} className="px-1.5 py-1.5">
+                  <FiltroColumna
+                    titulo={columna.titulo}
+                    valores={valoresPorColumna[columna.key] || []}
+                    seleccionados={filtrosColumna[columna.key] ?? null}
+                    onAplicar={(valores) =>
+                      onCambiarFiltroColumna(columna.key, valores)
+                    }
+                  />
+                </th>
+              ))}
               <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
                 Acciones
               </th>
@@ -125,6 +162,8 @@ const TablaServicios: React.FC<{
                 bloqueado={editandoId !== null && editandoId !== servicio.idservicio}
                 guardando={guardandoEdicion && editandoId === servicio.idservicio}
                 formEdicion={editandoId === servicio.idservicio ? formEdicion : null}
+                motivoEdicion={motivoEdicion}
+                onCambiarMotivoEdicion={onCambiarMotivoEdicion}
                 onCambioCampo={onCambioCampo}
                 onIniciarEdicion={() => onIniciarEdicion(servicio)}
                 onCancelarEdicion={onCancelarEdicion}
@@ -133,6 +172,8 @@ const TablaServicios: React.FC<{
                 onPonerEnStandby={() => onPonerEnStandby(servicio)}
                 onReanudar={() => onReanudar(servicio)}
                 procesandoStandby={procesandoStandbyId === servicio.idservicio}
+                auditoria={auditoriaPorServicio[servicio.idservicio]}
+                cargandoAuditoria={cargandoAuditoriaId === servicio.idservicio}
               />
             ))}
           </tbody>

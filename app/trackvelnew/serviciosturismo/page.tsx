@@ -28,6 +28,11 @@ const ServiciosTurismoPage: React.FC = () => {
     setHoraFiltro,
     tipoUnidadFiltro,
     setTipoUnidadFiltro,
+    valoresPorColumna,
+    filtrosColumna,
+    setFiltroColumna,
+    limpiarFiltrosColumna,
+    hayFiltrosColumnaActivos,
     expandidos,
     toggleExpandido,
     showModalCarga,
@@ -37,6 +42,8 @@ const ServiciosTurismoPage: React.FC = () => {
     fetchServicios,
     editandoId,
     formEdicion,
+    motivoEdicion,
+    setMotivoEdicion,
     guardandoEdicion,
     iniciarEdicion,
     cancelarEdicion,
@@ -51,6 +58,8 @@ const ServiciosTurismoPage: React.FC = () => {
     ponerEnStandby,
     reanudarServicio,
     notificaciones,
+    auditoriaPorServicio,
+    cargandoAuditoriaId,
   } = useServiciosTurismo();
 
   return (
@@ -97,10 +106,17 @@ const ServiciosTurismoPage: React.FC = () => {
           totalSinFiltrar={serviciosVisibles.length}
           unidades={listaUnidades}
           conductores={conductores}
+          valoresPorColumna={valoresPorColumna}
+          filtrosColumna={filtrosColumna}
+          onCambiarFiltroColumna={setFiltroColumna}
+          onLimpiarFiltrosColumna={limpiarFiltrosColumna}
+          hayFiltrosColumnaActivos={hayFiltrosColumnaActivos}
           expandidos={expandidos}
           onToggleExpandido={toggleExpandido}
           editandoId={editandoId}
           formEdicion={formEdicion}
+          motivoEdicion={motivoEdicion}
+          onCambiarMotivoEdicion={setMotivoEdicion}
           guardandoEdicion={guardandoEdicion}
           onCambioCampo={actualizarCampoEdicion}
           onIniciarEdicion={iniciarEdicion}
@@ -110,6 +126,8 @@ const ServiciosTurismoPage: React.FC = () => {
           onPonerEnStandby={ponerEnStandby}
           onReanudar={reanudarServicio}
           procesandoStandbyId={procesandoStandbyId}
+          auditoriaPorServicio={auditoriaPorServicio}
+          cargandoAuditoriaId={cargandoAuditoriaId}
         />
       </div>
 

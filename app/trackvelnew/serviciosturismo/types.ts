@@ -40,6 +40,21 @@ export interface ServicioTurismo {
   // Se marca cuando se reprograma la fecha del servicio. El backend limpia visto/confirmado/finalizado
   // al reprogramar, así que puede mostrarse junto a un "Pendiente" recién reiniciado.
   reprogramado: number | null;
+  // Campos que cambiaron en la última edición manual del servicio, solo si fue en las últimas 24h
+  // (pasado ese plazo el backend deja de mandarlo). Se usa para resaltar esas celdas en la tabla.
+  ultimaModificacion: { campos: string[]; fecha: string } | null;
+}
+
+// Un registro de auditoría por campo modificado en una edición manual del servicio.
+export interface AuditoriaCampo {
+  idauditoria: number;
+  idservicio: number;
+  campo: string;
+  valorAnterior: string | null;
+  valorNuevo: string | null;
+  usuario: string | null;
+  motivo: string | null;
+  fecha: string;
 }
 
 export interface ServicioTurismoVista extends ServicioTurismo {
@@ -47,7 +62,8 @@ export interface ServicioTurismoVista extends ServicioTurismo {
 }
 
 // Claves de ServicioTurismoVista cuyo valor es siempre string | null
-// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado, standby y reprogramado).
+// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado, standby y reprogramado;
+// y ultimaModificacion, que es un objeto, no texto).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
   | 'idservicio'
@@ -57,6 +73,7 @@ export type CampoTexto = Exclude<
   | 'cancelado'
   | 'standby'
   | 'reprogramado'
+  | 'ultimaModificacion'
 >;
 
 export interface EditFormServicio {
@@ -84,6 +101,18 @@ export interface EditFormServicio {
   indicaciones: string;
   observaciones: string;
 }
+
+// Columnas de la tabla principal (de Fecha a Destino) que tienen filtro tipo Excel.
+export type ColumnaFiltrable =
+  | 'fechainicio'
+  | 'horainicio'
+  | 'tipounidad'
+  | 'placaCombinada'
+  | 'piloto'
+  | 'cliente'
+  | 'grupo'
+  | 'origen'
+  | 'destino';
 
 export interface Notificacion {
   id: string;

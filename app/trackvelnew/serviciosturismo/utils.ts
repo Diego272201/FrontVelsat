@@ -23,6 +23,21 @@ export function ddMmYyyyToIso(dmy: string | null): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+// El backend manda la fecha de auditoría en ISO (ej. "2026-08-19T16:40:18"); se muestra en el
+// historial como dd/MM/yyyy HH:mm.
+export function formatFechaHoraAuditoria(iso: string): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return iso;
+
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const yyyy = fecha.getFullYear();
+  const hh = String(fecha.getHours()).padStart(2, '0');
+  const min = String(fecha.getMinutes()).padStart(2, '0');
+
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+}
+
 // Arma el mismo identificador que usa el sistema de rastreo (codunidad): BUS-PLACA(sin caracteres especiales).
 export function combinarPlaca(
   bus: string | null,

@@ -17,15 +17,18 @@ import {
   FlagTriangleRight,
   PauseCircle,
   PlayCircle,
+  History,
 } from 'lucide-react';
-import { EditFormServicio, ServicioTurismoVista } from './types';
+import { AuditoriaCampo, EditFormServicio, ServicioTurismoVista } from './types';
 import {
   SECCIONES_DETALLE,
   CAMPOS_SERVICIO,
   SECCIONES_NOTAS,
+  ETIQUETAS_CAMPOS_AUDITORIA,
 } from './constants';
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
+import { formatFechaHoraAuditoria } from './utils';
 import {
   Conductor,
   SelectConductorBuscable,
@@ -119,6 +122,8 @@ const FilaServicio: React.FC<{
   bloqueado: boolean;
   guardando: boolean;
   formEdicion: EditFormServicio | null;
+  motivoEdicion: string;
+  onCambiarMotivoEdicion: (valor: string) => void;
   onCambioCampo: (campo: keyof EditFormServicio, valor: string) => void;
   onIniciarEdicion: () => void;
   onCancelarEdicion: () => void;
@@ -127,6 +132,8 @@ const FilaServicio: React.FC<{
   onPonerEnStandby: () => void;
   onReanudar: () => void;
   procesandoStandby: boolean;
+  auditoria: AuditoriaCampo[] | undefined;
+  cargandoAuditoria: boolean;
 }> = ({
   servicio,
   unidades,
@@ -137,6 +144,8 @@ const FilaServicio: React.FC<{
   bloqueado,
   guardando,
   formEdicion,
+  motivoEdicion,
+  onCambiarMotivoEdicion,
   onCambioCampo,
   onIniciarEdicion,
   onCancelarEdicion,
@@ -145,10 +154,22 @@ const FilaServicio: React.FC<{
   onPonerEnStandby,
   onReanudar,
   procesandoStandby,
+  auditoria,
+  cargandoAuditoria,
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
+  // Campos de BD (no las claves combinadas del front) que cambiaron en la última edición manual,
+  // si fue en las últimas 24h (el backend deja de mandar ultimaModificacion pasado ese plazo).
+  const campoModificado = (...columnas: string[]) =>
+    columnas.some((columna) =>
+      servicio.ultimaModificacion?.campos.includes(columna),
+    );
+  const claseSiModificado = (...columnas: string[]) =>
+    campoModificado(...columnas) ? 'font-semibold text-[#113EB9]' : '';
+
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
   const [posicionMenu, setPosicionMenu] = useState({ top: 0, left: 0 });
   const botonMenuRef = useRef<HTMLButtonElement>(null);
   const menuPortalRef = useRef<HTMLDivElement>(null);
@@ -249,31 +270,31 @@ const FilaServicio: React.FC<{
             }`}
           />
         </td>
-        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] font-medium text-slate-700">
+        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('fechainicio')}`}>
           {servicio.fechainicio || '-'}
         </td>
-        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('horainicio')}`}>
           {servicio.horainicio || '-'}
         </td>
-        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('tipounidad')}`}>
           {servicio.tipounidad || '-'}
         </td>
-        <td className="whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('bus', 'placa')}`}>
           {servicio.placaCombinada || '-'}
         </td>
-        <td className="max-w-[180px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`max-w-[180px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('piloto')}`}>
           {servicio.piloto || '-'}
         </td>
-        <td className="max-w-[200px] truncate px-1.5 py-1.5 text-[12px] font-medium text-slate-800">
+        <td className={`max-w-[200px] truncate px-1.5 py-1.5 text-[12px] text-slate-800 ${claseSiModificado('cliente')}`}>
           {servicio.cliente || '-'}
         </td>
-        <td className="max-w-[160px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`max-w-[160px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('grupo')}`}>
           {servicio.grupo || '-'}
         </td>
-        <td className="max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('origen')}`}>
           {servicio.origen || '-'}
         </td>
-        <td className="max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700">
+        <td className={`max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('destino')}`}>
           {servicio.destino || '-'}
         </td>
         <td className="px-1.5 py-1.5">
@@ -401,6 +422,20 @@ const FilaServicio: React.FC<{
           <td colSpan={12} className="px-6 py-4">
             {editando && formEdicion ? (
               <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Motivo del cambio (opcional): queda en la auditoría junto a los campos modificados. */}
+                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Motivo del cambio (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={motivoEdicion}
+                    onChange={(e) => onCambiarMotivoEdicion(e.target.value)}
+                    placeholder="Ej. Cambio de solicitud del cliente"
+                    className="mt-0.5 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+                  />
+                </div>
+
                 {/* Vehículo y Piloto */}
                 <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
@@ -679,6 +714,74 @@ const FilaServicio: React.FC<{
                         />
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Historial de cambios: solo aparece si ya se cargó la auditoría y tiene registros.
+                    La lista en sí es desplegable (colapsada por defecto) para no alargar el detalle
+                    de la fila cuando hay muchos cambios acumulados. */}
+                {(cargandoAuditoria || (auditoria && auditoria.length > 0)) && (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                    <button
+                      type="button"
+                      onClick={() => setHistorialAbierto((v) => !v)}
+                      className="flex w-full items-center justify-between gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <History className="h-3.5 w-3.5" />
+                        Historial de cambios
+                        {!cargandoAuditoria && auditoria && (
+                          <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-[#113EB9]">
+                            {auditoria.length}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronRight
+                        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                          historialAbierto ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+                    {historialAbierto &&
+                      (cargandoAuditoria ? (
+                        <div className="mt-2 flex items-center gap-2 py-2 text-[12px] text-slate-400">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Cargando historial...
+                        </div>
+                      ) : (
+                        <ul className="mt-2 space-y-2">
+                          {auditoria!.map((cambio) => (
+                            <li
+                              key={cambio.idauditoria}
+                              className="border-b border-slate-100 pb-2 text-[12px] last:border-0 last:pb-0"
+                            >
+                              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                                <span className="font-semibold text-slate-700">
+                                  {ETIQUETAS_CAMPOS_AUDITORIA[cambio.campo] || cambio.campo}
+                                </span>
+                                <span className="text-[11px] text-slate-400">
+                                  {formatFechaHoraAuditoria(cambio.fecha)}
+                                  {cambio.usuario ? ` · ${cambio.usuario}` : ''}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 text-slate-600">
+                                <span className="text-slate-400 line-through">
+                                  {cambio.valorAnterior || '(vacío)'}
+                                </span>
+                                {' → '}
+                                <span className="text-slate-800">
+                                  {cambio.valorNuevo || '(vacío)'}
+                                </span>
+                              </p>
+                              {cambio.motivo && (
+                                <p className="mt-0.5 italic text-slate-500">
+                                  Motivo: {cambio.motivo}
+                                </p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ))}
                   </div>
                 )}
               </div>

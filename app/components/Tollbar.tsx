@@ -221,9 +221,16 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
 
       {
         id: 'control',
-        title: 'Control de Servicios',
+        title: 'Servicios Menores',
         href: '/trackvelnew/gestionservicios',
         icon: 'document',
+      },
+      {
+        id: 'servicios-turismo',
+        title: 'Servicios Turismo',
+        href: '/trackvelnew/serviciosturismo',
+        icon: 'document',
+        allowedUsers: ['movilbus'],
       },
       {
         id: 'detalle-servicios',
@@ -243,14 +250,7 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         modalType: 'cargaLatam',
         icon: 'document',
         allowedUsers: ['movilbus'],
-      },
-      {
-        id: 'servicios-turismo',
-        title: 'Servicios Turismo',
-        href: '/trackvelnew/serviciosturismo',
-        icon: 'document',
-        allowedUsers: ['movilbus'],
-      },
+      }
     ],
   },
   PLANIFICACION: {

@@ -658,7 +658,7 @@ export default function Page() {
               <div className="flex items-center gap-2 border-r border-gray-200 pr-4">
                 <div className="h-5 w-1 bg-brandPrimary"></div>
                 <h1 className="text-[13px] font-bold uppercase tracking-wide text-gray-800">
-                  Control de Servicios
+                  Servicios Menores
                 </h1>
               </div>
 

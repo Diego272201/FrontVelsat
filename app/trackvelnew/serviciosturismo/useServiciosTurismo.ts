@@ -3,6 +3,8 @@ import { useUsername } from '@/hooks/useUsername';
 import { API_BASE, API_TAXI, API_UNIDADES } from './constants';
 import { Conductor } from './SelectBuscable';
 import {
+  AuditoriaCampo,
+  ColumnaFiltrable,
   EditFormServicio,
   Notificacion,
   ServicioTurismo,
@@ -37,9 +39,25 @@ export function useServiciosTurismo() {
   const [horaFiltro, setHoraFiltro] = useState('');
   const [tipoUnidadFiltro, setTipoUnidadFiltro] = useState('');
 
+  // Filtros de columna al estilo Excel: por columna, null = sin filtro (se muestra todo),
+  // o un array con los valores exactos (ya normalizados con trim) que deben quedar visibles.
+  const [filtrosColumna, setFiltrosColumna] = useState<
+    Partial<Record<ColumnaFiltrable, string[] | null>>
+  >({});
+
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [formEdicion, setFormEdicion] = useState<EditFormServicio | null>(null);
+  const [motivoEdicion, setMotivoEdicion] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+
+  // Historial de auditoría por servicio, cargado bajo demanda al expandir la fila (no se pide
+  // completo para toda la tabla de una vez).
+  const [auditoriaPorServicio, setAuditoriaPorServicio] = useState<
+    Record<number, AuditoriaCampo[]>
+  >({});
+  const [cargandoAuditoriaId, setCargandoAuditoriaId] = useState<
+    number | null
+  >(null);
 
   const [servicioACancelar, setServicioACancelar] =
     useState<ServicioTurismoVista | null>(null);
@@ -89,6 +107,7 @@ export function useServiciosTurismo() {
       setBusquedaTexto('');
       setHoraFiltro('');
       setTipoUnidadFiltro('');
+      setFiltrosColumna({});
     } catch {
       setError('No se pudieron cargar los servicios de turismo.');
       setServicios([]);
@@ -186,8 +205,61 @@ export function useServiciosTurismo() {
     return Array.from(tipos).sort();
   }, [serviciosVisibles]);
 
+  // Valor de cada columna filtrable tal como se compara/muestra en el panel: string vacío para
+  // null/undefined (se agrupa como "(Vacías)" en el filtro, igual que Excel).
+  const valorColumna = useCallback(
+    (servicio: ServicioTurismoVista, columna: ColumnaFiltrable): string =>
+      (servicio[columna] as string | null) || '',
+    [],
+  );
+
+  // Valores únicos disponibles por columna, para poblar el panel "estilo Excel" de cada una.
+  // Se calculan sobre serviciosVisibles (antes de aplicar los propios filtros de columna) para que,
+  // al abrir el panel de una columna, sigan apareciendo las opciones que otros filtros ya ocultaron.
+  const valoresPorColumna = useMemo(() => {
+    const columnas: ColumnaFiltrable[] = [
+      'fechainicio',
+      'horainicio',
+      'tipounidad',
+      'placaCombinada',
+      'piloto',
+      'cliente',
+      'grupo',
+      'origen',
+      'destino',
+    ];
+    const resultado = {} as Record<ColumnaFiltrable, string[]>;
+    columnas.forEach((columna) => {
+      const set = new Set<string>();
+      serviciosVisibles.forEach((servicio) => set.add(valorColumna(servicio, columna)));
+      resultado[columna] = Array.from(set).sort((a, b) =>
+        a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'es'),
+      );
+    });
+    return resultado;
+  }, [serviciosVisibles, valorColumna]);
+
+  const setFiltroColumna = useCallback(
+    (columna: ColumnaFiltrable, valores: string[] | null) => {
+      setFiltrosColumna((prev) => ({ ...prev, [columna]: valores }));
+    },
+    [],
+  );
+
+  const limpiarFiltrosColumna = useCallback(() => {
+    setFiltrosColumna({});
+  }, []);
+
+  const hayFiltrosColumnaActivos = Object.values(filtrosColumna).some(
+    (valores) => valores !== null && valores !== undefined,
+  );
+
   const serviciosFiltrados = useMemo(() => {
     const texto = busquedaTexto.trim().toLowerCase();
+    const entradasFiltrosColumna = Object.entries(filtrosColumna) as [
+      ColumnaFiltrable,
+      string[] | null | undefined,
+    ][];
 
     return serviciosVisibles.filter((servicio) => {
       const coincideTexto =
@@ -201,26 +273,67 @@ export function useServiciosTurismo() {
         horaFiltro === '' || servicio.horainicio === horaFiltro;
       const coincideTipoUnidad =
         tipoUnidadFiltro === '' || servicio.tipounidad === tipoUnidadFiltro;
-      return coincideTexto && coincideHora && coincideTipoUnidad;
+      const coincideColumnas = entradasFiltrosColumna.every(
+        ([columna, valores]) =>
+          !valores || valores.includes(valorColumna(servicio, columna)),
+      );
+      return (
+        coincideTexto && coincideHora && coincideTipoUnidad && coincideColumnas
+      );
     });
-  }, [serviciosVisibles, busquedaTexto, horaFiltro, tipoUnidadFiltro]);
+  }, [
+    serviciosVisibles,
+    busquedaTexto,
+    horaFiltro,
+    tipoUnidadFiltro,
+    filtrosColumna,
+    valorColumna,
+  ]);
 
-  const toggleExpandido = useCallback((idservicio: number) => {
-    setExpandidos((prev) => {
-      const nuevo = new Set(prev);
-      if (nuevo.has(idservicio)) {
-        nuevo.delete(idservicio);
-      } else {
-        nuevo.add(idservicio);
+  // Trae el historial de auditoría de un servicio una sola vez (se cachea en auditoriaPorServicio);
+  // si ya se cargó (aunque esté vacío) no vuelve a pedirlo.
+  const cargarAuditoria = useCallback(
+    async (idservicio: number) => {
+      if (auditoriaPorServicio[idservicio]) return;
+
+      setCargandoAuditoriaId(idservicio);
+      try {
+        const res = await fetch(`${API_BASE}/${idservicio}/auditoria`);
+        const data = res.status === 404 ? [] : await res.json().catch(() => []);
+        setAuditoriaPorServicio((prev) => ({
+          ...prev,
+          [idservicio]: Array.isArray(data) ? data : [],
+        }));
+      } catch {
+        setAuditoriaPorServicio((prev) => ({ ...prev, [idservicio]: [] }));
+      } finally {
+        setCargandoAuditoriaId(null);
       }
-      return nuevo;
-    });
-  }, []);
+    },
+    [auditoriaPorServicio],
+  );
+
+  const toggleExpandido = useCallback(
+    (idservicio: number) => {
+      setExpandidos((prev) => {
+        const nuevo = new Set(prev);
+        if (nuevo.has(idservicio)) {
+          nuevo.delete(idservicio);
+        } else {
+          nuevo.add(idservicio);
+          cargarAuditoria(idservicio);
+        }
+        return nuevo;
+      });
+    },
+    [cargarAuditoria],
+  );
 
   const iniciarEdicion = useCallback((servicio: ServicioTurismoVista) => {
     setEditandoId((actual) => {
       if (actual !== null) return actual;
       setFormEdicion(construirFormDesdeServicio(servicio));
+      setMotivoEdicion('');
       return servicio.idservicio;
     });
   }, []);
@@ -228,6 +341,7 @@ export function useServiciosTurismo() {
   const cancelarEdicion = useCallback(() => {
     setEditandoId(null);
     setFormEdicion(null);
+    setMotivoEdicion('');
   }, []);
 
   const actualizarCampoEdicion = useCallback(
@@ -289,7 +403,12 @@ export function useServiciosTurismo() {
 
       // limpiarNulos=true: el formulario de edición envía el objeto completo, así que un campo
       // que quedó en blanco debe borrarse en la BD (no simplemente "no tocar" ese campo).
-      const res = await fetch(`${API_BASE}/${editandoId}?limpiarNulos=true`, {
+      // usuario/motivo quedan en la auditoría del backend por cada campo que realmente cambió.
+      const params = new URLSearchParams({ limpiarNulos: 'true' });
+      if (username) params.set('usuario', username);
+      if (motivoEdicion.trim() !== '') params.set('motivo', motivoEdicion.trim());
+
+      const res = await fetch(`${API_BASE}/${editandoId}?${params.toString()}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -302,6 +421,11 @@ export function useServiciosTurismo() {
           'success',
           data?.mensaje || 'Servicio actualizado correctamente',
         );
+        // El historial cacheado de este servicio quedó desactualizado tras el guardado.
+        setAuditoriaPorServicio((prev) => {
+          const { [editandoId]: _descartado, ...resto } = prev;
+          return resto;
+        });
         cancelarEdicion();
         fetchServicios(fecha);
       } else {
@@ -324,7 +448,9 @@ export function useServiciosTurismo() {
     fecha,
     fetchServicios,
     formEdicion,
+    motivoEdicion,
     mostrarNotificacion,
+    username,
   ]);
 
   const confirmarCancelar = useCallback(async () => {
@@ -443,6 +569,11 @@ export function useServiciosTurismo() {
     setHoraFiltro,
     tipoUnidadFiltro,
     setTipoUnidadFiltro,
+    valoresPorColumna,
+    filtrosColumna,
+    setFiltroColumna,
+    limpiarFiltrosColumna,
+    hayFiltrosColumnaActivos,
     expandidos,
     toggleExpandido,
     showModalCarga,
@@ -452,12 +583,16 @@ export function useServiciosTurismo() {
     fetchServicios,
     editandoId,
     formEdicion,
+    motivoEdicion,
+    setMotivoEdicion,
     guardandoEdicion,
     iniciarEdicion,
     cancelarEdicion,
     actualizarCampoEdicion,
     guardarEdicion,
     hayEdicionActiva,
+    auditoriaPorServicio,
+    cargandoAuditoriaId,
     servicioACancelar,
     setServicioACancelar,
     cancelando,

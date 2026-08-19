@@ -34,3 +34,32 @@ export const SECCIONES_NOTAS: { key: CampoTexto; label: string }[] = [
   { key: 'indicaciones', label: 'Indicaciones' },
   { key: 'observaciones', label: 'Observaciones' },
 ];
+
+// Etiquetas legibles para los nombres de columna que devuelve la auditoría (servturismo_auditoria),
+// que son los nombres de columna reales en BD (ej. "bus"/"placa" en vez de "placaCombinada").
+export const ETIQUETAS_CAMPOS_AUDITORIA: Record<string, string> = {
+  fechainicio: 'Fecha',
+  horainicio: 'Hora Inicio',
+  horaretorno: 'Hora Retorno',
+  bus: 'Bus',
+  placa: 'Placa',
+  brevete: 'Brevete',
+  piloto: 'Piloto',
+  celular: 'Celular',
+  cobrevete: 'Brevete Copiloto',
+  copiloto: 'Copiloto',
+  cocelular: 'Celular Copiloto',
+  tipounidad: 'Tipo Unidad',
+  cliente: 'Cliente',
+  grupo: 'Grupo',
+  numpax: 'N° Pax',
+  origen: 'Origen',
+  destino: 'Destino',
+  guiaturista: 'Guía Turista',
+  vuelocliente: 'Vuelo Cliente',
+  observaciones: 'Observaciones',
+  ejecutivo: 'Ejecutivo',
+  cotizacion: 'Cotización',
+  instrucciones: 'Instrucciones',
+  indicaciones: 'Indicaciones',
+};
