@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
-import { Eye, PlusCircle } from 'lucide-react';
+import { CheckCircle, Eye, MessageCircle, PlusCircle } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { useUsername } from '@/hooks/useUsername';
 import { API_TAXI } from './constants';
@@ -13,6 +13,7 @@ import {
   SelectPlacaBuscable,
   SelectTipoUnidad,
 } from './SelectBuscable';
+import { enviarAlertasWhatsappLote, ResultadoAlertasWhatsapp } from './whatsappAlerta';
 
 interface FormServicioTurismo {
   fechainicio: string; // yyyy-MM-dd (input date)
@@ -158,6 +159,11 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
   const [form, setForm] = useState<FormServicioTurismo>(construirFormularioInicial());
   const [isSaving, setIsSaving] = useState(false);
   const [conductores, setConductores] = useState<Conductor[]>([]);
+  const [showReporte, setShowReporte] = useState(false);
+  const [reporte, setReporte] = useState<{
+    mensaje: string;
+    whatsapp: ResultadoAlertasWhatsapp | null;
+  }>({ mensaje: '', whatsapp: null });
   const { username, isReady } = useUsername();
 
   const actualizarCampo = (campo: keyof FormServicioTurismo) => (valor: string) => {
@@ -301,12 +307,20 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
       const data = await response.json().catch(() => null);
 
       if (response.ok) {
-        toast.success(data?.mensaje || 'Servicio creado correctamente', {
-          className: 'toast-slide-in',
-          richColors: true,
+        let whatsapp: ResultadoAlertasWhatsapp | null = null;
+        if (form.celular.trim() !== '') {
+          try {
+            whatsapp = await enviarAlertasWhatsappLote([form.celular]);
+          } catch (error) {
+            console.error('Error al enviar alerta de WhatsApp:', error);
+          }
+        }
+
+        setReporte({
+          mensaje: data?.mensaje || 'Servicio creado correctamente',
+          whatsapp,
         });
-        handleReset();
-        onClose();
+        setShowReporte(true);
         onCreated();
       } else {
         toast.error(data?.error || data?.mensaje || 'Error al crear el servicio', {
@@ -324,12 +338,19 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
     }
   };
 
-  if (!isOpen) {
+  const handleCerrarReporte = () => {
+    setShowReporte(false);
+    handleReset();
+    onClose();
+  };
+
+  if (!isOpen && !showReporte) {
     return null;
   }
 
   return (
     <>
+      {isOpen && !showReporte && (
       <BaseModal
         isOpen={isOpen}
         onClose={handleModalClose}
@@ -570,6 +591,70 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
           </div>
         </div>
       </BaseModal>
+      )}
+
+      {showReporte && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+            <div className="rounded-t-2xl border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5">
+              <h3 className="text-center text-lg font-bold text-gray-800">
+                Reporte de Carga
+              </h3>
+            </div>
+
+            <div className="space-y-4 p-6">
+              <div className="flex items-center gap-3 rounded-xl bg-green-50 p-4">
+                <CheckCircle className="h-6 w-6 flex-shrink-0 text-green-600" />
+                <p className="font-bold text-green-700">{reporte.mensaje}</p>
+              </div>
+
+              <div
+                className={`flex items-center gap-3 rounded-xl p-4 ${
+                  reporte.whatsapp === null
+                    ? 'bg-gray-50'
+                    : reporte.whatsapp.enviados > 0
+                      ? 'bg-green-50'
+                      : 'bg-red-50'
+                }`}
+              >
+                <MessageCircle
+                  className={`h-6 w-6 flex-shrink-0 ${
+                    reporte.whatsapp === null
+                      ? 'text-gray-500'
+                      : reporte.whatsapp.enviados > 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                  }`}
+                />
+                <p
+                  className={`font-bold ${
+                    reporte.whatsapp === null
+                      ? 'text-gray-700'
+                      : reporte.whatsapp.enviados > 0
+                        ? 'text-green-700'
+                        : 'text-red-700'
+                  }`}
+                >
+                  {reporte.whatsapp === null
+                    ? 'No hay celular del piloto: no se envió alerta de WhatsApp'
+                    : reporte.whatsapp.enviados > 0
+                      ? 'Alerta de WhatsApp enviada al piloto'
+                      : 'No se pudo enviar la alerta de WhatsApp al piloto'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-b-2xl border-t border-gray-200 bg-gray-50 px-6 py-4">
+              <button
+                onClick={handleCerrarReporte}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 font-bold text-white shadow-lg transition-all hover:bg-red-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Toaster />
     </>

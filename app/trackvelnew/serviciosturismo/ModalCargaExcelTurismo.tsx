@@ -8,10 +8,15 @@ import {
   FileSpreadsheet,
   Upload,
   AlertTriangle,
+  MessageCircle,
   X,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import BaseModal from '@/app/components/ui/BaseModal';
+import {
+  enviarAlertasWhatsappLote,
+  ResultadoAlertasWhatsapp,
+} from './whatsappAlerta';
 
 interface ServicioTurismoLote {
   fechainicio: string;
@@ -159,6 +164,13 @@ function celda(valor: any): string {
   return String(valor).trim();
 }
 
+function enviarAlertasWhatsapp(
+  registros: ServicioTurismoLote[],
+): Promise<ResultadoAlertasWhatsapp> {
+  const celulares = registros.flatMap((registro) => [registro.celular, registro.cocelular]);
+  return enviarAlertasWhatsappLote(celulares);
+}
+
 const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
   isOpen,
   onClose,
@@ -175,7 +187,8 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
     exitoso: boolean;
     mensaje: string;
     insertados: number;
-  }>({ exitoso: false, mensaje: '', insertados: 0 });
+    whatsapp: ResultadoAlertasWhatsapp | null;
+  }>({ exitoso: false, mensaje: '', insertados: 0, whatsapp: null });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -383,10 +396,18 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
       const data = await response.json().catch(() => null);
 
       if (response.ok) {
+        let whatsapp: ResultadoAlertasWhatsapp | null = null;
+        try {
+          whatsapp = await enviarAlertasWhatsapp(registros);
+        } catch (error) {
+          console.error('Error al enviar alertas de WhatsApp:', error);
+        }
+
         setReporte({
           exitoso: true,
           mensaje: data?.mensaje || 'Servicios insertados correctamente.',
           insertados: data?.insertados ?? registros.length,
+          whatsapp,
         });
       } else {
         console.error('Error al insertar servicios de turismo:', data);
@@ -395,6 +416,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
           mensaje:
             data?.error || data?.mensaje || 'Ocurrió un error al insertar los servicios.',
           insertados: 0,
+          whatsapp: null,
         });
       }
     } catch (error) {
@@ -403,6 +425,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
         exitoso: false,
         mensaje: 'Error de conexión al enviar los servicios.',
         insertados: 0,
+        whatsapp: null,
       });
     } finally {
       setIsSending(false);
@@ -651,7 +674,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
             </div>
 
             <div className="space-y-4 p-6">
-              {reporte.exitoso ? (
+              {reporte.exitoso && (
                 <div className="flex items-center gap-3 rounded-xl bg-green-50 p-4">
                   <CheckCircle className="h-6 w-6 flex-shrink-0 text-green-600" />
                   <div>
@@ -661,7 +684,58 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
                     </p>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {reporte.exitoso && (
+                <div
+                  className={`flex items-center gap-3 rounded-xl p-4 ${
+                    reporte.whatsapp === null
+                      ? 'bg-gray-50'
+                      : reporte.whatsapp.fallidos === 0
+                        ? 'bg-green-50'
+                        : reporte.whatsapp.enviados === 0
+                          ? 'bg-red-50'
+                          : 'bg-yellow-50'
+                  }`}
+                >
+                  <MessageCircle
+                    className={`h-6 w-6 flex-shrink-0 ${
+                      reporte.whatsapp === null
+                        ? 'text-gray-500'
+                        : reporte.whatsapp.fallidos === 0
+                          ? 'text-green-600'
+                          : reporte.whatsapp.enviados === 0
+                            ? 'text-red-600'
+                            : 'text-yellow-600'
+                    }`}
+                  />
+                  <div>
+                    {reporte.whatsapp === null ? (
+                      <p className="font-bold text-gray-700">
+                        No se pudieron enviar las alertas de WhatsApp
+                      </p>
+                    ) : reporte.whatsapp.total === 0 ? (
+                      <p className="font-bold text-gray-700">
+                        No hay celulares válidos para alertar
+                      </p>
+                    ) : (
+                      <>
+                        <p className="font-bold text-gray-700">
+                          Alertas WhatsApp: {reporte.whatsapp.enviados}/
+                          {reporte.whatsapp.total} enviadas
+                        </p>
+                        {reporte.whatsapp.fallidos > 0 && (
+                          <p className="text-sm text-red-600">
+                            {reporte.whatsapp.fallidos} fallaron (ver consola)
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!reporte.exitoso && (
                 <div className="flex items-center gap-3 rounded-xl bg-red-50 p-4">
                   <AlertTriangle className="h-6 w-6 flex-shrink-0 text-red-600" />
                   <p className="font-bold text-red-700">{reporte.mensaje}</p>
@@ -680,7 +754,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
                     onUploaded();
                   }
                 }}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-2.5 font-bold text-white shadow-lg transition-all hover:from-blue-700 hover:to-indigo-700"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 font-bold text-white shadow-lg transition-all hover:bg-red-700"
               >
                 Cerrar
               </button>

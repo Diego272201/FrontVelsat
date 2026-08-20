@@ -16,6 +16,10 @@ import {
   getIsoToday,
   isoToDdMmYyyy,
 } from './utils';
+import {
+  enviarAlertasWhatsappLote,
+  MENSAJE_SERVICIO_MODIFICADO,
+} from './whatsappAlerta';
 
 export function useServiciosTurismo() {
   const { username, isReady } = useUsername();
@@ -421,6 +425,33 @@ export function useServiciosTurismo() {
           'success',
           data?.mensaje || 'Servicio actualizado correctamente',
         );
+
+        if (formEdicion.celular.trim() !== '') {
+          enviarAlertasWhatsappLote([formEdicion.celular], MENSAJE_SERVICIO_MODIFICADO)
+            .then((resultado) => {
+              if (resultado.total === 0) {
+                mostrarNotificacion(
+                  'error',
+                  'Celular del piloto inválido: no se envió la alerta de WhatsApp',
+                );
+              } else if (resultado.enviados > 0) {
+                mostrarNotificacion('success', 'Alerta de WhatsApp enviada al piloto');
+              } else {
+                mostrarNotificacion(
+                  'error',
+                  'No se pudo enviar la alerta de WhatsApp al piloto',
+                );
+              }
+            })
+            .catch((error) => {
+              console.error('Error al enviar alerta de WhatsApp:', error);
+              mostrarNotificacion(
+                'error',
+                'Error de conexión al enviar la alerta de WhatsApp',
+              );
+            });
+        }
+
         // El historial cacheado de este servicio quedó desactualizado tras el guardado.
         setAuditoriaPorServicio((prev) => {
           const { [editandoId]: _descartado, ...resto } = prev;
