@@ -51,6 +51,10 @@ export function useServiciosTurismo() {
 
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [formEdicion, setFormEdicion] = useState<EditFormServicio | null>(null);
+  // Servicio tal como estaba al entrar a edición: permite reenviar bus/placa sin reformatear
+  // cuando el usuario no tocó el selector de unidad (ver guardarEdicion).
+  const [servicioEnEdicion, setServicioEnEdicion] =
+    useState<ServicioTurismoVista | null>(null);
   const [motivoEdicion, setMotivoEdicion] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
@@ -108,6 +112,7 @@ export function useServiciosTurismo() {
       setExpandidos(new Set());
       setEditandoId(null);
       setFormEdicion(null);
+      setServicioEnEdicion(null);
       setBusquedaTexto('');
       setHoraFiltro('');
       setTipoUnidadFiltro('');
@@ -337,6 +342,7 @@ export function useServiciosTurismo() {
     setEditandoId((actual) => {
       if (actual !== null) return actual;
       setFormEdicion(construirFormDesdeServicio(servicio));
+      setServicioEnEdicion(servicio);
       setMotivoEdicion('');
       return servicio.idservicio;
     });
@@ -345,6 +351,7 @@ export function useServiciosTurismo() {
   const cancelarEdicion = useCallback(() => {
     setEditandoId(null);
     setFormEdicion(null);
+    setServicioEnEdicion(null);
     setMotivoEdicion('');
   }, []);
 
@@ -364,17 +371,33 @@ export function useServiciosTurismo() {
       const valorOVacio = (valor: string) =>
         valor.trim() === '' ? null : valor.trim();
 
-      const idxGuion = formEdicion.placa.indexOf('-');
-      const bus = formEdicion.placa
-        ? idxGuion === -1
-          ? formEdicion.placa
-          : formEdicion.placa.slice(0, idxGuion)
-        : '';
-      const placa = formEdicion.placa
-        ? idxGuion === -1
-          ? ''
-          : formEdicion.placa.slice(idxGuion + 1)
-        : '';
+      // El selector de unidad muestra "bus-placa" ya normalizado (combinarPlaca le quita
+      // puntuación a la placa para armar el código de unidad). Si el usuario no tocó ese
+      // selector, reenviar bus/placa tal cual venían del servicio (sin pasarlos por el
+      // split de abajo) evita que se pierda el formato original (ej. guiones en la placa)
+      // y que el backend detecte un "cambio" falso que resaltaba la celda en negrita.
+      const placaSinTocar =
+        servicioEnEdicion !== null &&
+        formEdicion.placa === (servicioEnEdicion.placaCombinada || '');
+
+      let bus: string;
+      let placa: string;
+      if (placaSinTocar && servicioEnEdicion) {
+        bus = servicioEnEdicion.bus || '';
+        placa = servicioEnEdicion.placa || '';
+      } else {
+        const idxGuion = formEdicion.placa.indexOf('-');
+        bus = formEdicion.placa
+          ? idxGuion === -1
+            ? formEdicion.placa
+            : formEdicion.placa.slice(0, idxGuion)
+          : '';
+        placa = formEdicion.placa
+          ? idxGuion === -1
+            ? ''
+            : formEdicion.placa.slice(idxGuion + 1)
+          : '';
+      }
 
       const payload = {
         fechainicio: formEdicion.fechainicio
@@ -479,6 +502,7 @@ export function useServiciosTurismo() {
     fecha,
     fetchServicios,
     formEdicion,
+    servicioEnEdicion,
     motivoEdicion,
     mostrarNotificacion,
     username,
