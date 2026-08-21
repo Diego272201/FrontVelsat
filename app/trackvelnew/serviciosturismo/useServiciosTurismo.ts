@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUsername } from '@/hooks/useUsername';
-import { API_BASE, API_TAXI, API_UNIDADES } from './constants';
+import { API_BASE, API_TAXI, API_UNIDADES, CLAVE_OPCIONES_AVANZADAS } from './constants';
 import { Conductor } from './SelectBuscable';
 import {
   AuditoriaCampo,
@@ -75,6 +75,22 @@ export function useServiciosTurismo() {
   >(null);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+
+  // "Opciones avanzadas": clave hardcodeada que destraba el historial de cambios y el botón
+  // "Eliminar carga". Solo vive en memoria (useState): sobrevive a un fetchServicios (ej. click en
+  // "Consultar") porque el hook no se remonta, pero se pierde al recargar o cerrar la página.
+  // El desbloqueo no es automático al tipear: se confirma con un botón (verificarOpcionesAvanzadas).
+  const [claveOpcionesAvanzadas, setClaveOpcionesAvanzadas] = useState('');
+  const [opcionesAvanzadasDesbloqueado, setOpcionesAvanzadasDesbloqueado] =
+    useState(false);
+  const verificarOpcionesAvanzadas = useCallback(() => {
+    setOpcionesAvanzadasDesbloqueado(
+      claveOpcionesAvanzadas === CLAVE_OPCIONES_AVANZADAS,
+    );
+  }, [claveOpcionesAvanzadas]);
+  const [eliminandoCarga, setEliminandoCarga] = useState(false);
+  const [mostrarModalEliminarCarga, setMostrarModalEliminarCarga] =
+    useState(false);
 
   const mostrarNotificacion = useCallback(
     (tipo: 'success' | 'error', mensaje: string) => {
@@ -330,12 +346,12 @@ export function useServiciosTurismo() {
           nuevo.delete(idservicio);
         } else {
           nuevo.add(idservicio);
-          cargarAuditoria(idservicio);
+          if (opcionesAvanzadasDesbloqueado) cargarAuditoria(idservicio);
         }
         return nuevo;
       });
     },
-    [cargarAuditoria],
+    [cargarAuditoria, opcionesAvanzadasDesbloqueado],
   );
 
   const iniciarEdicion = useCallback((servicio: ServicioTurismoVista) => {
@@ -604,6 +620,51 @@ export function useServiciosTurismo() {
     [fecha, fetchServicios, mostrarNotificacion],
   );
 
+  // Borra físicamente TODOS los servicios de la fecha consultada (deshacer una carga de Excel
+  // completa). Requiere haber destrabado "Opciones avanzadas". Acción irreversible: se confirma
+  // con ModalConfirmarEliminarCarga antes de llamar al endpoint.
+  const solicitarEliminarCarga = useCallback(() => {
+    if (!opcionesAvanzadasDesbloqueado) return;
+    setMostrarModalEliminarCarga(true);
+  }, [opcionesAvanzadasDesbloqueado]);
+
+  const cancelarEliminarCarga = useCallback(() => {
+    setMostrarModalEliminarCarga(false);
+  }, []);
+
+  const confirmarEliminarCarga = useCallback(async () => {
+    const fechaLegible = isoToDdMmYyyy(fecha);
+    setEliminandoCarga(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/fecha/${fechaLegible}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => null);
+
+      if (res.ok) {
+        mostrarNotificacion(
+          'success',
+          data?.mensaje || 'Servicios de la fecha eliminados correctamente',
+        );
+        setMostrarModalEliminarCarga(false);
+        fetchServicios(fecha);
+      } else {
+        mostrarNotificacion(
+          'error',
+          data?.error || data?.mensaje || 'Error al eliminar los servicios de la fecha',
+        );
+      }
+    } catch {
+      mostrarNotificacion(
+        'error',
+        'Error de conexión al eliminar los servicios de la fecha',
+      );
+    } finally {
+      setEliminandoCarga(false);
+    }
+  }, [fecha, fetchServicios, mostrarNotificacion]);
+
   const hayEdicionActiva = editandoId !== null;
 
   return {
@@ -656,5 +717,14 @@ export function useServiciosTurismo() {
     ponerEnStandby,
     reanudarServicio,
     notificaciones,
+    claveOpcionesAvanzadas,
+    setClaveOpcionesAvanzadas,
+    opcionesAvanzadasDesbloqueado,
+    verificarOpcionesAvanzadas,
+    eliminandoCarga,
+    mostrarModalEliminarCarga,
+    solicitarEliminarCarga,
+    cancelarEliminarCarga,
+    confirmarEliminarCarga,
   };
 }

@@ -134,6 +134,7 @@ const FilaServicio: React.FC<{
   procesandoStandby: boolean;
   auditoria: AuditoriaCampo[] | undefined;
   cargandoAuditoria: boolean;
+  puedeVerHistorial: boolean;
 }> = ({
   servicio,
   unidades,
@@ -156,6 +157,7 @@ const FilaServicio: React.FC<{
   procesandoStandby,
   auditoria,
   cargandoAuditoria,
+  puedeVerHistorial,
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
@@ -717,10 +719,12 @@ const FilaServicio: React.FC<{
                   </div>
                 )}
 
-                {/* Historial de cambios: solo aparece si ya se cargó la auditoría y tiene registros.
-                    La lista en sí es desplegable (colapsada por defecto) para no alargar el detalle
-                    de la fila cuando hay muchos cambios acumulados. */}
-                {(cargandoAuditoria || (auditoria && auditoria.length > 0)) && (
+                {/* Historial de cambios: solo aparece si ya se cargó la auditoría y tiene registros,
+                    y si se destrabó "Opciones avanzadas" con la clave correcta. La lista en sí es
+                    desplegable (colapsada por defecto) para no alargar el detalle de la fila cuando
+                    hay muchos cambios acumulados. */}
+                {puedeVerHistorial &&
+                  (cargandoAuditoria || (auditoria && auditoria.length > 0)) && (
                   <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
                     <button
                       type="button"

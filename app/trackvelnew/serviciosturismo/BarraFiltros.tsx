@@ -1,7 +1,14 @@
 'use client';
 
 import React from 'react';
-import { FileSpreadsheet, PlusCircle, RefreshCw, Search } from 'lucide-react';
+import {
+  FileSpreadsheet,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 
 const BarraFiltros: React.FC<{
   totalServicios: number;
@@ -19,6 +26,12 @@ const BarraFiltros: React.FC<{
   onConsultar: () => void;
   onAgregarServicio: () => void;
   onCargarExcel: () => void;
+  claveOpcionesAvanzadas: string;
+  onCambiarClaveOpcionesAvanzadas: (valor: string) => void;
+  opcionesAvanzadasDesbloqueado: boolean;
+  onVerificarClaveOpcionesAvanzadas: () => void;
+  onEliminarCarga: () => void;
+  eliminandoCarga: boolean;
 }> = ({
   totalServicios,
   fecha,
@@ -35,6 +48,12 @@ const BarraFiltros: React.FC<{
   onConsultar,
   onAgregarServicio,
   onCargarExcel,
+  claveOpcionesAvanzadas,
+  onCambiarClaveOpcionesAvanzadas,
+  opcionesAvanzadasDesbloqueado,
+  onVerificarClaveOpcionesAvanzadas,
+  onEliminarCarga,
+  eliminandoCarga,
 }) => (
   <div className="border-b border-gray-200 bg-[#efeff0] px-4 py-2">
     <div className="flex flex-wrap items-center gap-3">
@@ -151,6 +170,57 @@ const BarraFiltros: React.FC<{
         <FileSpreadsheet className="h-3.5 w-3.5" />
         Cargar Excel
       </button>
+
+      <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+        <label
+          className="flex items-center gap-1 text-[12px] font-medium text-gray-600"
+          htmlFor="opciones-avanzadas"
+        >
+          <ShieldCheck
+            className={`h-3.5 w-3.5 ${
+              opcionesAvanzadasDesbloqueado ? 'text-emerald-600' : 'text-gray-400'
+            }`}
+          />
+          Opciones avanzadas
+        </label>
+        <input
+          id="opciones-avanzadas"
+          type="text"
+          autoComplete="off"
+          value={claveOpcionesAvanzadas}
+          disabled={deshabilitado}
+          onChange={(e) => onCambiarClaveOpcionesAvanzadas(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onVerificarClaveOpcionesAvanzadas();
+          }}
+          placeholder="Clave"
+          className={`w-24 rounded-md border px-2 py-1.5 text-[12px] focus:outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-50 ${
+            opcionesAvanzadasDesbloqueado
+              ? 'border-emerald-300 bg-emerald-50 focus:border-emerald-400 focus:ring-emerald-400'
+              : 'border-gray-200 bg-gray-50 focus:border-[#113EB9] focus:bg-white focus:ring-[#113EB9]'
+          }`}
+        />
+        <button
+          onClick={onVerificarClaveOpcionesAvanzadas}
+          disabled={deshabilitado}
+          title="Aplicar la clave de opciones avanzadas"
+          className="inline-flex items-center rounded-md bg-[#113EB9] px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-blue-800 active:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Aceptar
+        </button>
+      </div>
+
+      {opcionesAvanzadasDesbloqueado && (
+        <button
+          onClick={onEliminarCarga}
+          disabled={deshabilitado || eliminandoCarga}
+          title="Elimina TODOS los servicios de la fecha seleccionada"
+          className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {eliminandoCarga ? 'Eliminando...' : 'Eliminar carga'}
+        </button>
+      )}
     </div>
   </div>
 );

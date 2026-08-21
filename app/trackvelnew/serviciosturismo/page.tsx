@@ -4,10 +4,12 @@ import React from 'react';
 import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
 import ModalConfirmarCancelarServicio from './ModalConfirmarCancelarServicio';
+import ModalConfirmarEliminarCarga from './ModalConfirmarEliminarCarga';
 import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
 import { useServiciosTurismo } from './useServiciosTurismo';
+import { isoToDdMmYyyy } from './utils';
 
 const ServiciosTurismoPage: React.FC = () => {
   const {
@@ -60,6 +62,15 @@ const ServiciosTurismoPage: React.FC = () => {
     notificaciones,
     auditoriaPorServicio,
     cargandoAuditoriaId,
+    claveOpcionesAvanzadas,
+    setClaveOpcionesAvanzadas,
+    opcionesAvanzadasDesbloqueado,
+    verificarOpcionesAvanzadas,
+    eliminandoCarga,
+    mostrarModalEliminarCarga,
+    solicitarEliminarCarga,
+    cancelarEliminarCarga,
+    confirmarEliminarCarga,
   } = useServiciosTurismo();
 
   return (
@@ -82,6 +93,12 @@ const ServiciosTurismoPage: React.FC = () => {
         onConsultar={() => fetchServicios(fecha)}
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
+        claveOpcionesAvanzadas={claveOpcionesAvanzadas}
+        onCambiarClaveOpcionesAvanzadas={setClaveOpcionesAvanzadas}
+        opcionesAvanzadasDesbloqueado={opcionesAvanzadasDesbloqueado}
+        onVerificarClaveOpcionesAvanzadas={verificarOpcionesAvanzadas}
+        onEliminarCarga={solicitarEliminarCarga}
+        eliminandoCarga={eliminandoCarga}
       />
 
       <ModalCargaExcelTurismo
@@ -128,6 +145,7 @@ const ServiciosTurismoPage: React.FC = () => {
           procesandoStandbyId={procesandoStandbyId}
           auditoriaPorServicio={auditoriaPorServicio}
           cargandoAuditoriaId={cargandoAuditoriaId}
+          opcionesAvanzadasDesbloqueado={opcionesAvanzadasDesbloqueado}
         />
       </div>
 
@@ -136,6 +154,14 @@ const ServiciosTurismoPage: React.FC = () => {
         cancelando={cancelando}
         onCancelar={() => setServicioACancelar(null)}
         onConfirmar={confirmarCancelar}
+      />
+
+      <ModalConfirmarEliminarCarga
+        abierto={mostrarModalEliminarCarga}
+        fecha={isoToDdMmYyyy(fecha)}
+        eliminando={eliminandoCarga}
+        onCancelar={cancelarEliminarCarga}
+        onConfirmar={confirmarEliminarCarga}
       />
     </div>
   );

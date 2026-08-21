@@ -4,6 +4,11 @@ export const API_BASE = 'https://do.velsat.pe:2083/api/ServTurismo';
 export const API_UNIDADES = 'https://do.velsat.pe:2083/api/Preplan/carros';
 export const API_TAXI = 'https://do.velsat.pe:2083/api/ServTurismo/taxi';
 
+// Clave de "Opciones avanzadas": destraba el historial de cambios por fila y el botón
+// "Eliminar carga". Vive solo en memoria (useState), así que se pierde al recargar o
+// cerrar la página y hay que volver a ingresarla.
+export const CLAVE_OPCIONES_AVANZADAS = 'ST2026';
+
 // Card "Detalles" (el resto de secciones se arman a mano por su layout particular).
 export const SECCIONES_DETALLE: {
   titulo: string;

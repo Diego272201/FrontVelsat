@@ -59,6 +59,7 @@ const TablaServicios: React.FC<{
   procesandoStandbyId: number | null;
   auditoriaPorServicio: Record<number, AuditoriaCampo[]>;
   cargandoAuditoriaId: number | null;
+  opcionesAvanzadasDesbloqueado: boolean;
 }> = ({
   cargando,
   cargandoUnidades,
@@ -89,6 +90,7 @@ const TablaServicios: React.FC<{
   procesandoStandbyId,
   auditoriaPorServicio,
   cargandoAuditoriaId,
+  opcionesAvanzadasDesbloqueado,
 }) => {
   if (cargando || cargandoUnidades) {
     return (
@@ -174,6 +176,7 @@ const TablaServicios: React.FC<{
                 procesandoStandby={procesandoStandbyId === servicio.idservicio}
                 auditoria={auditoriaPorServicio[servicio.idservicio]}
                 cargandoAuditoria={cargandoAuditoriaId === servicio.idservicio}
+                puedeVerHistorial={opcionesAvanzadasDesbloqueado}
               />
             ))}
           </tbody>
