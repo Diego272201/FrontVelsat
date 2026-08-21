@@ -1,5 +1,5 @@
 const WHATSAPP_API_URL = 'https://do.velsat.pe:8443/whatsapp/api/send/single';
-const WHATSAPP_API_KEY = '1d78f405-c698-49f9-b6fc-e952f2716afcc';
+const WHATSAPP_API_KEY = '1d78f405-c698-49f9-b6fc-e952f2716afc';
 
 export const MENSAJE_NUEVO_SERVICIO =
   'Hola, se te asignó un nuevo servicio. Revisa tu app.';
