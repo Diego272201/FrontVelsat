@@ -43,6 +43,10 @@ export interface ServicioTurismo {
   // Campos que cambiaron en la última edición manual del servicio, solo si fue en las últimas 24h
   // (pasado ese plazo el backend deja de mandarlo). Se usa para resaltar esas celdas en la tabla.
   ultimaModificacion: { campos: string[]; fecha: string } | null;
+  // No viene del backend: se marca en el front cuando el cambio se guardó localmente (sin
+  // conexión) y todavía no se confirmó contra el servidor. idservicio negativo = creado offline,
+  // aún sin id real asignado por el backend.
+  _pendingSync?: boolean;
 }
 
 // Un registro de auditoría por campo modificado en una edición manual del servicio.
@@ -63,7 +67,7 @@ export interface ServicioTurismoVista extends ServicioTurismo {
 
 // Claves de ServicioTurismoVista cuyo valor es siempre string | null
 // (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado, standby y reprogramado;
-// y ultimaModificacion, que es un objeto, no texto).
+// ultimaModificacion, que es un objeto, no texto; y _pendingSync, que es un flag del front).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
   | 'idservicio'
@@ -74,6 +78,7 @@ export type CampoTexto = Exclude<
   | 'standby'
   | 'reprogramado'
   | 'ultimaModificacion'
+  | '_pendingSync'
 >;
 
 export interface EditFormServicio {

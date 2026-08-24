@@ -18,8 +18,67 @@ import {
 } from './utils';
 import {
   enviarAlertasWhatsappLote,
+  MENSAJE_NUEVO_SERVICIO,
   MENSAJE_SERVICIO_MODIFICADO,
+  ResultadoAlertasWhatsapp,
 } from './whatsappAlerta';
+import {
+  agregarOperacionPendiente,
+  guardarSnapshot,
+  listarOperacionesPendientes,
+  obtenerSnapshot,
+  quitarOperacionPendiente,
+} from './offline/db';
+import {
+  ejecutarOperacionPendiente,
+  esFalloDeRed,
+  generarIdOperacion,
+  generarIdTemporal,
+} from './offline/syncQueue';
+import { OperacionPendiente, TipoOperacionPendiente } from './offline/types';
+
+// Arma un ServicioTurismo "de vista previa" a partir del payload de creación, para mostrarlo
+// en la tabla de inmediato mientras el POST real está pendiente de sincronizar.
+function construirServicioOptimista(
+  idservicio: number,
+  campos: Record<string, unknown>,
+): ServicioTurismo {
+  const texto = (clave: string) => (campos[clave] as string | undefined) ?? null;
+  return {
+    idservicio,
+    fechainicio: texto('fechainicio'),
+    instrucciones: texto('instrucciones'),
+    horainicio: texto('horainicio'),
+    indicaciones: texto('indicaciones'),
+    horaretorno: texto('horaretorno'),
+    bus: texto('bus'),
+    placa: texto('placa'),
+    brevete: texto('brevete'),
+    piloto: texto('piloto'),
+    celular: texto('celular'),
+    cobrevete: texto('cobrevete'),
+    copiloto: texto('copiloto'),
+    cocelular: texto('cocelular'),
+    tipounidad: texto('tipounidad'),
+    cliente: texto('cliente'),
+    grupo: texto('grupo'),
+    numpax: texto('numpax'),
+    origen: texto('origen'),
+    destino: texto('destino'),
+    guiaturista: texto('guiaturista'),
+    vuelocliente: texto('vuelocliente'),
+    observaciones: texto('observaciones'),
+    ejecutivo: texto('ejecutivo'),
+    cotizacion: texto('cotizacion'),
+    visto: null,
+    confirmado: null,
+    finalizado: null,
+    cancelado: null,
+    standby: null,
+    reprogramado: null,
+    ultimaModificacion: null,
+  };
+}
 
 export function useServiciosTurismo() {
   const { username, isReady } = useUsername();
@@ -28,6 +87,12 @@ export function useServiciosTurismo() {
   const [servicios, setServicios] = useState<ServicioTurismo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // true cuando la tabla se está mostrando desde IndexedDB porque el último intento de traer
+  // la lista real falló por red/backend caído (no es un estado de error: hay data para mostrar).
+  const [usandoCache, setUsandoCache] = useState(false);
+  const [pendientesCount, setPendientesCount] = useState(0);
+  const [sincronizando, setSincronizando] = useState(false);
 
   const [showModalCarga, setShowModalCarga] = useState(false);
   const [showModalAgregar, setShowModalAgregar] = useState(false);
@@ -107,6 +172,29 @@ export function useServiciosTurismo() {
     setLoading(true);
     setError(null);
 
+    const resetearFiltrosYSeleccion = () => {
+      setExpandidos(new Set());
+      setEditandoId(null);
+      setFormEdicion(null);
+      setServicioEnEdicion(null);
+      setBusquedaTexto('');
+      setHoraFiltro('');
+      setTipoUnidadFiltro('');
+      setFiltrosColumna({});
+    };
+
+    const mostrarUltimaDataConocida = async () => {
+      const snapshot = await obtenerSnapshot(isoDate);
+      if (snapshot) {
+        setServicios(snapshot.servicios);
+        setUsandoCache(true);
+      } else {
+        setUsandoCache(false);
+        setError('Sin conexión y sin datos guardados de esta fecha.');
+        setServicios([]);
+      }
+    };
+
     try {
       const fechaParam = isoToDdMmYyyy(isoDate);
       // Un solo input de fecha en la UI: se envía el mismo valor como fechaInicio y fechaFin.
@@ -116,34 +204,174 @@ export function useServiciosTurismo() {
 
       if (res.status === 404) {
         setServicios([]);
+        setUsandoCache(false);
+        guardarSnapshot(isoDate, []);
+        resetearFiltrosYSeleccion();
         return;
       }
 
       if (!res.ok) {
+        if (esFalloDeRed(undefined, res)) {
+          // Backend caído/en mantenimiento (502/503/504): mismo tratamiento que sin red.
+          await mostrarUltimaDataConocida();
+          return;
+        }
         throw new Error('Error al obtener los servicios de turismo');
       }
 
       const data = await res.json();
-      setServicios(Array.isArray(data) ? data : []);
-      setExpandidos(new Set());
-      setEditandoId(null);
-      setFormEdicion(null);
-      setServicioEnEdicion(null);
-      setBusquedaTexto('');
-      setHoraFiltro('');
-      setTipoUnidadFiltro('');
-      setFiltrosColumna({});
-    } catch {
-      setError('No se pudieron cargar los servicios de turismo.');
-      setServicios([]);
+      const lista: ServicioTurismo[] = Array.isArray(data) ? data : [];
+      setServicios(lista);
+      setUsandoCache(false);
+      guardarSnapshot(isoDate, lista);
+      resetearFiltrosYSeleccion();
+    } catch (err) {
+      // Sin red o backend caído: se muestra la última data conocida de esta fecha (si existe)
+      // en vez de vaciar la tabla. Importante: NO se resetean los filtros del usuario en este
+      // camino, a diferencia de una carga exitosa.
+      if (esFalloDeRed(err)) {
+        await mostrarUltimaDataConocida();
+      } else {
+        setUsandoCache(false);
+        setError('No se pudieron cargar los servicios de turismo.');
+        setServicios([]);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Encola una mutación que no se pudo enviar por falta de red/backend caído, y refleja el
+  // cambio de inmediato en la tabla (optimistic update) marcado como "pendiente de sincronizar".
+  // servicioNuevo se usa para creación (inserta una fila con id temporal negativo); para el resto
+  // de operaciones se mergean cambiosOptimistas sobre el servicio existente.
+  const encolarYAplicarOptimista = useCallback(
+    async (params: {
+      tipo: TipoOperacionPendiente;
+      idservicio: number;
+      payload?: OperacionPendiente['payload'];
+      cambiosOptimistas?: Partial<ServicioTurismo>;
+      servicioNuevo?: ServicioTurismo;
+      celularParaWhatsapp?: string | null;
+      mensajeWhatsapp?: string;
+    }) => {
+      const operacion: OperacionPendiente = {
+        id: generarIdOperacion(),
+        tipo: params.tipo,
+        idservicio: params.idservicio,
+        fecha,
+        payload: params.payload,
+        celularParaWhatsapp: params.celularParaWhatsapp ?? null,
+        mensajeWhatsapp: params.mensajeWhatsapp,
+        creadoEn: Date.now(),
+      };
+      await agregarOperacionPendiente(operacion);
+
+      setServicios((prev) => {
+        const actualizado = params.servicioNuevo
+          ? [...prev, { ...params.servicioNuevo, _pendingSync: true }]
+          : prev.map((s) =>
+              s.idservicio === params.idservicio
+                ? { ...s, ...(params.cambiosOptimistas || {}), _pendingSync: true }
+                : s,
+            );
+        guardarSnapshot(fecha, actualizado);
+        return actualizado;
+      });
+
+      setPendientesCount((prev) => prev + 1);
+      mostrarNotificacion(
+        'success',
+        'Guardado localmente. Se sincronizará cuando vuelva la conexión.',
+      );
+    },
+    [fecha, mostrarNotificacion],
+  );
+
+  // Recorre la cola en orden y reintenta cada operación contra el backend real. Se detiene ante
+  // el primer fallo de red (probablemente seguimos sin conexión); un error de negocio al
+  // sincronizar se descarta de la cola (no se reintenta indefinidamente) y se avisa al usuario.
+  const sincronizarCola = useCallback(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+    const pendientes = await listarOperacionesPendientes();
+    if (pendientes.length === 0) return;
+
+    setSincronizando(true);
+    let huboExito = false;
+
+    try {
+      for (const op of pendientes) {
+        const resultado = await ejecutarOperacionPendiente(op);
+
+        if (resultado.ok) {
+          await quitarOperacionPendiente(op.id);
+          huboExito = true;
+
+          if (op.celularParaWhatsapp) {
+            enviarAlertasWhatsappLote([op.celularParaWhatsapp], op.mensajeWhatsapp)
+              .then((resultadoWa) => {
+                if (resultadoWa.enviados > 0) {
+                  mostrarNotificacion(
+                    'success',
+                    'Alerta de WhatsApp enviada al piloto (cambio ya sincronizado)',
+                  );
+                }
+              })
+              .catch(() => {});
+          }
+        } else if (resultado.esFalloRed) {
+          break;
+        } else {
+          await quitarOperacionPendiente(op.id);
+          mostrarNotificacion(
+            'error',
+            `No se pudo sincronizar un cambio pendiente: ${resultado.error || 'error desconocido'}`,
+          );
+        }
+      }
+    } finally {
+      setSincronizando(false);
+      const restantes = await listarOperacionesPendientes();
+      setPendientesCount(restantes.length);
+      if (huboExito) {
+        fetchServicios(fecha);
+      }
+    }
+  }, [fecha, fetchServicios, mostrarNotificacion]);
+
+  // Al montar: cuenta lo que haya quedado pendiente de una sesión anterior (persistido en
+  // IndexedDB) para que el banner de "pendientes" no arranque en 0 mientras se sincroniza.
+  useEffect(() => {
+    listarOperacionesPendientes().then((pendientes) =>
+      setPendientesCount(pendientes.length),
+    );
+  }, []);
+
+  // Reintenta la cola al recuperar conexión, y además con un intervalo de respaldo: el evento
+  // "online" del navegador no avisa si hay internet pero el backend sigue caído/en mantenimiento.
+  useEffect(() => {
+    if (!isReady) return;
+
+    sincronizarCola();
+
+    const handleOnline = () => sincronizarCola();
+    window.addEventListener('online', handleOnline);
+    const intervalo = setInterval(() => sincronizarCola(), 30000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(intervalo);
+    };
+  }, [isReady, sincronizarCola]);
+
   // Unidades (placas) ya registradas en el sistema; solo esas se muestran en la tabla de servicios.
+  // Si falla por red/backend caído, se cae a la última lista guardada en localStorage: sin esto,
+  // un fallo acá deja unidadesRegistradas vacío y serviciosVisibles filtra TODA la tabla (solo
+  // pasarían servicios sin placa asignada), aunque el snapshot de servicios sí esté completo.
   useEffect(() => {
     if (!isReady || !username) return;
+    const claveCache = `serviciosturismo_unidadesRegistradas_${username}`;
 
     const fetchUnidades = async () => {
       setLoadingUnidades(true);
@@ -158,8 +386,19 @@ export function useServiciosTurismo() {
           .filter((codigo: string) => codigo !== '');
 
         setUnidadesRegistradas(new Set(codigos));
+        try {
+          localStorage.setItem(claveCache, JSON.stringify(codigos));
+        } catch {
+          // localStorage puede no estar disponible (modo privado, cuota llena); no es crítico.
+        }
       } catch {
-        setUnidadesRegistradas(new Set());
+        let codigosCache: string[] = [];
+        try {
+          codigosCache = JSON.parse(localStorage.getItem(claveCache) || '[]');
+        } catch {
+          codigosCache = [];
+        }
+        setUnidadesRegistradas(new Set(codigosCache));
       } finally {
         setLoadingUnidades(false);
       }
@@ -383,79 +622,104 @@ export function useServiciosTurismo() {
 
     setGuardandoEdicion(true);
 
+    const valorOVacio = (valor: string) =>
+      valor.trim() === '' ? null : valor.trim();
+
+    // El selector de unidad muestra "bus-placa" ya normalizado (combinarPlaca le quita
+    // puntuación a la placa para armar el código de unidad). Si el usuario no tocó ese
+    // selector, reenviar bus/placa tal cual venían del servicio (sin pasarlos por el
+    // split de abajo) evita que se pierda el formato original (ej. guiones en la placa)
+    // y que el backend detecte un "cambio" falso que resaltaba la celda en negrita.
+    const placaSinTocar =
+      servicioEnEdicion !== null &&
+      formEdicion.placa === (servicioEnEdicion.placaCombinada || '');
+
+    let bus: string;
+    let placa: string;
+    if (placaSinTocar && servicioEnEdicion) {
+      bus = servicioEnEdicion.bus || '';
+      placa = servicioEnEdicion.placa || '';
+    } else {
+      const idxGuion = formEdicion.placa.indexOf('-');
+      bus = formEdicion.placa
+        ? idxGuion === -1
+          ? formEdicion.placa
+          : formEdicion.placa.slice(0, idxGuion)
+        : '';
+      placa = formEdicion.placa
+        ? idxGuion === -1
+          ? ''
+          : formEdicion.placa.slice(idxGuion + 1)
+        : '';
+    }
+
+    const payload = {
+      fechainicio: formEdicion.fechainicio
+        ? isoToDdMmYyyy(formEdicion.fechainicio)
+        : null,
+      horainicio: formEdicion.horainicio || null,
+      horaretorno: valorOVacio(formEdicion.horaretorno),
+      bus: valorOVacio(bus),
+      placa: valorOVacio(placa),
+      tipounidad: valorOVacio(formEdicion.tipounidad),
+      piloto: valorOVacio(formEdicion.piloto),
+      brevete: valorOVacio(formEdicion.brevete),
+      celular: valorOVacio(formEdicion.celular),
+      copiloto: valorOVacio(formEdicion.copiloto),
+      cobrevete: valorOVacio(formEdicion.cobrevete),
+      cocelular: valorOVacio(formEdicion.cocelular),
+      cliente: valorOVacio(formEdicion.cliente),
+      grupo: valorOVacio(formEdicion.grupo),
+      numpax: valorOVacio(formEdicion.numpax),
+      origen: valorOVacio(formEdicion.origen),
+      destino: valorOVacio(formEdicion.destino),
+      guiaturista: valorOVacio(formEdicion.guiaturista),
+      vuelocliente: valorOVacio(formEdicion.vuelocliente),
+      ejecutivo: valorOVacio(formEdicion.ejecutivo),
+      cotizacion: valorOVacio(formEdicion.cotizacion),
+      instrucciones: valorOVacio(formEdicion.instrucciones),
+      indicaciones: valorOVacio(formEdicion.indicaciones),
+      observaciones: valorOVacio(formEdicion.observaciones),
+    };
+
+    // limpiarNulos=true: el formulario de edición envía el objeto completo, así que un campo
+    // que quedó en blanco debe borrarse en la BD (no simplemente "no tocar" ese campo).
+    // usuario/motivo quedan en la auditoría del backend por cada campo que realmente cambió.
+    const params = new URLSearchParams({ limpiarNulos: 'true' });
+    if (username) params.set('usuario', username);
+    if (motivoEdicion.trim() !== '') params.set('motivo', motivoEdicion.trim());
+
+    const manejarOffline = async () => {
+      await encolarYAplicarOptimista({
+        tipo: 'editar',
+        idservicio: editandoId,
+        payload: {
+          campos: payload,
+          usuario: username || undefined,
+          motivo: motivoEdicion.trim() || undefined,
+        },
+        cambiosOptimistas: payload,
+        celularParaWhatsapp: formEdicion.celular.trim() || null,
+        mensajeWhatsapp: MENSAJE_SERVICIO_MODIFICADO,
+      });
+      setAuditoriaPorServicio((prev) => {
+        const { [editandoId]: _descartado, ...resto } = prev;
+        return resto;
+      });
+      cancelarEdicion();
+    };
+
     try {
-      const valorOVacio = (valor: string) =>
-        valor.trim() === '' ? null : valor.trim();
-
-      // El selector de unidad muestra "bus-placa" ya normalizado (combinarPlaca le quita
-      // puntuación a la placa para armar el código de unidad). Si el usuario no tocó ese
-      // selector, reenviar bus/placa tal cual venían del servicio (sin pasarlos por el
-      // split de abajo) evita que se pierda el formato original (ej. guiones en la placa)
-      // y que el backend detecte un "cambio" falso que resaltaba la celda en negrita.
-      const placaSinTocar =
-        servicioEnEdicion !== null &&
-        formEdicion.placa === (servicioEnEdicion.placaCombinada || '');
-
-      let bus: string;
-      let placa: string;
-      if (placaSinTocar && servicioEnEdicion) {
-        bus = servicioEnEdicion.bus || '';
-        placa = servicioEnEdicion.placa || '';
-      } else {
-        const idxGuion = formEdicion.placa.indexOf('-');
-        bus = formEdicion.placa
-          ? idxGuion === -1
-            ? formEdicion.placa
-            : formEdicion.placa.slice(0, idxGuion)
-          : '';
-        placa = formEdicion.placa
-          ? idxGuion === -1
-            ? ''
-            : formEdicion.placa.slice(idxGuion + 1)
-          : '';
-      }
-
-      const payload = {
-        fechainicio: formEdicion.fechainicio
-          ? isoToDdMmYyyy(formEdicion.fechainicio)
-          : null,
-        horainicio: formEdicion.horainicio || null,
-        horaretorno: valorOVacio(formEdicion.horaretorno),
-        bus: valorOVacio(bus),
-        placa: valorOVacio(placa),
-        tipounidad: valorOVacio(formEdicion.tipounidad),
-        piloto: valorOVacio(formEdicion.piloto),
-        brevete: valorOVacio(formEdicion.brevete),
-        celular: valorOVacio(formEdicion.celular),
-        copiloto: valorOVacio(formEdicion.copiloto),
-        cobrevete: valorOVacio(formEdicion.cobrevete),
-        cocelular: valorOVacio(formEdicion.cocelular),
-        cliente: valorOVacio(formEdicion.cliente),
-        grupo: valorOVacio(formEdicion.grupo),
-        numpax: valorOVacio(formEdicion.numpax),
-        origen: valorOVacio(formEdicion.origen),
-        destino: valorOVacio(formEdicion.destino),
-        guiaturista: valorOVacio(formEdicion.guiaturista),
-        vuelocliente: valorOVacio(formEdicion.vuelocliente),
-        ejecutivo: valorOVacio(formEdicion.ejecutivo),
-        cotizacion: valorOVacio(formEdicion.cotizacion),
-        instrucciones: valorOVacio(formEdicion.instrucciones),
-        indicaciones: valorOVacio(formEdicion.indicaciones),
-        observaciones: valorOVacio(formEdicion.observaciones),
-      };
-
-      // limpiarNulos=true: el formulario de edición envía el objeto completo, así que un campo
-      // que quedó en blanco debe borrarse en la BD (no simplemente "no tocar" ese campo).
-      // usuario/motivo quedan en la auditoría del backend por cada campo que realmente cambió.
-      const params = new URLSearchParams({ limpiarNulos: 'true' });
-      if (username) params.set('usuario', username);
-      if (motivoEdicion.trim() !== '') params.set('motivo', motivoEdicion.trim());
-
       const res = await fetch(`${API_BASE}/${editandoId}?${params.toString()}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
+      if (!res.ok && esFalloDeRed(undefined, res)) {
+        await manejarOffline();
+        return;
+      }
 
       const data = await res.json().catch(() => null);
 
@@ -504,17 +768,22 @@ export function useServiciosTurismo() {
           data?.error || data?.mensaje || 'Error al actualizar el servicio',
         );
       }
-    } catch {
-      mostrarNotificacion(
-        'error',
-        'Error de conexión al actualizar el servicio',
-      );
+    } catch (err) {
+      if (esFalloDeRed(err)) {
+        await manejarOffline();
+      } else {
+        mostrarNotificacion(
+          'error',
+          'Error de conexión al actualizar el servicio',
+        );
+      }
     } finally {
       setGuardandoEdicion(false);
     }
   }, [
     cancelarEdicion,
     editandoId,
+    encolarYAplicarOptimista,
     fecha,
     fetchServicios,
     formEdicion,
@@ -528,12 +797,27 @@ export function useServiciosTurismo() {
     if (!servicioACancelar) return;
 
     setCancelando(true);
+    const idservicio = servicioACancelar.idservicio;
+
+    const manejarOffline = async () => {
+      await encolarYAplicarOptimista({
+        tipo: 'cancelar',
+        idservicio,
+        cambiosOptimistas: { cancelado: 1 },
+      });
+      setServicioACancelar(null);
+    };
 
     try {
-      const res = await fetch(
-        `${API_BASE}/${servicioACancelar.idservicio}/cancelar`,
-        { method: 'PATCH' },
-      );
+      const res = await fetch(`${API_BASE}/${idservicio}/cancelar`, {
+        method: 'PATCH',
+      });
+
+      if (!res.ok && esFalloDeRed(undefined, res)) {
+        await manejarOffline();
+        return;
+      }
+
       const data = await res.json().catch(() => null);
 
       if (res.ok) {
@@ -549,22 +833,40 @@ export function useServiciosTurismo() {
           data?.error || data?.mensaje || 'Error al cancelar el servicio',
         );
       }
-    } catch {
-      mostrarNotificacion('error', 'Error de conexión al cancelar el servicio');
+    } catch (err) {
+      if (esFalloDeRed(err)) {
+        await manejarOffline();
+      } else {
+        mostrarNotificacion('error', 'Error de conexión al cancelar el servicio');
+      }
     } finally {
       setCancelando(false);
     }
-  }, [fecha, fetchServicios, mostrarNotificacion, servicioACancelar]);
+  }, [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion, servicioACancelar]);
 
   const ponerEnStandby = useCallback(
     async (servicio: ServicioTurismoVista) => {
       setProcesandoStandbyId(servicio.idservicio);
+      const idservicio = servicio.idservicio;
+
+      const manejarOffline = async () => {
+        await encolarYAplicarOptimista({
+          tipo: 'standby',
+          idservicio,
+          cambiosOptimistas: { standby: 1 },
+        });
+      };
 
       try {
-        const res = await fetch(
-          `${API_BASE}/${servicio.idservicio}/standby`,
-          { method: 'PATCH' },
-        );
+        const res = await fetch(`${API_BASE}/${idservicio}/standby`, {
+          method: 'PATCH',
+        });
+
+        if (!res.ok && esFalloDeRed(undefined, res)) {
+          await manejarOffline();
+          return;
+        }
+
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
@@ -579,24 +881,42 @@ export function useServiciosTurismo() {
             data?.error || data?.mensaje || 'Error al poner en Stand By',
           );
         }
-      } catch {
-        mostrarNotificacion('error', 'Error de conexión al poner en Stand By');
+      } catch (err) {
+        if (esFalloDeRed(err)) {
+          await manejarOffline();
+        } else {
+          mostrarNotificacion('error', 'Error de conexión al poner en Stand By');
+        }
       } finally {
         setProcesandoStandbyId(null);
       }
     },
-    [fecha, fetchServicios, mostrarNotificacion],
+    [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
   );
 
   const reanudarServicio = useCallback(
     async (servicio: ServicioTurismoVista) => {
       setProcesandoStandbyId(servicio.idservicio);
+      const idservicio = servicio.idservicio;
+
+      const manejarOffline = async () => {
+        await encolarYAplicarOptimista({
+          tipo: 'reanudar',
+          idservicio,
+          cambiosOptimistas: { standby: 0 },
+        });
+      };
 
       try {
-        const res = await fetch(
-          `${API_BASE}/${servicio.idservicio}/reanudar`,
-          { method: 'PATCH' },
-        );
+        const res = await fetch(`${API_BASE}/${idservicio}/reanudar`, {
+          method: 'PATCH',
+        });
+
+        if (!res.ok && esFalloDeRed(undefined, res)) {
+          await manejarOffline();
+          return;
+        }
+
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
@@ -611,13 +931,17 @@ export function useServiciosTurismo() {
             data?.error || data?.mensaje || 'Error al reanudar el servicio',
           );
         }
-      } catch {
-        mostrarNotificacion('error', 'Error de conexión al reanudar el servicio');
+      } catch (err) {
+        if (esFalloDeRed(err)) {
+          await manejarOffline();
+        } else {
+          mostrarNotificacion('error', 'Error de conexión al reanudar el servicio');
+        }
       } finally {
         setProcesandoStandbyId(null);
       }
     },
-    [fecha, fetchServicios, mostrarNotificacion],
+    [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
   );
 
   // Borra físicamente TODOS los servicios de la fecha consultada (deshacer una carga de Excel
@@ -665,6 +989,89 @@ export function useServiciosTurismo() {
     }
   }, [fecha, fetchServicios, mostrarNotificacion]);
 
+  // Crea un servicio nuevo. Si no hay red/backend, lo guarda con un id temporal (negativo) y
+  // lo encola para sincronizar; el WhatsApp al piloto recién se dispara cuando eso ocurra de
+  // verdad. Usada por ModalAgregarServicioTurismo, que arma "campos" a partir de su formulario.
+  const crearServicio = useCallback(
+    async (
+      campos: Record<string, unknown>,
+      celularPiloto: string,
+    ): Promise<{
+      ok: boolean;
+      offline: boolean;
+      mensaje: string;
+      whatsapp: ResultadoAlertasWhatsapp | null;
+    }> => {
+      const crearOffline = async () => {
+        const idTemporal = generarIdTemporal();
+        await encolarYAplicarOptimista({
+          tipo: 'crear',
+          idservicio: idTemporal,
+          payload: { campos },
+          servicioNuevo: construirServicioOptimista(idTemporal, campos),
+          celularParaWhatsapp: celularPiloto.trim() || null,
+          mensajeWhatsapp: MENSAJE_NUEVO_SERVICIO,
+        });
+        return {
+          ok: true,
+          offline: true,
+          mensaje: 'Guardado localmente. Se sincronizará cuando vuelva la conexión.',
+          whatsapp: null,
+        };
+      };
+
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(campos),
+        });
+
+        if (!res.ok && esFalloDeRed(undefined, res)) {
+          return await crearOffline();
+        }
+
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          let whatsapp: ResultadoAlertasWhatsapp | null = null;
+          if (celularPiloto.trim() !== '') {
+            try {
+              whatsapp = await enviarAlertasWhatsappLote([celularPiloto]);
+            } catch (error) {
+              console.error('Error al enviar alerta de WhatsApp:', error);
+            }
+          }
+          fetchServicios(fecha);
+          return {
+            ok: true,
+            offline: false,
+            mensaje: data?.mensaje || 'Servicio creado correctamente',
+            whatsapp,
+          };
+        }
+
+        return {
+          ok: false,
+          offline: false,
+          mensaje: data?.error || data?.mensaje || 'Error al crear el servicio',
+          whatsapp: null,
+        };
+      } catch (err) {
+        if (esFalloDeRed(err)) {
+          return await crearOffline();
+        }
+        return {
+          ok: false,
+          offline: false,
+          mensaje: 'Error de conexión al crear el servicio',
+          whatsapp: null,
+        };
+      }
+    },
+    [encolarYAplicarOptimista, fecha, fetchServicios],
+  );
+
   const hayEdicionActiva = editandoId !== null;
 
   return {
@@ -673,6 +1080,10 @@ export function useServiciosTurismo() {
     loading,
     loadingUnidades,
     error,
+    usandoCache,
+    pendientesCount,
+    sincronizando,
+    crearServicio,
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,

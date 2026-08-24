@@ -13,7 +13,7 @@ import {
   SelectPlacaBuscable,
   SelectTipoUnidad,
 } from './SelectBuscable';
-import { enviarAlertasWhatsappLote, ResultadoAlertasWhatsapp } from './whatsappAlerta';
+import { ResultadoAlertasWhatsapp } from './whatsappAlerta';
 
 interface FormServicioTurismo {
   fechainicio: string; // yyyy-MM-dd (input date)
@@ -44,11 +44,17 @@ interface FormServicioTurismo {
 interface ModalAgregarServicioTurismoProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreated: () => void;
+  crearServicio: (
+    payload: Record<string, unknown>,
+    celularPiloto: string,
+  ) => Promise<{
+    ok: boolean;
+    offline: boolean;
+    mensaje: string;
+    whatsapp: ResultadoAlertasWhatsapp | null;
+  }>;
   unidades: string[]; // codunidad ya obtenidos por la página (bus-placa), no se vuelve a consultar
 }
-
-const API_URL = 'https://do.velsat.pe:2083/api/ServTurismo';
 
 function getIsoToday(): string {
   const now = new Date();
@@ -153,7 +159,7 @@ const FilaPreview: React.FC<{ label: string; value: string }> = ({ label, value 
 const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = ({
   isOpen,
   onClose,
-  onCreated,
+  crearServicio,
   unidades,
 }) => {
   const [form, setForm] = useState<FormServicioTurismo>(construirFormularioInicial());
@@ -163,7 +169,8 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
   const [reporte, setReporte] = useState<{
     mensaje: string;
     whatsapp: ResultadoAlertasWhatsapp | null;
-  }>({ mensaje: '', whatsapp: null });
+    offline: boolean;
+  }>({ mensaje: '', whatsapp: null, offline: false });
   const { username, isReady } = useUsername();
 
   const actualizarCampo = (campo: keyof FormServicioTurismo) => (valor: string) => {
@@ -298,41 +305,21 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
         cotizacion: valorOVacio(form.cotizacion),
       };
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const resultado = await crearServicio(payload, form.celular);
 
-      const data = await response.json().catch(() => null);
-
-      if (response.ok) {
-        let whatsapp: ResultadoAlertasWhatsapp | null = null;
-        if (form.celular.trim() !== '') {
-          try {
-            whatsapp = await enviarAlertasWhatsappLote([form.celular]);
-          } catch (error) {
-            console.error('Error al enviar alerta de WhatsApp:', error);
-          }
-        }
-
+      if (resultado.ok) {
         setReporte({
-          mensaje: data?.mensaje || 'Servicio creado correctamente',
-          whatsapp,
+          mensaje: resultado.mensaje,
+          whatsapp: resultado.whatsapp,
+          offline: resultado.offline,
         });
         setShowReporte(true);
-        onCreated();
       } else {
-        toast.error(data?.error || data?.mensaje || 'Error al crear el servicio', {
+        toast.error(resultado.mensaje, {
           className: 'toast-slide-in',
           richColors: true,
         });
       }
-    } catch {
-      toast.error('Error de conexión al crear el servicio', {
-        className: 'toast-slide-in',
-        richColors: true,
-      });
     } finally {
       setIsSaving(false);
     }
@@ -610,36 +597,44 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
 
               <div
                 className={`flex items-center gap-3 rounded-xl p-4 ${
-                  reporte.whatsapp === null
-                    ? 'bg-gray-50'
-                    : reporte.whatsapp.enviados > 0
-                      ? 'bg-green-50'
-                      : 'bg-red-50'
+                  reporte.offline
+                    ? 'bg-amber-50'
+                    : reporte.whatsapp === null
+                      ? 'bg-gray-50'
+                      : reporte.whatsapp.enviados > 0
+                        ? 'bg-green-50'
+                        : 'bg-red-50'
                 }`}
               >
                 <MessageCircle
                   className={`h-6 w-6 flex-shrink-0 ${
-                    reporte.whatsapp === null
-                      ? 'text-gray-500'
-                      : reporte.whatsapp.enviados > 0
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                    reporte.offline
+                      ? 'text-amber-600'
+                      : reporte.whatsapp === null
+                        ? 'text-gray-500'
+                        : reporte.whatsapp.enviados > 0
+                          ? 'text-green-600'
+                          : 'text-red-600'
                   }`}
                 />
                 <p
                   className={`font-bold ${
-                    reporte.whatsapp === null
-                      ? 'text-gray-700'
-                      : reporte.whatsapp.enviados > 0
-                        ? 'text-green-700'
-                        : 'text-red-700'
+                    reporte.offline
+                      ? 'text-amber-700'
+                      : reporte.whatsapp === null
+                        ? 'text-gray-700'
+                        : reporte.whatsapp.enviados > 0
+                          ? 'text-green-700'
+                          : 'text-red-700'
                   }`}
                 >
-                  {reporte.whatsapp === null
-                    ? 'No hay celular del piloto: no se envió alerta de WhatsApp'
-                    : reporte.whatsapp.enviados > 0
-                      ? 'Alerta de WhatsApp enviada al piloto'
-                      : 'No se pudo enviar la alerta de WhatsApp al piloto'}
+                  {reporte.offline
+                    ? 'Sin conexión: la alerta de WhatsApp se enviará cuando el servicio se sincronice'
+                    : reporte.whatsapp === null
+                      ? 'No hay celular del piloto: no se envió alerta de WhatsApp'
+                      : reporte.whatsapp.enviados > 0
+                        ? 'Alerta de WhatsApp enviada al piloto'
+                        : 'No se pudo enviar la alerta de WhatsApp al piloto'}
                 </p>
               </div>
             </div>

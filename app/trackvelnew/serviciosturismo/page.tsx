@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { CloudOff } from 'lucide-react';
 import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
 import ModalConfirmarCancelarServicio from './ModalConfirmarCancelarServicio';
@@ -18,6 +19,10 @@ const ServiciosTurismoPage: React.FC = () => {
     loading,
     loadingUnidades,
     error,
+    usandoCache,
+    pendientesCount,
+    sincronizando,
+    crearServicio,
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,
@@ -101,6 +106,18 @@ const ServiciosTurismoPage: React.FC = () => {
         eliminandoCarga={eliminandoCarga}
       />
 
+      {(usandoCache || pendientesCount > 0) && (
+        <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-medium text-amber-700">
+          <CloudOff className="h-4 w-4 flex-shrink-0" />
+          <span>
+            {usandoCache && 'Sin conexión: mostrando la última información guardada. '}
+            {pendientesCount > 0 &&
+              `${pendientesCount} cambio${pendientesCount === 1 ? '' : 's'} pendiente${pendientesCount === 1 ? '' : 's'} de sincronizar.`}
+            {sincronizando && ' Sincronizando…'}
+          </span>
+        </div>
+      )}
+
       <ModalCargaExcelTurismo
         isOpen={showModalCarga}
         onClose={() => setShowModalCarga(false)}
@@ -110,7 +127,7 @@ const ServiciosTurismoPage: React.FC = () => {
       <ModalAgregarServicioTurismo
         isOpen={showModalAgregar}
         onClose={() => setShowModalAgregar(false)}
-        onCreated={() => fetchServicios(fecha)}
+        crearServicio={crearServicio}
         unidades={listaUnidades}
       />
 

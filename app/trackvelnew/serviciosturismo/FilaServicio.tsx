@@ -18,6 +18,7 @@ import {
   PauseCircle,
   PlayCircle,
   History,
+  CloudOff,
 } from 'lucide-react';
 import { AuditoriaCampo, EditFormServicio, ServicioTurismoVista } from './types';
 import {
@@ -245,6 +246,9 @@ const FilaServicio: React.FC<{
 
   const estado = calcularEstado(servicio);
   const celdaEstado = ESTADOS_SERVICIO[estado];
+  // Id temporal (negativo): el servicio se creó offline y todavía no tiene id real del backend,
+  // así que no se puede editar/cancelar/poner en standby hasta que se sincronice.
+  const sincronizandoAlta = servicio.idservicio < 0;
 
   const mostrarDetalle = expandido || editando;
   const puedeAlternar = !bloqueado && !editando;
@@ -331,11 +335,13 @@ const FilaServicio: React.FC<{
               <>
                 <button
                   onClick={onIniciarEdicion}
-                  disabled={bloqueado || estado === 'Cancelado'}
+                  disabled={bloqueado || estado === 'Cancelado' || sincronizandoAlta}
                   title={
-                    estado === 'Cancelado'
-                      ? 'No se puede editar: servicio cancelado'
-                      : 'Editar'
+                    sincronizandoAlta
+                      ? 'Este servicio se está sincronizando'
+                      : estado === 'Cancelado'
+                        ? 'No se puede editar: servicio cancelado'
+                        : 'Editar'
                   }
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[#113EB9] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
@@ -344,8 +350,12 @@ const FilaServicio: React.FC<{
                 {estado === 'Stand By' && (
                   <button
                     onClick={onReanudar}
-                    disabled={bloqueado || procesandoStandby}
-                    title="Reanudar servicio"
+                    disabled={bloqueado || procesandoStandby || sincronizandoAlta}
+                    title={
+                      sincronizandoAlta
+                        ? 'Este servicio se está sincronizando'
+                        : 'Reanudar servicio'
+                    }
                     className="inline-flex h-6 w-6 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     {procesandoStandby ? (
@@ -358,8 +368,12 @@ const FilaServicio: React.FC<{
                 <button
                   ref={botonMenuRef}
                   onClick={toggleMenu}
-                  disabled={bloqueado || estado === 'Cancelado'}
-                  title="Cancelar / Stand By"
+                  disabled={bloqueado || estado === 'Cancelado' || sincronizandoAlta}
+                  title={
+                    sincronizandoAlta
+                      ? 'Este servicio se está sincronizando'
+                      : 'Cancelar / Stand By'
+                  }
                   className="inline-flex h-6 w-6 items-center justify-center rounded-md text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <Ban className="h-3.5 w-3.5" />
@@ -399,6 +413,14 @@ const FilaServicio: React.FC<{
         </td>
         <td className="border-l border-slate-100 px-1.5 py-1.5">
           <div className="flex items-center gap-1">
+            {servicio._pendingSync && (
+              <span
+                title="Guardado localmente: pendiente de sincronizar con el servidor"
+                className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-600"
+              >
+                <CloudOff className="h-3 w-3" />
+              </span>
+            )}
             {Number(servicio.reprogramado) === 1 && (
               <span
                 title={ESTADO_REPROGRAMADO.titulo}
