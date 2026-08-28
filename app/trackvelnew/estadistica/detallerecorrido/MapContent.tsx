@@ -184,6 +184,30 @@ const RoutePolylineLayer = memo(function RoutePolylineLayer({
   );
 });
 
+const START_ICON_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="68" height="52" viewBox="0 0 68 52">
+  <filter id="start-shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+  </filter>
+  <rect x="4" y="2" width="60" height="22" rx="11" fill="#059669" stroke="#ffffff" stroke-width="2" filter="url(#start-shadow)"/>
+  <text x="34" y="17" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" letter-spacing="0.5">INICIO</text>
+  <path d="M 34 24 L 34 46" stroke="#059669" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="34" cy="46" r="3.5" fill="#059669" stroke="#ffffff" stroke-width="1.5"/>
+</svg>
+`)}`;
+
+const END_ICON_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="68" height="52" viewBox="0 0 68 52">
+  <filter id="end-shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+  </filter>
+  <rect x="8" y="2" width="52" height="22" rx="11" fill="#dc2626" stroke="#ffffff" stroke-width="2" filter="url(#end-shadow)"/>
+  <text x="34" y="17" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" letter-spacing="0.5">FIN</text>
+  <path d="M 34 24 L 34 46" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="34" cy="46" r="3.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+</svg>
+`)}`;
+
 // 2. Marcadores de Inicio y Fin
 const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
   startPoint,
@@ -192,6 +216,24 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
   startPoint?: UnidadDetalleRecorrido;
   endPoint?: UnidadDetalleRecorrido;
 }) {
+  const startIcon = useMemo(() => {
+    if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
+    return {
+      url: START_ICON_SVG,
+      scaledSize: new window.google.maps.Size(68, 52),
+      anchor: new window.google.maps.Point(34, 46),
+    };
+  }, []);
+
+  const endIcon = useMemo(() => {
+    if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
+    return {
+      url: END_ICON_SVG,
+      scaledSize: new window.google.maps.Size(68, 52),
+      anchor: new window.google.maps.Point(34, 46),
+    };
+  }, []);
+
   return (
     <>
       {startPoint && (
@@ -200,16 +242,8 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
             lat: startPoint.latitude,
             lng: startPoint.longitude,
           }}
-          label={{
-            text: 'INICIO',
-            color: '#ffffff',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            className: 'bg-emerald-600 px-2 py-0.5 rounded shadow-md',
-          }}
-          icon={{
-            url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-          }}
+          zIndex={150}
+          icon={startIcon}
         />
       )}
       {endPoint && (
@@ -218,16 +252,8 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
             lat: endPoint.latitude,
             lng: endPoint.longitude,
           }}
-          label={{
-            text: 'FIN',
-            color: '#ffffff',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            className: 'bg-red-600 px-2 py-0.5 rounded shadow-md',
-          }}
-          icon={{
-            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-          }}
+          zIndex={150}
+          icon={endIcon}
         />
       )}
     </>
