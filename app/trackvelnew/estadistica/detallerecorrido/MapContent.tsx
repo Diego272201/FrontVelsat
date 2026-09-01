@@ -10,6 +10,7 @@ import {
   MarkerClustererF,
 } from '@react-google-maps/api';
 import axios from 'axios';
+import Image from 'next/image';
 import '@/app/styles/markers.css';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast, Toaster } from 'sonner';
@@ -278,8 +279,6 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
   onToggle,
   onClose,
 }: VehicleMarkerLayerProps) {
-  if (!show || !point) return null;
-
   const vehicleIcon = useMemo(() => {
     if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
     return {
@@ -288,6 +287,8 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
       anchor: new window.google.maps.Point(19, 19),
     };
   }, []);
+
+  if (!show || !point) return null;
 
   return (
     <MarkerF
@@ -311,9 +312,11 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
               )} px-3 py-2 flex items-center justify-between font-bold tracking-wide text-xs transition-colors duration-300`}
             >
               <div className="flex items-center gap-1.5">
-                <img
+                <Image
                   src="/UnidadK.webp"
                   alt="Car"
+                  width={16}
+                  height={16}
                   className="h-4 w-4 object-contain filter brightness-0 invert"
                 />
                 <span>{(deviceId || 'Unidad').toUpperCase()}</span>
