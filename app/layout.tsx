@@ -3,7 +3,12 @@ import './globals.css';
 import { ApiProvider } from '@/context/ApiContext';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import type { Viewport } from 'next';
 import ConditionalMapsWrapper from '@/app/components/ConditionalMapsWrapper';
+
+export const viewport: Viewport = {
+  themeColor: '#172554',
+};
 
 export default function RootLayout({
   children,
@@ -17,6 +22,8 @@ export default function RootLayout({
           name="Sistema web Velsat"
           content="Empresa peruana con 15 años de experiencia en gestión de flotas mediante geolocalización. Ofrecemos plataformas móviles y web para monitoreo y control logístico, garantizando seguridad en el transporte."
         />
+        <meta name="theme-color" content="#172554" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
       </head>
 
