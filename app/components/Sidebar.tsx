@@ -266,14 +266,19 @@ const filteredUnidades = useMemo(() => {
 
         <div className="menu">
           <div className="unidades bg-[#113EB9]">
-            <div className="flex justify-between items-center">
-              <span>TOTAL DE UNIDADES: {filteredUnidades.length}</span>
-         
-            </div>
+            <span>TOTAL DE UNIDADES: {filteredUnidades.length}</span>
             <div className="imap">
-              <a href="#" onClick={centerMap}>
-                <TbView360 size={23} />
-              </a>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  centerMap();
+                }}
+                className="hover:text-blue-200 transition-colors p-1 flex items-center justify-center rounded focus:outline-none"
+                title="Centrar mapa general"
+              >
+                <TbView360 size={22} />
+              </button>
             </div>
           </div>
 
