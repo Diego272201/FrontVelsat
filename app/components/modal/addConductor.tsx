@@ -278,7 +278,7 @@ export default function ConductorDialog({
                   <SelectTrigger className={inputClass}>
                     <SelectValue placeholder="Seleccione" />
                   </SelectTrigger>
-                  <SelectContent className="border-gray-200 bg-white shadow-lg">
+                  <SelectContent portal={false} className="border-gray-200 bg-white shadow-lg">
                     <SelectItem value="masculino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
                       Masculino
                     </SelectItem>
@@ -420,7 +420,7 @@ export default function ConductorDialog({
                     <SelectTrigger className={inputClass}>
                       <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
-                    <SelectContent className="border-gray-200 bg-white shadow-lg">
+                    <SelectContent portal={false} className="border-gray-200 bg-white shadow-lg">
                       <SelectItem value="Tdp Menores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
                         Tdp Menores
                       </SelectItem>
