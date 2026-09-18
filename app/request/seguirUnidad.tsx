@@ -152,8 +152,9 @@ export default function SeguirUnidadPage({
       }
 
       // Alto real del popup; si aún no se pintó, un valor aproximado
+      const popupContainer: HTMLDivElement = popup2.containerDiv;
       const popupHeight =
-        popup2.containerDiv
+        popupContainer
           .querySelector<HTMLElement>('[id^="content2-"]')
           ?.getBoundingClientRect().height || POPUP_DETAIL_HEIGHT;
 
