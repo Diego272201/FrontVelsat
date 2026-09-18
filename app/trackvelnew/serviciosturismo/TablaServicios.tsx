@@ -187,12 +187,12 @@ const TablaServicios: React.FC<{
             <div className="text-center">
               <p className="text-sm font-medium text-gray-500">
                 {totalSinFiltrar === 0
-                  ? 'No se encontraron servicios de turismo con placa registrada en el sistema'
+                  ? 'No se encontraron servicios de turismo'
                   : 'Ningún servicio coincide con el piloto u hora seleccionados'}
               </p>
               <p className="mt-1 text-[12px] text-gray-400">
                 {totalSinFiltrar === 0
-                  ? 'Prueba seleccionando otra fecha, o verifica que el bus/placa del servicio coincida con una unidad registrada'
+                  ? 'Prueba seleccionando otra fecha'
                   : 'Prueba con otro nombre de piloto o cambia el filtro de hora'}
               </p>
             </div>

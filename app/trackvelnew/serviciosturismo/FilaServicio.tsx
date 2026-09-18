@@ -11,6 +11,7 @@ import {
   Loader2,
   Clock,
   Eye,
+  EyeOff,
   CheckCircle2,
   XCircle,
   CalendarClock,
@@ -286,7 +287,14 @@ const FilaServicio: React.FC<{
           {servicio.tipounidad || '-'}
         </td>
         <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('bus', 'placa')}`}>
-          {servicio.placaCombinada || '-'}
+          <span className="inline-flex items-center gap-1">
+            {servicio.placaCombinada || '-'}
+            {servicio.placaNoRegistrada && (
+              <span title="Placa no registrada en el sistema: el conductor no ve este servicio en su app">
+                <EyeOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+              </span>
+            )}
+          </span>
         </td>
         <td className={`max-w-[180px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('piloto')}`}>
           {servicio.piloto || '-'}

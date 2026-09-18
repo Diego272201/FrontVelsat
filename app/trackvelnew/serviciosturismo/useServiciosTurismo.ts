@@ -365,10 +365,11 @@ export function useServiciosTurismo() {
     };
   }, [isReady, sincronizarCola]);
 
-  // Unidades (placas) ya registradas en el sistema; solo esas se muestran en la tabla de servicios.
-  // Si falla por red/backend caído, se cae a la última lista guardada en localStorage: sin esto,
-  // un fallo acá deja unidadesRegistradas vacío y serviciosVisibles filtra TODA la tabla (solo
-  // pasarían servicios sin placa asignada), aunque el snapshot de servicios sí esté completo.
+  // Unidades (placas) ya registradas en el sistema: se usan para marcar placaNoRegistrada
+  // en cada servicio (el conductor no ve en su app los servicios con esa marca), pero ya
+  // no se ocultan de la tabla web. Si falla por red/backend caído, se cae a la última lista
+  // guardada en localStorage: sin esto, un fallo acá deja unidadesRegistradas vacío y todos
+  // los servicios con placa quedarían marcados como no registrados aunque sí lo estén.
   useEffect(() => {
     if (!isReady || !username) return;
     const claveCache = `serviciosturismo_unidadesRegistradas_${username}`;
@@ -433,17 +434,19 @@ export function useServiciosTurismo() {
     fetchServicios(fecha);
   }, [isReady, fecha, fetchServicios]);
 
+  // Ya no se ocultan los servicios con placa no registrada (el conductor de todos modos
+  // no los ve en la app móvil, que sí filtra) — se muestran igual en la tabla, marcados
+  // con placaNoRegistrada para que el operador vea que ese servicio no le llega al conductor.
   const serviciosVisibles = useMemo<ServicioTurismoVista[]>(() => {
-    return servicios
-      .map((servicio) => ({
+    return servicios.map((servicio) => {
+      const placaCombinada = combinarPlaca(servicio.bus, servicio.placa);
+      return {
         ...servicio,
-        placaCombinada: combinarPlaca(servicio.bus, servicio.placa),
-      }))
-      .filter(
-        (servicio) =>
-          servicio.placaCombinada === '' ||
-          unidadesRegistradas.has(servicio.placaCombinada.toUpperCase()),
-      );
+        placaCombinada,
+        placaNoRegistrada:
+          placaCombinada !== '' && !unidadesRegistradas.has(placaCombinada.toUpperCase()),
+      };
+    });
   }, [servicios, unidadesRegistradas]);
 
   const listaUnidades = useMemo(
