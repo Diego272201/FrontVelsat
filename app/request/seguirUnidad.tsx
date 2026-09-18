@@ -77,6 +77,9 @@ interface FechaActual {
   fechaActual: string;
 }
 
+// Alto aproximado del popup de detalle, usado solo antes de que se pinte
+const POPUP_DETAIL_HEIGHT = 230;
+
 interface Props {
   deviceId?: string;
   height?: string;
@@ -127,7 +130,46 @@ export default function SeguirUnidadPage({
     title: string;
   } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const markerDataRef = useRef<MarkerData | null>(null);
+
+  /**
+   * Centro del mapa para ver la unidad. El popup de detalle crece hacia
+   * arriba desde el marcador: si está abierto, el marcador se baja la mitad
+   * del alto del popup para que marcador y popup queden centrados juntos
+   * (si no, el popup se corta por arriba). Con el popup cerrado, el marcador
+   * va al centro exacto.
+   */
+  const getUnitViewCenter = useCallback(
+    (map: google.maps.Map, lat: number, lng: number) => {
+      const position = new google.maps.LatLng(lat, lng);
+      const popup2 = markerDataRef.current?.popup2;
+      const projection = map.getProjection();
+      const zoom = map.getZoom();
+
+      if (!popup2?.getMap() || !projection || zoom === undefined) {
+        return position;
+      }
+
+      // Alto real del popup; si aún no se pintó, un valor aproximado
+      const popupHeight =
+        popup2.containerDiv
+          .querySelector<HTMLElement>('[id^="content2-"]')
+          ?.getBoundingClientRect().height || POPUP_DETAIL_HEIGHT;
+
+      const point = projection.fromLatLngToPoint(position);
+      if (!point) return position;
+
+      // En coordenadas de mundo un píxel mide 1 / 2^zoom
+      const offset = popupHeight / 2 / 2 ** zoom;
+      return (
+        projection.fromPointToLatLng(
+          new google.maps.Point(point.x, point.y - offset),
+        ) ?? position
+      );
+    },
+    [],
+  );
   const staticMarkersRef = useRef<StaticMarkerData[]>([]);
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
 
@@ -455,10 +497,13 @@ useEffect(() => {
         markerData.popup1.position = position;
         markerData.popup2.position = position;
 
-        map.panTo({
-          lat: device.lastValidLatitude,
-          lng: device.lastValidLongitude,
-        });
+        map.panTo(
+          getUnitViewCenter(
+            map,
+            device.lastValidLatitude,
+            device.lastValidLongitude,
+          ),
+        );
 
         // Update icon
         const newIcon = getMarkerIcon(device.lastValidHeading);
@@ -488,6 +533,13 @@ useEffect(() => {
                   markerData.popup1.setMap(map);
                   setIsStreetViewOpen(false);
                   setStreetViewData(null);
+                  // Sin el popup, la unidad vuelve al centro exacto
+                  const current = markerData.marker.getPosition();
+                  if (current) {
+                    map.panTo(
+                      getUnitViewCenter(map, current.lat(), current.lng()),
+                    );
+                  }
                 });
               }
             }, 10);
@@ -538,18 +590,23 @@ useEffect(() => {
           icon: icon || undefined,
         });
 
-        let popup2IsOpen = true;
+        const recenter = () => {
+          const current = marker.getPosition();
+          if (!current) return;
+          map.panTo(getUnitViewCenter(map, current.lat(), current.lng()));
+        };
 
         marker.addListener('click', () => {
-          if (!popup2IsOpen) {
+          // El estado real es si el popup está en el mapa (la X también lo cierra)
+          if (!popup2.getMap()) {
             popup1.setMap(null);
             popup2.setMap(map);
-            popup2IsOpen = true;
           } else {
             popup2.setMap(null);
             popup1.setMap(map);
-            popup2IsOpen = false;
           }
+          // Esperar a que el popup se pinte para medir su alto
+          window.setTimeout(recenter, 50);
         });
 
         // Add close button event listener for popup2
@@ -560,10 +617,22 @@ useEffect(() => {
               e.stopPropagation();
               popup2.setMap(null);
               popup1.setMap(map);
-              popup2IsOpen = false;
+              recenter();
             });
           }
         }, 100);
+
+        // El popup nace abierto: al primer pintado se ajusta el centro para
+        // que entre completo
+        window.setTimeout(() => {
+          map.setCenter(
+            getUnitViewCenter(
+              map,
+              device.lastValidLatitude,
+              device.lastValidLongitude,
+            ),
+          );
+        }, 150);
 
         markerDataRef.current = {
           marker,
@@ -572,7 +641,7 @@ useEffect(() => {
         };
       }
     },
-    [device, getMarkerIcon, getPopupContent],
+    [device, getMarkerIcon, getPopupContent, getUnitViewCenter],
   );
 
   const handleMapLoad = useCallback(
@@ -619,6 +688,27 @@ useEffect(() => {
     iconCache.current = {};
     mapOnUnmount();
   }, [mapOnUnmount]);
+
+  // Al entrar o salir de pantalla completa cambia el tamaño del mapa:
+  // se vuelve a centrar en la unidad una vez aplicado el nuevo tamaño.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !device) return;
+
+    const timer = window.setTimeout(() => {
+      map.setCenter(
+        getUnitViewCenter(
+          map,
+          device.lastValidLatitude,
+          device.lastValidLongitude,
+        ),
+      );
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+    // Solo debe dispararse con el cambio de pantalla completa
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFullscreen]);
 
   useEffect(() => {
     if (device && mapLoaded && mapRef.current && !hasInitialCentered) {
@@ -710,6 +800,7 @@ const handleGenerateLink = async () => {
   return (
     <div
       id="map-container"
+      ref={containerRef}
       className={`relative ${isFullscreen ? 'h-screen w-screen' : 'w-full'}`}
       style={{
         height: isFullscreen ? '100vh' : height,
@@ -801,6 +892,11 @@ const handleGenerateLink = async () => {
         center={initialCenter}
         zoom={6}
         controlsPositionClassName="top-3 right-4"
+        // Embebido con alto fijo (p. ej. el modal de servicios): el mapa debe
+        // medir lo mismo que su contenedor para que el centro sea el visible
+        className={height ? 'h-full' : ''}
+        mapHeight={height ? '100%' : undefined}
+        fullscreenTargetRef={containerRef}
       />
 
       {currentStreetViewData && (

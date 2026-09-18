@@ -19,12 +19,19 @@ interface MapFloatingControlsProps {
   map: google.maps.Map | null;
   onCenterMap?: () => void;
   positionClassName?: string;
+  /**
+   * Elemento que se pone en pantalla completa. Sin él se usa la página
+   * entera; los mapas embebidos (p. ej. dentro de un modal) pasan su propio
+   * contenedor para que solo el mapa ocupe la pantalla.
+   */
+  fullscreenTargetRef?: React.RefObject<HTMLElement>;
 }
 
 export default function MapFloatingControls({
   map,
   onCenterMap,
   positionClassName = 'top-16 right-4',
+  fullscreenTargetRef,
 }: MapFloatingControlsProps) {
   const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>('roadmap');
   const [trafficActive, setTrafficActive] = useState(true);
@@ -294,11 +301,12 @@ export default function MapFloatingControls({
 
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(console.error);
+      const target = fullscreenTargetRef?.current ?? document.documentElement;
+      target.requestFullscreen().catch(console.error);
     } else {
       document.exitFullscreen().catch(console.error);
     }
-  }, []);
+  }, [fullscreenTargetRef]);
 
   if (!map) return null;
 
