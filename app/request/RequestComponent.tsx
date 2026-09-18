@@ -970,7 +970,6 @@ export default function RequestPage() {
           followedDeviceIdRef.current = device.deviceId;
           setFollowedDeviceId(device.deviceId);
           updateCameraButtonStates(device.deviceId);
-          toast.success(`Cámara fija: ${device.deviceId.toUpperCase()}`);
         } else {
           popup2.setMap(null);
         }
@@ -1243,7 +1242,6 @@ export default function RequestPage() {
         followedDeviceIdRef.current = null;
         setFollowedDeviceId(null);
         updateCameraButtonStates(null);
-        toast.info(`Cámara fija desactivada`);
       } else {
         followedDeviceIdRef.current = deviceId;
         setFollowedDeviceId(deviceId);
@@ -1259,7 +1257,6 @@ export default function RequestPage() {
             mapRef.current.setZoom(16);
           }
         }
-        toast.success(`Cámara fija: ${deviceId.toUpperCase()}`);
       }
     },
     [deviceList, updateCameraButtonStates],
@@ -1365,7 +1362,6 @@ export default function RequestPage() {
           followedDeviceIdRef.current = deviceID;
           setFollowedDeviceId(deviceID);
           updateCameraButtonStates(deviceID);
-          toast.success(`Cámara fija: ${deviceID.toUpperCase()}`);
         }
       }
     },
@@ -1506,7 +1502,6 @@ export default function RequestPage() {
             followedDeviceIdRef.current = null;
             setFollowedDeviceId(null);
             updateCameraButtonStates(null);
-            toast.info('Cámara fija desactivada');
           }}
         />
       )}

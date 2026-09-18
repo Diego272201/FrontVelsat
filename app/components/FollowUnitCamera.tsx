@@ -141,7 +141,7 @@ export default function FollowUnitCamera({
   return (
     <aside
       aria-label="Cámara fija de unidad"
-      className="fixed bottom-4 right-4 z-[990] select-none rounded-lg  text-white transition-all duration-200 overflow-hidden w-[340px] max-w-[calc(100vw-32px)]"
+      className="fixed bottom-4 right-4 z-[990] select-none rounded-md  transition-all duration-200 overflow-hidden w-[340px] max-w-[calc(100vw-32px)]"
       style={{ backgroundColor: '#113EB9' }}
     >
       {/* Cabecera superior interactiva en el azul del topbar (#113EB9) sin sombra */}
