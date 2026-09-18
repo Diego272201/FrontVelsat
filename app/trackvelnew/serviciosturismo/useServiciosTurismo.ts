@@ -1060,7 +1060,7 @@ export function useServiciosTurismo() {
   // la notificación se envía cuando `sincronizarCola` termine de subir el lote.
   const cargarServiciosExcel = useCallback(
     async (
-      registros: Record<string, unknown>[],
+      registros: { brevete?: string | null; cobrevete?: string | null }[],
     ): Promise<{
       ok: boolean;
       offline: boolean;
@@ -1099,10 +1099,7 @@ export function useServiciosTurismo() {
 
         if (res.ok) {
           let notificacionesEnviadas = 0;
-          const telefonos = resolverTelefonosConductoresDesdeBrevete(
-            registros as { brevete?: string | null; cobrevete?: string | null }[],
-            conductores,
-          );
+          const telefonos = resolverTelefonosConductoresDesdeBrevete(registros, conductores);
           if (telefonos.length > 0) {
             try {
               const resultadoWa = await enviarAlertasWhatsappLote(telefonos);
