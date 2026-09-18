@@ -47,8 +47,15 @@ export interface AuditoriaCampo {
 
 export interface ServicioTurismoVista extends ServicioTurismo {
   placaCombinada: string;
+  // true cuando la placa no está en el catálogo de unidades registradas: el servicio
+  // se sigue mostrando en la tabla, pero el conductor NO lo ve en su app móvil.
+  placaNoRegistrada: boolean;
 }
 
+// Claves de ServicioTurismoVista cuyo valor es siempre string | null
+// (excluye las numéricas: idservicio, visto, confirmado, finalizado, cancelado, standby y reprogramado;
+// ultimaModificacion, que es un objeto, no texto; placaNoRegistrada, que es un booleano; y
+// _pendingSync, que es un flag del front).
 export type CampoTexto = Exclude<
   keyof ServicioTurismoVista,
   | 'idservicio'
@@ -59,6 +66,7 @@ export type CampoTexto = Exclude<
   | 'standby'
   | 'reprogramado'
   | 'ultimaModificacion'
+  | 'placaNoRegistrada'
   | '_pendingSync'
 >;
 

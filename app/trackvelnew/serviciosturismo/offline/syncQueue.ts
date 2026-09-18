@@ -1,5 +1,5 @@
-import { API_BASE } from '../constants';
-import { OperacionPendiente, PayloadCrear, PayloadEditar } from './types';
+import { API_BASE, API_LOTE_URL } from '../constants';
+import { OperacionPendiente, PayloadCargaExcel, PayloadCrear, PayloadEditar } from './types';
 
 export function esFalloDeRed(error: unknown, response?: Response): boolean {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
@@ -68,6 +68,15 @@ export async function ejecutarOperacionPendiente(
           method: 'PATCH',
         });
         break;
+      case 'cargaExcel': {
+        const { registros } = op.payload as PayloadCargaExcel;
+        res = await fetch(API_LOTE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registros),
+        });
+        break;
+      }
     }
 
     if (res.ok) return { ok: true };

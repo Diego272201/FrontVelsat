@@ -12,6 +12,7 @@ import {
 import { Conductor } from './SelectBuscable';
 import FilaServicio from './FilaServicio';
 import FiltroColumna from './FiltroColumna';
+import { TipoPlantillaWhatsapp } from './whatsappAlerta';
 
 const COLUMNAS_FILTRABLES: { key: ColumnaFiltrable; titulo: string }[] = [
   { key: 'fechainicio', titulo: 'FECHA' },
@@ -56,6 +57,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby: (servicio: ServicioTurismoVista) => void;
   onReanudar: (servicio: ServicioTurismoVista) => void;
   procesandoStandbyId: number | null;
+  onNotificarConductor: (servicio: ServicioTurismoVista, tipo: TipoPlantillaWhatsapp) => void;
+  notificandoConductorId: number | null;
   auditoriaPorServicio: Record<number, AuditoriaCampo[]>;
   cargandoAuditoriaId: number | null;
   opcionesAvanzadasDesbloqueado: boolean;
@@ -87,6 +90,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby,
   onReanudar,
   procesandoStandbyId,
+  onNotificarConductor,
+  notificandoConductorId,
   auditoriaPorServicio,
   cargandoAuditoriaId,
   opcionesAvanzadasDesbloqueado,
@@ -173,6 +178,8 @@ const TablaServicios: React.FC<{
                 onPonerEnStandby={() => onPonerEnStandby(servicio)}
                 onReanudar={() => onReanudar(servicio)}
                 procesandoStandby={procesandoStandbyId === servicio.idservicio}
+                onNotificarConductor={(tipo) => onNotificarConductor(servicio, tipo)}
+                notificandoConductor={notificandoConductorId === servicio.idservicio}
                 auditoria={auditoriaPorServicio[servicio.idservicio]}
                 cargandoAuditoria={cargandoAuditoriaId === servicio.idservicio}
                 puedeVerHistorial={opcionesAvanzadasDesbloqueado}
@@ -186,12 +193,12 @@ const TablaServicios: React.FC<{
             <div className="text-center">
               <p className="text-sm font-medium text-gray-500">
                 {totalSinFiltrar === 0
-                  ? 'No se encontraron servicios de turismo con placa registrada en el sistema'
+                  ? 'No se encontraron servicios de turismo'
                   : 'Ningún servicio coincide con el piloto u hora seleccionados'}
               </p>
               <p className="mt-1 text-[12px] text-gray-400">
                 {totalSinFiltrar === 0
-                  ? 'Prueba seleccionando otra fecha, o verifica que el bus/placa del servicio coincida con una unidad registrada'
+                  ? 'Prueba seleccionando otra fecha'
                   : 'Prueba con otro nombre de piloto o cambia el filtro de hora'}
               </p>
             </div>

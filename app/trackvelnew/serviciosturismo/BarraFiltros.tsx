@@ -29,7 +29,7 @@ interface BarraFiltrosProps {
   tiposUnidadDisponibles: string[];
   estadoFiltro: string | null;
   onToggleEstadoFiltro: (sigla: string) => void;
-  conteosEstado: { F: number; VC: number; CC: number };
+  conteosEstado: { F: number; VC: number; CC: number; PLACA_DESCONOCIDA: number };
   isVisible: boolean;
   onToggleVisible: () => void;
   deshabilitado: boolean;
@@ -381,7 +381,7 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
           <button
             type="button"
             onClick={() => onToggleEstadoFiltro('CC')}
-            title="Filtrar por Cerrado y conforme"
+            title="Filtrar por Confirmado por conductor"
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
               estadoFiltro === 'CC'
                 ? 'bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500'
@@ -389,9 +389,26 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span>CC · Cerrado y conforme</span>
+            <span>CC · Confirmado por conductor</span>
             <span className="ml-1 rounded-full bg-white/80 px-1.5 py-0.2 text-[10px] font-bold">
               {conteosEstado.CC}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onToggleEstadoFiltro('PLACA_DESCONOCIDA')}
+            title="Filtrar por placa no registrada en el sistema (el conductor no ve estos servicios en su app)"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+              estadoFiltro === 'PLACA_DESCONOCIDA'
+                ? 'bg-orange-100 text-orange-800 ring-2 ring-orange-500'
+                : 'bg-orange-50 text-orange-700 border border-orange-200/80 hover:bg-orange-100/70'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+            <span>Placa desconocida</span>
+            <span className="ml-1 rounded-full bg-white/80 px-1.5 py-0.2 text-[10px] font-bold">
+              {conteosEstado.PLACA_DESCONOCIDA}
             </span>
           </button>
         </div>

@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
-import { CheckCircle, Eye, MessageCircle, PlusCircle } from 'lucide-react';
+import { CheckCircle, Eye, PlusCircle } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { useUsername } from '@/hooks/useUsername';
 import { API_TAXI } from './constants';
@@ -13,7 +13,6 @@ import {
   SelectPlacaBuscable,
   SelectTipoUnidad,
 } from './SelectBuscable';
-import { ResultadoAlertasWhatsapp } from './whatsappAlerta';
 
 interface FormServicioTurismo {
   fechainicio: string;
@@ -44,14 +43,10 @@ interface FormServicioTurismo {
 interface ModalAgregarServicioTurismoProps {
   isOpen: boolean;
   onClose: () => void;
-  crearServicio: (
-    payload: Record<string, unknown>,
-    celularPiloto: string,
-  ) => Promise<{
+  crearServicio: (payload: Record<string, unknown>) => Promise<{
     ok: boolean;
     offline: boolean;
     mensaje: string;
-    whatsapp: ResultadoAlertasWhatsapp | null;
   }>;
   unidades: string[];
 }
@@ -168,9 +163,8 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
   const [showReporte, setShowReporte] = useState(false);
   const [reporte, setReporte] = useState<{
     mensaje: string;
-    whatsapp: ResultadoAlertasWhatsapp | null;
     offline: boolean;
-  }>({ mensaje: '', whatsapp: null, offline: false });
+  }>({ mensaje: '', offline: false });
   const { username, isReady } = useUsername();
 
   const actualizarCampo = (campo: keyof FormServicioTurismo) => (valor: string) => {
@@ -300,12 +294,11 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
         cotizacion: valorOVacio(form.cotizacion),
       };
 
-      const resultado = await crearServicio(payload, form.celular);
+      const resultado = await crearServicio(payload);
 
       if (resultado.ok) {
         setReporte({
           mensaje: resultado.mensaje,
-          whatsapp: resultado.whatsapp,
           offline: resultado.offline,
         });
         setShowReporte(true);
@@ -588,48 +581,9 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
                 <p className="font-bold text-green-700">{reporte.mensaje}</p>
               </div>
 
-              <div
-                className={`flex items-center gap-3 rounded-xl p-4 ${
-                  reporte.offline
-                    ? 'bg-amber-50'
-                    : reporte.whatsapp === null
-                      ? 'bg-gray-50'
-                      : reporte.whatsapp.enviados > 0
-                        ? 'bg-green-50'
-                        : 'bg-red-50'
-                }`}
-              >
-                <MessageCircle
-                  className={`h-6 w-6 flex-shrink-0 ${
-                    reporte.offline
-                      ? 'text-amber-600'
-                      : reporte.whatsapp === null
-                        ? 'text-gray-500'
-                        : reporte.whatsapp.enviados > 0
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                  }`}
-                />
-                <p
-                  className={`font-bold ${
-                    reporte.offline
-                      ? 'text-amber-700'
-                      : reporte.whatsapp === null
-                        ? 'text-gray-700'
-                        : reporte.whatsapp.enviados > 0
-                          ? 'text-green-700'
-                          : 'text-red-700'
-                  }`}
-                >
-                  {reporte.offline
-                    ? 'Sin conexión: la alerta de WhatsApp se enviará cuando el servicio se sincronice'
-                    : reporte.whatsapp === null
-                      ? 'No hay celular del piloto: no se envió alerta de WhatsApp'
-                      : reporte.whatsapp.enviados > 0
-                        ? 'Alerta de WhatsApp enviada al piloto'
-                        : 'No se pudo enviar la alerta de WhatsApp al piloto'}
-                </p>
-              </div>
+              <p className="text-center text-[12px] text-slate-500">
+                Recuerda notificar al conductor por WhatsApp desde la tabla de servicios.
+              </p>
             </div>
 
             <div className="rounded-b-2xl border-t border-gray-200 bg-gray-50 px-6 py-4">

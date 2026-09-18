@@ -26,6 +26,7 @@ const ServiciosTurismoPage: React.FC = () => {
     pendientesCount,
     sincronizando,
     crearServicio,
+    cargarServiciosExcel,
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,
@@ -71,6 +72,8 @@ const ServiciosTurismoPage: React.FC = () => {
     procesandoStandbyId,
     ponerEnStandby,
     reanudarServicio,
+    notificandoConductorId,
+    notificarConductor,
     notificaciones,
     auditoriaPorServicio,
     cargandoAuditoriaId,
@@ -175,7 +178,7 @@ const ServiciosTurismoPage: React.FC = () => {
       <ModalCargaExcelTurismo
         isOpen={showModalCarga}
         onClose={() => setShowModalCarga(false)}
-        onUploaded={() => fetchServicios(fecha)}
+        cargarServiciosExcel={cargarServiciosExcel}
       />
 
       <ModalAgregarServicioTurismo
@@ -214,6 +217,8 @@ const ServiciosTurismoPage: React.FC = () => {
           onPonerEnStandby={ponerEnStandby}
           onReanudar={reanudarServicio}
           procesandoStandbyId={procesandoStandbyId}
+          onNotificarConductor={notificarConductor}
+          notificandoConductorId={notificandoConductorId}
           auditoriaPorServicio={auditoriaPorServicio}
           cargandoAuditoriaId={cargandoAuditoriaId}
           opcionesAvanzadasDesbloqueado={opcionesAvanzadasDesbloqueado}
