@@ -181,6 +181,8 @@ export default function TepContent() {
   const [isVisible, setIsVisible] = useState(true);
   const [fileName, setFileName] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // Fecha de publicación: independiente de la fecha de "Carga de archivo".
+  const [fechaPublicar, setFechaPublicar] = useState<Date | null>(null);
   const [selectedEmpresa, setSelectedEmpresa] = useState<string>('');
 
   const [archivosRecientes, setArchivosRecientes] = useState<
@@ -374,7 +376,7 @@ export default function TepContent() {
       });
     }
 
-    if (!selectedDate || !empresaSeleccionada) {
+    if (!fechaPublicar || !empresaSeleccionada) {
       toast.error('Debe seleccionar una fecha y una empresa.');
       return;
     }
@@ -436,7 +438,7 @@ export default function TepContent() {
     });
 
     if (result.isConfirmed) {
-      const fecact = formatFechaAMD(selectedDate);
+      const fecact = formatFechaAMD(fechaPublicar);
       const toastId = toast.loading('Cargando...');
 
       try {
@@ -528,13 +530,6 @@ export default function TepContent() {
       if (intervaloRef.current) clearInterval(intervaloRef.current);
     };
   }, [guardar]);
-
-  function formatFechaDMY(date: Date): string {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
 
   return (
     <div className="containerTep bg-slate-50 flex flex-col h-screen w-full overflow-hidden">
@@ -718,6 +713,27 @@ export default function TepContent() {
   <Save className="h-3.5 w-3.5 text-[#166534]" />
   <span>Guardar</span>
 </button>
+
+              <input
+                type="date"
+                title="Fecha de publicación"
+                value={
+                  fechaPublicar
+                    ? `${fechaPublicar.getFullYear()}-${String(fechaPublicar.getMonth() + 1).padStart(2, '0')}-${String(fechaPublicar.getDate()).padStart(2, '0')}`
+                    : ''
+                }
+                onChange={(e) => {
+                  if (!e.target.value) {
+                    setFechaPublicar(null);
+                    return;
+                  }
+                  const [year, month, day] = e.target.value.split('-');
+                  setFechaPublicar(
+                    new Date(Number(year), Number(month) - 1, Number(day)),
+                  );
+                }}
+                className="h-8 rounded-md border border-slate-300 bg-white px-2.5 text-xs text-slate-700 focus:border-[#113EB9] focus:outline-none transition-colors"
+              />
 
               <button
                 type="button"
@@ -1032,7 +1048,7 @@ export default function TepContent() {
               modoVista={modoVista}
               onLimpiarRefReady={(fn) => (ejecutarGrupoCeroRef.current = fn)}
               setContadorGrupos={setContadorGrupos}
-              fechaSeleccionada={selectedDate}
+              fechaSeleccionada={fechaPublicar}
             />
 
             <ModalNuevoGrupo
@@ -1040,7 +1056,6 @@ export default function TepContent() {
               onClose={() => setModalNuevoGrupoOpen(false)}
               onRefrescarDatos={handleRefrescarDatos}
               empresaActual={empresaConfirmada || ''}
-              fechaActual={selectedDate ? formatFechaDMY(selectedDate) : ''}
               totalGruposActuales={datosServicios.totalGrupos}
             />
           </div>

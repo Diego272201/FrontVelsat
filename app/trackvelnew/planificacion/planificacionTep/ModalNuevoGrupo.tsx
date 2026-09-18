@@ -13,7 +13,6 @@ interface ModalNuevoGrupoProps {
   onClose: () => void;
   onRefrescarDatos: () => void; // Cambio: función para refrescar datos
   empresaActual: string;
-  fechaActual?: string;
   totalGruposActuales: number; // Nuevo: recibir el total de grupos actuales
 }
 
@@ -28,7 +27,6 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
   onClose,
   onRefrescarDatos,
   empresaActual,
-  fechaActual,
   totalGruposActuales = 0,
 }) => {
   const { username, isReady } = useUsername();
