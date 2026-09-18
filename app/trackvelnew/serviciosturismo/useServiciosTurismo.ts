@@ -15,6 +15,7 @@ import {
   construirFormDesdeServicio,
   getIsoToday,
   isoToDdMmYyyy,
+  calcularEstado,
 } from './utils';
 import {
   enviarAlertasWhatsappLote,
@@ -37,8 +38,6 @@ import {
 } from './offline/syncQueue';
 import { OperacionPendiente, TipoOperacionPendiente } from './offline/types';
 
-// Arma un ServicioTurismo "de vista previa" a partir del payload de creación, para mostrarlo
-// en la tabla de inmediato mientras el POST real está pendiente de sincronizar.
 function construirServicioOptimista(
   idservicio: number,
   campos: Record<string, unknown>,
@@ -88,8 +87,6 @@ export function useServiciosTurismo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // true cuando la tabla se está mostrando desde IndexedDB porque el último intento de traer
-  // la lista real falló por red/backend caído (no es un estado de error: hay data para mostrar).
   const [usandoCache, setUsandoCache] = useState(false);
   const [pendientesCount, setPendientesCount] = useState(0);
   const [sincronizando, setSincronizando] = useState(false);
@@ -107,24 +104,19 @@ export function useServiciosTurismo() {
   const [busquedaTexto, setBusquedaTexto] = useState('');
   const [horaFiltro, setHoraFiltro] = useState('');
   const [tipoUnidadFiltro, setTipoUnidadFiltro] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState<string | null>(null);
 
-  // Filtros de columna al estilo Excel: por columna, null = sin filtro (se muestra todo),
-  // o un array con los valores exactos (ya normalizados con trim) que deben quedar visibles.
   const [filtrosColumna, setFiltrosColumna] = useState<
     Partial<Record<ColumnaFiltrable, string[] | null>>
   >({});
 
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [formEdicion, setFormEdicion] = useState<EditFormServicio | null>(null);
-  // Servicio tal como estaba al entrar a edición: permite reenviar bus/placa sin reformatear
-  // cuando el usuario no tocó el selector de unidad (ver guardarEdicion).
   const [servicioEnEdicion, setServicioEnEdicion] =
     useState<ServicioTurismoVista | null>(null);
   const [motivoEdicion, setMotivoEdicion] = useState('');
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
-  // Historial de auditoría por servicio, cargado bajo demanda al expandir la fila (no se pide
-  // completo para toda la tabla de una vez).
   const [auditoriaPorServicio, setAuditoriaPorServicio] = useState<
     Record<number, AuditoriaCampo[]>
   >({});
@@ -141,10 +133,6 @@ export function useServiciosTurismo() {
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
 
-  // "Opciones avanzadas": clave hardcodeada que destraba el historial de cambios y el botón
-  // "Eliminar carga". Solo vive en memoria (useState): sobrevive a un fetchServicios (ej. click en
-  // "Consultar") porque el hook no se remonta, pero se pierde al recargar o cerrar la página.
-  // El desbloqueo no es automático al tipear: se confirma con un botón (verificarOpcionesAvanzadas).
   const [claveOpcionesAvanzadas, setClaveOpcionesAvanzadas] = useState('');
   const [opcionesAvanzadasDesbloqueado, setOpcionesAvanzadasDesbloqueado] =
     useState(false);
@@ -180,6 +168,7 @@ export function useServiciosTurismo() {
       setBusquedaTexto('');
       setHoraFiltro('');
       setTipoUnidadFiltro('');
+      setEstadoFiltro(null);
       setFiltrosColumna({});
     };
 
@@ -197,7 +186,6 @@ export function useServiciosTurismo() {
 
     try {
       const fechaParam = isoToDdMmYyyy(isoDate);
-      // Un solo input de fecha en la UI: se envía el mismo valor como fechaInicio y fechaFin.
       const res = await fetch(
         `${API_BASE}?fechaInicio=${fechaParam}&fechaFin=${fechaParam}`,
       );
@@ -212,7 +200,6 @@ export function useServiciosTurismo() {
 
       if (!res.ok) {
         if (esFalloDeRed(undefined, res)) {
-          // Backend caído/en mantenimiento (502/503/504): mismo tratamiento que sin red.
           await mostrarUltimaDataConocida();
           return;
         }
@@ -226,9 +213,6 @@ export function useServiciosTurismo() {
       guardarSnapshot(isoDate, lista);
       resetearFiltrosYSeleccion();
     } catch (err) {
-      // Sin red o backend caído: se muestra la última data conocida de esta fecha (si existe)
-      // en vez de vaciar la tabla. Importante: NO se resetean los filtros del usuario en este
-      // camino, a diferencia de una carga exitosa.
       if (esFalloDeRed(err)) {
         await mostrarUltimaDataConocida();
       } else {
@@ -241,10 +225,6 @@ export function useServiciosTurismo() {
     }
   }, []);
 
-  // Encola una mutación que no se pudo enviar por falta de red/backend caído, y refleja el
-  // cambio de inmediato en la tabla (optimistic update) marcado como "pendiente de sincronizar".
-  // servicioNuevo se usa para creación (inserta una fila con id temporal negativo); para el resto
-  // de operaciones se mergean cambiosOptimistas sobre el servicio existente.
   const encolarYAplicarOptimista = useCallback(
     async (params: {
       tipo: TipoOperacionPendiente;
@@ -288,9 +268,6 @@ export function useServiciosTurismo() {
     [fecha, mostrarNotificacion],
   );
 
-  // Recorre la cola en orden y reintenta cada operación contra el backend real. Se detiene ante
-  // el primer fallo de red (probablemente seguimos sin conexión); un error de negocio al
-  // sincronizar se descarta de la cola (no se reintenta indefinidamente) y se avisa al usuario.
   const sincronizarCola = useCallback(async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
@@ -340,16 +317,12 @@ export function useServiciosTurismo() {
     }
   }, [fecha, fetchServicios, mostrarNotificacion]);
 
-  // Al montar: cuenta lo que haya quedado pendiente de una sesión anterior (persistido en
-  // IndexedDB) para que el banner de "pendientes" no arranque en 0 mientras se sincroniza.
   useEffect(() => {
     listarOperacionesPendientes().then((pendientes) =>
       setPendientesCount(pendientes.length),
     );
   }, []);
 
-  // Reintenta la cola al recuperar conexión, y además con un intervalo de respaldo: el evento
-  // "online" del navegador no avisa si hay internet pero el backend sigue caído/en mantenimiento.
   useEffect(() => {
     if (!isReady) return;
 
@@ -365,10 +338,6 @@ export function useServiciosTurismo() {
     };
   }, [isReady, sincronizarCola]);
 
-  // Unidades (placas) ya registradas en el sistema; solo esas se muestran en la tabla de servicios.
-  // Si falla por red/backend caído, se cae a la última lista guardada en localStorage: sin esto,
-  // un fallo acá deja unidadesRegistradas vacío y serviciosVisibles filtra TODA la tabla (solo
-  // pasarían servicios sin placa asignada), aunque el snapshot de servicios sí esté completo.
   useEffect(() => {
     if (!isReady || !username) return;
     const claveCache = `serviciosturismo_unidadesRegistradas_${username}`;
@@ -389,7 +358,6 @@ export function useServiciosTurismo() {
         try {
           localStorage.setItem(claveCache, JSON.stringify(codigos));
         } catch {
-          // localStorage puede no estar disponible (modo privado, cuota llena); no es crítico.
         }
       } catch {
         let codigosCache: string[] = [];
@@ -407,7 +375,6 @@ export function useServiciosTurismo() {
     fetchUnidades();
   }, [isReady, username]);
 
-  // Conductores del usuario logueado, para autocompletar brevete/celular al elegir piloto o copiloto.
   useEffect(() => {
     if (!isReady || !username) return;
 
@@ -451,7 +418,6 @@ export function useServiciosTurismo() {
     [unidadesRegistradas],
   );
 
-  // Todas las horas de inicio presentes en los servicios cargados (para el select de filtro).
   const horasDisponibles = useMemo(() => {
     const horas = new Set<string>();
     serviciosVisibles.forEach((servicio) => {
@@ -460,7 +426,6 @@ export function useServiciosTurismo() {
     return Array.from(horas).sort();
   }, [serviciosVisibles]);
 
-  // Todos los tipos de unidad presentes en los servicios cargados (para el select de filtro).
   const tiposUnidadDisponibles = useMemo(() => {
     const tipos = new Set<string>();
     serviciosVisibles.forEach((servicio) => {
@@ -469,17 +434,12 @@ export function useServiciosTurismo() {
     return Array.from(tipos).sort();
   }, [serviciosVisibles]);
 
-  // Valor de cada columna filtrable tal como se compara/muestra en el panel: string vacío para
-  // null/undefined (se agrupa como "(Vacías)" en el filtro, igual que Excel).
   const valorColumna = useCallback(
     (servicio: ServicioTurismoVista, columna: ColumnaFiltrable): string =>
       (servicio[columna] as string | null) || '',
     [],
   );
 
-  // Valores únicos disponibles por columna, para poblar el panel "estilo Excel" de cada una.
-  // Se calculan sobre serviciosVisibles (antes de aplicar los propios filtros de columna) para que,
-  // al abrir el panel de una columna, sigan apareciendo las opciones que otros filtros ya ocultaron.
   const valoresPorColumna = useMemo(() => {
     const columnas: ColumnaFiltrable[] = [
       'fechainicio',
@@ -518,6 +478,29 @@ export function useServiciosTurismo() {
     (valores) => valores !== null && valores !== undefined,
   );
 
+  const conteosEstado = useMemo(() => {
+    let f = 0;
+    let vc = 0;
+    let cc = 0;
+    serviciosVisibles.forEach((servicio) => {
+      const est = calcularEstado(servicio);
+      if (est === 'Finalizado por Conductor') f++;
+      else if (est === 'Visto por Conductor') vc++;
+      else if (est === 'Confirmado por Conductor') cc++;
+    });
+    return { F: f, VC: vc, CC: cc };
+  }, [serviciosVisibles]);
+
+  const totalPilotos = useMemo(() => {
+    const pilotos = new Set<string>();
+    serviciosVisibles.forEach((servicio) => {
+      if (servicio.piloto && servicio.piloto.trim()) {
+        pilotos.add(servicio.piloto.trim().toUpperCase());
+      }
+    });
+    return pilotos.size;
+  }, [serviciosVisibles]);
+
   const serviciosFiltrados = useMemo(() => {
     const texto = busquedaTexto.trim().toLowerCase();
     const entradasFiltrosColumna = Object.entries(filtrosColumna) as [
@@ -541,8 +524,20 @@ export function useServiciosTurismo() {
         ([columna, valores]) =>
           !valores || valores.includes(valorColumna(servicio, columna)),
       );
+      const coincideEstado =
+        estadoFiltro === null ||
+        (estadoFiltro === 'F' &&
+          calcularEstado(servicio) === 'Finalizado por Conductor') ||
+        (estadoFiltro === 'VC' &&
+          calcularEstado(servicio) === 'Visto por Conductor') ||
+        (estadoFiltro === 'CC' &&
+          calcularEstado(servicio) === 'Confirmado por Conductor');
       return (
-        coincideTexto && coincideHora && coincideTipoUnidad && coincideColumnas
+        coincideTexto &&
+        coincideHora &&
+        coincideTipoUnidad &&
+        coincideColumnas &&
+        coincideEstado
       );
     });
   }, [
@@ -550,12 +545,11 @@ export function useServiciosTurismo() {
     busquedaTexto,
     horaFiltro,
     tipoUnidadFiltro,
+    estadoFiltro,
     filtrosColumna,
     valorColumna,
   ]);
 
-  // Trae el historial de auditoría de un servicio una sola vez (se cachea en auditoriaPorServicio);
-  // si ya se cargó (aunque esté vacío) no vuelve a pedirlo.
   const cargarAuditoria = useCallback(
     async (idservicio: number) => {
       if (auditoriaPorServicio[idservicio]) return;
@@ -625,11 +619,6 @@ export function useServiciosTurismo() {
     const valorOVacio = (valor: string) =>
       valor.trim() === '' ? null : valor.trim();
 
-    // El selector de unidad muestra "bus-placa" ya normalizado (combinarPlaca le quita
-    // puntuación a la placa para armar el código de unidad). Si el usuario no tocó ese
-    // selector, reenviar bus/placa tal cual venían del servicio (sin pasarlos por el
-    // split de abajo) evita que se pierda el formato original (ej. guiones en la placa)
-    // y que el backend detecte un "cambio" falso que resaltaba la celda en negrita.
     const placaSinTocar =
       servicioEnEdicion !== null &&
       formEdicion.placa === (servicioEnEdicion.placaCombinada || '');
@@ -682,9 +671,6 @@ export function useServiciosTurismo() {
       observaciones: valorOVacio(formEdicion.observaciones),
     };
 
-    // limpiarNulos=true: el formulario de edición envía el objeto completo, así que un campo
-    // que quedó en blanco debe borrarse en la BD (no simplemente "no tocar" ese campo).
-    // usuario/motivo quedan en la auditoría del backend por cada campo que realmente cambió.
     const params = new URLSearchParams({ limpiarNulos: 'true' });
     if (username) params.set('usuario', username);
     if (motivoEdicion.trim() !== '') params.set('motivo', motivoEdicion.trim());
@@ -746,8 +732,7 @@ export function useServiciosTurismo() {
                 );
               }
             })
-            .catch((error) => {
-              console.error('Error al enviar alerta de WhatsApp:', error);
+            .catch(() => {
               mostrarNotificacion(
                 'error',
                 'Error de conexión al enviar la alerta de WhatsApp',
@@ -755,7 +740,6 @@ export function useServiciosTurismo() {
             });
         }
 
-        // El historial cacheado de este servicio quedó desactualizado tras el guardado.
         setAuditoriaPorServicio((prev) => {
           const { [editandoId]: _descartado, ...resto } = prev;
           return resto;
@@ -944,9 +928,6 @@ export function useServiciosTurismo() {
     [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
   );
 
-  // Borra físicamente TODOS los servicios de la fecha consultada (deshacer una carga de Excel
-  // completa). Requiere haber destrabado "Opciones avanzadas". Acción irreversible: se confirma
-  // con ModalConfirmarEliminarCarga antes de llamar al endpoint.
   const solicitarEliminarCarga = useCallback(() => {
     if (!opcionesAvanzadasDesbloqueado) return;
     setMostrarModalEliminarCarga(true);
@@ -989,9 +970,6 @@ export function useServiciosTurismo() {
     }
   }, [fecha, fetchServicios, mostrarNotificacion]);
 
-  // Crea un servicio nuevo. Si no hay red/backend, lo guarda con un id temporal (negativo) y
-  // lo encola para sincronizar; el WhatsApp al piloto recién se dispara cuando eso ocurra de
-  // verdad. Usada por ModalAgregarServicioTurismo, que arma "campos" a partir de su formulario.
   const crearServicio = useCallback(
     async (
       campos: Record<string, unknown>,
@@ -1038,8 +1016,7 @@ export function useServiciosTurismo() {
           if (celularPiloto.trim() !== '') {
             try {
               whatsapp = await enviarAlertasWhatsappLote([celularPiloto]);
-            } catch (error) {
-              console.error('Error al enviar alerta de WhatsApp:', error);
+            } catch {
             }
           }
           fetchServicios(fecha);
@@ -1096,6 +1073,10 @@ export function useServiciosTurismo() {
     setHoraFiltro,
     tipoUnidadFiltro,
     setTipoUnidadFiltro,
+    estadoFiltro,
+    setEstadoFiltro,
+    conteosEstado,
+    totalPilotos,
     valoresPorColumna,
     filtrosColumna,
     setFiltroColumna,

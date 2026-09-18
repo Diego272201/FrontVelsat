@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import {
   GoogleMap,
   useJsApiLoader,
@@ -70,6 +70,22 @@ const calculateTotalDistance = (points: UnidadDetalleRecorrido[]) => {
   return total;
 };
 
+// `window.google.maps` ya existe mientras el API todavía se está arrancando,
+// pero sus constructores (Size, Point, LatLngBounds...) aparecen después.
+// Comprobar solo el namespace hacía que el componente los instanciara antes de
+// tiempo y reventara con "window.google.maps.Size is not a constructor".
+const isMapsApiReady = () =>
+  typeof window !== 'undefined' &&
+  typeof (window as any).google?.maps?.Size === 'function' &&
+  typeof (window as any).google?.maps?.Point === 'function' &&
+  typeof (window as any).google?.maps?.LatLngBounds === 'function';
+
+// Los enlaces móviles envían "YYYY-MM-DD HH:mm" y los de escritorio
+// "YYYY-MM-DDTHH:mm". Normalizamos a un único formato para que ambas rutas
+// consulten la API y muestren la cabecera exactamente igual.
+const normalizeDateParam = (value: string | null) =>
+  value ? value.replace(' ', 'T') : value;
+
 // Helper para formatear fecha y hora en formato 24h (DD/MM/YYYY HH:mm)
 const formatDateTime24h = (dateStr: string | null) => {
   if (!dateStr) return '';
@@ -132,6 +148,49 @@ const customInfoWindowStyles = `
   }
 `;
 
+const clusterStyles = [
+  {
+    url: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m1.png',
+    height: 53,
+    width: 53,
+    textColor: '#000000',
+    textSize: 11,
+    fontWeight: 'bold',
+  },
+  {
+    url: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m2.png',
+    height: 56,
+    width: 56,
+    textColor: '#000000',
+    textSize: 11,
+    fontWeight: 'bold',
+  },
+  {
+    url: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m3.png',
+    height: 66,
+    width: 66,
+    textColor: '#ffffff',
+    textSize: 12,
+    fontWeight: 'bold',
+  },
+  {
+    url: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m4.png',
+    height: 78,
+    width: 78,
+    textColor: '#ffffff',
+    textSize: 13,
+    fontWeight: 'bold',
+  },
+  {
+    url: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m5.png',
+    height: 90,
+    width: 90,
+    textColor: '#ffffff',
+    textSize: 14,
+    fontWeight: 'bold',
+  },
+];
+
 const injectStyles = () => {
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const existingStyle = document.getElementById('custom-infowindow-styles');
@@ -186,26 +245,26 @@ const RoutePolylineLayer = memo(function RoutePolylineLayer({
 });
 
 const START_ICON_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="68" height="52" viewBox="0 0 68 52">
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="64" viewBox="0 0 96 64">
   <filter id="start-shadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
   </filter>
-  <rect x="4" y="2" width="60" height="22" rx="11" fill="#059669" stroke="#ffffff" stroke-width="2" filter="url(#start-shadow)"/>
-  <text x="34" y="17" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" letter-spacing="0.5">INICIO</text>
-  <path d="M 34 24 L 34 46" stroke="#059669" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="34" cy="46" r="3.5" fill="#059669" stroke="#ffffff" stroke-width="1.5"/>
+  <path d="M 76 56 L 46 56 Q 36 56 36 46 L 36 26" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="4" y="2" width="64" height="24" rx="12" fill="#059669" stroke="#ffffff" stroke-width="2.5" filter="url(#start-shadow)"/>
+  <text x="36" y="14" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="extrabold" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">INICIO</text>
+  <circle cx="76" cy="56" r="4" fill="#059669" stroke="#ffffff" stroke-width="2"/>
 </svg>
 `)}`;
 
 const END_ICON_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" width="68" height="52" viewBox="0 0 68 52">
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="64" viewBox="0 0 96 64">
   <filter id="end-shadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
   </filter>
-  <rect x="8" y="2" width="52" height="22" rx="11" fill="#dc2626" stroke="#ffffff" stroke-width="2" filter="url(#end-shadow)"/>
-  <text x="34" y="17" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" letter-spacing="0.5">FIN</text>
-  <path d="M 34 24 L 34 46" stroke="#dc2626" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="34" cy="46" r="3.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.5"/>
+  <path d="M 20 56 L 50 56 Q 60 56 60 46 L 60 26" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="28" y="2" width="64" height="24" rx="12" fill="#dc2626" stroke="#ffffff" stroke-width="2.5" filter="url(#end-shadow)"/>
+  <text x="60" y="14" fill="#ffffff" font-size="11" font-family="system-ui, -apple-system, sans-serif" font-weight="extrabold" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">FIN</text>
+  <circle cx="20" cy="56" r="4" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
 </svg>
 `)}`;
 
@@ -218,20 +277,20 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
   endPoint?: UnidadDetalleRecorrido;
 }) {
   const startIcon = useMemo(() => {
-    if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
+    if (!isMapsApiReady()) return undefined;
     return {
       url: START_ICON_SVG,
-      scaledSize: new window.google.maps.Size(68, 52),
-      anchor: new window.google.maps.Point(34, 46),
+      scaledSize: new window.google.maps.Size(96, 64),
+      anchor: new window.google.maps.Point(76, 56),
     };
   }, []);
 
   const endIcon = useMemo(() => {
-    if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
+    if (!isMapsApiReady()) return undefined;
     return {
       url: END_ICON_SVG,
-      scaledSize: new window.google.maps.Size(68, 52),
-      anchor: new window.google.maps.Point(34, 46),
+      scaledSize: new window.google.maps.Size(96, 64),
+      anchor: new window.google.maps.Point(20, 56),
     };
   }, []);
 
@@ -243,7 +302,7 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
             lat: startPoint.latitude,
             lng: startPoint.longitude,
           }}
-          zIndex={150}
+          zIndex={500}
           icon={startIcon}
         />
       )}
@@ -253,7 +312,7 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
             lat: endPoint.latitude,
             lng: endPoint.longitude,
           }}
-          zIndex={150}
+          zIndex={500}
           icon={endIcon}
         />
       )}
@@ -280,7 +339,7 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
   onClose,
 }: VehicleMarkerLayerProps) {
   const vehicleIcon = useMemo(() => {
-    if (typeof window === 'undefined' || !(window as any).google?.maps) return undefined;
+    if (!isMapsApiReady()) return undefined;
     return {
       url: '/UnidadK.webp',
       scaledSize: new window.google.maps.Size(38, 38),
@@ -363,21 +422,139 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
   );
 });
 
-// 4. Capa agrupada de Puntos GPS (MarkerClustererF)
+const COLOR_MAP: Record<SpeedCategory, string> = {
+  stopped: '#dc2626',
+  slow: '#ea580c',
+  normal: '#16a34a',
+  fast: '#113EB9',
+};
+
+const getPointPinIcon = (category: SpeedCategory, num: number) => {
+  const color = COLOR_MAP[category] || '#113EB9';
+  const fontSize = num > 999 ? '9.5' : num > 99 ? '10.5' : '11.5';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
+  <filter id="p-shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.35"/>
+  </filter>
+  <path d="M 17 39 C 11 29 3 24 3 15 A 14 14 0 1 1 31 15 C 31 24 23 29 17 39 Z" fill="${color}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" filter="url(#p-shadow)"/>
+  <text x="17" y="15" fill="#ffffff" font-size="${fontSize}" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">${num}</text>
+</svg>`;
+
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new window.google.maps.Size(34, 42),
+    anchor: new window.google.maps.Point(17, 39),
+  };
+};
+
+// 4. Capa agrupada de Puntos GPS (MarkerClusterer de alto rendimiento sin sobrecarga de React)
 interface GPSPointsClusterLayerProps {
   markersData: UnidadDetalleRecorrido[];
   show: boolean;
   onSelectPoint: (point: UnidadDetalleRecorrido, index: number) => void;
-  pointIcons: Record<SpeedCategory, google.maps.Icon> | null;
 }
 
 const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
   markersData,
   show,
   onSelectPoint,
-  pointIcons,
 }: GPSPointsClusterLayerProps) {
-  if (!show || !pointIcons || markersData.length === 0) return null;
+  const clustererRef = useRef<any>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const attachedRef = useRef(false);
+  const builtForRef = useRef<UnidadDetalleRecorrido[] | null>(null);
+  const showRef = useRef(show);
+  showRef.current = show;
+  const onSelectPointRef = useRef(onSelectPoint);
+  onSelectPointRef.current = onSelectPoint;
+
+  // Desacopla los marcadores del mapa Y del clusterer.
+  // Vaciar la lista interna del clusterer es lo que garantiza que ningún
+  // redraw posterior (idle / zoom_changed) vuelva a pintar los puntos.
+  const detachMarkers = useCallback(() => {
+    const clusterer = clustererRef.current;
+    if (clusterer) {
+      clusterer.clearMarkers();
+    }
+    const markers = markersRef.current;
+    for (let i = 0; i < markers.length; i++) {
+      markers[i].setVisible(false);
+      markers[i].setMap(null);
+    }
+    attachedRef.current = false;
+  }, []);
+
+  const attachMarkers = useCallback(() => {
+    const clusterer = clustererRef.current;
+    const markers = markersRef.current;
+    if (!clusterer || attachedRef.current || markers.length === 0) return;
+
+    for (let i = 0; i < markers.length; i++) {
+      markers[i].setVisible(true);
+    }
+    clusterer.addMarkers(markers, false);
+    attachedRef.current = true;
+  }, []);
+
+  const destroyMarkers = useCallback(() => {
+    detachMarkers();
+    const markers = markersRef.current;
+    for (let i = 0; i < markers.length; i++) {
+      google.maps.event.clearInstanceListeners(markers[i]);
+    }
+    markersRef.current = [];
+    builtForRef.current = null;
+  }, [detachMarkers]);
+
+  // Crea los marcadores fuera del mapa; attachMarkers los publica luego
+  const buildMarkers = useCallback((dataList: UnidadDetalleRecorrido[]) => {
+    const newMarkers: google.maps.Marker[] = [];
+    for (let i = 0; i < dataList.length; i++) {
+      const data = dataList[i];
+      const category = getSpeedCategory(data.speed);
+      const icon = getPointPinIcon(category, i + 1);
+
+      const marker = new google.maps.Marker({
+        position: { lat: data.latitude, lng: data.longitude },
+        icon,
+        visible: false,
+      });
+
+      marker.addListener('click', () => {
+        onSelectPointRef.current(data, i);
+      });
+
+      newMarkers.push(marker);
+    }
+    markersRef.current = newMarkers;
+  }, []);
+
+  const sync = useCallback(
+    (dataList: UnidadDetalleRecorrido[], visible: boolean) => {
+      if (!clustererRef.current) return;
+
+      if (builtForRef.current !== dataList) {
+        destroyMarkers();
+        buildMarkers(dataList);
+        builtForRef.current = dataList;
+      }
+
+      if (visible) {
+        attachMarkers();
+      } else {
+        detachMarkers();
+      }
+    },
+    [attachMarkers, buildMarkers, destroyMarkers, detachMarkers],
+  );
+
+  useEffect(() => {
+    sync(markersData, show);
+  }, [markersData, show, sync]);
+
+  useEffect(() => destroyMarkers, [destroyMarkers]);
+
+  if (markersData.length === 0) return null;
 
   return (
     <MarkerClustererF
@@ -385,37 +562,19 @@ const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
         gridSize: 50,
         maxZoom: 16,
         minimumClusterSize: 15,
-        imagePath:
-          'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+        styles: clusterStyles,
+        ignoreHidden: true,
+      }}
+      onLoad={(clusterer) => {
+        clustererRef.current = clusterer;
+        sync(markersData, showRef.current);
+      }}
+      onUnmount={() => {
+        destroyMarkers();
+        clustererRef.current = null;
       }}
     >
-      {(clusterer) => (
-        <>
-          {markersData.map((markerData, index) => {
-            const category = getSpeedCategory(markerData.speed);
-            const icon = pointIcons[category];
-            return (
-              <MarkerF
-                key={index}
-                clusterer={clusterer}
-                position={{
-                  lat: markerData.latitude,
-                  lng: markerData.longitude,
-                }}
-                icon={icon}
-                label={{
-                  className: 'markerlabel',
-                  text: (index + 1).toString(),
-                  color: '#252424',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                }}
-                onClick={() => onSelectPoint(markerData, index)}
-              />
-            );
-          })}
-        </>
-      )}
+      {() => <></>}
     </MarkerClustererF>
   );
 });
@@ -514,8 +673,8 @@ const MapContent = () => {
   const searchParams = useSearchParams();
   const { baseUrl } = useApi();
 
-  const startDate = searchParams.get('startDate');
-  const endDate = searchParams.get('endDate');
+  const startDate = normalizeDateParam(searchParams.get('startDate'));
+  const endDate = normalizeDateParam(searchParams.get('endDate'));
   const deviceId = searchParams.get('deviceId');
 
   const [mapCenter, setMapCenter] = useState({
@@ -532,14 +691,14 @@ const MapContent = () => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isMarkersLoaded, setIsMarkersLoaded] = useState(false);
 
-  // Estados para Reproductor y Visualización avanzada
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [followVehicle, setFollowVehicle] = useState(true);
   const [showVehicle, setShowVehicle] = useState(true);
-  const [showAllPoints, setShowAllPoints] = useState(false);
+  const [showAllPoints, setShowAllPoints] = useState(true);
   const [showStatsPanel, setShowStatsPanel] = useState(true);
+  const [hasUserStarted, setHasUserStarted] = useState(false);
 
   const { isLoaded: isScriptLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -547,15 +706,12 @@ const MapContent = () => {
     libraries,
   });
 
-  const isLoaded =
-    isScriptLoaded ||
-    (typeof window !== 'undefined' && !!(window as any).google?.maps);
+  const isLoaded = isScriptLoaded || isMapsApiReady();
 
   // Ajustar cámara a los límites de la ruta
   const fitMapToBounds = useCallback(
     (points: UnidadDetalleRecorrido[]) => {
-      if (!map || points.length === 0 || typeof window === 'undefined' || !(window as any).google?.maps)
-        return;
+      if (!map || points.length === 0 || !isMapsApiReady()) return;
       const bounds = new window.google.maps.LatLngBounds();
       points.forEach((p) =>
         bounds.extend({ lat: p.latitude, lng: p.longitude }),
@@ -563,6 +719,31 @@ const MapContent = () => {
       map.fitBounds(bounds, 50);
     },
     [map],
+  );
+
+  const handleAjustarVista = useCallback(() => {
+    setIsPlaying(false);
+    setHasUserStarted(false);
+    setIsVehicleInfoOpen(false);
+    fitMapToBounds(markersData);
+  }, [fitMapToBounds, markersData]);
+
+  const focusAndOpenPoint = useCallback(
+    (targetIndex: number, forceZoom = true) => {
+      setHasUserStarted(true);
+      setShowVehicle(true);
+      setIsVehicleInfoOpen(true);
+      setCurrentIndex(targetIndex);
+
+      if (map && markersData[targetIndex]) {
+        const p = markersData[targetIndex];
+        map.panTo({ lat: p.latitude, lng: p.longitude });
+        if (forceZoom || (map.getZoom() && map.getZoom()! < 15)) {
+          map.setZoom(17);
+        }
+      }
+    },
+    [map, markersData],
   );
 
   const fetchData = useCallback(async () => {
@@ -674,8 +855,7 @@ const MapContent = () => {
 
   // Caché estático de iconos para evitar recreaciones por fotograma
   const pointIcons = useMemo(() => {
-    if (!isLoaded || typeof window === 'undefined' || !(window as any).google?.maps)
-      return null;
+    if (!isLoaded || !isMapsApiReady()) return null;
     const size = new window.google.maps.Size(26, 26);
     const anchor = new window.google.maps.Point(13, 13);
     return {
@@ -719,12 +899,7 @@ const MapContent = () => {
 
   // Auto-ajustar vista del mapa al cargar la ruta por defecto
   useEffect(() => {
-    if (
-      map &&
-      markersData.length > 0 &&
-      typeof window !== 'undefined' &&
-      (window as any).google?.maps
-    ) {
+    if (map && markersData.length > 0 && isMapsApiReady()) {
       const bounds = new window.google.maps.LatLngBounds();
       markersData.forEach((p) =>
         bounds.extend({ lat: p.latitude, lng: p.longitude }),
@@ -733,15 +908,32 @@ const MapContent = () => {
     }
   }, [map, markersData]);
 
-  // Centrar mapa dinámicamente si followVehicle está activo durante la reproducción
+  // Centrar mapa dinámicamente si followVehicle está activo durante la reproducción o selección
   useEffect(() => {
-    if (isPlaying && followVehicle && map && markersData[currentIndex]) {
+    if (isPlaying) {
+      setHasUserStarted(true);
+      setShowVehicle(true);
+      setIsVehicleInfoOpen(true);
+      if (map && markersData[currentIndex]) {
+        if (map.getZoom() && map.getZoom()! < 15) {
+          map.setZoom(17);
+        }
+        map.panTo({
+          lat: markersData[currentIndex].latitude,
+          lng: markersData[currentIndex].longitude,
+        });
+      }
+    }
+  }, [isPlaying, map, currentIndex, markersData]);
+
+  useEffect(() => {
+    if (hasUserStarted && followVehicle && map && markersData[currentIndex]) {
       map.panTo({
         lat: markersData[currentIndex].latitude,
         lng: markersData[currentIndex].longitude,
       });
     }
-  }, [currentIndex, isPlaying, followVehicle, map, markersData]);
+  }, [currentIndex, hasUserStarted, followVehicle, map, markersData]);
 
   const currentPoint = markersData[currentIndex] || markersData[0] || null;
 
@@ -759,10 +951,14 @@ const MapContent = () => {
     setSelectedPoint(null);
   }, []);
 
-  const handleJumpToPoint = useCallback((index: number) => {
-    setCurrentIndex(index);
-    toast.success(`Ubicado en punto #${index + 1}`, { duration: 1500 });
-  }, []);
+  const handleJumpToPoint = useCallback(
+    (index: number) => {
+      focusAndOpenPoint(index, true);
+      setIsPlaying(true);
+      toast.success(`Ubicado en punto #${index + 1}`, { duration: 1500 });
+    },
+    [focusAndOpenPoint],
+  );
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-slate-900 font-sans">
@@ -813,7 +1009,6 @@ const MapContent = () => {
               markersData={markersData}
               show={showAllPoints}
               onSelectPoint={handleSelectPoint}
-              pointIcons={pointIcons}
             />
 
             {/* InfoWindow Global Único para el punto seleccionado */}
@@ -873,86 +1068,144 @@ const MapContent = () => {
           )}
 
           {/* BARRA SUPERIOR DE INFORMACIÓN Y OPCIONES */}
-          <div className="fixed top-3 left-4 z-20 flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white/95 px-3 py-1.5 shadow-md backdrop-blur-md text-xs font-semibold text-gray-800">
-              <span className="uppercase font-bold tracking-wide">
-                {deviceId || 'Unidad'}
-              </span>
-              <span className="text-gray-400">|</span>
-              <span className="font-normal text-gray-600">
-                {formatDateTime24h(startDate)} al {formatDateTime24h(endDate)}
-              </span>
+          <div className="fixed top-3 left-4 z-20 flex flex-wrap items-center gap-2.5">
+            {/* Header de Detalle de recorrido (Sin borde, h-10, rounded-md) */}
+            <div className="flex h-10 items-stretch rounded-md bg-[#113EB9] shadow-md overflow-hidden text-xs text-white">
+              {/* Logo con fondo naranja al inicio */}
+              <div className="flex h-full items-center bg-gradient-to-r from-orange-500 to-red-500 px-3.5 shrink-0">
+                <Image
+                  src="/LogoWeb.png"
+                  alt="Velsat"
+                  width={24}
+                  height={24}
+                  className="h-5 w-5 object-contain"
+                  priority
+                />
+              </div>
+
+              {/* Contenido: Línea vertical opaca bg-white/40, título, ID unidad y rango de fechas */}
+              <div className="flex h-full items-center gap-2.5 px-3.5 font-medium">
+                <div className="h-5 w-[2px] rounded-full bg-white/40 shrink-0 self-center" />
+                <span className="font-bold uppercase text-white tracking-tight">
+                  DETALLE DE RECORRIDO
+                </span>
+                <span className="font-extrabold text-[#ffbe0b] tracking-wide uppercase">
+                  {deviceId?.toUpperCase() || ''}
+                </span>
+                <div className="h-4 w-[2px] rounded-full bg-white/40 shrink-0 self-center" />
+                <span className="text-blue-100 font-medium">
+                  {formatDateTime24h(startDate)} – {formatDateTime24h(endDate)}
+                </span>
+              </div>
             </div>
 
-            {/* Botón para alternar visibilidad del Vehículo */}
+            {/* Switch Toggle para Auto (h-10, rounded-md) */}
             {markersData.length > 0 && (
-              <button
-                onClick={() => setShowVehicle(!showVehicle)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-md transition-all cursor-pointer ${
+              <label
+                className={`flex h-10 items-center gap-2.5 rounded-md border px-3.5 shadow-sm backdrop-blur-md cursor-pointer select-none transition-all ${
                   showVehicle
-                    ? 'border-blue-600 bg-blue-600 text-white'
-                    : 'border-gray-200/80 bg-white/95 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-[#eff4fe] border-[#d0e0fd]'
+                    : 'bg-white/95 border-slate-200 hover:bg-white'
                 }`}
               >
-                <Car className="h-3.5 w-3.5" />
-                <span>{showVehicle ? 'Ocultar Auto' : 'Ver Auto'}</span>
-              </button>
-            )}
-
-            {/* Botón para alternar visibilidad de todos los puntos GPS */}
-            {markersData.length > 0 && (
-              <button
-                onClick={() => setShowAllPoints(!showAllPoints)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-md transition-all cursor-pointer ${
-                  showAllPoints
-                    ? 'border-blue-600 bg-blue-600 text-white shadow-blue-200'
-                    : 'border-gray-200/80 bg-white/95 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                {showAllPoints ? (
-                  <Eye className="h-3.5 w-3.5" />
-                ) : (
-                  <EyeOff className="h-3.5 w-3.5" />
-                )}
-                <span>
-                  {showAllPoints ? 'Ocultar Puntos GPS' : 'Ver Puntos GPS'}
+                <div className="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={showVehicle}
+                    onChange={(e) => setShowVehicle(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-9 h-5 rounded-full transition-colors duration-200 flex items-center px-0.5 ${
+                      showVehicle ? 'bg-[#113EB9]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${
+                        showVehicle ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </div>
+                </div>
+                <span
+                  className={`text-xs font-bold tracking-tight transition-colors ${
+                    showVehicle ? 'text-[#113EB9]' : 'text-slate-600'
+                  }`}
+                >
+                  Auto
                 </span>
-              </button>
+              </label>
             )}
 
-            {/* Botón para reencuadrar el recorrido completo */}
+            {/* Switch Toggle para Puntos GPS (h-10, rounded-md) */}
+            {markersData.length > 0 && (
+              <label
+                className={`flex h-10 items-center gap-2.5 rounded-md border px-3.5 shadow-sm backdrop-blur-md cursor-pointer select-none transition-all ${
+                  showAllPoints
+                    ? 'bg-[#eff4fe] border-[#d0e0fd]'
+                    : 'bg-white/95 border-slate-200 hover:bg-white'
+                }`}
+              >
+                <div className="relative inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={showAllPoints}
+                    onChange={(e) => {
+                      setShowAllPoints(e.target.checked);
+                      if (!e.target.checked) setSelectedPoint(null);
+                    }}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-9 h-5 rounded-full transition-colors duration-200 flex items-center px-0.5 ${
+                      showAllPoints ? 'bg-[#113EB9]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${
+                        showAllPoints ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </div>
+                </div>
+                <span
+                  className={`text-xs font-bold tracking-tight transition-colors ${
+                    showAllPoints ? 'text-[#113EB9]' : 'text-slate-600'
+                  }`}
+                >
+                  Puntos GPS
+                </span>
+              </label>
+            )}
+
+            {/* Botón para reencuadrar el recorrido completo (h-10, rounded-md) */}
             {markersData.length > 0 && (
               <button
-                onClick={() => fitMapToBounds(markersData)}
-                className="flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-gray-700 shadow-md transition-all hover:bg-gray-50 cursor-pointer"
+                onClick={handleAjustarVista}
+                className="flex h-10 items-center gap-1.5 rounded-md border border-slate-200/90 bg-white/95 px-3.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-white hover:text-slate-900 cursor-pointer"
                 title="Ajustar vista al recorrido completo"
               >
-                <Maximize2 className="h-3.5 w-3.5" />
+                <Maximize2 className="h-3.5 w-3.5 text-slate-500" />
                 <span>Ajustar Vista</span>
-              </button>
-            )}
-
-            {/* Botón para abrir/cerrar panel de estadísticas */}
-            {markersData.length > 0 && (
-              <button
-                onClick={() => setShowStatsPanel(!showStatsPanel)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-md transition-all cursor-pointer ${
-                  showStatsPanel
-                    ? 'border-[#113EB9] bg-[#113EB9] text-white'
-                    : 'border-gray-200/80 bg-white/95 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <BarChart2 className="h-3.5 w-3.5" />
-                <span>
-                  {showStatsPanel ? 'Ocultar Telemetría' : 'Ver Telemetría'}
-                </span>
               </button>
             )}
           </div>
 
-          {/* PANEL LATERAL DE TELEMETRÍA Y ESTADÍSTICAS */}
+          {/* BOTÓN REAPERTURA DE TELEMETRÍA (Ubicado arriba a la derecha, h-10, rounded-md) */}
+          {!showStatsPanel && markersData.length > 0 && (
+            <button
+              onClick={() => setShowStatsPanel(true)}
+              className="fixed top-3 right-4 z-20 flex h-10 items-center gap-1.5 rounded-md border border-slate-200/90 bg-white/95 px-3.5 text-xs font-bold text-slate-700 shadow-md backdrop-blur-md transition-all hover:bg-white hover:text-slate-900 cursor-pointer"
+              title="Mostrar panel de telemetría"
+            >
+              <Activity className="h-3.5 w-3.5 text-[#113EB9]" />
+              <span>Telemetría</span>
+            </button>
+          )}
+
+          {/* PANEL LATERAL DE TELEMETRÍA Y ESTADÍSTICAS (Ubicado arriba a la derecha) */}
           {showStatsPanel && markersData.length > 0 && (
-            <div className="fixed top-14 right-4 z-20 w-72 rounded-xl border border-gray-200/90 bg-white/95 p-3 shadow-xl backdrop-blur-md space-y-3">
+            <div className="fixed top-3 right-4 z-20 w-72 rounded-lg border border-gray-200/90 bg-white/95 p-3 shadow-xl backdrop-blur-md space-y-3">
               <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-gray-800 uppercase tracking-wide">
                   <Activity className="h-4 w-4 text-[#113EB9]" /> Resumen de
@@ -960,9 +1213,10 @@ const MapContent = () => {
                 </div>
                 <button
                   onClick={() => setShowStatsPanel(false)}
-                  className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-0.5 rounded transition-colors cursor-pointer"
+                  title="Ocultar panel"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
@@ -1037,18 +1291,29 @@ const MapContent = () => {
               {/* Fila 1: Datos en tiempo real del vehículo durante la animación */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-1.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#113EB9] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                    Punto {currentIndex + 1} / {markersData.length}
-                  </span>
-                  {currentPoint && (
+                  {hasUserStarted ? (
+                    <span className="font-bold text-[#113EB9] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                      Punto {currentIndex + 1} / {markersData.length}
+                    </span>
+                  ) : (
+                    <span className="font-bold text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                      Recorrido ({markersData.length} Puntos)
+                    </span>
+                  )}
+
+                  {hasUserStarted && currentPoint ? (
                     <span className="text-gray-600 text-[11px]">
                       🕒 {currentPoint.date} {currentPoint.time}
+                    </span>
+                  ) : (
+                    <span className="text-gray-500 text-[11px]">
+                      🕒 {formatDateTime24h(startDate)} – {formatDateTime24h(endDate)}
                     </span>
                   )}
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {currentPoint && (
+                  {hasUserStarted && currentPoint && (
                     <div className="flex items-center gap-1 text-[11px]">
                       <span className="text-gray-500">Velocidad:</span>
                       <span
@@ -1086,7 +1351,7 @@ const MapContent = () => {
                   max={Math.max(0, markersData.length - 1)}
                   value={currentIndex}
                   onChange={(e) => {
-                    setCurrentIndex(Number(e.target.value));
+                    focusAndOpenPoint(Number(e.target.value));
                   }}
                   className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-[#113EB9]"
                 />
@@ -1099,7 +1364,7 @@ const MapContent = () => {
                   <button
                     onClick={() => {
                       setIsPlaying(false);
-                      setCurrentIndex(0);
+                      focusAndOpenPoint(0);
                     }}
                     className="rounded-lg border border-gray-200 p-1.5 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                     title="Ir al inicio"
@@ -1111,7 +1376,7 @@ const MapContent = () => {
                   <button
                     onClick={() => {
                       setIsPlaying(false);
-                      setCurrentIndex((prev) => Math.max(0, prev - 1));
+                      focusAndOpenPoint(Math.max(0, currentIndex - 1));
                     }}
                     className="rounded-lg border border-gray-200 p-1.5 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                     title="Punto anterior (-1)"
@@ -1121,7 +1386,12 @@ const MapContent = () => {
 
                   {/* Reproducir / Pausar */}
                   <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={() => {
+                      if (!isPlaying) {
+                        focusAndOpenPoint(currentIndex);
+                      }
+                      setIsPlaying(!isPlaying);
+                    }}
                     className={`flex h-9 w-9 items-center justify-center rounded-full text-white shadow-md transition-all cursor-pointer ${
                       isPlaying
                         ? 'bg-amber-600 hover:bg-amber-700'
@@ -1140,9 +1410,13 @@ const MapContent = () => {
                   <button
                     onClick={() => {
                       setIsPlaying(false);
-                      setCurrentIndex((prev) =>
-                        Math.min(markersData.length - 1, prev + 1),
-                      );
+                      if (!hasUserStarted) {
+                        focusAndOpenPoint(0);
+                      } else {
+                        focusAndOpenPoint(
+                          Math.min(markersData.length - 1, currentIndex + 1),
+                        );
+                      }
                     }}
                     className="rounded-lg border border-gray-200 p-1.5 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                     title="Siguiente punto (+1)"
@@ -1154,7 +1428,7 @@ const MapContent = () => {
                   <button
                     onClick={() => {
                       setIsPlaying(false);
-                      setCurrentIndex(Math.max(0, markersData.length - 1));
+                      focusAndOpenPoint(Math.max(0, markersData.length - 1));
                     }}
                     className="rounded-lg border border-gray-200 p-1.5 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                     title="Ir al final"

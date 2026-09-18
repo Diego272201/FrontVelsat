@@ -8,9 +8,15 @@ import { IDestino } from './IDestino';
 
 interface InputDestinoProps {
   onSelectDestino: (destino: IDestino) => void;
+  className?: string;
+  placeholder?: string;
 }
 
-export default function InputDestino({ onSelectDestino }: InputDestinoProps) {
+export default function InputDestino({
+  onSelectDestino,
+  className,
+  placeholder,
+}: InputDestinoProps) {
   const [busqueda, setBusqueda] = useState('');
   const [sugerencias, setSugerencias] = useState<IDestino[]>([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
@@ -69,12 +75,15 @@ export default function InputDestino({ onSelectDestino }: InputDestinoProps) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <input
         id="inputDestino"
         type="text"
-        className="w-full rounded-md border border-gray-300 bg-gray-100 p-1.5 ps-8 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700"
-        placeholder="Destino"
+        className={
+          className ||
+          'w-full rounded-md border border-gray-300 bg-gray-100 p-1.5 ps-8 text-[12px] focus:border-gray-400 focus:outline-none focus:ring-0 dark:placeholder:text-gray-700'
+        }
+        placeholder={placeholder || 'Destino'}
         value={busqueda}
         onChange={(e) => {
           if (seleccionado) {
@@ -90,8 +99,8 @@ export default function InputDestino({ onSelectDestino }: InputDestinoProps) {
         }}
         onBlur={() => setTimeout(() => setMostrarSugerencias(false), 100)}
       />
-      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2">
-        <FaMapMarkerAlt color="#343a40" />
+      <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-2.5">
+        <FaMapMarkerAlt className="text-slate-400 text-xs" />
       </div>
       {mostrarSugerencias && (
         <ul className="fixed z-[9999] mt-1 max-h-60 w-[400px] overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg">

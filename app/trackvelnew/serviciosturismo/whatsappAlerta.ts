@@ -40,7 +40,6 @@ export async function enviarAlertaWhatsapp(
       return false;
     }
 
-    console.log(`WhatsApp: alerta enviada a ${phone}`, bodyTexto);
     return true;
   } catch (error) {
     console.error(`WhatsApp: error de red al enviar a ${phone}:`, error);

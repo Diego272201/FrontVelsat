@@ -303,3 +303,102 @@ div[id*="content2-"].blinking-background-orange {
     border-top-color: #e9ff70 !important;
   }
 }
+
+/* ==========================================================================
+   ESTILOS PERSONALIZADOS PARA EL PEGMAN (STREET VIEW) EN LA BOTONERA
+   ========================================================================== */
+#pegman-slot {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border-radius: 6px;
+}
+
+#pegman-slot .gm-svpc {
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  margin: 0 !important;
+  transform: scale(0.85);
+  transform-origin: center center;
+}
+
+#pegman-slot .gm-svpc button {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  border: none !important;
+  transition: background-color 0.15s ease !important;
+}
+
+#pegman-slot .gm-svpc button:hover {
+  background-color: #eff6ff !important;
+}
+
+/* Convertir la personita de naranja a gris oscuro/negro uniforme */
+#pegman-slot .gm-svpc img,
+#pegman-slot .gm-svpc canvas,
+#pegman-slot .gm-svpc svg {
+  filter: grayscale(100%) brightness(0.25) !important;
+  transition: filter 0.15s ease !important;
+}
+
+#pegman-slot:hover .gm-svpc img,
+#pegman-slot:hover .gm-svpc canvas,
+#pegman-slot:hover .gm-svpc svg {
+  filter: grayscale(100%) brightness(0.1) !important;
+}
+
+/* Limpiar contenedor nativo residual de Google Maps */
+.gm-bundled-control {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* ==========================================================================
+   OCULTAR TARJETA DE DIRECCIÓN Y BOTÓN DE PANTALLA COMPLETA NATIVOS DE STREET VIEW
+   (Evita que se solapen con la barra superior TRACKVEL SYSTEM)
+   ========================================================================== */
+.gm-iv-address,
+.gm-style .gm-iv-address,
+.gm-iv-short-address,
+.gm-style .gm-iv-short-address,
+.gm-sv-address-card,
+.gm-style .gm-sv-address-card,
+.gm-iv-profile,
+div[aria-label*="Street View"] .gm-iv-address {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Ocultar botón nativo de pantalla completa en Street View (nuestra botonera flotante ya lo incluye) */
+.gm-style .gm-fullscreen-control,
+.gm-fullscreen-control,
+div[aria-label*="Street View"] .gm-fullscreen-control {
+  display: none !important;
+}
+
+/* ==========================================================================
+   ESTILOS PARA BOTÓN DE CÁMARA FIJA EN EL HEADER DEL POPUP
+   ========================================================================== */
+.camera-track-btn {
+  user-select: none;
+  touch-action: manipulation;
+  box-shadow: none !important;
+}
+
+.camera-track-btn:hover {
+  filter: brightness(1.2);
+}
+
+.camera-track-btn:active {
+  filter: brightness(0.95);
+}
+
+

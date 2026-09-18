@@ -77,20 +77,11 @@ export const obtenerDatosYAgrupar = async (
     } else if (response.data && Array.isArray(response.data.data)) {
       datosRaw = response.data.data
     } else {
-      console.warn(
-        "[ADVERTENCIA] La respuesta de la API no contiene una lista válida de datos:",
-        response.data,
-      )
       return []
     }
 
     // ─── Normalización: asignar valores por defecto a pasajeros sin lugar ────────
     const datos: DataItem[] = datosRaw.map((item) => {
-      if (!item.lugar) {
-        console.warn(
-          `[ADVERTENCIA] Pasajero sin lugar asignado - id: ${item.id} | codigo: ${item.codigo} | nombre: ${item.nombre} | codcliente: ${item.codcliente}`,
-        )
-      }
       return {
         ...item,
         lugar: {
@@ -124,9 +115,6 @@ export const obtenerDatosYAgrupar = async (
           item.orden === "" ||
           item.numero === "",
       )
-
-      console.log("[v0] Datos con orden:", datosConOrden.length)
-      console.log("[v0] Datos sin orden:", datosSinOrden.length)
 
       // PASO 1: Procesar datos que ya tienen orden y número (lógica original del Dato 1)
       if (datosConOrden.length > 0) {
@@ -318,10 +306,8 @@ export const obtenerDatosYAgrupar = async (
       }
     }
 
-    console.log("[v0] Grupos generados:", grupos.length)
     return grupos
   } catch (error) {
-    console.error("Error al obtener los datos:", error)
     return []
   }
 }

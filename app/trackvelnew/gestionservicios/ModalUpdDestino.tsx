@@ -170,13 +170,10 @@ export default function App({
   const handleSeleccionar = async () => {
     if (destinoSeleccionado && codservicio) {
       try {
-        // Llamar a la API UpdateDestino
-        const response = await axios.put(
+        await axios.put(
           `https://do.velsat.pe:2083/api/Preplan/UpdateDestino?codservicio=${codservicio}&newcoddestino=${destinoSeleccionado.codigo}&newcodubicli=${destinoSeleccionado.lugar.codlugar}`
         );
 
-        console.log('Respuesta de UpdateDestino:', response.data);
-        
         // Si la API responde exitosamente
         onDestinoSeleccionado(
           destinoSeleccionado.apepate || '',

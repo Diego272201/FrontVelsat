@@ -118,7 +118,6 @@ const SeguimientoUnidadContent = () => {
         setTokenError(null);
         setIsValidatingToken(false);
       } catch (error) {
-        console.error('Error validando token:', error);
         setTokenError('Token inválido o expirado. Por favor solicita un nuevo enlace de seguimiento.');
         setIsValidatingToken(false);
       }
@@ -162,7 +161,6 @@ const SeguimientoUnidadContent = () => {
 
     const fetchDeviceData = async () => {
       if (!isComponentMounted || !tokenData.deviceId) {
-        console.warn('❌ Componente desmontado o deviceId no disponible');
         return;
       }
 
@@ -202,14 +200,11 @@ const SeguimientoUnidadContent = () => {
         );
 
         if (updatedDevice) {
-          console.log(`📱 Dispositivo ${tokenData.deviceId} actualizado`);
           setFechaActual(data.fechaActual);
           setDevice(updatedDevice);
-        } else {
-          console.warn(`⚠️ Dispositivo ${tokenData.deviceId} no encontrado en los datos`);
         }
       } catch (error) {
-        console.error('❌ Error obteniendo datos del dispositivo:', error);
+        // Silently handle error in polling
       }
     };
 
@@ -217,16 +212,12 @@ const SeguimientoUnidadContent = () => {
       if (!isComponentMounted) return;
 
       if (document.visibilityState === 'visible') {
-        console.log('🔍 Pestaña activa - Reanudando polling...');
-        
         fetchDeviceData();
         
         if (!intervalId) {
           intervalId = setInterval(fetchDeviceData, 8000);
         }
       } else {
-        console.log('😴 Pestaña inactiva - Pausando polling');
-        
         if (intervalId) {
           clearInterval(intervalId);
           intervalId = null;
@@ -236,8 +227,6 @@ const SeguimientoUnidadContent = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    console.log('🚀 Iniciando polling de datos del dispositivo cada 8 segundos...');
-    
     const timeoutId = setTimeout(fetchDeviceData, 50);
     
     intervalId = setInterval(fetchDeviceData, 8000);
@@ -252,8 +241,6 @@ const SeguimientoUnidadContent = () => {
       }
 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-      console.log('🧹 Cleanup: Polling detenido');
     };
   }, [tokenData, tokenError]);
 
@@ -348,50 +335,66 @@ const SeguimientoUnidadContent = () => {
 
   const getPopupContent = useCallback(
     (device: Device) => {
+      const speed = Math.round(device.lastValidSpeed);
+      const isMoving = speed > 0;
+      const estado = getEstado(device.lastValidSpeed);
+      const statusBg = isMoving ? '#dcfce7' : '#fee2e2';
+      const statusBorder = isMoving ? '#bbf7d0' : '#fecaca';
+      const safeDeviceId = device.deviceId;
+      const safeDireccion = device.direccion || '';
+      const fechaTexto = formatFecha(fechaActual).replace('Fecha: ', '').replace(' Hora: ', ' ');
+
       return `
-    <div class="content-custom-popup bg-gray-800 text-white rounded-lg shadow-2xl" style="width: 280px; padding: 0; overflow: hidden;" id="content2-${device.deviceId}">
-      <div class="relative bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-3 border-b border-gray-600">
-        <button id="close-btn-${device.deviceId}" class="absolute top-2 right-2 text-white hover:text-red-400 transition-colors" style="font-size: 24px; line-height: 1; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border-radius: 50%; cursor: pointer;">&times;</button>
-        <h3 class="text-sm font-bold text-yellow-400 uppercase tracking-wide pr-8">Unidad: ${device.deviceId.toUpperCase()}</h3>
-      </div>
-      
-      <div class="px-4 py-3 space-y-2">
-        <div class="flex justify-between items-center py-1.5 px-3 bg-gray-700/50 rounded">
-          <span class="text-xs text-gray-300">Velocidad:</span>
-          <span class="text-sm font-bold text-green-400">${device.lastValidSpeed.toFixed(0)} Km/h</span>
+    <div style="
+      background: #ffffff !important;
+      color: #1e293b !important;
+      padding: 0 !important;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08) !important;
+      border: none !important;
+      width: 260px !important;
+      border-radius: 6px !important;
+      font-size: 11px !important;
+      line-height: 1.5 !important;
+      position: relative !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      overflow: hidden !important;
+    " id="content2-${safeDeviceId}">
+      <div style="background: #113EB9 !important; padding: 8px 12px !important; display: flex !important; align-items: center !important; justify-content: space-between !important;">
+        <div style="display: flex !important; align-items: center !important;">
+          <span style="color: #ffffff !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.3px !important;">${safeDeviceId.toUpperCase()}</span>
         </div>
-        <div class="flex justify-between items-center py-1.5 px-3 bg-gray-700/50 rounded">
-          <span class="text-xs text-gray-300">Estado:</span>
-          <span class="text-sm font-bold ${device.lastValidSpeed > 0 ? 'text-blue-400' : 'text-orange-400'}">${getEstado(device.lastValidSpeed)}</span>
-        </div>
+        <button id="close-btn-${safeDeviceId}" style="color: rgba(255,255,255,0.7) !important; font-size: 16px !important; cursor: pointer !important; border: none !important; background: none !important; padding: 0 !important; line-height: 1 !important;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='rgba(255,255,255,0.7)'">&times;</button>
       </div>
 
-      <div class="h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent mx-4"></div>
+      <div style="padding: 10px 12px 8px !important;">
+        <div style="display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6px !important; margin-bottom: 8px !important;">
+          <div style="background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 4px !important; padding: 6px 8px !important; text-align: center !important;">
+            <div style="font-size: 15px !important; font-weight: 700 !important; color: #0f172a !important;">${speed}</div>
+            <div style="font-size: 9px !important; color: #64748b !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">KM/H</div>
+          </div>
+          <div style="background: ${statusBg} !important; border: 1px solid ${statusBorder} !important; border-radius: 4px !important; padding: 6px 8px !important; text-align: center !important;">
+            <div style="font-size: 11px !important; font-weight: 600 !important; color: #000000 !important;">${estado}</div>
+            <div style="font-size: 9px !important; color: #000000 !important; opacity: 0.6 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">ESTADO</div>
+          </div>
+        </div>
 
-      <div class="px-4 py-3">
-        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5 flex items-center gap-2">
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-          </svg>
-          Último Reporte
-        </h4>
-        <div class="space-y-2 text-xs">
-          <div class="flex items-start gap-2">
-            <span class="text-gray-400 min-w-[60px]">Fecha:</span>
-            <span class="text-gray-200 font-medium">${formatFecha(fechaActual).replace('Fecha: ', '').replace(' Hora: ', ' • ')}</span>
+        <div style="border-top: 1px solid #e2e8f0 !important; padding-top: 8px !important;">
+          <div style="display: flex !important; justify-content: space-between !important; margin-bottom: 4px !important;">
+            <span style="color: #64748b !important; font-size: 12px !important;">Dirección</span>
+            <span style="color: #1e293b !important; font-weight: 500 !important; font-size: 12px !important;">${getDireccion(device.lastValidHeading)}</span>
           </div>
-          <div class="flex items-start gap-2">
-            <span class="text-gray-400 min-w-[60px]">Dirección:</span>
-            <span class="text-gray-200 font-medium">${getDireccion(device.lastValidHeading)}</span>
+          <div style="margin-bottom: 4px !important;">
+            <span style="color: #64748b !important; font-size: 12px !important;">Ubicación</span>
+            <div style="color: #1e293b !important; font-size: 12px !important; margin-top: 2px !important; line-height: 1.3 !important;">${safeDireccion}</div>
           </div>
-          <div class="flex items-start gap-2">
-            <span class="text-gray-400 min-w-[60px]">Ubicación:</span>
-            <span class="text-gray-200 font-medium leading-relaxed">${device.direccion}</span>
+          <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-top: 6px !important; padding-top: 6px !important; border-top: 1px solid #f1f5f9 !important;">
+            <span style="color: #94a3b8 !important; font-size: 11px !important;">Último reporte</span>
+            <span style="color: #475569 !important; font-size: 11px !important; font-weight: 500 !important;">${fechaTexto}</span>
           </div>
         </div>
       </div>
     </div>
-  `;
+    `;
     },
     [fechaActual, getDireccion, getEstado, formatFecha],
   );
@@ -430,22 +433,22 @@ const SeguimientoUnidadContent = () => {
           }
         } else {
           const popup1Content = `
-            <div class="relative flex flex-col items-center mt-4">
-              <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
+            <div class="relative flex flex-col items-center mt-3">
+              <div id="content" class="bg-[#113EB9] text-white px-2.5 py-1 text-xs font-semibold rounded shadow-md border border-[#113EB9] tracking-wide">
                 ${device.deviceId.toUpperCase()}
               </div>
-              <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
+              <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#113EB9]"></div>
             </div>
           `;
           markerData.popup1.setContent(popup1Content);
         }
       } else {
         const popup1Content = `
-        <div class="relative flex flex-col items-center mt-4">
-          <div id="content" class="bg-[#fca311] text-gray-800 px-2 py-1.5 border border-[#fca311] custom-popup1-font">
+        <div class="relative flex flex-col items-center mt-3">
+          <div id="content" class="bg-[#113EB9] text-white px-2.5 py-1 text-xs font-semibold rounded shadow-md border border-[#113EB9] tracking-wide">
             ${device.deviceId.toUpperCase()}
           </div>
-          <div class="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-[#fca311]"></div>
+          <div class="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-[#113EB9]"></div>
         </div>
       `;
 
@@ -528,24 +531,17 @@ const SeguimientoUnidadContent = () => {
 
   if (isValidatingToken) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-400/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-indigo-400/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-        </div>
-        <div className="relative z-10 text-center bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/20 max-w-md">
-          <div className="mb-6">
+      <div className="flex items-center justify-center h-screen bg-slate-100">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-xl border border-slate-200/90 max-w-sm w-full mx-4">
+          <div className="mb-4">
             <Spinner size="lg" color="primary" className="mx-auto" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <h2 className="text-base font-bold text-slate-800 mb-1">
             Validando Acceso
           </h2>
-          <p className="text-gray-600 text-base font-medium mb-4">
+          <p className="text-slate-500 text-xs font-normal">
             Verificando enlace de seguimiento...
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <span className="font-medium">Procesando</span>
-          </div>
         </div>
       </div>
     );
@@ -553,15 +549,17 @@ const SeguimientoUnidadContent = () => {
 
   if (tokenError) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50 to-orange-100">
-        <div className="text-center bg-white p-10 rounded-xl shadow-2xl max-w-md">
-          <div className="mb-6">
-            <AlertCircle size={64} className="text-red-500 mx-auto" />
+      <div className="flex items-center justify-center h-screen bg-slate-100 p-4">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-xl border border-slate-200 max-w-md w-full">
+          <div className="mb-4 flex justify-center">
+            <div className="h-12 w-12 rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+              <AlertCircle size={24} className="text-red-600" />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Sesión Expirada</h2>
-          <p className="text-gray-600 mb-6">{tokenError}</p>
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-            <p className="text-sm text-red-700">
+          <h2 className="text-lg font-bold text-slate-900 mb-2">Sesión Expirada</h2>
+          <p className="text-slate-600 text-xs mb-5 leading-relaxed">{tokenError}</p>
+          <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-left">
+            <p className="text-xs text-slate-600">
               Por favor, contacta al administrador para obtener un nuevo enlace de seguimiento.
             </p>
           </div>
@@ -574,15 +572,13 @@ const SeguimientoUnidadContent = () => {
     <div style={{ width: '100%', height: '100vh' }}>
       {timeRemaining && timeRemaining !== 'Expirado' && (
         <div className="absolute bottom-4 left-4 z-[1000]">
-          <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white px-5 py-3 rounded-xl shadow-2xl backdrop-blur-sm border border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-md">
-                <Clock8 className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white uppercase">Sesión activa</p>
-                <p className="text-sm font-bold text-white mt-0.5">{timeRemaining}</p>
-              </div>
+          <div className="bg-white/95 backdrop-blur-md text-slate-800 px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/90 flex items-center gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg border border-blue-100 text-[#113EB9]">
+              <Clock8 className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sesión Activa</p>
+              <p className="text-xs font-bold text-[#113EB9] mt-0.5">{timeRemaining}</p>
             </div>
           </div>
         </div>

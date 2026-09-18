@@ -34,7 +34,7 @@
 
 .tollbar-bg {
   background: #113EB9;
-  clip-path: polygon(0 0, 100% 0, 100% 65%, 69% 65%, 68% 28%, 19% 28%, 17% 75%, 0 75%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 65% 100%, 62% 28%, 25% 28%, 22% 100%, 0 100%);
   position: absolute;
   top: 0;
   left: 0;
@@ -48,13 +48,12 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 35px;
-
+  height: 36px;
 }
 
 .tollbar-bgsub {
   background: #113eb9;
-  clip-path: polygon(0 0, 100% 0, 100% 65%, 77% 65%, 75% 28%, 19% 28%, 17% 75%, 0 75%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 85% 100%, 82% 28%, 25% 28%, 22% 100%, 0 100%);
   position: absolute;
   top: 0;
   left: 0;
@@ -62,66 +61,17 @@
   height: 100%;
 }
 
-
-@media (max-width: 1878px) {
+@media (max-width: 1200px) {
   .tollbar-bg {
     background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0, 100% 65%, 65% 65%, 62% 28%, 25% 28%, 22% 75%, 0 75%);
-  }
-}
-
-@media (max-width: 1612px) {
-  .tollbar-bg {
-    background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0, 100% 65%, 57% 65%, 54% 28%, 25% 28%, 23% 75%, 0 75%);
-  }
-}
-
-@media (max-width: 1412px) {
-  .tollbar-bg {
-    background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 65%, 48% 28%, 28% 28%, 27% 75%, 0 75%);
-  }
-}
-
-@media (max-width: 1180px) {
-  .tollbar-bg {
-    background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0%, 100% 70%, 0% 70%);
-  }
-}
-
-
-
-
-@media (max-width: 1878px) {
-  .tollbar-bgsub {
-    background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0, 100% 65%, 75% 65%, 72% 28%, 25% 28%, 22% 75%, 0 75%);
-  }
-}
-
-
-
-@media (max-width: 1412px) {
-  .tollbar-bgsub {
-    background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0, 100% 65%, 69% 65%, 67% 28%, 28% 28%, 27% 75%, 0 75%);
-
+    clip-path: polygon(0 0, 100% 0%, 100% 100%, 0% 100%);
   }
 }
 
 @media (max-width: 1180px) {
   .tollbar-bgsub {
     background: #113EB9;
-
-    clip-path: polygon(0 0, 100% 0%, 100% 70%, 0% 70%);
+    clip-path: polygon(0 0, 100% 0%, 100% 100%, 0% 100%);
   }
 }
 
@@ -151,7 +101,7 @@
 
 
 .tollbar {
-  height: 50px;
+  height: 36px;
   width: 100%;
   position: relative;
   z-index: 999;
@@ -186,7 +136,7 @@
   flex-direction: row;
   padding-right: 24px;
   gap: 32px;
-  height: 35px;
+  height: 36px;
   font-weight: 500;
 }
 
@@ -225,7 +175,6 @@ h2 {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  margin-top: -8px;
 }
 
 .navigation>li {
@@ -512,12 +461,12 @@ h2 {
 .exitToolbar {
   color: rgb(8, 8, 8);
   width: 50px;
-  height: 35.8px;
+  height: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 5px;
-  margin-top: -5px;
+  margin-top: 0;
   margin-right: -27px;
 
 }
@@ -730,9 +679,8 @@ h2 {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: -10px;
-  padding: 9.5px 5px;
-
+  height: 36px;
+  padding: 0 5px;
 }
 
 .navigation svg {

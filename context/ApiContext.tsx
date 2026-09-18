@@ -15,8 +15,14 @@ export const ApiProvider = ({ children }: { children: ReactNode }) => {
   const { data: session } = useSession();
 
   useEffect(() => {
+    const stored = localStorage.getItem('servidorUrl');
+    if (stored) setBaseUrl(stored);
+  }, []);
+
+  useEffect(() => {
     if (session?.user?.serverUrl) {
       setBaseUrl(session.user.serverUrl);
+      localStorage.setItem('servidorUrl', session.user.serverUrl);
     }
   }, [session]);
 

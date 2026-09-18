@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import AlertasVelocidadTable from '@/app/components/table/AlertasVelocidadTable';
+import AlertasVelocidadTable, { DataStatsAlertas } from '@/app/components/table/AlertasVelocidadTable';
 import ReporteHeader from '@/app/components/ReporteHeader';
-import { IoSpeedometer } from 'react-icons/io5';
-import { formatDate } from '@/app/components/dates/convertToCustomFormat ';
 import { useApi } from '@/context/ApiContext';
 import { Spinner } from '@nextui-org/react';
 import '@/app/styles/table.css';
@@ -21,6 +19,13 @@ export default function AlertasVelocidadReportContent() {
   const endDate = searchParams.get('endDate');
   const username = session?.user.username;
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dataStats, setDataStats] = useState<DataStatsAlertas | null>(null);
+
+  const handleDataStats = useCallback((stats: DataStatsAlertas) => {
+    setDataStats(stats);
+  }, []);
+
   const formatDateForAPI = (dateString: string) => {
     if (!dateString) return '';
 
@@ -34,20 +39,30 @@ export default function AlertasVelocidadReportContent() {
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   };
 
+  const formatDisplayDate = (dateString: any) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return String(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  };
+
   const fechaini = formatDateForAPI(startDate || '');
   const fechafin = formatDateForAPI(endDate || '');
   const tableUrl = useMemo(() => {
-    // ✅ Validar que también exista el username
     if (!fechaini || !fechafin || !username) return null;
-
-    // ✅ Agregar el parámetro usuario a la URL
     return `/api/Preplan/AlertasVelocidad?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(fechaini)}&fechafin=${encodeURIComponent(fechafin)}`;
-  }, [fechaini, fechafin, username]); // ✅ Agregar username a las dependencias
+  }, [fechaini, fechafin, username]);
 
   const calculateDifference = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    const diffMs = endDate.getTime() - startDate.getTime();
+    const startD = new Date(start);
+    const endD = new Date(end);
+    const diffMs = endD.getTime() - startD.getTime();
+    if (isNaN(diffMs) || diffMs < 0) return { days: 0, hours: 0, minutes: 0 };
     const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const hours = Math.floor(
       (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
@@ -64,7 +79,7 @@ export default function AlertasVelocidadReportContent() {
     [startDate, endDate],
   );
 
-  const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
+  const periodoText = `${diff.days === 1 ? '1 día' : `${diff.days} días`} - ${diff.hours} h - ${diff.minutes} min`;
 
   if (!baseUrl || !tableUrl) {
     return (
@@ -75,18 +90,24 @@ export default function AlertasVelocidadReportContent() {
   }
 
   return (
-    <div>
+    <div className="w-full">
       <ReporteHeader
-        title="REPORTE DE ALERTAS DE VELOCIDAD"
+        title="ALERTAS DE VELOCIDAD"
         deviceId="TODAS LAS UNIDADES"
         startDate={startDate ?? ''}
         endDate={endDate ?? ''}
-        extraInfo={extraInfo}
-        formatDate={formatDate}
-        icon={<IoSpeedometer size={25} />}
+        umbral="> 90 km/h"
+        periodo={periodoText}
+        formatDate={formatDisplayDate}
+        registros={dataStats ? dataStats.total : 0}
+        unidadesInvolucradas={dataStats ? dataStats.unidadesInvolucradas : 0}
+        velocidadMaxima={dataStats ? `${dataStats.velocidadMaxima} km/h` : '0 km/h'}
+        unidadMasAlertas={dataStats?.unidadMasAlertas || '-'}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        alertasSpeedMode={true}
       />
 
-      {/* ✅ Actualizado con los parámetros correctos */}
       <ButtonDownloadFloat
         startDate={fechaini}
         endDate={fechafin}
@@ -95,8 +116,13 @@ export default function AlertasVelocidadReportContent() {
         username={username || ''}
         nameurl="alertasvelocidad"
       />
-      {/* ✅ Usar el nuevo componente */}
-      <AlertasVelocidadTable url={tableUrl} deviceId="TODAS" />
+
+      <AlertasVelocidadTable
+        url={tableUrl}
+        deviceId="TODAS"
+        searchTerm={searchTerm}
+        onDataStats={handleDataStats}
+      />
     </div>
   );
 }

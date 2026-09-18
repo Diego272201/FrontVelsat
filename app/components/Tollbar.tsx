@@ -1,5 +1,5 @@
 import '@/app/styles/tollbar.css';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -316,6 +316,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
     href: '/subtrackvelnew/documentos',
     target: '_blank',
   },
+  GEOCERCAS: {
+    id: 'geocercas',
+    title: 'Geocercas',
+    icon: RiGpsFill,
+    href: '/trackvelnew/geocercas',
+    target: '_blank',
+  },
 };
 
 const useMenuState = () => {
@@ -540,6 +547,9 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   );
 };
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect;
+
 const Tollbar: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
@@ -612,17 +622,94 @@ const Tollbar: React.FC = () => {
   );
 
   const [isMobile, setIsMobile] = useState(false);
+  const navRef = useRef<HTMLElement | null>(null);
+  const logoRef = useRef<HTMLDivElement | null>(null);
+  const [clipPathStyle, setClipPathStyle] = useState<string | undefined>(undefined);
+
+  const updateClipPath = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    if (window.innerWidth < 1180) {
+      setClipPathStyle('polygon(0 0, 100% 0%, 100% 100%, 0% 100%)');
+      return;
+    }
+
+    const navEl = navRef.current;
+    const logoEl = logoRef.current;
+    if (!navEl || !logoEl) return;
+
+    const firstLi = navEl.querySelector('li');
+    if (!firstLi) return;
+
+    const navFirstRect = firstLi.getBoundingClientRect();
+    const logoRect = logoEl.getBoundingClientRect();
+
+    if (navFirstRect.width === 0 || logoRect.width === 0) return;
+
+    const menuLeft = navFirstRect.left;
+    const logoRight = logoRect.right;
+
+    const bottomRightSlantX = Math.round(menuLeft - 12);
+    const topRightSlantX = Math.round(menuLeft - 38);
+    const topLeftSlantX = Math.round(logoRight + 35);
+    const bottomLeftSlantX = Math.round(logoRight + 12);
+
+    if (topRightSlantX <= topLeftSlantX + 20) {
+      setClipPathStyle('polygon(0 0, 100% 0%, 100% 100%, 0% 100%)');
+      return;
+    }
+
+    const newClipPath = `polygon(0 0, 100% 0, 100% 100%, ${bottomRightSlantX}px 100%, ${topRightSlantX}px 28%, ${topLeftSlantX}px 28%, ${bottomLeftSlantX}px 100%, 0 100%)`;
+    setClipPathStyle(newClipPath);
+    if (typeof window !== 'undefined') {
+      const user = username || localStorage.getItem('currentUser') || 'default';
+      try {
+        localStorage.setItem(`tollbar_clippath_${user}`, newClipPath);
+      } catch (e) {}
+    }
+  }, [baseUrl, username]);
+
+  useEffect(() => {
+    if (username && typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`tollbar_clippath_${username}`);
+      if (saved) {
+        setClipPathStyle(saved);
+      }
+    }
+  }, [username]);
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 1180);
+      updateClipPath();
     };
 
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
-
     return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+  }, [updateClipPath]);
+
+  useIsomorphicLayoutEffect(() => {
+    updateClipPath();
+    const timer1 = setTimeout(updateClipPath, 50);
+    const timer2 = setTimeout(updateClipPath, 150);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [updateClipPath, username, baseUrl, isTalmav, isMovilbus, isPakatnamu, isSedapal, isView]);
+
+  useEffect(() => {
+    if (!navRef.current) return;
+    const observer = new ResizeObserver(() => {
+      updateClipPath();
+    });
+    observer.observe(navRef.current);
+    if (logoRef.current) {
+      observer.observe(logoRef.current);
+    }
+    return () => observer.disconnect();
+  }, [updateClipPath]);
 
   // Render helpers
   const renderDropdownMenu = (
@@ -638,7 +725,7 @@ const Tollbar: React.FC = () => {
             title={config.title}
             target={config.target || '_blank'}
             rel="noopener noreferrer"
-            className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+            className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
           >
             <span>{config.title}</span>
             <IconSVG
@@ -655,7 +742,7 @@ const Tollbar: React.FC = () => {
         <Link
           href="#"
           title={config.title}
-          className="flex items-center bg-black/10 px-1.5 py-[7.8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
+          className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-white hover:text-slate-900 hover:shadow-md group-hover:bg-[#ebf2fa] group-hover:text-slate-900"
           onClick={(e) => {
             e.preventDefault();
             onToggle();
@@ -922,25 +1009,25 @@ const Tollbar: React.FC = () => {
       <div className="tollbar menu__wrapper">
         <div className="menu__bar bg-[#113eb9] md:bg-transparent">
           <div className="flex items-center">
-            <div className="ml-[-1px] mt-[-1px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px]">
+            <div className="flex h-[36px] w-[46px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-1">
               <Image src="/LogoWeb.png" alt="Logo" width={20} height={20} />
             </div>
             <div className="mt-[-1px]">
-              <h3 className="text-center text-[12px] font-semibold text-white">
+              <h3 className="text-center text-[12px] font-semibold text-white" suppressHydrationWarning>
                 TRACKVEL SYSTEM :
-                <span className="pl-1 text-[12px] text-white/80">
-                  {username.toUpperCase()}
+                <span className="pl-1 text-[12px] text-white/80" suppressHydrationWarning>
+                  {username ? username.toUpperCase() : ''}
                 </span>
               </h3>
             </div>
           </div>
-          <ul className="navigation">
-            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+          <nav className="navigation">
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               <div className="ml-auto">
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
-          </ul>
+          </nav>
         </div>
       </div>
     );
@@ -957,6 +1044,7 @@ const Tollbar: React.FC = () => {
               : 'tollbar-bg'
             : 'tollbar-bgsub'
         }
+        style={clipPathStyle ? { clipPath: clipPathStyle } : undefined}
       />
 
       {/* Main Menu Bar */}
@@ -976,28 +1064,27 @@ const Tollbar: React.FC = () => {
         </div>
 
         {/* Logo */}
-        <div className="flex items-center">
+        <div className="flex items-center" ref={logoRef}>
           <div
             title="Logo"
             className="flex items-center gap-3 transition-all duration-200"
           >
-            <div className="ml-[-1px] mt-[-1px] flex w-[50px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-[2.5px] max-[1180px]:p-[0px]">
-              {' '}
+            <div className="flex h-[36px] w-[46px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-1">
               <div className="logo-animation">
                 <Image
                   src="/LogoWeb.png"
                   alt="Logo"
-                  width={isMobile ? 20 : 20}
-                  height={isMobile ? 20 : 20}
+                  width={20}
+                  height={20}
                 />
               </div>
             </div>
 
             <div className="mt-[-1px]">
-              <h3 className="text-center text-[12px] font-semibold text-white md:text-[12.5px]">
+              <h3 className="text-center text-[12px] font-semibold text-white md:text-[12.5px]" suppressHydrationWarning>
                 TRACKVEL SYSTEM :
-                <span className="pl-1  text-[12px] text-white/80 md:text-[11.5px]">
-                  {username.toUpperCase()}
+                <span className="pl-1  text-[12px] text-white/80 md:text-[11.5px]" suppressHydrationWarning>
+                  {username ? username.toUpperCase() : ''}
                 </span>
               </h3>
             </div>
@@ -1005,13 +1092,13 @@ const Tollbar: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <ul className="navigation">
-          {!baseUrl ? (
-            <li className="mt-[-8px] text-white">
+        <nav className="navigation" ref={navRef} suppressHydrationWarning>
+          {!baseUrl && !username ? (
+            <div className="flex h-[36px] items-center text-white px-2">
               <Spinner size="sm" color="warning" />
-            </li>
+            </div>
           ) : isTalmav ? (
-            <>
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               {/* Agregar menú de Gestión de Servicios con opciones limitadas */}
               {renderDropdownMenu(
                 {
@@ -1033,10 +1120,9 @@ const Tollbar: React.FC = () => {
 
               <li
                 onClick={() => openModal('servicios')}
-                className="dropdown bg-[#edf2f4] bg-opacity-10 p-1.5 text-white hover:bg-[#fff] hover:text-black"
-                style={{ marginTop: '-8px' }}
+                className="dropdown flex h-[36px] items-center bg-[#edf2f4] bg-opacity-10 px-1.5 text-white hover:bg-[#fff] hover:text-black"
               >
-                <div className="p-1 text-[12px]">Recorrido Servicios</div>
+                <div className="px-1 text-[12px]">Recorrido Servicios</div>
               </li>
 
               {/* Agregar menú de Reportes */}
@@ -1046,14 +1132,26 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
 
+              <li className="group relative">
+                <Link
+                  href="/trackvelnew/geocercas"
+                  title="Geocercas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                >
+                  <span>Geocercas</span>
+                </Link>
+              </li>
+
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
                 <div className="flex w-[50px] items-center justify-center p-0">
                   <Profile toggleFullScreen={toggleFullScreen} />
                 </div>
               </div>
-            </>
+            </ul>
           ) : isMovilbus ? (
-            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               {renderDropdownMenu(
                 {
                   ...MENU_CONFIG.SERVICIOS,
@@ -1087,10 +1185,22 @@ const Tollbar: React.FC = () => {
                   title="Gestión de Pasajeros"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
                   onClick={() => handleLinkClick(2)}
                 >
                   <span>Gestión Pasajeros</span>
+                </Link>
+              </li>
+
+              <li className="group relative">
+                <Link
+                  href="/trackvelnew/geocercas"
+                  title="Geocercas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                >
+                  <span>Geocercas</span>
                 </Link>
               </li>
 
@@ -1112,7 +1222,7 @@ const Tollbar: React.FC = () => {
               </div>
             </ul>
           ) : isPakatnamu ? (
-            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               {renderDropdownMenu(
                 MENU_CONFIG.REPORTES,
                 openMenus.reportes,
@@ -1136,7 +1246,7 @@ const Tollbar: React.FC = () => {
             </ul>
           ) : isView ? (
             // MENÚ PARA VIEWERS
-            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               {/* Mostrar Rastreo Móvil solo para mitsubishi */}
               {username === 'mitsubishi' &&
                 renderDropdownMenu(
@@ -1156,7 +1266,7 @@ const Tollbar: React.FC = () => {
               </div>
             </ul>
           ) : (
-            <ul className="mr-[-25px] mt-[-5px] flex h-[35px] items-center gap-1">
+            <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               {isSedapal ? (
                 <>
                   {renderDropdownMenu(
@@ -1165,6 +1275,17 @@ const Tollbar: React.FC = () => {
                     () => toggleMenu('reportes'),
                   )}
                   {renderDropdownMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
+                  <li className="group relative">
+                    <Link
+                      href="/trackvelnew/geocercas"
+                      title="Geocercas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                    >
+                      <span>Geocercas</span>
+                    </Link>
+                  </li>
                 </>
               ) : (
                 <>
@@ -1185,10 +1306,22 @@ const Tollbar: React.FC = () => {
                       title="Gestión de Pasajeros"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center bg-black/10 px-1.5 py-2 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                      className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
                       onClick={() => handleLinkClick(2)}
                     >
                       <span>Gestión Pasajeros</span>
+                    </Link>
+                  </li>
+
+                  <li className="group relative">
+                    <Link
+                      href="/trackvelnew/geocercas"
+                      title="Geocercas"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                    >
+                      <span>Geocercas</span>
                     </Link>
                   </li>
 
@@ -1211,7 +1344,7 @@ const Tollbar: React.FC = () => {
               </div>
             </ul>
           )}
-        </ul>
+        </nav>
       </div>
 
       {/* Modales - solo se montan cuando están abiertos */}
@@ -1425,6 +1558,42 @@ const Tollbar: React.FC = () => {
               </div>
             </div>
 
+            <Link
+              href="/trackvelnew/geocercas"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => toggleMenu('sidebar')}
+            >
+              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <MdDisplaySettings className="text-lg text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                    Geocercas
+                  </span>
+                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                    Abrir en nueva pestaña
+                  </span>
+                </div>
+                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                  <svg
+                    className="h-4 w-4 text-orange-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+
             {/* Agregar menú de Reportes en sidebar */}
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
@@ -1480,6 +1649,42 @@ const Tollbar: React.FC = () => {
                 <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
                   <svg
                     className="h-4 w-4 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/trackvelnew/geocercas"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => toggleMenu('sidebar')}
+            >
+              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                  <MdDisplaySettings className="text-lg text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                    Geocercas
+                  </span>
+                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                    Abrir en nueva pestaña
+                  </span>
+                </div>
+                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                  <svg
+                    className="h-4 w-4 text-orange-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1565,6 +1770,41 @@ const Tollbar: React.FC = () => {
                   () => toggleMenu('reportes'),
                 )}
                 {renderSidebarMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
+                <Link
+                  href="/trackvelnew/geocercas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => toggleMenu('sidebar')}
+                >
+                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                      <MdDisplaySettings className="text-lg text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                        Geocercas
+                      </span>
+                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                        Abrir en nueva pestaña
+                      </span>
+                    </div>
+                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                      <svg
+                        className="h-4 w-4 text-orange-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
               </>
             ) : (
               <>
@@ -1600,6 +1840,42 @@ const Tollbar: React.FC = () => {
                     <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
                       <svg
                         className="h-4 w-4 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/trackvelnew/geocercas"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => toggleMenu('sidebar')}
+                >
+                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                      <MdDisplaySettings className="text-lg text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                        Geocercas
+                      </span>
+                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                        Abrir en nueva pestaña
+                      </span>
+                    </div>
+                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                      <svg
+                        className="h-4 w-4 text-orange-500"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"

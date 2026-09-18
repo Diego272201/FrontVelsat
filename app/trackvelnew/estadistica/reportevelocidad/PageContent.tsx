@@ -1,9 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { IoSpeedometer } from 'react-icons/io5';
 import { useSearchParams } from 'next/navigation';
-import TableSpeed from '@/app/components/table/TableSpeed';
+import TableSpeed, { DataStatsSpeed } from '@/app/components/table/TableSpeed';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import ReporteHeader from '@/app/components/ReporteHeader';
 import '@/app/styles/table.css';
@@ -19,6 +19,13 @@ const PageContent = () => {
 
   const username = session?.user.username;
   const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dataStats, setDataStats] = useState<DataStatsSpeed | null>(null);
+
+  const handleDataStats = useCallback((stats: DataStatsSpeed) => {
+    setDataStats(stats);
+  }, []);
 
   const formatDate = (dateString: any) => {
     if (!dateString) return '';
@@ -38,16 +45,44 @@ const PageContent = () => {
     return `${formattedDay}/${formattedMonth}/${year} ${formattedHours}:${formattedMinutes}`;
   };
 
+  const calculateDifference = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return { days, hours, minutes };
+  };
+
+  const diff = useMemo(() => (
+    startDate && endDate
+      ? calculateDifference(startDate, endDate)
+      : { days: 0, hours: 0, minutes: 0 }
+  ), [startDate, endDate]);
+
+  const periodoText = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
+  const umbralText = speedCar ? `> ${speedCar} km/h` : '> 5 km/h';
+
   return (
-    <>
+    <div className="w-full">
       <ReporteHeader
         title="REPORTE DE VELOCIDAD"
         deviceId={deviceId ?? ""}
         startDate={startDate ?? ""}
         endDate={endDate ?? ""}
-        extraInfo={speedCar ? `Velocidad superior a ${speedCar}` : 'Sin velocidad definida'}
+        umbral={umbralText}
+        periodo={periodoText}
         formatDate={formatDate}
         icon={<IoSpeedometer size={25} />}
+        registros={dataStats ? dataStats.total : undefined}
+        velocidadMaxima={dataStats ? `${dataStats.maxSpeed.toFixed(2)} km/h` : undefined}
+        promedioVelocidad={dataStats?.avgSpeed || undefined}
+        excesosContador={dataStats ? dataStats.excesosMas100 : undefined}
+        tramoPrincipal={dataStats?.tramoPrincipal || undefined}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        speedReportMode={true}
       />
 
       <ButtonDownloadFloat
@@ -61,10 +96,13 @@ const PageContent = () => {
         nameurl="reportevelocidad"
       />
 
-      <div>
-        <TableSpeed url={tableUrl} deviceId={deviceId ?? ''} />
-      </div>
-    </>
+      <TableSpeed
+        url={tableUrl}
+        deviceId={deviceId ?? ''}
+        searchTerm={searchTerm}
+        onDataStats={handleDataStats}
+      />
+    </div>
   );
 };
 

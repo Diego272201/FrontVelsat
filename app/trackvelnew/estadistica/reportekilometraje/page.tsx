@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { Suspense } from 'react';
-import loadable from 'next/dynamic'; // Renombramos para evitar conflicto
+import loadable from 'next/dynamic';
 import { Toaster } from 'sonner';
 
 const PageContent = loadable(() => import('./PageContent'), {

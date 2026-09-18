@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { CloudOff } from 'lucide-react';
 import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
@@ -10,9 +11,11 @@ import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
 import { useServiciosTurismo } from './useServiciosTurismo';
-import { isoToDdMmYyyy } from './utils';
+import { isoToDdMmYyyy, calcularEstado } from './utils';
 
 const ServiciosTurismoPage: React.FC = () => {
+  const [isVisible, setIsVisible] = useState(true);
+
   const {
     fecha,
     setFecha,
@@ -35,6 +38,10 @@ const ServiciosTurismoPage: React.FC = () => {
     setHoraFiltro,
     tipoUnidadFiltro,
     setTipoUnidadFiltro,
+    estadoFiltro,
+    setEstadoFiltro,
+    conteosEstado,
+    totalPilotos,
     valoresPorColumna,
     filtrosColumna,
     setFiltroColumna,
@@ -78,12 +85,53 @@ const ServiciosTurismoPage: React.FC = () => {
     confirmarEliminarCarga,
   } = useServiciosTurismo();
 
+  const handleToggleEstadoFiltro = (sigla: string) => {
+    setEstadoFiltro((prev) => (prev === sigla ? null : sigla));
+  };
+
+  const handleDescargarResumen = () => {
+    if (serviciosFiltrados.length === 0) return;
+    const dataExcel = serviciosFiltrados.map((s) => ({
+      Fecha: s.fechainicio || '',
+      'Hora Inicio': s.horainicio || '',
+      'Hora Retorno': s.horaretorno || '',
+      'Tipo Unidad': s.tipounidad || '',
+      Placa: s.placaCombinada || '',
+      Piloto: s.piloto || '',
+      Brevete: s.brevete || '',
+      Celular: s.celular || '',
+      Copiloto: s.copiloto || '',
+      Cliente: s.cliente || '',
+      Grupo: s.grupo || '',
+      'N° Pax': s.numpax || '',
+      Origen: s.origen || '',
+      Destino: s.destino || '',
+      'Guía Turista': s.guiaturista || '',
+      'Vuelo Cliente': s.vuelocliente || '',
+      Ejecutivo: s.ejecutivo || '',
+      Cotización: s.cotizacion || '',
+      Instrucciones: s.instrucciones || '',
+      Indicaciones: s.indicaciones || '',
+      Observaciones: s.observaciones || '',
+      Estado: calcularEstado(s),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Servicios');
+    XLSX.writeFile(
+      wb,
+      `Resumen_Servicios_Turismo_${isoToDdMmYyyy(fecha).replace(/\//g, '-')}.xlsx`,
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <NotificacionesFlotantes notificaciones={notificaciones} />
 
       <BarraFiltros
         totalServicios={serviciosFiltrados.length}
+        totalPilotos={totalPilotos}
         fecha={fecha}
         onCambiarFecha={setFecha}
         busquedaTexto={busquedaTexto}
@@ -94,8 +142,14 @@ const ServiciosTurismoPage: React.FC = () => {
         tipoUnidadFiltro={tipoUnidadFiltro}
         onCambiarTipoUnidadFiltro={setTipoUnidadFiltro}
         tiposUnidadDisponibles={tiposUnidadDisponibles}
+        estadoFiltro={estadoFiltro}
+        onToggleEstadoFiltro={handleToggleEstadoFiltro}
+        conteosEstado={conteosEstado}
+        isVisible={isVisible}
+        onToggleVisible={() => setIsVisible((prev) => !prev)}
         deshabilitado={hayEdicionActiva}
         onConsultar={() => fetchServicios(fecha)}
+        onDescargarResumen={handleDescargarResumen}
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
         claveOpcionesAvanzadas={claveOpcionesAvanzadas}
@@ -131,7 +185,7 @@ const ServiciosTurismoPage: React.FC = () => {
         unidades={listaUnidades}
       />
 
-      <div className="p-4">
+      <div className="w-full">
         <TablaServicios
           cargando={loading}
           cargandoUnidades={loadingUnidades}

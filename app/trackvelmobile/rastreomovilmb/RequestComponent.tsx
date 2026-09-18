@@ -1295,20 +1295,38 @@ export default function RequestPage() {
   }, []);
 
   const centerUnit = useCallback(
-    (coords: { latitud: number; longitud: number }) => {
+    (
+      coords: { latitud: number; longitud: number },
+      explicitDeviceId?: string,
+    ) => {
       if (mapRef.current) {
         const centerCoords = { lat: coords.latitud, lng: coords.longitud };
         mapRef.current.setCenter(centerCoords);
         mapRef.current.setZoom(17);
 
-        const deviceID = deviceList.find(
-          (device) =>
-            device.lastValidLatitude === coords.latitud &&
-            device.lastValidLongitude === coords.longitud,
-        )?.deviceId;
+        const targetDevice = explicitDeviceId
+          ? deviceList.find(
+              (d) =>
+                d.deviceId.toLowerCase() === explicitDeviceId.toLowerCase(),
+            )
+          : deviceList.find(
+              (device) =>
+                device.lastValidLatitude === coords.latitud &&
+                device.lastValidLongitude === coords.longitud,
+            );
 
-        if (deviceID && markersDataRef.current[deviceID]) {
-          markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
+        const deviceID = targetDevice?.deviceId;
+
+        if (deviceID) {
+          Object.keys(markersDataRef.current).forEach((key) => {
+            if (key !== deviceID && markersDataRef.current[key]?.popup2) {
+              markersDataRef.current[key].popup2.setMap(null);
+            }
+          });
+
+          if (markersDataRef.current[deviceID]) {
+            markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
+          }
         }
       }
     },
@@ -1421,7 +1439,7 @@ export default function RequestPage() {
 
   return (
     <>
-      <Toaster richColors />
+      <Toaster richColors position="top-center" />
 
       <div className="relative">
         {!markersLoaded && (

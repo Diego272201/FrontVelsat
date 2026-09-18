@@ -16,12 +16,32 @@ interface Row {
   address: string;
 }
 
+export interface DataStatsSpeed {
+  total: number;
+  maxSpeed: number;
+  avgSpeed: string;
+  excesosMas100: number;
+  hasta25Count: number;
+  entre26y40Count: number;
+  masDe40Count: number;
+  tramoPrincipal: string;
+}
+
 interface AppProps {
   url: string;
   deviceId: string;
+  searchTerm?: string;
+  speedFilterRange?: 'all' | 'hasta25' | 'entre26y40' | 'masDe40';
+  onDataStats?: (stats: DataStatsSpeed) => void;
 }
 
-export default function App({ url, deviceId }: AppProps) {
+export default function App({
+  url,
+  deviceId,
+  searchTerm = '',
+  speedFilterRange = 'all',
+  onDataStats,
+}: AppProps) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +60,46 @@ export default function App({ url, deviceId }: AppProps) {
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
         if (data && Array.isArray(data.result)) {
-          setRows(data.result);
+          const fetchedRows: Row[] = data.result;
+          setRows(fetchedRows);
+          if (onDataStats) {
+            const maxSpeed = fetchedRows.length > 0 ? Math.max(...fetchedRows.map((r) => r.speedKPH)) : 0;
+            const sumSpeed = fetchedRows.reduce((acc, r) => acc + (r.speedKPH || 0), 0);
+            const avgSpeed = fetchedRows.length > 0 ? (sumSpeed / fetchedRows.length).toFixed(1) + ' km/h' : '0.0 km/h';
+            const excesosMas100 = fetchedRows.filter((r) => r.speedKPH > 100).length;
+            const hasta25Count = fetchedRows.filter((r) => r.speedKPH <= 25).length;
+            const entre26y40Count = fetchedRows.filter((r) => r.speedKPH > 25 && r.speedKPH <= 40).length;
+            const masDe40Count = fetchedRows.filter((r) => r.speedKPH > 40).length;
+
+            const addressCounts: Record<string, number> = {};
+            fetchedRows.forEach((r) => {
+              if (r.address) {
+                addressCounts[r.address] = (addressCounts[r.address] || 0) + 1;
+              }
+            });
+            let tramoPrincipal = '';
+            let maxCount = 0;
+            for (const [addr, count] of Object.entries(addressCounts)) {
+              if (count > maxCount) {
+                maxCount = count;
+                tramoPrincipal = addr;
+              }
+            }
+            if (!tramoPrincipal && fetchedRows.length > 0) {
+              tramoPrincipal = fetchedRows[fetchedRows.length - 1]?.address || fetchedRows[0]?.address || '';
+            }
+
+            onDataStats({
+              total: fetchedRows.length,
+              maxSpeed,
+              avgSpeed,
+              excesosMas100,
+              hasta25Count,
+              entre26y40Count,
+              masDe40Count,
+              tramoPrincipal,
+            });
+          }
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]);
@@ -56,19 +115,46 @@ export default function App({ url, deviceId }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = useCalculateRowsPerPage(40, 5, 70);
-  const pages = Math.ceil(rows.length / rowsPerPage);
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, speedFilterRange]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((item) => {
+      if (speedFilterRange === 'hasta25' && item.speedKPH > 25) return false;
+      if (speedFilterRange === 'entre26y40' && (item.speedKPH <= 25 || item.speedKPH > 40)) return false;
+      if (speedFilterRange === 'masDe40' && item.speedKPH <= 40) return false;
+
+      if (searchTerm) {
+        const term = searchTerm.trim().toLowerCase();
+        if (term) {
+          const matchTime = item.time?.toLowerCase().includes(term);
+          const matchDate = item.date?.toLowerCase().includes(term);
+          const matchAddress = item.address?.toLowerCase().includes(term);
+          const matchSpeed = `${item.speedKPH}`.includes(term);
+          const matchItem = `${item.item}`.includes(term);
+          if (!matchTime && !matchDate && !matchAddress && !matchSpeed && !matchItem) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [rows, speedFilterRange, searchTerm]);
+
+  const rowsPerPage = 22;
+  const pages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    return rows.slice(start, end);
-  }, [page, rows, rowsPerPage]);
+    return filteredRows.slice(start, end);
+  }, [page, filteredRows, rowsPerPage]);
 
   return (
-    <div className="px-0 py-1">
-      <div className="overflow-auto border border-gray-200">
-        <table className="min-w-full text-xs text-gray-700">
+    <div className="w-full p-0">
+      <div className="overflow-auto border-b border-gray-200">
+        <table className="w-full text-xs text-gray-700">
           <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
             <tr>
               <th className="p-2 text-center">ITEM</th>

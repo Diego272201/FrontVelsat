@@ -20,7 +20,10 @@ import Unidad from '../../components/Unidad';
 
 interface SidebarProps {
   centerMap: () => void;
-  centerUnit: (coords: { latitud: number; longitud: number }) => void;
+  centerUnit: (
+    coords: { latitud: number; longitud: number },
+    deviceId?: string,
+  ) => void;
   onFilteredIdsChange?: (ids: string[] | null) => void;
 }
 
@@ -186,8 +189,8 @@ export default function SidebarMobile({
   };
 
   const handleSelectUnit = useCallback(
-    (coords: { latitud: number; longitud: number }) => {
-      centerUnit(coords);
+    (coords: { latitud: number; longitud: number }, deviceId?: string) => {
+      centerUnit(coords, deviceId);
     },
     [centerUnit],
   );

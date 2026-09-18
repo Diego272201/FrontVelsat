@@ -92,6 +92,8 @@ export default function App({
   refreshSearch,
   onConteoChange,
   onDataChange,
+  searchTerm = '',
+  selectedEstado = null,
 }: {
   isVisible: boolean;
   isVisibleAsignar: boolean;
@@ -108,6 +110,8 @@ export default function App({
   refreshSearch: number;
   onConteoChange?: (servicios: number, conductores: number) => void;
   onDataChange?: (data: any[]) => void;
+  searchTerm?: string;
+  selectedEstado?: string | null;
 }) {
   const { username, isReady } = useUsername();
   const { baseUrl } = useApi();
@@ -179,10 +183,6 @@ export default function App({
     });
   };
 
-  useEffect(() => {
-    console.log('Registros seleccionados:', selectedKeys);
-  }, [selectedKeys]);
-
   const [errorPasajero, setErrorPasajero] = useState<string | null>(null);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -215,6 +215,12 @@ export default function App({
   );
 
   const [pasajero, setPasajero] = useState('');
+  const [codigoPasajero, setCodigoPasajero] = useState('');
+  const [codigoLugar, setCodigoLugar] = useState('');
+  const [direccionPasajero, setDireccionPasajero] = useState('');
+  const [distritoPasajero, setDistritoPasajero] = useState('');
+  const [wx, setWx] = useState('');
+  const [wy, setWy] = useState('');
 
   const [sugerencias, setSugerencias] = useState<
     {
@@ -241,23 +247,13 @@ export default function App({
     wx: string,
     wy: string,
   ) => {
-    console.log('Pasajero seleccionado:', nombre, 'Código:', codigo);
-    console.log(
-      'Lugar:',
-      'CodLugar:',
-      codlugar,
-      'Dirección:',
-      direccion,
-      'Distrito:',
-      distrito,
-      'Latitud',
-      wx,
-      'Longitud',
-      wy,
-    );
-
     setPasajero(nombre);
-    setSugerencias([]);
+    setCodigoPasajero(codigo);
+    setCodigoLugar(codlugar.toString());
+    setDireccionPasajero(direccion);
+    setDistritoPasajero(distrito);
+    setWx(wx);
+    setWy(wy);
     setMostrarSugerencias(false);
     setSeleccionado(true);
   };
@@ -368,26 +364,14 @@ export default function App({
   };
 
   useEffect(() => {
-    console.log('DataSeleccionada actualizada:', dataSeleccionada);
-  }, [dataSeleccionada]);
-
-  useEffect(() => {
     const fetchConductores = async () => {
-      if (!isReady) {
-        console.log('useUsername hook not ready yet');
-        return;
-      }
-
-      if (!username || username.trim() === '') {
-        console.error('Username is empty or invalid:', username);
+      if (!isReady || !username || username.trim() === '') {
         return;
       }
 
       try {
         const encodedUsername = encodeURIComponent(username);
         const url = `https://do.velsat.pe:2083/api/Preplan/conductores?usuario=${encodedUsername}`;
-        console.log('Making request to:', url);
-
         const response = await axios.get(url);
         setConductores(response.data);
       } catch (error) {
@@ -400,51 +384,22 @@ export default function App({
 
   useEffect(() => {
     const fetchUnidades = async () => {
-      // Verificar que el hook esté listo y que username no esté vacío
-      if (!isReady) {
-        console.log('useUsername hook not ready yet');
-        return;
-      }
-
-      if (!username || username.trim() === '') {
-        console.error('Username is empty or invalid:', username);
+      if (!isReady || !username || username.trim() === '') {
         return;
       }
 
       try {
-        // Codificar el username para evitar problemas con caracteres especiales
         const encodedUsername = encodeURIComponent(username);
         const url = `https://do.velsat.pe:2083/api/Preplan/unidades?usuario=${encodedUsername}`;
-        console.log('Making request to:', url);
-
         const response = await axios.get(url);
         setUnidadesA(response.data);
       } catch (error) {
         console.error('Error al obtener unidades:', error);
-        // Opcional: mostrar un toast de error
-        // toast.error('Error al cargar las unidades');
       }
     };
 
     fetchUnidades();
-  }, [username, isReady]); // Agregar isReady como dependencia
-
-  useEffect(() => {
-    const filtrados = data.filter(
-      (item) =>
-        item.tipo === 'RECOJO' &&
-        item.destino === '4175' &&
-        item.unidadSF != null &&
-        item.horageoato === null &&
-        ['FA', 'FT', 'PR'].includes(item.estado),
-    );
-
-    const lista = filtrados.map((item) => ({
-      codServicio: item.codServicio,
-      fechaCompleta: item.fechaCompleta,
-      unidadSF: item.unidadSF,
-    }));
-  }, [data]);
+  }, [username, isReady]);
 
   const handleUnidadAChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUnidadA(e.target.value);
@@ -589,18 +544,12 @@ export default function App({
   ]);
 
   useEffect(() => {
-    console.log('Datos formateados en data:', data);
-  }, [data]);
-
-  useEffect(() => {
     if (!selectedPasajeroCodlan) return;
 
     const fetchPasajeroData = async () => {
       if (!isReady) return;
       const currentDate = selectedDate || getFormattedDate();
       const API_URL = `https://do.velsat.pe:2083/api/Preplan/GetServicioPasajero?usuario=${username}&fec=${currentDate}&codcliente=${selectedPasajeroCodlan}`;
-
-      console.log(API_URL);
 
       setLoading(true);
       setErrorPasajero(null);
@@ -640,17 +589,26 @@ export default function App({
     selectedUnidad,
     selectedPasajeroCodlan,
     selectedDate,
+    searchTerm,
+    selectedEstado,
   ]);
-
-  useEffect(() => {
-    console.log('Empresa es' + selectedEmpresa);
-  }, [selectedEmpresa]);
 
   const filteredData = useMemo(() => {
     const unidadLimpia = selectedUnidad ? selectedUnidad.split('-')[0] : null;
+    const term = searchTerm ? searchTerm.toLowerCase().trim() : '';
 
     return data.filter((item) => {
-      const empresaLimpia = item.empresa.split(' (')[0];
+      const empresaLimpia = item.empresa ? item.empresa.split(' (')[0] : '';
+
+      const matchesSearch = term
+        ? (item.conductor && item.conductor.toLowerCase().includes(term)) ||
+          (item.unidad && item.unidad.toLowerCase().includes(term)) ||
+          (item.numero && item.numero.toString().toLowerCase().includes(term))
+        : true;
+
+      const matchesEstado = selectedEstado
+        ? item.estado === selectedEstado
+        : true;
 
       return (
         (selectedArea ? item.area === selectedArea : true) &&
@@ -659,7 +617,9 @@ export default function App({
         (selecteNumServicio ? item.numero === selecteNumServicio : true) &&
         (unidadLimpia
           ? item.unidad.toLowerCase().includes(unidadLimpia.toLowerCase())
-          : true)
+          : true) &&
+        matchesSearch &&
+        matchesEstado
       );
     });
   }, [
@@ -669,6 +629,8 @@ export default function App({
     selecteServicio,
     selecteNumServicio,
     selectedUnidad,
+    searchTerm,
+    selectedEstado,
   ]);
 
   const items = useMemo(() => {
@@ -685,21 +647,7 @@ export default function App({
         .filter((c) => c && c !== '-'),
     ).size;
     onConteoChange?.(cantServicios, cantConductores);
-  }, [data]); // ← data en lugar de filteredData
-
-  useEffect(() => {
-    console.log(
-      'Nuevo valor de conductorSeleccionado Modal:',
-      conductorSeleccionado,
-    );
-  }, [conductorSeleccionado]);
-
-  useEffect(() => {
-    console.log(
-      'Nuevo valor de UnidadSeleccionado Modal:',
-      unidadSeleccionadaA,
-    );
-  }, [unidadSeleccionadaA]);
+  }, [data]);
 
   const asignarServicios = async () => {
     if (!conductorSeleccionado || !unidadSeleccionadaA || !selectedRow) {
@@ -860,13 +808,11 @@ export default function App({
   };
 
   useEffect(() => {
-    console.log('❌ FECHAS', selectedRow?.fechaini, selectedRow?.fechafin);
     if (
       !selectedRow?.fechaini ||
       !selectedRow?.fechafin ||
       !selectedRow?.unidadSF
     ) {
-      console.log('❌ No hay datos suficientes para llamar a la API');
       return;
     }
 
@@ -877,13 +823,9 @@ export default function App({
 
     const API_URL = `https://do.velsat.pe:2083/api/Reporting/details/${encodeURIComponent(fechaInicial)}/${encodeURIComponent(fechaFinal)}/${encodeURIComponent(selectedRow.unidadSF)}/${username}`;
 
-    console.log('Llamando a la API con URL:', API_URL);
-
     axios
       .get(API_URL)
       .then((response) => {
-        console.log('Respuesta de la API:', response.data);
-
         if (response.data.result) {
           const puntos = response.data.result.map((item: any) => ({
             lat: item.latitude,
@@ -892,7 +834,7 @@ export default function App({
           setRecorrido(puntos);
         }
       })
-      .catch((error) => console.error('❌ Error fetching route data:', error));
+      .catch((error) => console.error('Error fetching route data:', error));
     return () => {
       setRecorrido([]);
     };
@@ -950,9 +892,7 @@ export default function App({
     try {
       const url = `https://do.velsat.pe:2083/api/Preplan/UpdateHoras?codservicio=${codservicio}&fecha=${encodeURIComponent(fecha)}&fecplan=${encodeURIComponent(fecplan)}`;
 
-      const response = await axios.put(url);
-
-      console.log('Respuesta de la API:', response.data);
+      await axios.put(url);
 
       setData((prevData) =>
         prevData.map((item) =>
@@ -1016,12 +956,12 @@ export default function App({
 
   const altura =
     isVisible && isVisibleAsignar
-      ? 340
+      ? 270
       : isVisible
-        ? 280
+        ? 210
         : isVisibleAsignar
-          ? 120
-          : 60;
+          ? 100
+          : 115;
 
   useEffect(() => {
     if (!isOpen) {
@@ -1044,20 +984,21 @@ export default function App({
   }, [resetMap]);
 
   return (
+
     <div>
       {loading ? (
         <div
-          className="overflow-auto border border-gray-300"
-          style={{ height: `calc(100vh - ${isVisible ? 350 : 158}px)` }}
+          className="overflow-auto border border-gray-300 custom-scrollbar-servicios"
+          style={{ height: `calc(100vh - ${isVisible ? 300 : 150}px)` }}
         >
           <table className="w-full text-left">
-            <thead className="sticky top-0 z-10 bg-[#113eb9]">
-              <tr>
+            <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
+              <tr className="border-b border-gray-300">
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-slate-200"
-                    style={{ fontSize: '12px', fontFamily: 'sans-serif' }}
+                    className="px-4 py-2 uppercase text-gray-700 font-bold"
+                    style={{ fontSize: '10px', fontFamily: 'sans-serif' }}
                   >
                     {column.label}
                   </th>
@@ -1079,19 +1020,37 @@ export default function App({
         </div>
       ) : (
         <div
-          className="overflow-auto  border-gray-300 px-2"
+          className="overflow-auto border-gray-300 px-0 custom-scrollbar-servicios"
           style={{ height: `calc(100vh - ${altura}px)` }}
         >
           <table className="w-full border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-[#113eb9]">
-              <tr>
+            <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
+              <tr className="border-b border-gray-300">
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="px-4 py-2 uppercase text-white"
-                    style={{ fontSize: '11px' }}
+                    className="px-4 py-2 uppercase text-gray-700 font-bold tracking-wider"
+                    style={{ fontSize: '10.5px' }}
                   >
-                    {column.label}
+                    {column.key === 'select' ? (
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-3.5 w-3.5 rounded border-gray-400 text-[#113EB9] focus:ring-0 cursor-pointer"
+                        checked={items.length > 0 && selectedKeys.length === items.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const allKeys = items.map((i) => i.key);
+                            setSelectedKeys(allKeys);
+                            onSelectionChange(allKeys);
+                          } else {
+                            setSelectedKeys([]);
+                            onSelectionChange([]);
+                          }
+                        }}
+                      />
+                    ) : (
+                      column.label
+                    )}
                   </th>
                 ))}
               </tr>
@@ -1272,10 +1231,6 @@ export default function App({
                                   />
                                   <button
                                     onClick={() => {
-                                      console.log(
-                                        'Nueva fecha programación:',
-                                        nuevaFechaProg,
-                                      );
                                       setEditandoFechaProg(false);
                                     }}
                                     className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"
@@ -1341,7 +1296,6 @@ export default function App({
                                   />
                                   <button
                                     onClick={() => {
-                                      console.log('Nueva fecha:', nuevaFecha);
                                       setEditandoFecha(false);
                                     }}
                                     className="rounded bg-green-700 px-2 py-[6px] text-gray-100 hover:bg-green-500"

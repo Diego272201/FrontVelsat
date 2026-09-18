@@ -8,13 +8,11 @@ export function getIsoToday(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// El input <input type="date"> entrega yyyy-MM-dd; el backend espera dd/MM/yyyy.
 export function isoToDdMmYyyy(iso: string): string {
   const [yyyy, mm, dd] = iso.split('-');
   return `${dd}/${mm}/${yyyy}`;
 }
 
-// El backend entrega fechainicio como dd/MM/yyyy; <input type="date"> necesita yyyy-MM-dd.
 export function ddMmYyyyToIso(dmy: string | null): string {
   if (!dmy) return '';
   const partes = dmy.split('/');
@@ -23,8 +21,6 @@ export function ddMmYyyyToIso(dmy: string | null): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-// El backend manda la fecha de auditoría en ISO (ej. "2026-08-19T16:40:18"); se muestra en el
-// historial como dd/MM/yyyy HH:mm.
 export function formatFechaHoraAuditoria(iso: string): string {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return iso;
@@ -38,7 +34,6 @@ export function formatFechaHoraAuditoria(iso: string): string {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
-// Arma el mismo identificador que usa el sistema de rastreo (codunidad): BUS-PLACA(sin caracteres especiales).
 export function combinarPlaca(
   bus: string | null,
   placa: string | null,
@@ -81,4 +76,27 @@ export function construirFormDesdeServicio(
     indicaciones: servicio.indicaciones || '',
     observaciones: servicio.observaciones || '',
   };
+}
+
+export type ClaveEstado =
+  | 'Pendiente'
+  | 'Visto por Conductor'
+  | 'Confirmado por Conductor'
+  | 'Finalizado por Conductor'
+  | 'Stand By'
+  | 'Cancelado';
+
+export function calcularEstado(servicio: {
+  cancelado?: number | null;
+  standby?: number | null;
+  finalizado?: number | null;
+  confirmado?: number | null;
+  visto?: number | null;
+}): ClaveEstado {
+  if (Number(servicio.cancelado) === 1) return 'Cancelado';
+  if (Number(servicio.standby) === 1) return 'Stand By';
+  if (Number(servicio.finalizado) === 1) return 'Finalizado por Conductor';
+  if (Number(servicio.confirmado) === 1) return 'Confirmado por Conductor';
+  if (Number(servicio.visto) === 1) return 'Visto por Conductor';
+  return 'Pendiente';
 }

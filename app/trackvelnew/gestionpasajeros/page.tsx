@@ -11,11 +11,11 @@ const PasajeroContent = loadable(() => import('./PasajeroContent'), {
 
 export default function Page() {
   return (
-    <div className="tablaReport tablaReportMargen">
+    <div className="h-screen w-full overflow-hidden">
       <Suspense fallback={<div>Cargando...</div>}>
         <PasajeroContent />
       </Suspense>
-      <Toaster richColors/>
+      <Toaster richColors />
     </div>
   );
 }

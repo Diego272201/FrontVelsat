@@ -137,14 +137,6 @@ function AppContenido({
   };
 
   const handleAgregarTodos = async () => {
-    console.log('=== DATOS DEL GRUPO ===');
-    console.log('Fecha:', grupo.fecha);
-    console.log('Hora Programada:', grupo.horaprog);
-    console.log('Tipo:', grupo.tipo);
-    console.log('Grupo:', grupo.id);
-    console.log('Cantidad:', grupo.cantidadPasajeros);
-    console.log('---');
-
     if (!isReady) {
       return;
     }
@@ -196,10 +188,6 @@ function AppContenido({
 
         const url = `https://do.velsat.pe:2083/api/Talma/AgregarPasajero?usuario=${username}`;
 
-        console.log('=== API TALMA ===');
-        console.log('URL:', url);
-        console.log('Payload:', JSON.stringify(payload, null, 2));
-
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -222,20 +210,13 @@ function AppContenido({
             onOpenChange();
           } else {
             toast.error('Error al agregar los pasajeros');
-            console.error('Error en la respuesta de la API');
           }
         } catch (error) {
-          console.error('Error en la solicitud:', error);
           toast.error('Ocurrió un error al procesar los pasajeros');
         }
       } else {
         let agregadosExitosamente = 0;
         let errores = 0;
-
-        console.log('=== API PREPLAN ===');
-        console.log(
-          `Total de pasajeros a agregar: ${pasajerosSeleccionados.length}`,
-        );
 
         for (const pasajero of pasajerosSeleccionados) {
           const payload = {
@@ -257,10 +238,6 @@ function AppContenido({
 
           const url = `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`;
 
-          console.log(`\n--- Pasajero: ${pasajero.apepate} ---`);
-          console.log('URL:', url);
-          console.log('Payload:', JSON.stringify(payload, null, 2));
-
           try {
             const response = await fetch(url, {
               method: 'POST',
@@ -272,23 +249,13 @@ function AppContenido({
 
             if (response.ok) {
               agregadosExitosamente++;
-              console.log(`✓ ${pasajero.apepate} agregado exitosamente`);
             } else {
               errores++;
-              console.error(`✗ Error al agregar pasajero ${pasajero.apepate}`);
             }
           } catch (error) {
             errores++;
-            console.error(
-              `✗ Error en solicitud para ${pasajero.apepate}:`,
-              error,
-            );
           }
         }
-
-        console.log('\n=== RESUMEN ===');
-        console.log(`Exitosos: ${agregadosExitosamente}`);
-        console.log(`Errores: ${errores}`);
 
         if (agregadosExitosamente > 0) {
           toast.success(
@@ -311,7 +278,6 @@ function AppContenido({
         }
       }
     } catch (error) {
-      console.error('Error general:', error);
       toast.error('Ocurrió un error al procesar los pasajeros');
     } finally {
       setAgregandoPasajeros(false);

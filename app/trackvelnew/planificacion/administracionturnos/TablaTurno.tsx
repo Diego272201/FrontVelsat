@@ -1,23 +1,10 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import axios from 'axios';
-import { Input, Select, SelectItem } from '@nextui-org/react';
-import { SearchIcon } from './SearchIcon';
+import { Search, ChevronDown, Trash2 } from 'lucide-react';
 import ModalTurnos from './ModalTurnos';
 import ModalTurnoEdit from './ModalTurnoEdit';
 import Swal from 'sweetalert2';
-import { MdDelete } from 'react-icons/md';
 import { useUsername } from '@/hooks/useUsername';
-
-const columns = [
-  { name: 'N°', uid: 'n' },
-  { name: 'EMPRESA', uid: 'empresa' },
-  { name: 'ÁREA', uid: 'area' },
-  { name: 'SUB ÁREA', uid: 'subarea' },
-  { name: 'ROL', uid: 'rol' },
-  { name: 'HORA', uid: 'hora' },
-  { name: 'PRO', uid: 'programacion' },
-  { name: 'OPERACIONES', uid: 'operaciones' },
-];
 
 interface User {
   id: number;
@@ -38,7 +25,7 @@ interface TablaTurnoProps {
   onEditSuccess: () => void;
 }
 
-export default function App({
+export default function TablaTurno({
   users,
   title,
   onSaveSuccess,
@@ -48,7 +35,7 @@ export default function App({
   const containerRef = useRef<HTMLDivElement>(null);
   const [filterValue, setFilterValue] = useState('');
   const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [rowsPerPage, setRowsPerPage] = useState(12);
+  const [rowsPerPage, setRowsPerPage] = useState(26);
   const [page, setPage] = useState(1);
   const [uniqueEmpresas, setUniqueEmpresas] = useState<string[]>([]);
 
@@ -56,11 +43,11 @@ export default function App({
     const calculateRowsPerPage = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const remainingHeight = window.innerHeight - rect.top - 185;
-      const rowHeight = 32;
+      const remainingHeight = window.innerHeight - rect.top - 150;
+      const rowHeight = 30;
       const calculatedRows = Math.max(
         Math.floor(remainingHeight / rowHeight),
-        5,
+        10,
       );
       setRowsPerPage(calculatedRows);
     };
@@ -81,9 +68,7 @@ export default function App({
       .then((response) => {
         setUniqueEmpresas(response.data);
       })
-      .catch((error) => {
-        console.error('Error fetching data:', error);
-      });
+      .catch(() => {});
   }, [username, isReady, users]);
 
   const filteredItems = useMemo(() => {
@@ -118,9 +103,7 @@ export default function App({
     try {
       await axios.delete(`https://do.velsat.pe:2083/api/Turnos/${codigo}`);
       onSaveSuccess();
-    } catch (error) {
-      console.error('Error deleting record:', error);
-    }
+    } catch {}
   };
 
   const confirmDelete = (codigo: number) => {
@@ -129,8 +112,8 @@ export default function App({
       text: 'No podrás revertir esto',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
+      confirmButtonColor: '#113EB9',
+      cancelButtonColor: '#ef4444',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
     }).then((result) => {
@@ -140,57 +123,81 @@ export default function App({
     });
   };
 
+  const renderProgramacionBadge = (prog: string) => {
+    const p = (prog || '').toLowerCase();
+    if (p.includes('actual') || p === '1') {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Actual
+        </span>
+      );
+    }
+    if (p.includes('futura') || p === '2') {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Futura
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        Pasada
+      </span>
+    );
+  };
+
   return (
     <div ref={containerRef} className="flex flex-col h-full w-full overflow-hidden bg-white">
       <div className="flex flex-col bg-white border-b border-slate-200 w-full flex-shrink-0">
-        <div className="flex items-center justify-between bg-[#113eb9] px-3 py-1.5 text-white">
-          <h2 className="text-xs font-bold uppercase tracking-wider">TURNOS DE {title}</h2>
-          <span className="rounded bg-blue-900/60 px-2 py-0.5 text-[10px] font-semibold text-blue-100 border border-blue-400/30">
-            Total: {filteredItems.length}
+        <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
+          <h2 className="text-[13px] font-bold text-slate-800 tracking-tight">
+            Turnos de {title.toLowerCase()}
+          </h2>
+          <span className="rounded-full border border-blue-200 bg-blue-50/80 px-2 py-0.5 text-[10px] font-bold text-[#113EB9]">
+            {items.length} / {filteredItems.length}
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 px-3 pb-2.5">
           <div className="flex items-center gap-2">
-            <Input
-              isClearable
-              classNames={{
-                base: 'w-[160px] sm:w-[170px]',
-                inputWrapper: 'h-8 min-h-[32px] border border-slate-300 bg-white rounded-md text-xs px-2 shadow-none hover:border-slate-400 focus-within:border-blue-500',
-                input: 'text-xs text-slate-800 placeholder:text-slate-400',
-              }}
-              placeholder="Buscar por Rol"
-              size="sm"
-              startContent={
-                <SearchIcon className="text-slate-400 text-xs flex-shrink-0 mr-1" />
-              }
-              value={filterValue}
-              variant="bordered"
-              onClear={() => { setFilterValue(''); setPage(1); }}
-              onValueChange={(val) => { setFilterValue(val); setPage(1); }}
-            />
+            <div className="relative w-[170px]">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por rol"
+                value={filterValue}
+                onChange={(e) => {
+                  setFilterValue(e.target.value);
+                  setPage(1);
+                }}
+                className="h-8 w-full rounded-md border border-slate-300 bg-white pl-8 pr-2.5 text-xs text-slate-700 placeholder:text-slate-400 focus:border-[#113EB9] focus:outline-none transition-colors"
+              />
+            </div>
 
-            <Select
-              aria-label="Filtrar por Empresa"
-              placeholder="Empresa"
-              size="sm"
-              className="w-[150px] sm:w-[160px]"
-              classNames={{
-                trigger: 'h-8 min-h-[32px] border border-slate-300 bg-white rounded-md text-xs px-2 shadow-none hover:border-slate-400 focus-within:border-blue-500',
-                value: 'text-xs text-slate-800',
-              }}
-              disableSelectorIconRotation
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0]?.toString() || 'all';
-                setAreaFilter(selected);
-                setPage(1);
-              }}
-            >
-              {uniqueEmpresas.map((empresa) => (
-                <SelectItem key={empresa} className="text-xs">{empresa}</SelectItem>
-              ))}
-            </Select>
+            <div className="relative">
+              <select
+                value={areaFilter}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAreaFilter(val);
+                  setPage(1);
+                }}
+                className="h-8 appearance-none rounded-md border border-slate-300 bg-white pl-2.5 pr-7 text-xs text-slate-700 focus:border-[#113EB9] focus:outline-none cursor-pointer transition-colors"
+              >
+                <option value="all">Empresa: todas</option>
+                {uniqueEmpresas.map((empresa) => (
+                  <option key={empresa} value={empresa}>
+                    Empresa: {empresa}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            </div>
           </div>
+
           <ModalTurnos
             titleM={title}
             onSaveSuccess={onSaveSuccess}
@@ -199,14 +206,33 @@ export default function App({
       </div>
 
       <div className="flex-1 overflow-hidden w-full">
-        <table className="w-full border-collapse text-left text-xs">
-          <thead className="sticky top-0 z-10 bg-slate-200 text-slate-700 text-[11px] font-semibold uppercase border-b border-slate-300">
-            <tr>
-              {columns.map((col) => (
-                <th key={col.uid} className="px-3 py-1.5 border-r border-slate-300 last:border-r-0 whitespace-nowrap">
-                  {col.name}
-                </th>
-              ))}
+        <table className="w-full table-fixed border-collapse text-left text-xs">
+          <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
+            <tr className="h-[28px] border-b border-gray-300">
+              <th className="w-[4%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                N°
+              </th>
+              <th className="w-[19%] px-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                EMPRESA
+              </th>
+              <th className="w-[18%] px-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                ÁREA
+              </th>
+              <th className="w-[13%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                SUB ÁREA
+              </th>
+              <th className="w-[13%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                ROL
+              </th>
+              <th className="w-[10%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                HORA
+              </th>
+              <th className="w-[13%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700 border-r border-gray-300">
+                PRO
+              </th>
+              <th className="w-[10%] px-1 text-center text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
@@ -220,33 +246,43 @@ export default function App({
               items.map((row, index) => (
                 <tr
                   key={row.id || index}
-                  className={`${
-                    index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
-                  } hover:bg-blue-50 transition-colors h-[32px]`}
+                  className="even:bg-slate-50/40 hover:bg-blue-50/60 transition-colors h-[30px]"
                 >
-                  <td className="px-3 py-1 text-[11px] font-medium text-slate-900 border-r border-slate-100">
+                  <td className="px-1 py-0.5 text-center text-[11px] font-mono text-slate-400 border-r border-slate-100">
                     {row.n}
                   </td>
-                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                  <td
+                    className="px-2.5 py-0.5 text-[11px] font-bold text-slate-800 border-r border-slate-100 truncate whitespace-nowrap"
+                    title={row.empresa}
+                  >
                     {row.empresa}
                   </td>
-                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                  <td
+                    className="px-2.5 py-0.5 text-[11px] font-medium text-slate-400 border-r border-slate-100 truncate whitespace-nowrap"
+                    title={row.area}
+                  >
                     {row.area}
                   </td>
-                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
+                  <td
+                    className="px-1 py-0.5 text-center text-[11px] font-bold text-slate-800 border-r border-slate-100 truncate whitespace-nowrap uppercase"
+                    title={row.subarea}
+                  >
                     {row.subarea}
                   </td>
-                  <td className="px-3 py-1 text-[11px] font-medium text-slate-900 border-r border-slate-100 capitalize">
+                  <td
+                    className="px-1 py-0.5 text-center text-[11px] font-bold text-slate-800 border-r border-slate-100 truncate whitespace-nowrap uppercase"
+                    title={row.rol}
+                  >
                     {row.rol}
                   </td>
-                  <td className="px-3 py-1 text-[11px] font-mono text-slate-700 border-r border-slate-100">
+                  <td className="px-1 py-0.5 text-center text-[11px] font-mono font-medium text-slate-700 border-r border-slate-100 whitespace-nowrap">
                     {row.hora}
                   </td>
-                  <td className="px-3 py-1 text-[11px] text-slate-700 border-r border-slate-100 whitespace-nowrap">
-                    {row.programacion}
+                  <td className="px-1 py-0.5 text-center border-r border-slate-100 whitespace-nowrap">
+                    {renderProgramacionBadge(row.programacion)}
                   </td>
-                  <td className="px-3 py-1 text-[11px]">
-                    <div className="flex items-center justify-center gap-2">
+                  <td className="px-1 py-0.5 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
                       <ModalTurnoEdit
                         user={row}
                         titleM={title}
@@ -258,12 +294,12 @@ export default function App({
                           <button
                             onClick={() => confirmDelete(parseInt(row.codigo))}
                             type="button"
-                            className="flex h-full w-full items-center justify-center rounded bg-red-100 text-red-700 hover:bg-red-200 focus:outline-none transition-colors"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded border border-slate-200 bg-white text-slate-400 hover:border-red-400 hover:bg-red-50 hover:text-red-600 focus:outline-none transition-colors"
                           >
-                            <MdDelete size={15} />
+                            <Trash2 size={13} />
                           </button>
 
-                          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded bg-red-800 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-md">
+                          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                             Eliminar turno
                           </div>
                         </div>
@@ -277,12 +313,12 @@ export default function App({
         </table>
       </div>
 
-      <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 border-t border-slate-200 text-xs flex-shrink-0">
+      <div className="flex items-center justify-between bg-white px-3 py-1.5 border-t border-slate-200 text-xs flex-shrink-0">
         <div className="flex items-center gap-1.5">
           {page > 1 && (
             <button
               onClick={() => handlePageChange(page - 1)}
-              className="rounded border border-blue-500 bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+              className="rounded border border-[#113EB9] bg-white px-2.5 py-1 text-[11px] font-medium text-[#113EB9] hover:bg-blue-50 transition-colors"
             >
               Anterior
             </button>
@@ -301,8 +337,8 @@ export default function App({
                   onClick={() => handlePageChange(pageNumber)}
                   className={`rounded px-2.5 py-1 text-[11px] font-medium transition-colors ${
                     page === pageNumber
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                      ? 'bg-[#113EB9] text-white'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   {pageNumber}
@@ -310,7 +346,11 @@ export default function App({
               );
             }
             if (pageNumber === page - 3 || pageNumber === page + 3) {
-              return <span key={`dot-${pageNumber}`} className="text-slate-400 text-xs px-1">...</span>;
+              return (
+                <span key={`dot-${pageNumber}`} className="text-slate-400 text-xs px-1">
+                  ...
+                </span>
+              );
             }
             return null;
           })}
@@ -318,7 +358,7 @@ export default function App({
           {page < pages && (
             <button
               onClick={() => handlePageChange(page + 1)}
-              className="rounded border border-blue-500 bg-white px-2.5 py-1 text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+              className="rounded border border-[#113EB9] bg-white px-2.5 py-1 text-[11px] font-medium text-[#113EB9] hover:bg-blue-50 transition-colors"
             >
               Siguiente
             </button>

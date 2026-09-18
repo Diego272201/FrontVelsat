@@ -17,12 +17,29 @@ interface Row {
   odometerKM: number;
 }
 
+export interface DataStats {
+  total: number;
+  moving: number;
+  stopped: number;
+  maxSpeed: number;
+  lastAddress: string;
+}
+
 interface AppProps {
   url: string;
   deviceId: string;
+  searchTerm?: string;
+  filterStatus?: 'all' | 'moving' | 'stopped';
+  onDataStats?: (stats: DataStats) => void;
 }
 
-export default function App({ url, deviceId }: AppProps) {
+export default function App({
+  url,
+  deviceId,
+  searchTerm = '',
+  filterStatus = 'all',
+  onDataStats,
+}: AppProps) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +58,21 @@ export default function App({ url, deviceId }: AppProps) {
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
         if (data && Array.isArray(data.result.listaTablas)) {
-          setRows(data.result.listaTablas);
+          const fetchedRows: Row[] = data.result.listaTablas;
+          setRows(fetchedRows);
+          if (onDataStats) {
+            const moving = fetchedRows.filter((r) => r.speedKPH > 0).length;
+            const stopped = fetchedRows.filter((r) => r.speedKPH <= 0).length;
+            const maxSpeed = fetchedRows.length > 0 ? Math.max(...fetchedRows.map((r) => r.speedKPH)) : 0;
+            const lastAddress = fetchedRows.length > 0 ? (fetchedRows[fetchedRows.length - 1]?.address || fetchedRows[0]?.address || '') : '';
+            onDataStats({
+              total: fetchedRows.length,
+              moving,
+              stopped,
+              maxSpeed,
+              lastAddress,
+            });
+          }
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]);
@@ -57,19 +88,45 @@ export default function App({ url, deviceId }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = useCalculateRowsPerPage(40, 5, 70);
-  const pages = Math.ceil(rows.length / rowsPerPage);
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, filterStatus]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((item) => {
+      if (filterStatus === 'moving' && item.speedKPH <= 0) return false;
+      if (filterStatus === 'stopped' && item.speedKPH > 0) return false;
+
+      if (searchTerm) {
+        const term = searchTerm.trim().toLowerCase();
+        if (term) {
+          const matchHora = item.hora?.toLowerCase().includes(term);
+          const matchFecha = item.fecha?.toLowerCase().includes(term);
+          const matchAddress = item.address?.toLowerCase().includes(term);
+          const matchSpeed = `${item.speedKPH}`.includes(term);
+          const matchItem = `${item.item}`.includes(term);
+          if (!matchHora && !matchFecha && !matchAddress && !matchSpeed && !matchItem) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [rows, filterStatus, searchTerm]);
+
+  const rowsPerPage = 22;
+  const pages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    return rows.slice(start, end);
-  }, [page, rows, rowsPerPage]);
+    return filteredRows.slice(start, end);
+  }, [page, filteredRows, rowsPerPage]);
 
   return (
-    <div className="mx-2 my-1 px-0 py-1">
-      <div className="overflow-auto border border-gray-200">
-        <table className="min-w-full text-xs text-gray-700">
+    <div className="w-full p-0">
+      <div className="overflow-auto border-b border-gray-200">
+        <table className="w-full text-xs text-gray-700">
           <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
             <tr>
               <th className="p-2 text-center">ITEM</th>

@@ -268,10 +268,6 @@ const DragAndDropTable = forwardRef(
     }, [agregarTrigger, dataAgregada]);
 
     useEffect(() => {
-      console.log('tempData actualizado:', tempData);
-    }, [tempData]);
-
-    useEffect(() => {
       if (tempData.length > 0) {
         setData((prevData: any) => {
           let ultimoOrden =
@@ -306,8 +302,6 @@ const DragAndDropTable = forwardRef(
     }, [tempData, areaLan]);
 
     const handleUbicar = (coords: { lat: number; lng: number }) => {
-      console.log('Coordenadas enviadas:', coords);
-
       if (!isNaN(coords.lat) && !isNaN(coords.lng)) {
         if (onCenterUpdate) {
           onCenterUpdate(coords);
@@ -336,8 +330,6 @@ const DragAndDropTable = forwardRef(
     }, []);
 
     const handleCancelar = async (codigo: number) => {
-      console.log('Código a cancelar:', codigo);
-
       try {
         await axios.put('https://do.velsat.pe:2083/api/Preplan/UpdateEstado', {
           codigo,
@@ -461,17 +453,7 @@ const DragAndDropTable = forwardRef(
       }
     }, [shouldRefetch]);
 
-    useEffect(() => {
-      console.log(data);
-    }, [data]);
-
-    useEffect(() => {
-      console.log('Cambios ' + horaAto);
-    }, [horaAto]);
-
     const actualizarOrdenEnServidor = async () => {
-      console.log(tempData.length);
-
       if (!codServicio || data.length === 0) return;
 
       const API_URL = `https://do.velsat.pe:2083/api/Preplan/actualizarOrden`;
@@ -504,11 +486,6 @@ const DragAndDropTable = forwardRef(
           }
         }),
       };
-
-      console.log(
-        'Payload enviado al servidor:',
-        JSON.stringify(payload, null, 2),
-      );
 
       try {
         const response = await axios.put(API_URL, payload);
@@ -554,14 +531,14 @@ const DragAndDropTable = forwardRef(
           >
             <div className="ml-2 bg-white">
               <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-[#113eb9] text-white">
-                  <tr className="bg-[#113eb9] text-white text-[11px] font-semibold uppercase">
-                    <th className="border border-blue-800 p-2">Orden</th>
-                    <th className="border border-blue-800 p-2">Área</th>
-                    <th className="border border-blue-800 p-2">Nombre</th>
-                    <th className="border border-blue-800 p-2">Dirección</th>
-                    <th className="border border-blue-800 p-2">Distrito</th>
-                    <th className="border border-blue-800 p-2">Estado</th>
+                <thead className="bg-gray-200 text-gray-700">
+                  <tr className="bg-gray-200 text-gray-700 text-[11px] font-bold uppercase border-b border-gray-300">
+                    <th className="border border-gray-300 p-2">Orden</th>
+                    <th className="border border-gray-300 p-2">Área</th>
+                    <th className="border border-gray-300 p-2">Nombre</th>
+                    <th className="border border-gray-300 p-2">Dirección</th>
+                    <th className="border border-gray-300 p-2">Distrito</th>
+                    <th className="border border-gray-300 p-2">Estado</th>
                   </tr>
                 </thead>
 

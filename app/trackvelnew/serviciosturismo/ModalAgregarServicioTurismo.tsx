@@ -16,10 +16,10 @@ import {
 import { ResultadoAlertasWhatsapp } from './whatsappAlerta';
 
 interface FormServicioTurismo {
-  fechainicio: string; // yyyy-MM-dd (input date)
-  horainicio: string; // HH:mm (input time)
+  fechainicio: string;
+  horainicio: string;
   horaretorno: string;
-  placa: string; // codunidad combinado (bus-placa), seleccionado de la lista de unidades
+  placa: string;
   brevete: string;
   piloto: string;
   celular: string;
@@ -53,7 +53,7 @@ interface ModalAgregarServicioTurismoProps {
     mensaje: string;
     whatsapp: ResultadoAlertasWhatsapp | null;
   }>;
-  unidades: string[]; // codunidad ya obtenidos por la página (bus-placa), no se vuelve a consultar
+  unidades: string[];
 }
 
 function getIsoToday(): string {
@@ -177,7 +177,6 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
     setForm((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  // Conductores del usuario logueado, para autocompletar brevete/celular al elegir piloto o copiloto.
   useEffect(() => {
     if (!isOpen || !isReady || !username) return;
 
@@ -216,8 +215,6 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
     }));
   };
 
-  // Al borrar el texto del piloto/copiloto (sin seleccionar otro conductor), se limpian
-  // también sus datos autocompletados, ya que esos campos no son editables manualmente.
   const manejarCambioPiloto = (valor: string) => {
     setForm((prev) => ({
       ...prev,
@@ -267,8 +264,6 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
     try {
       const valorOVacio = (valor: string) => (valor.trim() === '' ? null : valor.trim());
 
-      // form.placa guarda el codunidad combinado (ej. "H442-BXR197"); se separa en bus/placa
-      // para que quede igual que en la tabla y coincida con la unidad seleccionada.
       const [busSeleccionado, placaSeleccionada] = form.placa
         ? (() => {
             const idx = form.placa.indexOf('-');
@@ -354,7 +349,6 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
         confirmButtonClass="bg-brandSecondary hover:bg-brandSecondary-hover text-white font-medium"
       >
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-          {/* Formulario */}
           <div className="space-y-4">
             <div>
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
@@ -535,7 +529,6 @@ const ModalAgregarServicioTurismo: React.FC<ModalAgregarServicioTurismoProps> = 
             </div>
           </div>
 
-          {/* Vista previa */}
           <div className="lg:sticky lg:top-0 lg:self-start">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <div className="mb-3 flex items-center gap-2 border-b border-slate-200 pb-2">

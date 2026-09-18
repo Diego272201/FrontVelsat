@@ -13,17 +13,16 @@ import { Conductor } from './SelectBuscable';
 import FilaServicio from './FilaServicio';
 import FiltroColumna from './FiltroColumna';
 
-// Encabezados con filtro tipo Excel, en el mismo orden en que aparecen en la tabla.
 const COLUMNAS_FILTRABLES: { key: ColumnaFiltrable; titulo: string }[] = [
-  { key: 'fechainicio', titulo: 'Fecha' },
-  { key: 'horainicio', titulo: 'Hora Inicio' },
-  { key: 'tipounidad', titulo: 'Tipo Unidad' },
-  { key: 'placaCombinada', titulo: 'Placa' },
-  { key: 'piloto', titulo: 'Piloto' },
-  { key: 'cliente', titulo: 'Cliente' },
-  { key: 'grupo', titulo: 'Grupo' },
-  { key: 'origen', titulo: 'Origen' },
-  { key: 'destino', titulo: 'Destino' },
+  { key: 'fechainicio', titulo: 'FECHA' },
+  { key: 'horainicio', titulo: 'HORA INICIO' },
+  { key: 'tipounidad', titulo: 'TIPO UNIDAD' },
+  { key: 'placaCombinada', titulo: 'PLACA' },
+  { key: 'piloto', titulo: 'PILOTO' },
+  { key: 'cliente', titulo: 'CLIENTE' },
+  { key: 'grupo', titulo: 'GRUPO' },
+  { key: 'origen', titulo: 'ORIGEN' },
+  { key: 'destino', titulo: 'DESTINO' },
 ];
 
 const TablaServicios: React.FC<{
@@ -114,25 +113,25 @@ const TablaServicios: React.FC<{
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="max-h-[calc(100vh-80px)] overflow-auto">
+    <div className="w-full border-b border-gray-200 bg-white">
+      <div className="w-full max-h-[calc(100vh-140px)] overflow-auto custom-scrollbar-servicios">
         <table className="w-full">
-          <thead className="sticky top-0 z-10 bg-[#113eb9]">
-            <tr>
-              <th className="w-6 px-1.5 py-1.5">
+          <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
+            <tr className="border-b border-gray-300">
+              <th className="w-8 pl-4 pr-1.5 py-2">
                 {hayFiltrosColumnaActivos && (
                   <button
                     type="button"
                     onClick={onLimpiarFiltrosColumna}
                     title="Quitar todos los filtros de columna"
-                    className="rounded p-0.5 text-amber-300 hover:bg-white/15"
+                    className="rounded p-0.5 text-amber-600 hover:bg-black/10"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 )}
               </th>
               {COLUMNAS_FILTRABLES.map((columna) => (
-                <th key={columna.key} className="px-1.5 py-1.5">
+                <th key={columna.key} className="px-2 py-2">
                   <FiltroColumna
                     titulo={columna.titulo}
                     valores={valoresPorColumna[columna.key] || []}
@@ -143,11 +142,11 @@ const TablaServicios: React.FC<{
                   />
                 </th>
               ))}
-              <th className="px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Acciones
+              <th className="px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-700">
+                ACCIONES
               </th>
-              <th className="w-20 px-1.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50">
-                Estado
+              <th className="w-20 px-2 pr-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-700">
+                ESTADO
               </th>
             </tr>
           </thead>

@@ -154,9 +154,6 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
       // Si hay 3 grupos (índices 0, 1, 2), el nuevo grupo será el número 3
       const numeroNuevoGrupo = totalGruposActuales.toString();
 
-      console.log('Total grupos actuales:', totalGruposActuales);
-      console.log('Número del nuevo grupo:', numeroNuevoGrupo);
-
       // Agregar cada pasajero usando la API
       for (let i = 0; i < pasajerosSeleccionados.length; i++) {
         const pasajero = pasajerosSeleccionados[i];
@@ -178,11 +175,6 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
           tipo: formData.tipo,
         };
 
-        console.log(
-          `Agregando pasajero ${i + 1} al grupo ${numeroNuevoGrupo}:`,
-          payload,
-        );
-
         const response = await fetch(
           `${API_BASE_URL125}/api/Preplan/AgregarPasajero?usuario=${username}`,
           {
@@ -196,14 +188,12 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Error response:', errorText);
           throw new Error(
             `Error al agregar pasajero ${pasajero.apepate}: ${errorText}`,
           );
         }
 
-        const responseData = await response.json();
-        console.log(`Respuesta para pasajero ${i + 1}:`, responseData);
+        await response.json();
       }
 
       toast.success(
@@ -226,7 +216,6 @@ const ModalNuevoGrupo: React.FC<ModalNuevoGrupoProps> = ({
         onRefrescarDatos();
       }, 1000);
     } catch (error) {
-      console.error('Error al crear grupo:', error);
       toast.error(`Error al crear el grupo`, { id: toastId });
     }
   };

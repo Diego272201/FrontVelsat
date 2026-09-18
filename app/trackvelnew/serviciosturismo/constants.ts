@@ -4,12 +4,8 @@ export const API_BASE = 'https://do.velsat.pe:2083/api/ServTurismo';
 export const API_UNIDADES = 'https://do.velsat.pe:2083/api/Preplan/carros';
 export const API_TAXI = 'https://do.velsat.pe:2083/api/ServTurismo/taxi';
 
-// Clave de "Opciones avanzadas": destraba el historial de cambios por fila y el botón
-// "Eliminar carga". Vive solo en memoria (useState), así que se pierde al recargar o
-// cerrar la página y hay que volver a ingresarla.
 export const CLAVE_OPCIONES_AVANZADAS = 'ST2026';
 
-// Card "Detalles" (el resto de secciones se arman a mano por su layout particular).
 export const SECCIONES_DETALLE: {
   titulo: string;
   campos: { key: CampoTexto; label: string }[];
@@ -25,7 +21,6 @@ export const SECCIONES_DETALLE: {
   },
 ];
 
-// Campos que se recapitulan en el card "Servicio" (algunos ya visibles en la fila principal).
 export const CAMPOS_SERVICIO: { key: CampoTexto; label: string }[] = [
   { key: 'cliente', label: 'Cliente' },
   { key: 'grupo', label: 'Grupo' },
@@ -40,8 +35,6 @@ export const SECCIONES_NOTAS: { key: CampoTexto; label: string }[] = [
   { key: 'observaciones', label: 'Observaciones' },
 ];
 
-// Etiquetas legibles para los nombres de columna que devuelve la auditoría (servturismo_auditoria),
-// que son los nombres de columna reales en BD (ej. "bus"/"placa" en vez de "placaCombinada").
 export const ETIQUETAS_CAMPOS_AUDITORIA: Record<string, string> = {
   fechainicio: 'Fecha',
   horainicio: 'Hora Inicio',

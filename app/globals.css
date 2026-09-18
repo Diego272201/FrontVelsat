@@ -30,6 +30,40 @@ body {
   border-radius: 10px;
 }
 
+/* Scrollbar personalizado moderno para tabla de servicios */
+.custom-scrollbar-servicios {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar-thumb:active {
+  background: #475569;
+}
+
+.custom-scrollbar-servicios::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .mainPruebas {
   width: 100%;
   position: absolute;

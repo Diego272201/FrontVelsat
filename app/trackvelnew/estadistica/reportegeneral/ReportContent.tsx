@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import Table from '@/app/components/table/Table';
+import Table, { DataStats } from '@/app/components/table/Table';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import ReporteHeader from '@/app/components/ReporteHeader';
 import { BiSolidReport } from 'react-icons/bi';
@@ -21,8 +21,13 @@ export default function ReportContent() {
 
   const tableUrl = `/api/Reporting/general/${startDate}/${endDate}/${deviceId}/${username}`;
 
-  console.log(tableUrl);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'moving' | 'stopped'>('all');
+  const [dataStats, setDataStats] = useState<DataStats | null>(null);
 
+  const handleDataStats = useCallback((stats: DataStats) => {
+    setDataStats(stats);
+  }, []);
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -50,7 +55,15 @@ export default function ReportContent() {
         endDate={endDate ?? ''}
         extraInfo={extraInfo}
         formatDate={formatDate}
-        icon={<BiSolidReport size={25} />}
+        registros={dataStats ? dataStats.total : undefined}
+        enMovimiento={dataStats ? dataStats.moving : undefined}
+        detenido={dataStats ? dataStats.stopped : undefined}
+        velocidadMaxima={dataStats ? `${dataStats.maxSpeed} km/h` : undefined}
+        ultimaUbicacion={dataStats?.lastAddress || undefined}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filterStatus={filterStatus}
+        onFilterStatusChange={setFilterStatus}
       />
       <ButtonDownloadFloat
         startDate={startDate || ''}
@@ -61,9 +74,13 @@ export default function ReportContent() {
         username={username || ''}
         nameurl="reportegeneral"
       />
-      <Table url={tableUrl} deviceId={deviceId ?? ''} />
-
-
+      <Table
+        url={tableUrl}
+        deviceId={deviceId ?? ''}
+        searchTerm={searchTerm}
+        filterStatus={filterStatus}
+        onDataStats={handleDataStats}
+      />
     </div>
   );
 }
