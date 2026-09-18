@@ -5,11 +5,6 @@ import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import Loader from './Loader';
 import MapFloatingControls from './MapFloatingControls';
 
-const containerStyle = {
-  width: '100%',
-  height: '100vh',
-};
-
 const defaultCenter = {
   lat: -9.22812,
   lng: -75.78894,
@@ -25,6 +20,13 @@ interface GoogleMapComponentProps {
   onCenterMap?: () => void;
   showFloatingControls?: boolean;
   controlsPositionClassName?: string;
+  /**
+   * Alto del mapa. Por defecto ocupa toda la ventana; un mapa embebido en un
+   * contenedor de alto fijo debe pasar '100%' (junto con className="h-full"),
+   * o el mapa queda más alto que lo visible y su centro cae fuera de vista.
+   */
+  mapHeight?: string;
+  fullscreenTargetRef?: React.RefObject<HTMLElement>;
 }
 
 const GoogleMapComponent = memo(function GoogleMapComponent({
@@ -37,9 +39,16 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
   onCenterMap,
   showFloatingControls = true,
   controlsPositionClassName = 'top-16 right-4',
+  mapHeight = '100vh',
+  fullscreenTargetRef,
 }: GoogleMapComponentProps) {
   const { isLoaded, loadError } = useGoogleMaps();
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
+
+  const containerStyle = useMemo(
+    () => ({ width: '100%', height: mapHeight }),
+    [mapHeight],
+  );
 
   const mapOptions = useMemo(() => {
     const isMobile =
@@ -120,6 +129,7 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
           map={mapInstance}
           onCenterMap={onCenterMap}
           positionClassName={controlsPositionClassName}
+          fullscreenTargetRef={fullscreenTargetRef}
         />
       )}
     </div>
@@ -127,4 +137,3 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
 });
 
 export default GoogleMapComponent;
-
