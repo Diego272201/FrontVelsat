@@ -119,7 +119,7 @@ const TablaServicios: React.FC<{
 
   return (
     <div className="w-full border-b border-gray-200 bg-white">
-      <div className="w-full max-h-[calc(100vh-140px)] overflow-auto custom-scrollbar-servicios">
+      <div className="w-full max-h-[calc(100vh-140px)] overflow-auto pb-16 custom-scrollbar-servicios">
         <table className="w-full">
           <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
             <tr className="border-b border-gray-300">

@@ -824,7 +824,7 @@ export default function TepContent() {
                 onChange={(event) => setSelectedEmpresa(event.target.value)}
               >
                 <option value="" disabled>
-                  Seleccione archivo
+                  Seleccione empresa
                 </option>
                 {(username === 'movilbus' ? tiposArchivos : tiposArchivosG).map(
                   (tipo, index) => (

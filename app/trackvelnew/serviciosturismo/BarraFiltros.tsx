@@ -29,7 +29,13 @@ interface BarraFiltrosProps {
   tiposUnidadDisponibles: string[];
   estadoFiltro: string | null;
   onToggleEstadoFiltro: (sigla: string) => void;
-  conteosEstado: { F: number; VC: number; CC: number; PLACA_DESCONOCIDA: number };
+  conteosEstado: {
+    P: number;
+    F: number;
+    VC: number;
+    CC: number;
+    PLACA_DESCONOCIDA: number;
+  };
   isVisible: boolean;
   onToggleVisible: () => void;
   deshabilitado: boolean;
@@ -344,6 +350,23 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onToggleEstadoFiltro('P')}
+            title="Filtrar por Pendiente"
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+              estadoFiltro === 'P'
+                ? 'bg-slate-200 text-slate-700 ring-2 ring-slate-500'
+                : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200/70'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+            <span>P · Pendiente</span>
+            <span className="ml-1 rounded-full bg-white/80 px-1.5 py-0.2 text-[10px] font-bold">
+              {conteosEstado.P}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => onToggleEstadoFiltro('F')}

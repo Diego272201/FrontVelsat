@@ -129,7 +129,7 @@ const ServiciosTurismoPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pb-16">
       <NotificacionesFlotantes notificaciones={notificaciones} />
 
       <BarraFiltros

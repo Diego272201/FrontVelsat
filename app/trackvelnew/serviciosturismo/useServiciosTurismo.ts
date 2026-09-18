@@ -493,18 +493,20 @@ export function useServiciosTurismo() {
   );
 
   const conteosEstado = useMemo(() => {
+    let p = 0;
     let f = 0;
     let vc = 0;
     let cc = 0;
     let placaNoRegistrada = 0;
     serviciosVisibles.forEach((servicio) => {
       const est = calcularEstado(servicio);
-      if (est === 'Finalizado por Conductor') f++;
+      if (est === 'Pendiente') p++;
+      else if (est === 'Finalizado por Conductor') f++;
       else if (est === 'Visto por Conductor') vc++;
       else if (est === 'Confirmado por Conductor') cc++;
       if (servicio.placaNoRegistrada) placaNoRegistrada++;
     });
-    return { F: f, VC: vc, CC: cc, PLACA_DESCONOCIDA: placaNoRegistrada };
+    return { P: p, F: f, VC: vc, CC: cc, PLACA_DESCONOCIDA: placaNoRegistrada };
   }, [serviciosVisibles]);
 
   const totalPilotos = useMemo(() => {
@@ -542,6 +544,7 @@ export function useServiciosTurismo() {
       );
       const coincideEstado =
         estadoFiltro === null ||
+        (estadoFiltro === 'P' && calcularEstado(servicio) === 'Pendiente') ||
         (estadoFiltro === 'F' &&
           calcularEstado(servicio) === 'Finalizado por Conductor') ||
         (estadoFiltro === 'VC' &&
