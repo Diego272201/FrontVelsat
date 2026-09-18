@@ -1,27 +1,7 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/app/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  User,
-  CreditCard,
-  Users,
-  Lock,
-  Key,
-  Phone,
-  Mail,
-  Edit,
-  Eye,
-  EyeOff,
-  Truck,
-  Route,
-} from 'lucide-react';
+import { Edit, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useUsername } from '@/hooks/useUsername';
 import BaseModal from '@/app/components/ui/BaseModal';
@@ -66,6 +46,15 @@ interface ConductorDialogProps {
   conductorData: ConductorAPI | null;
   onConductorModified?: (conductor: ConductorAPI) => void;
 }
+
+const SectionLabel = ({ index, title }: { index: string; title: string }) => (
+  <div className="flex items-center gap-2">
+    <span className="whitespace-nowrap text-[10.5px] font-bold uppercase tracking-wider text-gray-500">
+      {index} · {title}
+    </span>
+    <div className="h-px flex-1 bg-gray-200" />
+  </div>
+);
 
 export default function ConductorDialogModificar({
   conductorData,
@@ -239,39 +228,43 @@ export default function ConductorDialogModificar({
   };
 
   const inputClass =
-    'w-full rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] transition-colors focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50';
-  const labelClass = 'flex items-center gap-1.5 text-[12px] font-medium text-gray-700';
+    'w-full rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[12px] transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50';
+  const selectClass =
+    'w-full rounded-md border border-gray-200 bg-gray-50 pl-2.5 pr-7 py-1 text-[12px] text-gray-800 transition-colors focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:opacity-50 appearance-none cursor-pointer';
+  const labelClass = 'text-[12px] font-semibold text-gray-800';
 
   return (
     <div>
       <button
         onClick={handleOpenModal}
-        className="inline-flex h-7 items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 text-[11px] font-medium text-[#113EB9] transition-colors hover:bg-blue-50"
+        title="Modificar"
+        className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-[#113EB9] transition-colors hover:bg-blue-50"
       >
-        <Edit size={12} />
-        Modificar
+        <Edit size={13} />
       </button>
 
       <BaseModal
         isOpen={isOpen}
         onClose={handleCerrar}
-        title="Modificar Conductor"
-        subtitle="Edite la información del conductor"
-        icon={<Edit className="h-4 w-4 text-[#113EB9]" />}
-        iconBgColor="bg-[#e8eeff]"
+        title="Modificar conductor"
+        subtitle="Edite la información del registro. Los campos con asterisco son obligatorios."
+        variant="brand"
         size="2xl"
-        confirmText="Guardar Cambios"
+        isDismissable={false}
+        confirmText="Guardar cambios"
         loadingText="Modificando..."
         onConfirm={handleGuardar}
         onCancel={handleCerrar}
         isLoading={loading}
-        confirmButtonClass="bg-[#008000] hover:bg-[#006600] text-white"
+        confirmButtonClass="bg-[#113EB9] hover:bg-[#0d2f8c] text-white"
+        cancelButtonClass="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
       >
-        <div className="space-y-2 py-1">
+        <div className="space-y-2">
+          <SectionLabel index="01" title="Datos personales" />
+
           <div className="space-y-1">
             <Label htmlFor="apellidos" className={labelClass}>
-              <User className="h-3.5 w-3.5 text-[#fb7b0f]" />
-              Nombre Completo <span className="text-red-500">*</span>
+              Nombre completo <span className="text-red-500">*</span>
             </Label>
             <Input
               id="apellidos"
@@ -280,14 +273,13 @@ export default function ConductorDialogModificar({
               onChange={(e) => handleInputChange('apellidos', e.target.value)}
               disabled={loading}
               className={inputClass}
-              placeholder="Ingrese nombre completo"
+              placeholder="Apellidos y nombres"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="dni" className={labelClass}>
-                <CreditCard className="h-3.5 w-3.5 text-[#fb7b0f]" />
                 DNI
               </Label>
               <Input
@@ -297,16 +289,31 @@ export default function ConductorDialogModificar({
                 onChange={(e) => handleInputChange('dni', e.target.value)}
                 disabled={loading}
                 className={inputClass}
-                placeholder="Ingrese dni"
+                placeholder="8 dígitos"
                 maxLength={8}
               />
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="sexo" className={labelClass}>
-                <Users className="h-3.5 w-3.5 text-[#fb7b0f]" />
                 Género <span className="text-red-500">*</span>
               </Label>
+<<<<<<< HEAD
+              <div className="relative">
+                <select
+                  id="sexo"
+                  value={formData.sexo}
+                  onChange={(e) => handleInputChange('sexo', e.target.value)}
+                  disabled={loading}
+                  className={selectClass}
+                >
+                  <option value="">Seleccione</option>
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              </div>
+=======
               <Select
                 value={formData.sexo}
                 onValueChange={(value) => handleInputChange('sexo', value)}
@@ -324,13 +331,15 @@ export default function ConductorDialogModificar({
                   </SelectItem>
                 </SelectContent>
               </Select>
+>>>>>>> 747484d4780da778f2fe0b33ac367fa7c51487fb
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <SectionLabel index="02" title="Credenciales de acceso" />
+
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="login" className={labelClass}>
-                <Key className="h-3.5 w-3.5 text-[#fb7b0f]" />
                 Usuario <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -340,13 +349,12 @@ export default function ConductorDialogModificar({
                 onChange={(e) => handleInputChange('login', e.target.value)}
                 disabled={loading}
                 className={inputClass}
-                placeholder="Ingrese usuario"
+                placeholder="usuario.conductor"
               />
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="clave" className={labelClass}>
-                <Lock className="h-3.5 w-3.5 text-[#fb7b0f]" />
                 Contraseña <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
@@ -357,7 +365,7 @@ export default function ConductorDialogModificar({
                   onChange={(e) => handleInputChange('clave', e.target.value)}
                   disabled={loading}
                   className={inputClass}
-                  placeholder="Ingrese contraseña"
+                  placeholder="Mínimo 4 caracteres"
                 />
                 <button
                   type="button"
@@ -371,10 +379,11 @@ export default function ConductorDialogModificar({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <SectionLabel index="03" title="Contacto y asignación" />
+
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="telefono" className={labelClass}>
-                <Phone className="h-3.5 w-3.5 text-[#fb7b0f]" />
                 Teléfono
               </Label>
               <Input
@@ -384,14 +393,13 @@ export default function ConductorDialogModificar({
                 onChange={(e) => handleInputChange('telefono', e.target.value)}
                 disabled={loading}
                 className={inputClass}
-                placeholder="Ingrese teléfono"
+                placeholder="9 dígitos"
               />
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="email" className={labelClass}>
-                <Mail className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                Correo Electrónico
+                Correo electrónico
               </Label>
               <Input
                 id="email"
@@ -400,17 +408,16 @@ export default function ConductorDialogModificar({
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 disabled={loading}
                 className={inputClass}
-                placeholder="Ingrese correo"
+                placeholder="nombre@empresa.pe"
               />
             </div>
           </div>
 
           {username === 'movilbus' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label htmlFor="unidadasig" className={labelClass}>
-                  <Truck className="h-3.5 w-3.5 text-[#fb7b0f]" />
-                  Unidad Asignada
+                  Unidad asignada
                 </Label>
                 <Input
                   id="unidadasig"
@@ -419,15 +426,31 @@ export default function ConductorDialogModificar({
                   onChange={(e) => handleInputChange('unidadasig', e.target.value)}
                   disabled={loading}
                   className={inputClass}
-                  placeholder="Ingrese unidad"
+                  placeholder="Placa de la unidad"
                 />
               </div>
 
               <div className="space-y-1">
                 <Label htmlFor="tipo" className={labelClass}>
-                  <Route className="h-3.5 w-3.5 text-[#fb7b0f]" />
                   Tipo
                 </Label>
+<<<<<<< HEAD
+                <div className="relative">
+                  <select
+                    id="tipo"
+                    value={formData.tipo}
+                    onChange={(e) => handleInputChange('tipo', e.target.value)}
+                    disabled={loading}
+                    className={selectClass}
+                  >
+                    <option value="">Seleccione</option>
+                    <option value="Tdp Menores">Tdp Menores</option>
+                    <option value="Turismo">Turismo</option>
+                    <option value="Tdp Mayores">Tdp Mayores</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                </div>
+=======
                 <Select
                   value={formData.tipo}
                   onValueChange={(value) => handleInputChange('tipo', value)}
@@ -448,6 +471,7 @@ export default function ConductorDialogModificar({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+>>>>>>> 747484d4780da778f2fe0b33ac367fa7c51487fb
               </div>
             </div>
           )}

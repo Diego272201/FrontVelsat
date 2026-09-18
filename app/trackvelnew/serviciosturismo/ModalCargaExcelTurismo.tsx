@@ -53,14 +53,6 @@ interface ModalCargaExcelTurismoProps {
 
 const API_LOTE_URL = 'https://do.velsat.pe:2083/api/ServTurismo/lote';
 
-// Layout real de la plantilla Excel (encabezados tal cual los envió el usuario):
-// A FECHA INICIO | B H. TALLER | C H. INICIO | D FECHA RETORNO | E H. DE RETORNO | F BUS | G PLACA
-// H BREVETE | I PILOTO | J CELULAR | K BREVETE (copiloto) | L PILOTO (copiloto) | M CELULAR (copiloto)
-// N TIPO/UNID | O CLIENTE | P GRUPO | Q N° PAX | R ORIGEN | S DESTINO | T GUIA | U VUELO
-// V OBSERVACIONES | W UUNN | X FOR1 | Y EJECUTIVO | Z COTIZACION
-// Columnas B (H. TALLER), D (FECHA RETORNO), W (UUNN) y X (FOR1) no tienen campo equivalente
-// en la tabla servturismo, así que se ignoran al leer el Excel.
-// "instrucciones" e "indicaciones" tampoco tienen columna en esta plantilla, quedan vacíos.
 const COLUMN_MAP: { index: number; campo: keyof ServicioTurismoLote }[] = [
   { index: 0, campo: 'fechainicio' },
   { index: 1, campo: 'instrucciones' },
@@ -113,19 +105,16 @@ function excelSerialToDdMmYyyy(valor: any): string {
 
   const str = String(valor).trim();
 
-  // dd/mm/yyyy ya viene correcto
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
     return str;
   }
 
-  // dd-mm-yyyy
   const dashMatch = str.match(/^(\d{2})-(\d{2})-(\d{4})$/);
   if (dashMatch) {
     const [, d, m, y] = dashMatch;
     return `${d}/${m}/${y}`;
   }
 
-  // yyyy-mm-dd (ISO)
   const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     const [, y, m, d] = isoMatch;
@@ -288,7 +277,6 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
       }
 
       const worksheet = workbook.Sheets[sheetName];
-      // Matriz de filas/columnas; fila 0 = encabezados (fila 1 de Excel), datos desde fila 1 (fila 2 de Excel = A2).
       const filas: any[][] = XLSX.utils.sheet_to_json(worksheet, {
         header: 1,
         range: 0,
@@ -300,12 +288,10 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
         const fila = (filas[i] || []).slice(0, MAX_COLUMNAS);
         const fecha = celda(fila[0]);
 
-        // Termina el contenido cuando la columna A (fecha) llega vacía.
         if (!fecha) {
           break;
         }
 
-        // "instrucciones" e "indicaciones" no tienen columna en esta plantilla; se inicializan vacíos.
         const registro: ServicioTurismoLote = {
           fechainicio: '',
           instrucciones: '',
@@ -536,7 +522,6 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
 
       <Toaster />
 
-      {/* Vista previa */}
       {showPreview && registros.length > 0 && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
@@ -663,7 +648,6 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
         </div>
       )}
 
-      {/* Reporte final */}
       {showReport && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">

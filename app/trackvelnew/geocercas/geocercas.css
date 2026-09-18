@@ -1,0 +1,46 @@
+.geocercas-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.geocercas-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.geocercas-scroll::-webkit-scrollbar-thumb {
+  background: #c7d2e8;
+  border-radius: 10px;
+}
+
+.geocercas-scroll::-webkit-scrollbar-thumb:hover {
+  background: #113eb9;
+}
+
+.geocercas-alert {
+  animation: geocercas-alert-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes geocercas-alert-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.geocercas-panel {
+  animation: geocercas-panel-in 0.3s ease-out;
+}
+
+@keyframes geocercas-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

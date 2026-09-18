@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
-    if (req.nextUrl.pathname === "/trackvelnew/seguimientounidad") {
+    if (
+      req.nextUrl.pathname === "/trackvelnew/seguimientounidad" ||
+      req.nextUrl.pathname.startsWith("/trackvelnew/geocercas")
+    ) {
       return NextResponse.next();
     }
     
@@ -12,7 +15,10 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        if (req.nextUrl.pathname === "/trackvelnew/seguimientounidad") {
+        if (
+          req.nextUrl.pathname === "/trackvelnew/seguimientounidad" ||
+          req.nextUrl.pathname.startsWith("/trackvelnew/geocercas")
+        ) {
           return true;
         }
         return !!token;

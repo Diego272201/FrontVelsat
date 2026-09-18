@@ -2,19 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { GrFormPrevious } from 'react-icons/gr';
 import { GrFormNext } from 'react-icons/gr';
 import { TbView360 } from 'react-icons/tb';
-import { Filter } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import '@/app/styles/sidebar.css';
 import Unidad from './Unidad';
 import axios from 'axios';
 import { useSession } from 'next-auth/react';
-import { FcSearch } from 'react-icons/fc';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
 import SelectSidebar from './selectUI/SelectSidebar';
 
 interface SidebarProps {
   centerMap: () => void;
-  centerUnit: (coords: { latitud: number; longitud: number }) => void;
+  centerUnit: (
+    coords: { latitud: number; longitud: number },
+    deviceId?: string,
+  ) => void;
   onFilteredIdsChange?: (ids: string[] | null) => void;
   sharedDeviceList?: UnidadData[];
 }
@@ -38,8 +40,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sh
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [filteredDeviceIds, setFilteredDeviceIds] = useState<string[] | null>(null);
   const [filtroMovimiento, setFiltroMovimiento] = useState<'todos' | 'movimiento' | 'detenidas'>('todos');
-  const [showFiltroDropdown, setShowFiltroDropdown] = useState(false);
-  const filtroDropdownRef = useRef<HTMLDivElement>(null);
 
   // Estados para el polling de API
   const [connectionStatus, setConnectionStatus] = useState<'Connecting' | 'Connected' | 'Disconnected'>('Disconnected');
@@ -145,22 +145,6 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sh
     };
   }, []); 
 
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (filtroDropdownRef.current && !filtroDropdownRef.current.contains(event.target as Node)) {
-        setShowFiltroDropdown(false);
-      }
-    };
-
-    if (showFiltroDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showFiltroDropdown]); 
 
   const showMenu = () => {
     setShowDropdown(true);
@@ -171,8 +155,8 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sh
   };
 
   const handleSelectUnit = useCallback(
-    (coords: { latitud: number; longitud: number }) => {
-      centerUnit(coords);
+    (coords: { latitud: number; longitud: number }, deviceId?: string) => {
+      centerUnit(coords, deviceId);
     },
     [centerUnit],
   );
@@ -224,6 +208,20 @@ const filteredUnidades = useMemo(() => {
     setSearchTerm(e.target.value);
   };
 
+  const metricas = useMemo(() => {
+    let mov = 0;
+    let det = 0;
+    unidades.forEach((u) => {
+      if (u.lastValidSpeed >= 1) mov++;
+      else det++;
+    });
+    return {
+      total: unidades.length,
+      movimiento: mov,
+      detenidas: det,
+    };
+  }, [unidades]);
+
   return (
     <div className="sidebarScroll">
       <input
@@ -266,7 +264,10 @@ const filteredUnidades = useMemo(() => {
 
         <div className="menu">
           <div className="unidades bg-[#113EB9]">
-            <span>TOTAL DE UNIDADES: {filteredUnidades.length}</span>
+            <div className="flex items-center gap-2">
+              <span className="tracking-wide">TOTAL DE UNIDADES: {filteredUnidades.length} </span>
+           
+            </div>
             <div className="imap">
               <button
                 type="button"
@@ -274,7 +275,7 @@ const filteredUnidades = useMemo(() => {
                   e.preventDefault();
                   centerMap();
                 }}
-                className="hover:text-blue-200 transition-colors p-1 flex items-center justify-center rounded focus:outline-none"
+                className="hover:text-blue-200 hover:bg-white/10 transition-colors p-1 flex items-center justify-center rounded focus:outline-none"
                 title="Centrar mapa general"
               >
                 <TbView360 size={22} />
@@ -284,69 +285,92 @@ const filteredUnidades = useMemo(() => {
 
           <div className="search">
             <div className="iconS">
-              <FcSearch className="iconSearch" />
+              <Search className="iconSearch" size={17} />
             </div>
             <input
               className="input"
-              type="search"
+              type="text"
               placeholder="Buscar Unidad"
               value={searchTerm}
               onChange={handleSearchChange}
-              style={{ borderRadius: '0px' }}
+              style={{ borderRadius: '4px' }}
             />
-            <div className="relative" ref={filtroDropdownRef}>
+            {searchTerm && (
               <button
-                onClick={() => setShowFiltroDropdown(!showFiltroDropdown)}
-            className={`ml-1 bg-[#ffaa00] py-[9px] px-2 hover:bg-orange-50 border border-[#5b75bb] transition-colors ${
-            filtroMovimiento !== 'todos' ? 'text-[#113EB9]' : 'text-gray-600'
-              }`}
-                title="Filtrar por estado"
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-800 hover:text-black p-1 transition-colors z-10"
+                title="Limpiar búsqueda"
               >
-                <Filter size={20} />
+                <X size={15} />
               </button>
+            )}
+          </div>
 
-              {showFiltroDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
-                  <div className="py-1">
-                    <button
-                      onClick={() => {
-                        setFiltroMovimiento('todos');
-                        setShowFiltroDropdown(false);
-                      }}
-                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors ${
-                        filtroMovimiento === 'todos' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
-                      }`}
-                    >
-                      Todas las unidades
-                    </button>
-                    <button
-                      onClick={() => {
-                        setFiltroMovimiento('movimiento');
-                        setShowFiltroDropdown(false);
-                      }}
-                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
-                        filtroMovimiento === 'movimiento' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      En movimiento
-                    </button>
-                    <button
-                      onClick={() => {
-                        setFiltroMovimiento('detenidas');
-                        setShowFiltroDropdown(false);
-                      }}
-                      className={`text-[12px] w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors flex items-center gap-2 ${
-                        filtroMovimiento === 'detenidas' ? 'bg-blue-50 text-[#113EB9] font-medium' : 'text-gray-700'
-                      }`}
-                    >
-                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                      Detenidas
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Filtros rápidos por estado */}
+          <div className="flex items-center gap-1 px-1.5 pt-2 pb-0.5 text-[11px]">
+            <button
+              type="button"
+              onClick={() => setFiltroMovimiento('todos')}
+              className={`w-[76px] shrink-0 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
+                filtroMovimiento === 'todos'
+                  ? 'bg-[#113EB9] text-white font-bold shadow-xs'
+                  : 'bg-gray-300 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              <span className="whitespace-nowrap">Todas</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
+                  filtroMovimiento === 'todos'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {metricas.total}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFiltroMovimiento('movimiento')}
+              className={`flex-1 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
+                filtroMovimiento === 'movimiento'
+                  ? 'bg-green-700 text-white font-bold shadow-xs'
+                  : 'bg-gray-300 text-gray-800 hover:bg-green-50 hover:text-green-800'
+              }`}
+            >
+              <span className="whitespace-nowrap">En marcha</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
+                  filtroMovimiento === 'movimiento'
+                    ? 'bg-white/10 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {metricas.movimiento}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFiltroMovimiento('detenidas')}
+              className={`flex-1 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
+                filtroMovimiento === 'detenidas'
+                  ? 'bg-red-600 text-white font-bold shadow-xs'
+                  : 'bg-gray-300 text-gray-800 hover:bg-red-50 hover:text-red-800'
+              }`}
+            >
+              <span className="whitespace-nowrap">Detenidas</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
+                  filtroMovimiento === 'detenidas'
+                    ? 'bg-white/10 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {metricas.detenidas}
+              </span>
+            </button>
           </div>
 
           {username === 'sedapal' && (
@@ -356,30 +380,39 @@ const filteredUnidades = useMemo(() => {
           )}
 
           <div
-            className={`unidadesScroll mt-2.5 overflow-y-scroll ${
-              username === 'sedapal'
-                ? 'max-h-[calc(100vh-33%)]'
-                : 'max-h-[calc(100vh-29%)]'
-            }`}
+            className="unidadesScroll mt-2 flex-1 min-h-0 overflow-y-auto pb-0 pr-0.5"
           >
             {idLoading ? (
-              <div className="h-[500px] flex items-center justify-center w-full">
+              <div className="h-[400px] flex items-center justify-center w-full">
                 <Spinner />
               </div>
+            ) : filteredUnidades.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-8 text-center text-gray-500">
+                <Search size={28} className="text-gray-400 mb-2 opacity-50" />
+                <p className="text-xs font-semibold text-gray-700">
+                  Sin unidades encontradas
+                </p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Prueba con otro código o filtro
+                </p>
+              </div>
             ) : (
-              filteredUnidades.map((unidad) => (
-                <Unidad
-                  key={unidad.deviceId}
-                  codigoUnidad={unidad.deviceId.toUpperCase()}
-                  velocidad={unidad.lastValidSpeed}
-                  latitud={unidad.lastValidLatitude}
-                  longitud={unidad.lastValidLongitude}
-                  onSelectUnit={handleSelectUnit}
-                  lastCheckedId={lastCheckedId}
-                  onCheckboxChange={handleCheckboxChange}
-                  username={username}
-                />
-              ))
+              <>
+                {filteredUnidades.map((unidad) => (
+                  <Unidad
+                    key={unidad.deviceId}
+                    codigoUnidad={unidad.deviceId.toUpperCase()}
+                    velocidad={unidad.lastValidSpeed}
+                    latitud={unidad.lastValidLatitude}
+                    longitud={unidad.lastValidLongitude}
+                    onSelectUnit={handleSelectUnit}
+                    lastCheckedId={lastCheckedId}
+                    onCheckboxChange={handleCheckboxChange}
+                    username={username}
+                  />
+                ))}
+                <div className="h-2 shrink-0" />
+              </>
             )}
           </div>
         </div>

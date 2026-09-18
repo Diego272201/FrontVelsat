@@ -1,8 +1,9 @@
 'use client';
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { memo, useMemo, useCallback, useState } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import Loader from './Loader';
+import MapFloatingControls from './MapFloatingControls';
 
 const containerStyle = {
   width: '100%',
@@ -21,59 +22,9 @@ interface GoogleMapComponentProps {
   zoom?: number;
   children?: React.ReactNode;
   className?: string;
-}
-
-function createMapTypeControl(map: google.maps.Map) {
-  const wrapper = document.createElement('div');
-  wrapper.dataset.customMapType = 'true';
-  wrapper.style.margin = '10px 10px 10px 0';
-  wrapper.style.display = 'flex';
-  wrapper.style.backgroundColor = '#fff';
-  wrapper.style.borderRadius = '2px';
-  wrapper.style.boxShadow = '0 1px 4px -1px rgba(0,0,0,.3)';
-  wrapper.style.overflow = 'hidden';
-  wrapper.style.fontFamily = 'Roboto, Arial, sans-serif';
-  wrapper.style.fontSize = '13px';
-  wrapper.style.userSelect = 'none';
-
-  const makeButton = (label: string, typeIds: string[]) => {
-    const btn = document.createElement('div');
-    btn.textContent = label;
-    btn.style.padding = '8px 12px';
-    btn.style.cursor = 'pointer';
-    btn.style.textAlign = 'center';
-    btn.style.whiteSpace = 'nowrap';
-
-    const setActive = () => {
-      const isActive = typeIds.includes(map.getMapTypeId() || 'roadmap');
-      btn.style.backgroundColor = isActive ? '#e8eaed' : '#fff';
-      btn.style.color = isActive ? '#000' : '#666';
-      btn.style.fontWeight = isActive ? '500' : '400';
-    };
-
-    btn.addEventListener('click', () => {
-      map.setMapTypeId(typeIds[0]);
-    });
-
-    return { btn, setActive };
-  };
-
-  const roadmap = makeButton('Mapa', ['roadmap', 'terrain']);
-  const satellite = makeButton('Satélite', ['satellite', 'hybrid']);
-
-  const updateActive = () => {
-    roadmap.setActive();
-    satellite.setActive();
-  };
-
-  const listener = map.addListener('maptypeid_changed', updateActive);
-  (wrapper as any).__mapTypeListener = listener;
-  updateActive();
-
-  wrapper.appendChild(roadmap.btn);
-  wrapper.appendChild(satellite.btn);
-
-  return wrapper;
+  onCenterMap?: () => void;
+  showFloatingControls?: boolean;
+  controlsPositionClassName?: string;
 }
 
 const GoogleMapComponent = memo(function GoogleMapComponent({
@@ -83,10 +34,13 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
   zoom = 6,
   children,
   className = '',
+  onCenterMap,
+  showFloatingControls = true,
+  controlsPositionClassName = 'top-16 right-4',
 }: GoogleMapComponentProps) {
   const { isLoaded, loadError } = useGoogleMaps();
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
 
-  // En GoogleMapComponent.tsx
   const mapOptions = useMemo(() => {
     const isMobile =
       typeof window !== 'undefined' &&
@@ -100,13 +54,10 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
       mapTypeControl: false,
       fullscreenControl: false,
       gestureHandling: isMobile ? 'greedy' : 'auto',
-      zoomControl: true,
-      zoomControlOptions: {
-        position: google.maps?.ControlPosition?.RIGHT_BOTTOM || 7,
-      },
+      zoomControl: false,
       streetViewControl: true,
       streetViewControlOptions: {
-        position: google.maps?.ControlPosition?.RIGHT_BOTTOM || 7,
+        position: google.maps?.ControlPosition?.RIGHT_TOP || 7,
       },
       disableDefaultUI: true,
       clickableIcons: false,
@@ -115,28 +66,27 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
 
   const handleLoad = useCallback(
     (map: google.maps.Map) => {
-      // Esperar a 'idle': recién ahí existen los controles nativos, así el
-      // nuestro se agrega al final y queda debajo del stickman y del zoom
-      google.maps.event.addListenerOnce(map, 'idle', () => {
-        const controls = map.controls[google.maps.ControlPosition.RIGHT_BOTTOM];
+      const panorama = map.getStreetView();
+      if (panorama) {
+        panorama.setOptions({
+          addressControl: false,
+          fullscreenControl: false,
+          enableCloseButton: false,
+          motionTracking: false,
+          motionTrackingControl: false,
+        });
+      }
 
-        // onLoad puede dispararse más de una vez: limpiar el control anterior
-        const existing = controls.getArray() as HTMLElement[];
-        for (let i = existing.length - 1; i >= 0; i--) {
-          if (existing[i]?.dataset?.customMapType === 'true') {
-            const listener = (existing[i] as any).__mapTypeListener;
-            if (listener) google.maps.event.removeListener(listener);
-            controls.removeAt(i);
-          }
-        }
-
-        controls.push(createMapTypeControl(map));
-      });
-
+      setMapInstance(map);
       onLoad(map);
     },
     [onLoad],
   );
+
+  const handleUnmount = useCallback(() => {
+    setMapInstance(null);
+    onUnmount();
+  }, [onUnmount]);
 
   if (loadError) {
     return (
@@ -159,13 +109,22 @@ const GoogleMapComponent = memo(function GoogleMapComponent({
         center={center}
         zoom={zoom}
         onLoad={handleLoad}
-        onUnmount={onUnmount}
+        onUnmount={handleUnmount}
         options={mapOptions}
       >
         {children}
       </GoogleMap>
+
+      {showFloatingControls && (
+        <MapFloatingControls
+          map={mapInstance}
+          onCenterMap={onCenterMap}
+          positionClassName={controlsPositionClassName}
+        />
+      )}
     </div>
   );
 });
 
 export default GoogleMapComponent;
+

@@ -45,6 +45,7 @@ import { useMapEvents } from 'react-leaflet';
 interface Props {
   title: string;
   onPasajeroAgregado: () => void;
+  trigger?: React.ReactNode;
 }
 
 // Interfaz para los resultados de búsqueda
@@ -106,7 +107,7 @@ const useGooglePlacesAutocomplete = () => {
   return { isLoaded, autocompleteService, placesService };
 };
 
-export default function App({ title, onPasajeroAgregado }: Props) {
+export default function App({ title, onPasajeroAgregado, trigger }: Props) {
   const {
     register,
     handleSubmit,
@@ -187,7 +188,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
         }
       }, 100);
     } catch (error) {
-      console.error('Error al cambiar modo fullscreen:', error);
     }
   };
 
@@ -288,7 +288,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           return;
         }
       } catch (error) {
-        console.error('Error con Google Places:', error);
         setSearchResults([]);
         setShowSearchResults(false);
         return;
@@ -305,7 +304,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
     lng: number,
   ): Promise<{ address: string; district: string } | null> => {
     if (!isLoaded || !window.google || !window.google.maps) {
-      console.error('Google Maps no está disponible');
       return null;
     }
 
@@ -329,7 +327,6 @@ export default function App({ title, onPasajeroAgregado }: Props) {
           const district = districtComponent ? districtComponent.long_name : '';
           resolve({ address, district });
         } else {
-          console.error('Error en geocodificación inversa:', status);
           resolve(null);
         }
       });
@@ -442,11 +439,8 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
         if (data) {
           setTarifa(data);
-        } else {
-          console.error('Error: Datos no válidos', data);
         }
       } catch (error) {
-        console.error('Error al obtener la tarifa:', error);
       }
     };
 
@@ -474,12 +468,10 @@ export default function App({ title, onPasajeroAgregado }: Props) {
         `https://do.velsat.pe:2083/api/Pasajero/New/${username}`,
         body,
       );
-      console.log('Pasajero registrado correctamente:', response.data);
       onClose();
       toast.success('Nuevo pasajero agregado');
       onPasajeroAgregado();
     } catch (error) {
-      console.error('Error al registrar el pasajero:', error);
       toast.error('Error al agregar el pasajero');
     }
   });
@@ -506,13 +498,23 @@ export default function App({ title, onPasajeroAgregado }: Props) {
 
   return (
     <>
-      <button
-        onClick={onOpen}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-brandSecondary-hover"
-      >
-        <IoIosAddCircle size={14} />
-        Nuevo
-      </button>
+      {trigger ? (
+        React.isValidElement(trigger) ? (
+          React.cloneElement(trigger as React.ReactElement<{ onClick?: () => void }>, {
+            onClick: onOpen,
+          })
+        ) : (
+          <span onClick={onOpen}>{trigger}</span>
+        )
+      ) : (
+        <button
+          onClick={onOpen}
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-brandSecondary px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-brandSecondary-hover"
+        >
+          <IoIosAddCircle size={14} />
+          Nuevo
+        </button>
+      )}
 
       <Modal
         className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 z-[1000] h-[85vh] w-[70%] max-w-none overflow-auto"

@@ -1,10 +1,10 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import TableStops from '@/app/components/table/TableStops';
+import TableStops, { DataStatsStops } from '@/app/components/table/TableStops';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import ReporteHeader from '@/app/components/ReporteHeader';
 import '@/app/styles/table.css';
@@ -22,6 +22,19 @@ function PageContent() {
   const username = session?.user.username;
   const tableUrl = `/api/Reporting/stops/${startDate}/${endDate}/${deviceId}/${username}`;
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dataStats, setDataStats] = useState<DataStatsStops | null>(null);
+  const [highlightItem, setHighlightItem] = useState<number | null>(null);
+
+  const handleDataStats = useCallback((stats: DataStatsStops) => {
+    setDataStats(stats);
+  }, []);
+
+  const handleVerParadaMasLarga = useCallback(() => {
+    if (dataStats?.longestStopItem) {
+      setHighlightItem(dataStats.longestStopItem);
+    }
+  }, [dataStats]);
 
   const calculateDifference = (start: string, end: string) => {
     const startDate = new Date(start);
@@ -43,18 +56,27 @@ function PageContent() {
     [startDate, endDate],
   );
 
-  const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
+  const periodoText = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   return (
-    <>
+    <div className="w-full">
       <ReporteHeader
         title="REPORTE DE PARADAS"
         deviceId={deviceId ?? ''}
         startDate={startDate ?? ''}
         endDate={endDate ?? ''}
-        extraInfo={extraInfo}
+        periodo={periodoText}
         formatDate={formatDate}
         icon={<BsFillSignStopFill size={25} />}
+        registros={dataStats ? dataStats.total : undefined}
+        tiempoDetenido={dataStats?.tiempoDetenido || undefined}
+        paradaMasLarga={dataStats?.paradaMasLarga || undefined}
+        zonaMasParadas={dataStats?.zonaMasParadas || undefined}
+        onVerParadaMasLarga={handleVerParadaMasLarga}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        stopsReportMode={true}
+        showStatusFilters={false}
       />
 
       <ButtonDownloadFloat
@@ -67,10 +89,14 @@ function PageContent() {
         nameurl="reporteparadas"
       />
 
-      <div>
-        <TableStops url={tableUrl} deviceId={deviceId ?? ''} />
-      </div>
-    </>
+      <TableStops
+        url={tableUrl}
+        deviceId={deviceId ?? ''}
+        searchTerm={searchTerm}
+        highlightItem={highlightItem}
+        onDataStats={handleDataStats}
+      />
+    </div>
   );
 }
 

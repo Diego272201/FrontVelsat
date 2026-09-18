@@ -108,12 +108,12 @@ export const Item = memo(function Item(props: ItemProps) {
         {showActions && (
           <div className="accionesItems">
             {/* Copiar link de ubicación */}
-            <div className="relative inline-block h-8 w-8">
+            <div className="relative inline-block h-[26px] w-[26px]">
               <div className="group relative h-full w-full">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onCopiarLink({
+                    onCopiarLink?.({
                       lat: Number(wy),
                       lng: Number(wx),
                     });
@@ -122,49 +122,49 @@ export const Item = memo(function Item(props: ItemProps) {
                   type="button"
                   className="flex h-full w-full items-center justify-center rounded bg-blue-500 hover:bg-blue-600 focus:outline-none"
                 >
-                  <MdContentCopy size={16} className="text-white" />
+                  <MdContentCopy size={13} className="text-white" />
                 </button>
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-blue-800 px-2.5 py-1 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                   Copiar link de ubicación
                 </div>
               </div>
             </div>
 
             {/* Mover a nuevo grupo */}
-            <div className="relative inline-block h-8 w-8">
+            <div className="relative inline-block h-[26px] w-[26px]">
               <div className="group relative h-full w-full">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onMoverAGrupoNuevo(Number(id));
+                    onMoverAGrupoNuevo?.(Number(id));
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
                   type="button"
                   className="flex h-full w-full items-center justify-center rounded bg-green-500 hover:bg-green-600 focus:outline-none"
                 >
-                  <MdAddBox size={16} className="text-gray-800" />
+                  <MdAddBox size={14} className="text-gray-900" />
                 </button>
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-green-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-green-800 px-2.5 py-1 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                   Mover a nuevo grupo
                 </div>
               </div>
             </div>
 
             {/* Eliminar Pasajero */}
-            <div className="relative inline-block h-8 w-8">
+            <div className="relative inline-block h-[26px] w-[26px]">
               <div className="group relative h-full w-full">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    onEliminar(Number(id));
+                    onEliminar?.(Number(id));
                   }}
                   onPointerDown={(e) => e.stopPropagation()}
                   type="button"
                   className="flex h-full w-full items-center justify-center rounded bg-red-600 hover:bg-red-500 focus:outline-none"
                 >
-                  <MdDelete size={16} className="text-white" />
+                  <MdDelete size={14} className="text-white" />
                 </button>
-                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-3 py-1.5 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-max -translate-x-1/2 rounded-md bg-red-800 px-2.5 py-1 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                   Eliminar Pasajero
                 </div>
               </div>
@@ -178,10 +178,10 @@ export const Item = memo(function Item(props: ItemProps) {
               }}
               onPointerDown={(e) => e.stopPropagation()}
               type="button"
-              className="flex h-8 items-center gap-2 rounded-lg bg-[#f5a524] px-3 text-xs text-black hover:opacity-80 focus:outline-none"
+              className="flex h-[26px] items-center gap-1.5 rounded bg-[#f5a524] px-2.5 text-[11px] font-medium text-black hover:opacity-80 focus:outline-none"
             >
               Dirección
-              <TbGps />
+              <TbGps size={13} />
             </button>
           </div>
         )}

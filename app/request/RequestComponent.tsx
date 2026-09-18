@@ -10,6 +10,7 @@ import GoogleMapComponent from '../components/GoogleMapComponent';
 import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import ExpiryAlerts from '../components/ExpiryAlerts';
+import FollowUnitCamera from '../components/FollowUnitCamera';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
@@ -200,6 +201,10 @@ export default function RequestPage() {
     onUnmount: mapOnUnmount,
   } = useMapInstance();
   const [markersLoaded, setMarkersLoaded] = useState(false);
+  const [followedDeviceId, setFollowedDeviceId] = useState<string | null>(null);
+  const [isCameraMinimized, setIsCameraMinimized] = useState(false);
+  const followedDeviceIdRef = useRef<string | null>(null);
+  followedDeviceIdRef.current = followedDeviceId;
   const clickListenerAttached = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
@@ -344,6 +349,19 @@ export default function RequestPage() {
         const datos = data.datosDevice;
         setMarkersLoaded(true);
         setDeviceList(datos);
+
+        // Centrado suave en la unidad seguida (cámara fija) cada 8 segundos
+        if (followedDeviceIdRef.current && mapRef.current) {
+          const followed = datos.find(
+            (d: DeviceList) => d.deviceId === followedDeviceIdRef.current,
+          );
+          if (followed) {
+            mapRef.current.panTo({
+              lat: followed.lastValidLatitude,
+              lng: followed.lastValidLongitude,
+            });
+          }
+        }
 
         for (const device of datos) {
           const deviceKey = device.deviceId;
@@ -802,24 +820,36 @@ export default function RequestPage() {
 
       const safeDeviceId = sanitize(device.deviceId);
       const safeDireccion = sanitize(device.direccion);
+      const isFollowed = device.deviceId === followedDeviceIdRef.current;
 
       return `
-            <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} text-[12px] flex flex-col w-[290px] rounded border ${colorScheme.popup2.borderColor} shadow-lg" id="content2-${safeDeviceId}">
-              <h3 class="popup-title font-bold flex items-center justify-between" style="border-bottom: 1px solid #6c757d; background-color: #1f2937; color: #ffffff;font-size: 11px;">
+            <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} text-[12px] flex flex-col w-[290px] rounded border ${colorScheme.popup2.borderColor}" id="content2-${safeDeviceId}">
+              <h3 class="popup-title font-bold flex items-center justify-between" style="border-bottom: 1px solid #4b5563; background-color: #1f2937; color: #ffffff; font-size: 11px;">
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <button id="close-btn-${safeDeviceId}" class="popup-close-btn text-sm color-red">X</button>
-                  ${safeDeviceId.toUpperCase()}
+                  <span style="font-weight: 700;">${safeDeviceId.toUpperCase()}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  ${SVG_ANTENNA}
-                  ${SVG_BATTERY}
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <button
+                    type="button"
+                    id="camera-btn-${safeDeviceId}"
+                    class="camera-track-btn"
+                    data-device-id="${safeDeviceId}"
+                    title="${isFollowed ? 'Desactivar cámara fija' : 'Fijar cámara en este vehículo'}"
+                    style="background-color: ${isFollowed ? '#16a34a' : '#374151'}; color: ${isFollowed ? '#ffffff' : '#9ca3af'}; border: 1px solid ${isFollowed ? '#22c55e' : '#4b5563'}; border-radius: 4px; width: 26px; height: 22px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                      <circle cx="12" cy="13" r="3"/>
+                    </svg>
+                  </button>
                   <div class="radar-container">
                     <div class="radar-point"></div>
                     <div class="radar-wave radar-wave-1"></div>
                     <div class="radar-wave radar-wave-2"></div>
                     <div class="radar-wave radar-wave-3"></div>
                   </div>
-                  <span style="font-size: 12px; color: #38b000;">Online</span>
+                  <span style="font-size: 12px; color: #38b000; font-weight: 600;">Online</span>
                 </div>
               </h3>
 
@@ -861,6 +891,26 @@ export default function RequestPage() {
     },
     [getEstado, getDireccion, getColorScheme],
   );
+
+  const updateCameraButtonStates = useCallback((activeId: string | null) => {
+    document.querySelectorAll('.camera-track-btn').forEach((btn) => {
+      const btnDeviceId = btn.getAttribute('data-device-id');
+      const isFollowed = btnDeviceId === activeId;
+      const btnEl = btn as HTMLElement;
+      btnEl.style.backgroundColor = isFollowed ? '#16a34a' : '#374151';
+      btnEl.style.color = isFollowed ? '#ffffff' : '#e2e8f0';
+      btnEl.style.borderColor = isFollowed ? '#22c55e' : '#4b5563';
+      btnEl.title = isFollowed
+        ? 'Desactivar cámara fija'
+        : 'Fijar cámara en este vehículo';
+      btnEl.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+      `;
+    });
+  }, []);
 
   const createNewMarker = useCallback(
     (
@@ -914,7 +964,16 @@ export default function RequestPage() {
 
       marker.addListener('click', () => {
         popup1.setMap(map);
-        popup2.getMap() ? popup2.setMap(null) : popup2.setMap(map);
+        const willOpen = !popup2.getMap();
+        if (willOpen) {
+          popup2.setMap(map);
+          followedDeviceIdRef.current = device.deviceId;
+          setFollowedDeviceId(device.deviceId);
+          updateCameraButtonStates(device.deviceId);
+          toast.success(`Cámara fija: ${device.deviceId.toUpperCase()}`);
+        } else {
+          popup2.setMap(null);
+        }
       });
 
       const closeButton = content2.querySelector(
@@ -938,6 +997,7 @@ export default function RequestPage() {
       getDireccion,
       getColorScheme,
       getOptimizedPopupContent,
+      updateCameraButtonStates,
     ],
   );
 
@@ -1065,6 +1125,22 @@ export default function RequestPage() {
 
           popupElement.style.color = extractTextColor(colorScheme.popup2.textColor);
         }
+
+        const cameraBtn = popupElement.querySelector('.camera-track-btn') as HTMLElement;
+        if (cameraBtn) {
+          const isFollowed = device.deviceId === followedDeviceIdRef.current;
+          cameraBtn.style.backgroundColor = isFollowed ? '#16a34a' : '#374151';
+          cameraBtn.style.color = isFollowed ? '#ffffff' : '#9ca3af';
+          cameraBtn.style.borderColor = isFollowed ? '#22c55e' : '#4b5563';
+          cameraBtn.title = isFollowed ? 'Desactivar cámara fija' : 'Fijar cámara en este vehículo';
+          cameraBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+          `;
+        }
+
         const speedElement = popupElement.querySelector('.speed-value');
         const stateElement = popupElement.querySelector('.state-value');
         const directionElement = popupElement.querySelector('.direction-value');
@@ -1161,6 +1237,53 @@ export default function RequestPage() {
     }
   }, []);
 
+  const toggleFollowUnit = useCallback(
+    (deviceId: string) => {
+      if (followedDeviceIdRef.current === deviceId) {
+        followedDeviceIdRef.current = null;
+        setFollowedDeviceId(null);
+        updateCameraButtonStates(null);
+        toast.info(`Cámara fija desactivada`);
+      } else {
+        followedDeviceIdRef.current = deviceId;
+        setFollowedDeviceId(deviceId);
+        updateCameraButtonStates(deviceId);
+
+        const target = deviceList.find((d) => d.deviceId === deviceId);
+        if (target && mapRef.current) {
+          mapRef.current.panTo({
+            lat: target.lastValidLatitude,
+            lng: target.lastValidLongitude,
+          });
+          if ((mapRef.current.getZoom() || 6) < 16) {
+            mapRef.current.setZoom(16);
+          }
+        }
+        toast.success(`Cámara fija: ${deviceId.toUpperCase()}`);
+      }
+    },
+    [deviceList, updateCameraButtonStates],
+  );
+
+  const handleCameraTrackClick = useCallback(
+    (e: MouseEvent) => {
+      if (typeof window === 'undefined') return;
+
+      const target = e.target as HTMLElement;
+      const cameraBtn = target.closest('.camera-track-btn');
+
+      if (cameraBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const deviceId = cameraBtn.getAttribute('data-device-id');
+        if (deviceId) {
+          toggleFollowUnit(deviceId);
+        }
+      }
+    },
+    [toggleFollowUnit],
+  );
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -1172,6 +1295,7 @@ export default function RequestPage() {
 
       document.addEventListener('click', handleFollowLinkClick, eventOptions);
       document.addEventListener('click', handleStreetViewClick, eventOptions);
+      document.addEventListener('click', handleCameraTrackClick, eventOptions);
       clickListenerAttached.current = true;
     }
 
@@ -1192,10 +1316,15 @@ export default function RequestPage() {
           handleStreetViewClick,
           eventOptions,
         );
+        document.removeEventListener(
+          'click',
+          handleCameraTrackClick,
+          eventOptions,
+        );
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, handleStreetViewClick]);
+  }, [handleFollowLinkClick, handleStreetViewClick, handleCameraTrackClick]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -1205,24 +1334,42 @@ export default function RequestPage() {
   }, []);
 
   const centerUnit = useCallback(
-    (coords: { latitud: number; longitud: number }) => {
+    (
+      coords: { latitud: number; longitud: number },
+      explicitDeviceId?: string,
+    ) => {
       if (mapRef.current) {
         const centerCoords = { lat: coords.latitud, lng: coords.longitud };
         mapRef.current.setCenter(centerCoords);
         mapRef.current.setZoom(17);
 
-        const deviceID = deviceList.find(
-          (device) =>
-            device.lastValidLatitude === coords.latitud &&
-            device.lastValidLongitude === coords.longitud,
-        )?.deviceId;
+        const targetDevice = explicitDeviceId
+          ? deviceList.find(
+              (d) =>
+                d.deviceId.toLowerCase() === explicitDeviceId.toLowerCase(),
+            )
+          : deviceList.find(
+              (device) =>
+                device.lastValidLatitude === coords.latitud &&
+                device.lastValidLongitude === coords.longitud,
+            );
 
-        if (deviceID && markersDataRef.current[deviceID]) {
-          markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
+        const deviceID = targetDevice?.deviceId;
+
+        if (deviceID) {
+          if (markersDataRef.current[deviceID]) {
+            markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
+          }
+
+          // Automatically set fixed camera on this unit immediately
+          followedDeviceIdRef.current = deviceID;
+          setFollowedDeviceId(deviceID);
+          updateCameraButtonStates(deviceID);
+          toast.success(`Cámara fija: ${deviceID.toUpperCase()}`);
         }
       }
     },
-    [deviceList],
+    [deviceList, updateCameraButtonStates],
   );
 
   useEffect(() => {
@@ -1313,13 +1460,18 @@ export default function RequestPage() {
     [deviceList],
   );
 
+  const followedDevice = useMemo(
+    () => deviceList.find((d) => d.deviceId === followedDeviceId) || null,
+    [deviceList, followedDeviceId],
+  );
+
   if (!isLoaded) {
     return <Loader />;
   }
 
   return (
     <>
-      <Toaster richColors />
+      <Toaster richColors position="top-center" />
 
       <div className="relative">
         {!markersLoaded && (
@@ -1332,6 +1484,7 @@ export default function RequestPage() {
           onUnmount={handleMapUnmount}
           center={center}
           zoom={6}
+          onCenterMap={centerMap}
         />
       </div>
 
@@ -1344,6 +1497,19 @@ export default function RequestPage() {
 
       <ExpiryAlerts />
 
+      {followedDevice && (
+        <FollowUnitCamera
+          device={followedDevice}
+          isMinimized={isCameraMinimized}
+          onToggleMinimize={() => setIsCameraMinimized((prev) => !prev)}
+          onClose={() => {
+            followedDeviceIdRef.current = null;
+            setFollowedDeviceId(null);
+            updateCameraButtonStates(null);
+            toast.info('Cámara fija desactivada');
+          }}
+        />
+      )}
     </>
   );
 }

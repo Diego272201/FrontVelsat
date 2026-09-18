@@ -55,15 +55,13 @@ export const SelectPlacaBuscable: React.FC<{
           onFocus={() => setAbierto(true)}
           onChange={(e) => {
             setQuery(e.target.value);
-            onChange(''); // hasta que no seleccione una opción de la lista, no hay placa válida
+            onChange('');
             setAbierto(true);
           }}
           onBlur={() => {
-            // pequeño delay para que el click en una opción se registre antes de cerrar
             setTimeout(() => {
               if (!cerrandoPorClickRef.current) {
                 setAbierto(false);
-                // si lo que quedó escrito no coincide con la selección, se limpia
                 if (query !== value) {
                   setQuery(value);
                 }
@@ -115,7 +113,6 @@ export const SelectConductorBuscable: React.FC<{
   const [abierto, setAbierto] = useState(false);
   const cerrandoPorClickRef = useRef(false);
 
-  // El value puede cambiar desde fuera (ej. al resetear el formulario); mantener el input sincronizado.
   useEffect(() => {
     setQuery(value);
   }, [value]);
@@ -195,9 +192,6 @@ export const SelectTipoUnidad: React.FC<{
   onChange: (valor: string) => void;
   className?: string;
 }> = ({ value, onChange, className }) => {
-  // Si el servicio ya trae un tipounidad que no calza exacto con la lista fija (mayúsculas/espacios
-  // distintos, o un valor histórico que ya no está en la lista), se agrega como opción extra para que
-  // el select muestre el valor real en vez de caer en el placeholder "Seleccionar...".
   const coincideExacto = TIPOS_UNIDAD.some((tipo) => tipo === value);
 
   return (

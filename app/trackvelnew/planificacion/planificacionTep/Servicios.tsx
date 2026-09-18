@@ -321,7 +321,6 @@ export default function App({
         toast.success('Link copiado al portapapeles');
       } catch (error) {
         toast.error('Error al copiar el link');
-        console.error('Error al copiar:', error);
       }
     },
     [],
@@ -688,7 +687,6 @@ export default function App({
     );
 
     if (grupoOrigenIndex === -1) {
-      console.warn('No se encontró el grupo del cliente');
       return;
     }
 
@@ -780,7 +778,6 @@ export default function App({
         });
       }
     } catch (error) {
-      console.error('Error al ejecutar GrupoCero:', error);
       toast.error('No se pudo eliminar. Por favor, inténtalo nuevamente.', {
         id: toastId,
       });
@@ -837,9 +834,7 @@ export default function App({
       })),
     ];
 
-    console.log('Datos a enviar:', JSON.stringify(dataToSend, null, 2));
     if (dataToSend.length === 0) {
-      console.warn('No hay datos válidos para enviar a la API.');
       return;
     }
 
@@ -853,13 +848,11 @@ export default function App({
         { headers: { 'Content-Type': 'application/json' } },
       );
 
-      console.log('Respuesta de la API:', response.data);
       if (!esAutomatico) {
         toast.dismiss(loadingToast!);
         toast.success('Datos guardados correctamente');
       }
     } catch (error) {
-      console.error('Error al guardar los datos:', error);
       toast.dismiss(loadingToast!);
       toast.error('Error al guardar los datos.');
     }
@@ -891,9 +884,6 @@ export default function App({
       );
 
       if (grupoOriginalIndex === -1) {
-        console.warn(
-          'Grupo original no encontrado. No se restauró correctamente.',
-        );
         return prevGrupos;
       }
 
@@ -903,7 +893,6 @@ export default function App({
       );
 
       if (existeEnGrupo) {
-        console.warn('El cliente ya está en el grupo, evitando duplicados.');
         return prevGrupos;
       }
 

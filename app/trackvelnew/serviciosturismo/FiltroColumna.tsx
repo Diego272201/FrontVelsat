@@ -4,16 +4,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Filter, Search } from 'lucide-react';
 
-// Etiqueta con la que se muestra el valor vacío/nulo dentro del panel (equivalente a "(Vacías)" de Excel).
 export const ETIQUETA_VACIO = '(Vacías)';
 
 const ANCHO_PANEL = 232;
 
 const FiltroColumna: React.FC<{
   titulo: string;
-  // Valores disponibles para esta columna, ya ordenados (incluye '' si hay filas sin dato).
   valores: string[];
-  // null = columna sin filtro (se muestran todas las filas).
   seleccionados: string[] | null;
   onAplicar: (valores: string[] | null) => void;
   deshabilitado?: boolean;
@@ -21,7 +18,6 @@ const FiltroColumna: React.FC<{
   const [abierto, setAbierto] = useState(false);
   const [posicion, setPosicion] = useState({ top: 0, left: 0 });
   const [busqueda, setBusqueda] = useState('');
-  // Selección en borrador: como en Excel, no se aplica hasta pulsar "Aceptar".
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
 
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -39,8 +35,6 @@ const FiltroColumna: React.FC<{
     );
   }, [valores, busqueda]);
 
-  // El panel se renderiza en un portal con posición "fixed" (igual que el menú de acciones de la fila)
-  // para que no lo recorte el overflow-auto del contenedor de la tabla.
   const abrir = () => {
     if (botonRef.current) {
       const rect = botonRef.current.getBoundingClientRect();
@@ -53,7 +47,6 @@ const FiltroColumna: React.FC<{
       });
     }
     setBusqueda('');
-    // Sin filtro previo = todo marcado; con filtro = solo los valores guardados que siguen existiendo.
     setSeleccion(
       new Set(
         seleccionados === null
@@ -92,9 +85,6 @@ const FiltroColumna: React.FC<{
     return () => document.removeEventListener('keydown', handleTecla);
   }, [abierto]);
 
-  // La posición se calcula una sola vez al abrir, así que si se hace scroll en la tabla (o en
-  // cualquier otro contenedor de la página) el panel queda desalineado y se cierra. El scroll
-  // dentro del propio panel (la lista de opciones) se ignora para no cerrarlo mientras se navega.
   useEffect(() => {
     if (!abierto) return;
     const handleScroll = (e: Event) => {
@@ -119,7 +109,6 @@ const FiltroColumna: React.FC<{
     });
   };
 
-  // "Seleccionar todo" actúa solo sobre lo que la búsqueda deja visible, como en Excel.
   const todosVisiblesMarcados =
     opciones.length > 0 && opciones.every((valor) => seleccion.has(valor));
 
@@ -138,7 +127,6 @@ const FiltroColumna: React.FC<{
   };
 
   const aplicar = () => {
-    // Marcar todo equivale a no tener filtro en la columna.
     const todo =
       seleccion.size === valores.length &&
       valores.every((valor) => seleccion.has(valor));
@@ -163,16 +151,16 @@ const FiltroColumna: React.FC<{
             ? `${titulo}: filtro activo (${seleccionados?.length ?? 0} valor(es))`
             : `Filtrar por ${titulo}`
         }
-        className={`group flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-50 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60 ${
-          abierto ? 'bg-white/15' : ''
+        className={`group flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] font-bold uppercase tracking-wider text-gray-700 transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 ${
+          abierto ? 'bg-black/5' : ''
         }`}
       >
         <span className="truncate">{titulo}</span>
         <Filter
           className={`h-3.5 w-3.5 shrink-0 transition-all ${
             activo
-              ? 'fill-amber-300 text-amber-300 opacity-100 drop-shadow-[0_0_2px_rgba(0,0,0,0.4)]'
-              : 'text-gray-50 opacity-80 group-hover:opacity-100'
+              ? 'fill-amber-600 text-amber-600 opacity-100'
+              : 'text-gray-500 opacity-80 group-hover:opacity-100'
           }`}
         />
       </button>
@@ -186,7 +174,7 @@ const FiltroColumna: React.FC<{
               left: posicion.left,
               width: ANCHO_PANEL,
             }}
-            className="fixed z-[100] overflow-hidden rounded-md border border-gray-200 bg-white shadow-xl"
+            className="fixed z-[100] overflow-hidden rounded-md border border-gray-300 bg-white"
           >
             <div className="border-b border-gray-100 px-2 py-1.5">
               <div className="relative flex items-center">

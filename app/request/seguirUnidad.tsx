@@ -149,26 +149,6 @@ const [isGeneratingLink, setIsGeneratingLink] = useState(false);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  const toggleFullscreen = async () => {
-    const mapContainer = document.getElementById('map-container');
-    if (!mapContainer) return;
-
-    try {
-      if (!document.fullscreenElement) {
-        await mapContainer.requestFullscreen();
-      } else {
-        await document.exitFullscreen();
-      }
-
-      setTimeout(() => {
-        if (mapRef.current) {
-          google.maps.event.trigger(mapRef.current, 'resize');
-        }
-      }, 300);
-    } catch (error) {
-    }
-  };
-
   // Funciones para Street View
   const getStreetViewEmbedUrl = (lat: number, lng: number) => {
     if (!GOOGLE_MAPS_API_KEY) {
@@ -476,7 +456,7 @@ useEffect(() => {
         markerData.popup2.position = position;
 
         map.panTo({
-          lat: device.lastValidLatitude - 0.0035,
+          lat: device.lastValidLatitude,
           lng: device.lastValidLongitude,
         });
 
@@ -643,7 +623,7 @@ useEffect(() => {
   useEffect(() => {
     if (device && mapLoaded && mapRef.current && !hasInitialCentered) {
       mapRef.current.setCenter({
-        lat: device.lastValidLatitude - 0.0035,
+        lat: device.lastValidLatitude,
         lng: device.lastValidLongitude,
       });
       mapRef.current.setZoom(16);
@@ -739,34 +719,17 @@ const handleGenerateLink = async () => {
     >
       <Toaster richColors />
 
-      <div className="absolute right-3 top-3 z-[1000] flex flex-col gap-1.5">
-        <button
-          onClick={toggleFullscreen}
-          className="rounded border border-slate-200 bg-white p-1.5 shadow-sm transition-colors hover:bg-slate-50"
-          title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
-        >
-          {isFullscreen ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-            </svg>
-          )}
-        </button>
-      </div>
 
 
 
 {session?.user?.username === 'movilbus' && (
-  <div className="absolute left-3 top-3 z-[1000] bg-white rounded-md shadow-lg overflow-hidden w-64 border border-slate-200">
-    <div className="bg-slate-900 px-3 py-2 flex items-center justify-between">
-      <h3 className="text-[11px] font-semibold text-slate-100 flex items-center gap-1.5 tracking-wide uppercase">
-        <Link2 size={13} className="text-slate-400" />
+  <div className="absolute left-3 top-3 z-[1000] bg-white rounded-md shadow-lg overflow-hidden w-64 border border-gray-200">
+    <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex items-center justify-between">
+      <h3 className="text-[11px] font-semibold text-gray-700 flex items-center gap-1.5 tracking-wide uppercase">
+        <Link2 size={13} className="text-gray-400" />
         Compartir
       </h3>
-      <span className="text-[9px] text-slate-400">Max 24h</span>
+      <span className="text-[9px] text-gray-400">Max 24h</span>
     </div>
 
     <div className="p-3 space-y-2.5">
@@ -779,16 +742,16 @@ const handleGenerateLink = async () => {
             onKeyDown={(e) => e.preventDefault()}
             min="1"
             max="24"
-            className="w-full px-3 py-1.5 pr-12 border border-slate-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-slate-400 focus:border-slate-400 transition-all"
+            className="w-full px-3 py-1.5 pr-12 border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-all"
           />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 pointer-events-none">
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">
             horas
           </span>
         </div>
         <button
           onClick={handleGenerateLink}
           disabled={isGeneratingLink || !device}
-          className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white px-3 py-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
+          className="bg-gray-700 hover:bg-gray-800 disabled:bg-gray-300 text-white px-3 py-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
         >
           {isGeneratingLink ? (
             <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent"></div>
@@ -800,26 +763,26 @@ const handleGenerateLink = async () => {
       </div>
 
       {generatedLink && (
-        <div className="bg-slate-50 p-2 rounded border border-slate-200">
+        <div className="bg-gray-50 p-2 rounded border border-gray-200">
           <div className="flex gap-1.5">
             <input
               type="text"
               value={generatedLink}
               readOnly
-              className="flex-1 px-2 py-1 text-[10px] bg-white border border-slate-200 rounded font-mono text-slate-600 focus:outline-none truncate"
+              className="flex-1 px-2 py-1 text-[10px] bg-white border border-gray-200 rounded font-mono text-gray-600 focus:outline-none truncate"
             />
             <button
               onClick={() => {
                 navigator.clipboard.writeText(generatedLink);
                 toast.success('Link copiado');
               }}
-              className="bg-slate-900 hover:bg-slate-700 text-white px-2 py-1 rounded text-[10px] font-medium transition-colors flex items-center gap-1"
+              className="bg-gray-700 hover:bg-gray-800 text-white px-2 py-1 rounded text-[10px] font-medium transition-colors flex items-center gap-1"
               title="Copiar"
             >
               <Copy size={11} />
             </button>
           </div>
-          <p className="text-[9px] text-slate-500 mt-1.5 flex items-center gap-1">
+          <p className="text-[9px] text-gray-500 mt-1.5 flex items-center gap-1">
             <Check size={10} className="text-emerald-500" />
             Expira en {shareHours}h
           </p>
@@ -837,6 +800,7 @@ const handleGenerateLink = async () => {
         onUnmount={handleMapUnmount}
         center={initialCenter}
         zoom={6}
+        controlsPositionClassName="top-3 right-4"
       />
 
       {currentStreetViewData && (
@@ -857,13 +821,29 @@ const handleGenerateLink = async () => {
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {/* El contenedor recorta el iframe sobredimensionado para ocultar la tarjeta
+              de dirección superior y los controles de brújula/zoom laterales de Google,
+              igual que el visor de cámara fija de /trackvelnew */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+              backgroundColor: '#171717',
+            }}
+          >
             {GOOGLE_MAPS_API_KEY ? (
               <iframe
                 src={getStreetViewEmbedUrl(currentStreetViewData.lat, currentStreetViewData.lng)}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
+                style={{
+                  position: 'absolute',
+                  top: '-95px',
+                  left: 0,
+                  width: 'calc(100% + 60px)',
+                  height: 'calc(100% + 95px)',
+                  border: 0,
+                }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"

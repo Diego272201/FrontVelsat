@@ -183,7 +183,6 @@ function ModalDireccionAdicionalContenido({
         }
       }, 100);
     } catch (error) {
-      console.error('Error al cambiar modo fullscreen:', error);
     }
   };
 
@@ -196,7 +195,6 @@ function ModalDireccionAdicionalContenido({
       setSearchResults(response.data);
       setShowSearchResults(true);
     } catch (error) {
-      console.error('Error with fallback search:', error);
       setSearchResults([]);
       setShowSearchResults(false);
     }
@@ -273,7 +271,6 @@ function ModalDireccionAdicionalContenido({
           return;
         }
       } catch (error) {
-        console.error('Error in Google search:', error);
         fallbackToNominatim(query);
         return;
       }
@@ -302,7 +299,6 @@ function ModalDireccionAdicionalContenido({
       }
       return null;
     } catch (error) {
-      console.error('Error in reverse geocoding fallback:', error);
       return null;
     }
   };
@@ -432,8 +428,6 @@ function ModalDireccionAdicionalContenido({
       setDireccion(geocodeResult.address);
       setDistrito(geocodeResult.district);
     }
-    
-    console.log('Coordenadas seleccionadas:', { lat, lng });
   };
 
   // Limpiar campos cuando se cierra el modal
@@ -493,10 +487,8 @@ function ModalDireccionAdicionalContenido({
         wx: longitud,
       };
 
-      console.log('Enviando datos a la API:', datosAPI);
-
       // Llamada a la API POST
-      const response = await axios.post(
+      await axios.post(
         'https://do.velsat.pe:2083/api/Preplan/DireccionAdicional',
         datosAPI,
         {
@@ -505,8 +497,6 @@ function ModalDireccionAdicionalContenido({
           },
         }
       );
-
-      console.log('Respuesta de la API:', response.data);
       
       toast.success('Dirección adicional creada correctamente.');
       
@@ -518,7 +508,7 @@ function ModalDireccionAdicionalContenido({
       handleClose();
 
     } catch (error) {
-      console.error('Error al guardar la dirección:', error);
+      // Manejar diferentes tipos de errores
       
       // Manejar diferentes tipos de errores
       if (axios.isAxiosError(error)) {

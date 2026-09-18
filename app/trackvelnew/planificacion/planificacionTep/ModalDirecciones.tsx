@@ -56,16 +56,9 @@ function ModalDireccionesContenido({
       axios
         .get(`${API_BASE_URL125}/api/Preplan/lugares/${codCliente}`)
         .then((response) => {
-          // Imprimir los datos completos de la respuesta
-          console.log('Respuesta completa de la API:', response);
-
-          // Imprimir información adicional del contexto
-          console.log('Código del cliente:', codCliente);
-
           setLugares(response.data);
         })
         .catch((error) => {
-          console.error('Error al obtener direcciones:', error);
           toast.error('Error al obtener las direcciones.');
         })
         .finally(() => {
@@ -115,7 +108,6 @@ function ModalDireccionesContenido({
       toast.success('Dirección eliminada correctamente.');
       setShouldRefetch(true);
     } catch (error) {
-      console.error('Error al eliminar dirección:', error);
       toast.error('Error al eliminar la dirección.');
     } finally {
       setIsDeleting(null);
@@ -133,9 +125,7 @@ function ModalDireccionesContenido({
         .then((response) => {
           setLugares(response.data);
         })
-        .catch((error) => {
-          console.error('Error al recargar direcciones:', error);
-        })
+        .catch(() => {})
         .finally(() => {
           setIsLoading(false);
         });

@@ -16,6 +16,7 @@ interface Servicio {
 
 interface Props {
   data: Servicio[];
+  className?: string;
 }
 
 const ventanaDeUnaHora = (
@@ -61,7 +62,7 @@ const estaEnGeocerca = (lat: number, lng: number): boolean => {
   return dentro;
 };
 
-export default function BtnCompletarHoraAto({ data }: Props) {
+export default function BtnCompletarHoraAto({ data, className }: Props) {
   const { baseUrl } = useApi();
   const { data: session } = useSession();
   const username = session?.user.username;
@@ -149,9 +150,12 @@ export default function BtnCompletarHoraAto({ data }: Props) {
   return (
     <button
       onClick={handleCompletarHoraRealAto}
-      className="inline-flex h-8 items-center justify-center gap-1 rounded-md bg-brandPrimary px-2.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-brandPrimary-hover whitespace-nowrap"
+      className={
+        className ||
+        'inline-flex h-8 items-center justify-center gap-1 rounded-md bg-[#113EB9] px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-blue-700 whitespace-nowrap'
+      }
     >
-      Geocerca Completar hora ATO
+      Geocerca · completar hora ATO
     </button>
   );
 }

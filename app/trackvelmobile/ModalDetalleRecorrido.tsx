@@ -64,13 +64,9 @@ const ModalDetalleRecorrido: React.FC<ModalDetalleRecorridoProps> = ({
     return;
   }
 
-  // El TimePicker ya retorna el formato "YYYY-MM-DDTHH:mm"
-  // Solo reemplazamos la T por un espacio si es necesario
-  const fechaini = startDate.replace('T', ' ');
-  const fechafin = endDate.replace('T', ' ');
-
-  // Construir la URL con los parámetros
-  const url = `/trackvelmobile/detallerecorrido?deviceId=${encodeURIComponent(selectedDeviceId)}&startDate=${encodeURIComponent(fechaini)}&endDate=${encodeURIComponent(fechafin)}`;
+  // El TimePicker retorna "YYYY-MM-DDTHH:mm", el mismo formato que usa la
+  // vista de escritorio, así que lo enviamos tal cual.
+  const url = `/trackvelmobile/detallerecorrido?deviceId=${encodeURIComponent(selectedDeviceId)}&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
 
   // Abrir en nueva ventana
   window.open(url, '_blank');

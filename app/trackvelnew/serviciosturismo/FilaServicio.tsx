@@ -30,25 +30,17 @@ import {
 } from './constants';
 import DetalleCampo from './DetalleCampo';
 import CampoEditable from './CampoEditable';
-import { formatFechaHoraAuditoria } from './utils';
+import {
+  formatFechaHoraAuditoria,
+  ClaveEstado,
+  calcularEstado,
+} from './utils';
 import {
   Conductor,
   SelectConductorBuscable,
   SelectPlacaBuscable,
   SelectTipoUnidad,
 } from './SelectBuscable';
-
-// Estado visible del servicio: color + inicial. Ya no viene como texto combinado desde el backend
-// (columna "estado" eliminada); se deriva acá mismo a partir de las columnas booleanas
-// cancelado/standby/finalizado/confirmado/visto, en ese orden de prioridad. "Reprogramado" es
-// independiente (ver ESTADO_REPROGRAMADO) para poder mostrarse junto a Visto/Confirmado cuando ambos aplican.
-type ClaveEstado =
-  | 'Pendiente'
-  | 'Visto por Conductor'
-  | 'Confirmado por Conductor'
-  | 'Finalizado por Conductor'
-  | 'Stand By'
-  | 'Cancelado';
 
 const ESTADOS_SERVICIO: Record<
   ClaveEstado,
@@ -61,22 +53,22 @@ const ESTADOS_SERVICIO: Record<
     titulo: 'Pendiente',
   },
   'Visto por Conductor': {
-    chip: 'bg-amber-50 text-amber-600 border border-amber-200/80',
+    chip: 'bg-amber-50 text-amber-700 border border-amber-200/80',
     sigla: 'VC',
     icono: <Eye className="h-3 w-3" />,
-    titulo: 'Visto por Conductor',
+    titulo: 'Visto por conductor',
   },
   'Confirmado por Conductor': {
-    chip: 'bg-emerald-50 text-emerald-600 border border-emerald-200/80',
+    chip: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
     sigla: 'CC',
     icono: <CheckCircle2 className="h-3 w-3" />,
-    titulo: 'Confirmado por Conductor',
+    titulo: 'Cerrado y conforme',
   },
   'Finalizado por Conductor': {
     chip: 'bg-red-50 text-red-700 border border-red-200/80',
     sigla: 'F',
     icono: <FlagTriangleRight className="h-3 w-3" />,
-    titulo: 'Finalizado por Conductor',
+    titulo: 'Finalizado por conductor',
   },
   'Stand By': {
     chip: 'bg-orange-50 text-orange-600 border border-orange-200/80',
@@ -91,21 +83,6 @@ const ESTADOS_SERVICIO: Record<
     titulo: 'Cancelado',
   },
 };
-
-function calcularEstado(servicio: {
-  cancelado: number | null;
-  standby: number | null;
-  finalizado: number | null;
-  confirmado: number | null;
-  visto: number | null;
-}): ClaveEstado {
-  if (Number(servicio.cancelado) === 1) return 'Cancelado';
-  if (Number(servicio.standby) === 1) return 'Stand By';
-  if (Number(servicio.finalizado) === 1) return 'Finalizado por Conductor';
-  if (Number(servicio.confirmado) === 1) return 'Confirmado por Conductor';
-  if (Number(servicio.visto) === 1) return 'Visto por Conductor';
-  return 'Pendiente';
-}
 
 const ESTADO_REPROGRAMADO = {
   chip: 'bg-violet-50 text-violet-600 border border-violet-200/80',
@@ -163,8 +140,6 @@ const FilaServicio: React.FC<{
 }) => {
   const hayNotas = SECCIONES_NOTAS.some((campo) => servicio[campo.key]);
 
-  // Campos de BD (no las claves combinadas del front) que cambiaron en la última edición manual,
-  // si fue en las últimas 24h (el backend deja de mandar ultimaModificacion pasado ese plazo).
   const campoModificado = (...columnas: string[]) =>
     columnas.some((columna) =>
       servicio.ultimaModificacion?.campos.includes(columna),
@@ -178,9 +153,6 @@ const FilaServicio: React.FC<{
   const botonMenuRef = useRef<HTMLButtonElement>(null);
   const menuPortalRef = useRef<HTMLDivElement>(null);
 
-  // El menú se renderiza en un portal (fuera del contenedor con scroll de la tabla) y se posiciona
-  // con "fixed" según la posición real del botón, para que no quede recortado por el overflow-auto
-  // de la tabla en las últimas filas.
   const toggleMenu = () => {
     if (!menuAbierto && botonMenuRef.current) {
       const rect = botonMenuRef.current.getBoundingClientRect();
@@ -206,8 +178,6 @@ const FilaServicio: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickFuera);
   }, [menuAbierto]);
 
-  // Cierra el menú al hacer scroll (en la tabla o en la página) para que no quede mal posicionado,
-  // ya que su posición se calcula una sola vez al abrirlo.
   useEffect(() => {
     if (!menuAbierto) return;
     const handleScroll = () => setMenuAbierto(false);
@@ -227,8 +197,6 @@ const FilaServicio: React.FC<{
     onCambioCampo('cocelular', conductor.telefono || '');
   };
 
-  // Al borrar el texto del piloto/copiloto (sin seleccionar otro conductor), se limpian
-  // también sus datos autocompletados, ya que esos campos no son editables manualmente.
   const cambiarTextoPiloto = (valor: string) => {
     onCambioCampo('piloto', valor);
     if (valor.trim() === '') {
@@ -247,8 +215,6 @@ const FilaServicio: React.FC<{
 
   const estado = calcularEstado(servicio);
   const celdaEstado = ESTADOS_SERVICIO[estado];
-  // Id temporal (negativo): el servicio se creó offline y todavía no tiene id real del backend,
-  // así que no se puede editar/cancelar/poner en standby hasta que se sincronice.
   const sincronizandoAlta = servicio.idservicio < 0;
 
   const mostrarDetalle = expandido || editando;
@@ -270,23 +236,23 @@ const FilaServicio: React.FC<{
             : 'border-transparent hover:border-[#113EB9]/40 hover:bg-blue-50/30'
         }`}
       >
-        <td className="py-2 pl-3 pr-1">
+        <td className="py-2 pl-4 pr-1.5">
           <ChevronRight
             className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 group-hover:text-[#113EB9] ${
               mostrarDetalle ? 'rotate-90 text-[#113EB9]' : ''
             }`}
           />
         </td>
-        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('fechainicio')}`}>
+        <td className={`whitespace-nowrap px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('fechainicio')}`}>
           {servicio.fechainicio || '-'}
         </td>
-        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('horainicio')}`}>
+        <td className={`whitespace-nowrap px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('horainicio')}`}>
           {servicio.horainicio || '-'}
         </td>
-        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('tipounidad')}`}>
+        <td className={`whitespace-nowrap px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('tipounidad')}`}>
           {servicio.tipounidad || '-'}
         </td>
-        <td className={`whitespace-nowrap px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('bus', 'placa')}`}>
+        <td className={`whitespace-nowrap px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('bus', 'placa')}`}>
           <span className="inline-flex items-center gap-1">
             {servicio.placaCombinada || '-'}
             {servicio.placaNoRegistrada && (
@@ -296,22 +262,22 @@ const FilaServicio: React.FC<{
             )}
           </span>
         </td>
-        <td className={`max-w-[180px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('piloto')}`}>
+        <td className={`max-w-[180px] truncate px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('piloto')}`}>
           {servicio.piloto || '-'}
         </td>
-        <td className={`max-w-[200px] truncate px-1.5 py-1.5 text-[12px] text-slate-800 ${claseSiModificado('cliente')}`}>
+        <td className={`max-w-[200px] truncate px-2 py-1.5 text-[12px] text-slate-800 ${claseSiModificado('cliente')}`}>
           {servicio.cliente || '-'}
         </td>
-        <td className={`max-w-[160px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('grupo')}`}>
+        <td className={`max-w-[160px] truncate px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('grupo')}`}>
           {servicio.grupo || '-'}
         </td>
-        <td className={`max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('origen')}`}>
+        <td className={`max-w-[220px] truncate px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('origen')}`}>
           {servicio.origen || '-'}
         </td>
-        <td className={`max-w-[220px] truncate px-1.5 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('destino')}`}>
+        <td className={`max-w-[220px] truncate px-2 py-1.5 text-[12px] text-slate-700 ${claseSiModificado('destino')}`}>
           {servicio.destino || '-'}
         </td>
-        <td className="px-1.5 py-1.5">
+        <td className="px-2 py-1.5">
           <div
             className="flex items-center gap-1.5"
             onClick={(e) => e.stopPropagation()}
@@ -391,7 +357,7 @@ const FilaServicio: React.FC<{
                     <div
                       ref={menuPortalRef}
                       style={{ top: posicionMenu.top, left: posicionMenu.left }}
-                      className="fixed z-50 w-32 overflow-hidden rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+                      className="fixed z-50 w-32 overflow-hidden rounded-md border border-gray-300 bg-white py-1"
                     >
                       <button
                         onClick={() => {
@@ -419,7 +385,7 @@ const FilaServicio: React.FC<{
             )}
           </div>
         </td>
-        <td className="border-l border-slate-100 px-1.5 py-1.5">
+        <td className="border-l border-slate-100 px-2 pr-4 py-1.5">
           <div className="flex items-center gap-1">
             {servicio._pendingSync && (
               <span
@@ -454,8 +420,7 @@ const FilaServicio: React.FC<{
           <td colSpan={12} className="px-6 py-4">
             {editando && formEdicion ? (
               <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Motivo del cambio (opcional): queda en la auditoría junto a los campos modificados. */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                <div className="rounded-lg border border-slate-200 bg-white p-3 sm:col-span-2 lg:col-span-3">
                   <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                     Motivo del cambio (opcional)
                   </label>
@@ -468,8 +433,7 @@ const FilaServicio: React.FC<{
                   />
                 </div>
 
-                {/* Vehículo y Piloto */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Vehículo y Piloto
                   </p>
@@ -545,8 +509,7 @@ const FilaServicio: React.FC<{
                   </div>
                 </div>
 
-                {/* Servicio */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Servicio
                   </p>
@@ -598,8 +561,7 @@ const FilaServicio: React.FC<{
                   </div>
                 </div>
 
-                {/* Detalles */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Detalles
                   </p>
@@ -627,8 +589,7 @@ const FilaServicio: React.FC<{
                   </div>
                 </div>
 
-                {/* Notas */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                <div className="rounded-lg border border-slate-200 bg-white p-3 sm:col-span-2 lg:col-span-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Notas
                   </p>
@@ -656,8 +617,7 @@ const FilaServicio: React.FC<{
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-top-1 grid grid-cols-1 gap-4 duration-200 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Vehículo y Piloto */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Vehículo y Piloto
                   </p>
@@ -687,8 +647,7 @@ const FilaServicio: React.FC<{
                   </div>
                 </div>
 
-                {/* Servicio */}
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
                   <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                     Servicio
                   </p>
@@ -711,11 +670,10 @@ const FilaServicio: React.FC<{
                   </div>
                 </div>
 
-                {/* Detalles */}
                 {SECCIONES_DETALLE.map((seccion) => (
                   <div
                     key={seccion.titulo}
-                    className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+                    className="rounded-lg border border-slate-200 bg-white p-3"
                   >
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                       {seccion.titulo}
@@ -733,7 +691,7 @@ const FilaServicio: React.FC<{
                 ))}
 
                 {hayNotas && (
-                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 sm:col-span-2 lg:col-span-3">
                     <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
                       Notas
                     </p>
@@ -749,13 +707,9 @@ const FilaServicio: React.FC<{
                   </div>
                 )}
 
-                {/* Historial de cambios: solo aparece si ya se cargó la auditoría y tiene registros,
-                    y si se destrabó "Opciones avanzadas" con la clave correcta. La lista en sí es
-                    desplegable (colapsada por defecto) para no alargar el detalle de la fila cuando
-                    hay muchos cambios acumulados. */}
                 {puedeVerHistorial &&
                   (cargandoAuditoria || (auditoria && auditoria.length > 0)) && (
-                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 sm:col-span-2 lg:col-span-3">
                     <button
                       type="button"
                       onClick={() => setHistorialAbierto((v) => !v)}

@@ -1,64 +1,87 @@
 @import 'colors.css';
 
 /*ESTILOS DE LA LISTA DE UNIDADES*/
-.lista-carros{
-    display: flex;
-    background-color: #c8ced3;
-    justify-content: center;
-    align-items: center;
-    padding: 3px 0 3px 0;
-    border: 0px;
-    margin-top: 0px;
-    margin-bottom:4px;
-  }
+.lista-carros {
+  display: flex;
+  background-color: #c8ced3;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  border: 0px;
+  margin-top: 0px;
+  margin-bottom: 3px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-left 0.15s ease;
+}
 
-  .img-listacarro{
-    width:55px;
-  }
-  
-  .codigo-carro{
-    font-size: 11.5px;
-    font-weight:bold;
-    color: #00296b;
-    width: 90px;
-    display: flex;
-    justify-content: center;
-    margin: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+.lista-carros:hover {
+  background-color: #bcc3c9;
+}
 
-  }
-  
-  .velocidad-carro{
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--VelText);
-    text-align: center;
-    margin: auto;
-  }
-  
-  .luz-carro{
-    color: rgb(33, 196, 33);
-  }
-  
-  .detalles-carro{
-    color: #0008;
-    margin-left: -12px;
-  }
+.lista-carro-activa {
+  background-color: #b8c1c8;
+  border-left: 4px solid #113EB9;
+  padding-left: 2px;
+}
 
+.img-listacarro {
+  width: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
 
-  /* ESTILOS DEL checkBOX */
+.codigo-carro {
+  font-size: 11.5px;
+  font-weight: bold;
+  color: #00296b;
+  width: 88px;
+  flex-shrink: 0;
+  text-align: left;
+  padding-left: 2px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  letter-spacing: -0.2px;
+}
 
+.velocidad-carro {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #495057;
+  width: 65px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 4px;
+  font-variant-numeric: tabular-nums;
+}
 
-  /* Hide the default checkbox */
+.luz-carro {
+  width: 24px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: help;
+}
 
-  .checkStyle{
-    width: 30px;
-    height: 30px;
-    display: grid;
-    justify-content: center;
-    align-items: center;
-    margin-left: 6px
-  }
+.detalles-carro {
+  color: #0008;
+  margin-left: -12px;
+}
+
+/* ESTILOS DEL checkBOX */
+
+/* Hide the default checkbox */
+
+.checkStyle {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
 
   @supports (-webkit-appearance: none) or (-moz-appearance: none) {
     .checkbox-wrapper-13 input[type=checkbox] {

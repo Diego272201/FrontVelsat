@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import RequestComponent from './RequestComponent';
 import ModalDetalleRecorrido from './ModalDetalleRecorrido';
 
@@ -51,9 +52,18 @@ export default function Page() {
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-0 py-0">
-          <div className="flex items-center gap-2 px-2 py-2">
-            <h1 className="text-[13px] font-bold uppercase text-white">
+        <div className="flex h-[36px] items-center justify-between px-0 py-0 overflow-hidden">
+          <div className="flex items-center gap-3">
+            <div className="flex h-[36px] w-[46px] items-center justify-center bg-gradient-to-r from-orange-500 to-red-500 p-1">
+              <Image
+                src="/LogoWeb.png"
+                alt="Logo"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </div>
+            <h1 className="text-[13px] font-bold uppercase text-white tracking-wider">
               Trackvel Mobile
             </h1>
           </div>
@@ -61,7 +71,7 @@ export default function Page() {
           {/* Botón de Reporte */}
           <button
             onClick={handleOpenModal}
-            className="mt-[-4px] bg-blue-800 px-3 py-[8px] text-[12px] font-medium text-white hover:bg-blue-700"
+            className="h-[36px] bg-blue-800 px-3 text-[12px] font-medium text-white hover:bg-blue-700 transition-colors"
           >
             Reporte de recorrido
           </button>

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Slider from './Slider';
 import { useApi } from '@/context/ApiContext';
-import { Eye, EyeOff, LogIn, Check, Wifi } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Check, Shield } from 'lucide-react';
 
 export default function Login() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -157,11 +157,9 @@ export default function Login() {
       {/* Panel derecho con formulario */}
       <div className="relative flex w-full items-center justify-center bg-[url('/pe-02.svg')] bg-[length:180%] bg-center bg-no-repeat p-6 lg:w-[30%] lg:p-8">
         {/* Indicador de Conexión Segura */}
-        <div className="absolute right-4 top-4 flex items-center space-x-2 rounded px-3 py-1.5 backdrop-blur-sm  ">
-          <div className="relative text-green-400">
-            <Wifi size={18} />
-          </div>
-          <span className="animate-pulse text-xs font-medium text-green-300">
+        <div className="absolute right-4 top-4 flex items-center gap-2">
+          <Shield size={14} className="text-slate-300" strokeWidth={2} />
+          <span className="text-[12px] font-medium text-slate-300">
             Conexión segura
           </span>
         </div>

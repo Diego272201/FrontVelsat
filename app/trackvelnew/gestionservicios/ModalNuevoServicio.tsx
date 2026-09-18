@@ -88,19 +88,17 @@ export default function NuevoServicioModal({
   const [apepateConductor, setApepateConductor] = useState('');
   const [codConductor, setCodConductor] = useState<number | null>(null);
 
-  // ← CAMBIAR ESTOS ESTADOS PARA MANEJAR EL DESTINO
   const [destinoSeleccionado, setDestinoSeleccionado] =
     useState<IDestino | null>(null);
-  const [codigoDestino, setCodigoDestino] = useState('4175'); // ← VALOR POR DEFECTO
+  const [codigoDestino, setCodigoDestino] = useState('4175');
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setClienteSeleccionado(event.target.value);
   };
 
-  // ← NUEVA FUNCIÓN PARA MANEJAR LA SELECCIÓN DEL DESTINO
   const handleSelectDestino = (destino: IDestino) => {
     setDestinoSeleccionado(destino);
-    setCodigoDestino(destino.codigo); // Solo guardamos el código para enviar a la API
+    setCodigoDestino(destino.codigo);
   };
 
   const [pasajero, setPasajero] = useState('');
@@ -257,8 +255,6 @@ export default function NuevoServicioModal({
     try {
       setLoading(true);
 
-      console.log('Enviando datos a la API:', JSON.stringify(datos, null, 2));
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -292,7 +288,7 @@ export default function NuevoServicioModal({
     fecha: parseFecha(horaDestino),
     fecpreplan: parseFecha(horaProgramada),
     grupo: clienteSeleccionado == 'LATAM' ? 'T' : 'N',
-    destino: codigoDestino || '4175', // ← USAR '4175' SI NO HAY DESTINO SELECCIONADO
+    destino: codigoDestino || '4175',
     listapuntos: [
       ...pasajeros.map((pasajero, index) => ({
         fecha: parseFecha(horaProgramada),
@@ -310,7 +306,7 @@ export default function NuevoServicioModal({
       },
     ],
     numero: 'Adicional',
-    tipo: tipoServicio, // ← Ya viene 'I' o 'S' directamente del select
+    tipo: tipoServicio,
     unidad: { codunidad: codUnidadSeleccionado },
   };
 
@@ -325,7 +321,6 @@ export default function NuevoServicioModal({
     setPasajero('');
     setApepateConductor('');
     setCodConductor(null);
-    // ← RESETEAR LOS ESTADOS DEL DESTINO AL VALOR POR DEFECTO
     setDestinoSeleccionado(null);
     setCodigoDestino('4175');
   };

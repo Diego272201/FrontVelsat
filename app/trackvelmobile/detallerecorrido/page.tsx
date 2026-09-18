@@ -1,21 +1,38 @@
-
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic';
 
 import React, { Suspense } from 'react';
-import loadable from 'next/dynamic'; 
+import loadable from 'next/dynamic';
 import { Toaster } from 'sonner';
 
-const MapContent = loadable(() => import('./DetalleRecorrido'), {
-  ssr: false,
-});
+// Reutiliza el mismo componente que /trackvelnew/estadistica/detallerecorrido
+// para que ambas rutas se vean y se comporten exactamente igual.
+const MapContent = loadable(
+  () => import('@/app/trackvelnew/estadistica/detallerecorrido/MapContent'),
+  {
+    ssr: false,
+  },
+);
 
 export default function RequestPageDetail() {
   return (
     <div>
-      <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>Cargando ...</div>}>
+      <Suspense
+        fallback={
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100vh',
+            }}
+          >
+            Cargando ...
+          </div>
+        }
+      >
         <MapContent />
       </Suspense>
-      <Toaster />
+      <Toaster richColors position="top-center" />
     </div>
   );
 }

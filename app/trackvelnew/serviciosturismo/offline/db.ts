@@ -24,7 +24,6 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<ServiciosTurismoDB>> | null = null;
 
-// Guard de SSR/entorno sin IndexedDB: devuelve null en vez de intentar abrir la base.
 function getDb(): Promise<IDBPDatabase<ServiciosTurismoDB>> | null {
   if (typeof indexedDB === 'undefined') return null;
 
@@ -69,7 +68,6 @@ export async function agregarOperacionPendiente(
   await db.put('colaSync', op);
 }
 
-// Ordenadas por fecha de creación: se sincronizan en el mismo orden en que se hicieron.
 export async function listarOperacionesPendientes(): Promise<
   OperacionPendiente[]
 > {

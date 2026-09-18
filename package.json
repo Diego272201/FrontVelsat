@@ -35,6 +35,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "exceljs": "^4.4.0",
     "formidable": "^3.5.2",
     "framer-motion": "^11.18.2",
     "idb": "^8.0.3",

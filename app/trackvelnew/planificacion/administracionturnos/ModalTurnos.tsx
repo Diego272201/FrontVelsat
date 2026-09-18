@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import React, { useEffect, useState } from 'react';
 import {
-  Button,
   useDisclosure,
   Input,
   Select,
@@ -48,9 +47,7 @@ export default function App({ titleM, onSaveSuccess }: Props) {
       .then((response) => {
         setEmpresas(response.data);
       })
-      .catch((error) => {
-        console.error('Error fetching areas:', error);
-      });
+      .catch(() => {});
   }, [username, isReady]);
 
   useEffect(() => {
@@ -109,7 +106,6 @@ export default function App({ titleM, onSaveSuccess }: Props) {
         toast.success('Turno creado exitosamente');
         onClose();
       } catch (error) {
-        console.error('Error al enviar los datos:', error);
         toast.error('Error al guardar el turno');
       } finally {
         setIsSubmitting(false);
@@ -123,14 +119,14 @@ export default function App({ titleM, onSaveSuccess }: Props) {
 
   return (
     <>
-      <Button
-        onPress={onOpen}
-        className="bg-brandSecondary hover:bg-brandSecondary-hover text-white text-xs font-medium h-8 px-3 rounded-md shadow-xs transition-colors"
-        endContent={<IoMdAdd />}
-        size="sm"
+      <button
+        type="button"
+        onClick={onOpen}
+        className="h-8 px-3.5 rounded-md bg-[#113EB9] hover:bg-blue-800 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 flex-shrink-0"
       >
-        Nuevo Turno
-      </Button>
+        <IoMdAdd className="h-4 w-4" />
+        <span>Nuevo turno</span>
+      </button>
 
       <BaseModal
         isOpen={isOpen}
@@ -144,154 +140,152 @@ export default function App({ titleM, onSaveSuccess }: Props) {
         cancelText="Cancelar"
         onConfirm={handleSubmit((data) => onSubmit(data, handleClose))}
         isLoading={isSubmitting}
-        confirmButtonClass="bg-brandSecondary hover:bg-brandSecondary-hover text-white"
+        confirmButtonClass="bg-[#113EB9] hover:bg-blue-800 text-white"
       >
-        <form onSubmit={handleSubmit((data) => onSubmit(data, handleClose))} className="space-y-4 pt-1">
-          <div className="rounded-md border border-slate-200 bg-slate-50/60 p-3 space-y-3">
+        <form onSubmit={handleSubmit((data) => onSubmit(data, handleClose))} className="space-y-3.5 -mt-1.5 pb-1.5">
+          <div className="flex flex-col gap-1">
+            <Select
+              label="Empresa"
+              placeholder="Seleccione una Empresa"
+              labelPlacement="outside"
+              size="sm"
+              className="w-full"
+              classNames={{
+                trigger: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                label: 'text-xs font-semibold text-slate-700',
+              }}
+              {...register('empresa', {
+                required: true,
+              })}
+            >
+              {empresas.map((empresa) => (
+                <SelectItem key={empresa} className="text-xs">{empresa}</SelectItem>
+              ))}
+            </Select>
+
+            {errors.empresa && (
+              <span className="text-[11px] text-red-600 font-medium">
+                Empresa requerida
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
-              <Select
-                label="Empresa"
-                placeholder="Seleccione una Empresa"
+              <Input
+                type="text"
+                label="Área"
+                placeholder="Área"
                 labelPlacement="outside"
                 size="sm"
-                className="w-full"
                 classNames={{
-                  trigger: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                  label: 'text-xs font-medium text-slate-700',
+                  inputWrapper: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                  label: 'text-xs font-semibold text-slate-700',
                 }}
-                {...register('empresa', {
+                {...register('area', {
                   required: true,
                 })}
-              >
-                {empresas.map((empresa) => (
-                  <SelectItem key={empresa} className="text-xs">{empresa}</SelectItem>
-                ))}
-              </Select>
-
-              {errors.empresa && (
+              />
+              {errors.area && (
                 <span className="text-[11px] text-red-600 font-medium">
-                  Empresa requerida
+                  Área requerida
                 </span>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="flex flex-col gap-1">
-                <Input
-                  type="text"
-                  label="Área"
-                  placeholder="Área"
-                  labelPlacement="outside"
-                  size="sm"
-                  classNames={{
-                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                    label: 'text-xs font-medium text-slate-700',
-                  }}
-                  {...register('area', {
-                    required: true,
-                  })}
-                />
-                {errors.area && (
-                  <span className="text-[11px] text-red-600 font-medium">
-                    Área requerida
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <Input
-                  type="text"
-                  label="Sub Área"
-                  placeholder="Sub área"
-                  labelPlacement="outside"
-                  size="sm"
-                  classNames={{
-                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                    label: 'text-xs font-medium text-slate-700',
-                  }}
-                  {...register('subarea', {
-                    required: true,
-                  })}
-                />
-                {errors.subarea && (
-                  <span className="text-[11px] text-red-600 font-medium">
-                    Sub área requerida
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <Input
-                  type="text"
-                  label="Rol"
-                  placeholder="Rol"
-                  labelPlacement="outside"
-                  size="sm"
-                  classNames={{
-                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                    label: 'text-xs font-medium text-slate-700',
-                  }}
-                  endContent={
-                    <ImUserPlus className="text-slate-400 text-sm" />
-                  }
-                  {...register('rol', {
-                    required: true,
-                  })}
-                />
-                {errors.rol && (
-                  <span className="text-[11px] text-red-600 font-medium">
-                    Rol requerido
-                  </span>
-                )}
-              </div>
+            <div className="flex flex-col gap-1">
+              <Input
+                type="text"
+                label="Sub Área"
+                placeholder="Sub área"
+                labelPlacement="outside"
+                size="sm"
+                classNames={{
+                  inputWrapper: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                  label: 'text-xs font-semibold text-slate-700',
+                }}
+                {...register('subarea', {
+                  required: true,
+                })}
+              />
+              {errors.subarea && (
+                <span className="text-[11px] text-red-600 font-medium">
+                  Sub área requerida
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <TimeInput
-                  label="Hora"
-                  labelPlacement="outside"
-                  size="sm"
-                  value={hora}
-                  onChange={(value) => setHora(value || new Time(12))}
-                  startContent={
-                    <ClockCircleLinearIcon className="pointer-events-none flex-shrink-0 text-base text-slate-400" />
-                  }
-                  classNames={{
-                    inputWrapper: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                    label: 'text-xs font-medium text-slate-700',
-                  }}
-                />
-              </div>
+            <div className="flex flex-col gap-1">
+              <Input
+                type="text"
+                label="Rol"
+                placeholder="Rol"
+                labelPlacement="outside"
+                size="sm"
+                classNames={{
+                  inputWrapper: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                  label: 'text-xs font-semibold text-slate-700',
+                }}
+                endContent={
+                  <ImUserPlus className="text-slate-400 text-sm" />
+                }
+                {...register('rol', {
+                  required: true,
+                })}
+              />
+              {errors.rol && (
+                <span className="text-[11px] text-red-600 font-medium">
+                  Rol requerido
+                </span>
+              )}
+            </div>
+          </div>
 
-              <div className="flex flex-col gap-1">
-                <Select
-                  label="Programación"
-                  placeholder="Seleccione Programación"
-                  labelPlacement="outside"
-                  size="sm"
-                  className="w-full"
-                  classNames={{
-                    trigger: 'h-9 min-h-[36px] bg-white border border-slate-300 rounded-md text-xs',
-                    label: 'text-xs font-medium text-slate-700',
-                  }}
-                  disableSelectorIconRotation
-                  selectorIcon={<SelectorIcon />}
-                  {...register('programacion', {
-                    required: true,
-                  })}
-                >
-                  <SelectItem key="actual" className="text-xs">Fecha Actual</SelectItem>
-                  <SelectItem key="futura" className="text-xs">Fecha Futura</SelectItem>
-                  <SelectItem key="pasada" className="text-xs">Fecha Pasada</SelectItem>
-                </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <TimeInput
+                label="Hora"
+                labelPlacement="outside"
+                size="sm"
+                value={hora}
+                onChange={(value) => setHora(value || new Time(12))}
+                startContent={
+                  <ClockCircleLinearIcon className="pointer-events-none flex-shrink-0 text-base text-slate-400" />
+                }
+                classNames={{
+                  inputWrapper: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                  label: 'text-xs font-semibold text-slate-700',
+                }}
+              />
+            </div>
 
-                {errors.programacion && (
-                  <span className="text-[11px] text-red-600 font-medium">
-                    Programación requerida
-                  </span>
-                )}
-              </div>
+            <div className="flex flex-col gap-1">
+              <Select
+                label="Programación"
+                placeholder="Seleccione Programación"
+                labelPlacement="outside"
+                size="sm"
+                className="w-full"
+                classNames={{
+                  trigger: 'h-9 min-h-[36px] bg-gray-100 border border-gray-200 hover:border-gray-300 rounded-md text-xs focus-within:bg-white focus-within:border-[#113EB9] transition-colors',
+                  label: 'text-xs font-semibold text-slate-700',
+                }}
+                disableSelectorIconRotation
+                selectorIcon={<SelectorIcon />}
+                {...register('programacion', {
+                  required: true,
+                })}
+              >
+                <SelectItem key="actual" className="text-xs">Fecha Actual</SelectItem>
+                <SelectItem key="futura" className="text-xs">Fecha Futura</SelectItem>
+                <SelectItem key="pasada" className="text-xs">Fecha Pasada</SelectItem>
+              </Select>
+
+              {errors.programacion && (
+                <span className="text-[11px] text-red-600 font-medium">
+                  Programación requerida
+                </span>
+              )}
             </div>
           </div>
         </form>

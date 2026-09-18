@@ -18,12 +18,58 @@ interface Row {
   address: string;
 }
 
+export interface DataStatsStops {
+  total: number;
+  tiempoDetenido: string;
+  paradaMasLarga: string;
+  zonaMasParadas: string;
+  longestStopItem?: number;
+}
+
 interface AppProps {
   url: string;
   deviceId: string;
+  searchTerm?: string;
+  highlightItem?: number | null;
+  onDataStats?: (stats: DataStatsStops) => void;
 }
 
-export default function App({ url, deviceId }: AppProps) {
+function parseTimeToSeconds(timeStr: string): number {
+  if (!timeStr) return 0;
+  const hMatch = timeStr.match(/(\d+)\s*h/i);
+  const mMatch = timeStr.match(/(\d+)\s*m/i);
+  const sMatch = timeStr.match(/(\d+)\s*s/i);
+  if (hMatch || mMatch || sMatch) {
+    const h = hMatch ? parseInt(hMatch[1], 10) : 0;
+    const m = mMatch ? parseInt(mMatch[1], 10) : 0;
+    const s = sMatch ? parseInt(sMatch[1], 10) : 0;
+    return h * 3600 + m * 60 + s;
+  }
+  const parts = timeStr.split(':').map((p) => parseInt(p, 10));
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  if (parts.length === 2 && !parts.some(isNaN)) {
+    return parts[0] * 60 + parts[1];
+  }
+  return 0;
+}
+
+function formatSecondsToHMS(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
+}
+
+export default function App({
+  url,
+  deviceId,
+  searchTerm = '',
+  highlightItem,
+  onDataStats,
+}: AppProps) {
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,11 +86,54 @@ export default function App({ url, deviceId }: AppProps) {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${baseUrl}${url}`);
-        const data = response.data.result;
-        console.log(data)
-        setRows(data);
+        const data = response.data?.result;
+        if (Array.isArray(data)) {
+          const fetchedRows: Row[] = data;
+          setRows(fetchedRows);
+          if (onDataStats) {
+            let totalSeconds = 0;
+            let maxSeconds = 0;
+            let longestItem = 1;
+            const addressCounts: Record<string, number> = {};
+
+            fetchedRows.forEach((r) => {
+              const sec = parseTimeToSeconds(r.totalTime);
+              totalSeconds += sec;
+              if (sec > maxSeconds) {
+                maxSeconds = sec;
+                longestItem = r.item;
+              }
+              if (r.address) {
+                addressCounts[r.address] = (addressCounts[r.address] || 0) + 1;
+              }
+            });
+
+            let zonaMasParadas = '';
+            let maxCount = 0;
+            for (const [addr, count] of Object.entries(addressCounts)) {
+              if (count > maxCount) {
+                maxCount = count;
+                zonaMasParadas = addr;
+              }
+            }
+            if (!zonaMasParadas && fetchedRows.length > 0) {
+              zonaMasParadas = fetchedRows[fetchedRows.length - 1]?.address || fetchedRows[0]?.address || '';
+            }
+
+            onDataStats({
+              total: fetchedRows.length,
+              tiempoDetenido: formatSecondsToHMS(totalSeconds),
+              paradaMasLarga: formatSecondsToHMS(maxSeconds),
+              zonaMasParadas,
+              longestStopItem: longestItem,
+            });
+          }
+        } else {
+          setRows([]);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setRows([]);
       } finally {
         setIsLoading(false);
       }
@@ -53,19 +142,50 @@ export default function App({ url, deviceId }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = useCalculateRowsPerPage(40, 5, 70);
-  const pages = Math.ceil(rows.length / rowsPerPage);
+  const rowsPerPage = 22;
+
+  useEffect(() => {
+    if (highlightItem) {
+      const targetPage = Math.ceil(highlightItem / rowsPerPage) || 1;
+      setPage(targetPage);
+      setTimeout(() => {
+        const el = document.getElementById(`row-stop-${highlightItem}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  }, [highlightItem, rowsPerPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  const filteredRows = useMemo(() => {
+    if (!searchTerm) return rows;
+    const term = searchTerm.trim().toLowerCase();
+    return rows.filter((item) => {
+      const matchAddress = item.address?.toLowerCase().includes(term);
+      const matchStart = `${item.startDate} ${item.startTime}`.toLowerCase().includes(term);
+      const matchEnd = `${item.endDate} ${item.endTime}`.toLowerCase().includes(term);
+      const matchTime = item.totalTime?.toLowerCase().includes(term);
+      const matchItem = `${item.item}`.includes(term);
+      return matchAddress || matchStart || matchEnd || matchTime || matchItem;
+    });
+  }, [rows, searchTerm]);
+
+  const pages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    return rows.slice(start, end);
-  }, [page, rows, rowsPerPage]);
+    return filteredRows.slice(start, end);
+  }, [page, filteredRows, rowsPerPage]);
 
   return (
-    <div className="px-0 py-1">
-      <div className="overflow-auto border border-gray-200">
-        <table className="min-w-full text-xs text-gray-700">
+    <div className="w-full p-0">
+      <div className="overflow-auto border-b border-gray-200">
+        <table className="w-full text-xs text-gray-700">
           <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
             <tr>
               <th className="p-2 text-center">ITEM</th>
@@ -94,8 +214,18 @@ export default function App({ url, deviceId }: AppProps) {
                 </td>
               </tr>
             ) : (
-              items.map((item) => (
-                <tr key={item.item} className="border-t border-gray-200 bg-gray-100 hover:bg-white">
+              items.map((item) => {
+                const isHighlighted = item.item === highlightItem;
+                return (
+                  <tr
+                    key={item.item}
+                    id={`row-stop-${item.item}`}
+                    className={`border-t border-gray-200 transition-colors ${
+                      isHighlighted
+                        ? 'bg-amber-100 font-semibold text-amber-900 border-l-4 border-amber-500 shadow-sm'
+                        : 'bg-gray-100 hover:bg-white text-gray-700'
+                    }`}
+                  >
                   <td className="p-2 text-center">{item.item}</td>
                   <td className="p-2 text-center">{item.startDate}</td>
                   <td className="p-2 text-center">{item.startTime}</td>
@@ -116,7 +246,8 @@ export default function App({ url, deviceId }: AppProps) {
                     </a>
                   </td>
                 </tr>
-              ))
+              );
+            })
             )}
           </tbody>
         </table>

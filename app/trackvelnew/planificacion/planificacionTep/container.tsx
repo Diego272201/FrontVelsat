@@ -95,7 +95,6 @@ const GrupoCabecera = memo(function GrupoCabecera({
 
       const formattedDate = formatDate(date);
       if (!formattedDate) {
-        console.error('Error: Fecha inválida después de conversión.');
         return;
       }
 
@@ -120,7 +119,6 @@ const GrupoCabecera = memo(function GrupoCabecera({
 
       const formattedDate = formatDate(date);
       if (!formattedDate) {
-        console.error('Error: Fecha inválida después de conversión.');
         return;
       }
 

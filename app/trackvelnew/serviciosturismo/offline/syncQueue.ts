@@ -1,11 +1,6 @@
 import { API_BASE } from '../constants';
 import { OperacionPendiente, PayloadCrear, PayloadEditar } from './types';
 
-// Detecta si un fallo debe tratarse como "sin conexión / backend caído" (se encola para
-// reintentar después) en vez de un error real de negocio (se muestra y no se reintenta).
-// - error de fetch (no llegó a conectar): TypeError.
-// - navigator.onLine en false: el navegador ya sabe que no hay red.
-// - 502/503/504: el backend respondió, pero a través de un proxy que indica caída/mantenimiento.
 export function esFalloDeRed(error: unknown, response?: Response): boolean {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
   if (response && [502, 503, 504].includes(response.status)) return true;
@@ -14,8 +9,6 @@ export function esFalloDeRed(error: unknown, response?: Response): boolean {
 
 let contadorIdTemporal = 0;
 
-// Id negativo para un servicio creado offline, hasta que el backend le asigne uno real al
-// sincronizar. Se usa número (no string) para no tener que ensanchar ServicioTurismo.idservicio.
 export function generarIdTemporal(): number {
   contadorIdTemporal += 1;
   return -(Date.now() * 1000 + contadorIdTemporal);
@@ -32,9 +25,6 @@ export type ResultadoOperacion =
   | { ok: true }
   | { ok: false; esFalloRed: boolean; error?: string };
 
-// Re-ejecuta una operación encolada contra el backend real. No toca IndexedDB ni estado de React:
-// eso lo maneja quien orquesta la cola (useServiciosTurismo), que sí tiene el contexto para
-// mostrar notificaciones, disparar WhatsApp y refrescar la tabla.
 export async function ejecutarOperacionPendiente(
   op: OperacionPendiente,
 ): Promise<ResultadoOperacion> {
