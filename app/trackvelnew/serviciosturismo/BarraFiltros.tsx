@@ -381,7 +381,7 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
           <button
             type="button"
             onClick={() => onToggleEstadoFiltro('CC')}
-            title="Filtrar por Cerrado y conforme"
+            title="Filtrar por Confirmado por conductor"
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
               estadoFiltro === 'CC'
                 ? 'bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500'
@@ -389,7 +389,7 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
             }`}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span>CC · Cerrado y conforme</span>
+            <span>CC · Confirmado por conductor</span>
             <span className="ml-1 rounded-full bg-white/80 px-1.5 py-0.2 text-[10px] font-bold">
               {conteosEstado.CC}
             </span>

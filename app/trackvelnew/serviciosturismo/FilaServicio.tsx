@@ -64,7 +64,7 @@ const ESTADOS_SERVICIO: Record<
     chip: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
     sigla: 'CC',
     icono: <CheckCircle2 className="h-3 w-3" />,
-    titulo: 'Cerrado y conforme',
+    titulo: 'Confirmado por conductor',
   },
   'Finalizado por Conductor': {
     chip: 'bg-red-50 text-red-700 border border-red-200/80',
