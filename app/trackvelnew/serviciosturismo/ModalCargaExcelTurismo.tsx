@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import {
@@ -13,10 +13,6 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import BaseModal from '@/app/components/ui/BaseModal';
-import {
-  enviarAlertasWhatsappLote,
-  ResultadoAlertasWhatsapp,
-} from './whatsappAlerta';
 
 interface ServicioTurismoLote {
   fechainicio: string;
@@ -48,10 +44,14 @@ interface ServicioTurismoLote {
 interface ModalCargaExcelTurismoProps {
   isOpen: boolean;
   onClose: () => void;
-  onUploaded: () => void;
+  cargarServiciosExcel: (registros: ServicioTurismoLote[]) => Promise<{
+    ok: boolean;
+    offline: boolean;
+    mensaje: string;
+    insertados: number;
+    notificacionesEnviadas: number;
+  }>;
 }
-
-const API_LOTE_URL = 'https://do.velsat.pe:2083/api/ServTurismo/lote';
 
 const COLUMN_MAP: { index: number; campo: keyof ServicioTurismoLote }[] = [
   { index: 0, campo: 'fechainicio' },
@@ -153,17 +153,39 @@ function celda(valor: any): string {
   return String(valor).trim();
 }
 
-function enviarAlertasWhatsapp(
-  registros: ServicioTurismoLote[],
-): Promise<ResultadoAlertasWhatsapp> {
-  const celulares = registros.flatMap((registro) => [registro.celular, registro.cocelular]);
-  return enviarAlertasWhatsappLote(celulares);
+// faltantes: datos incompletos que se pueden cargar igual, previa confirmación del usuario.
+// errores: problemas de formato que bloquean la carga hasta corregir el Excel.
+interface ValidacionRegistro {
+  faltantes: string[];
+  errores: string[];
+}
+
+function validarCelular(valor: string, etiqueta: string): string | null {
+  if (!valor) return null;
+  return /^\d{9}$/.test(valor)
+    ? null
+    : `${etiqueta} inválido: "${valor}" (debe tener 9 dígitos)`;
+}
+
+function validarRegistro(registro: ServicioTurismoLote): ValidacionRegistro {
+  const faltantes: string[] = [];
+  if (!registro.fechainicio) faltantes.push('Fecha');
+  if (!registro.bus && !registro.placa) faltantes.push('Unidad (bus/placa)');
+  if (!registro.piloto) faltantes.push('Conductor (piloto)');
+
+  const errores: string[] = [];
+  const errorCelular = validarCelular(registro.celular, 'Celular');
+  const errorCocelular = validarCelular(registro.cocelular, 'Celular Copiloto');
+  if (errorCelular) errores.push(errorCelular);
+  if (errorCocelular) errores.push(errorCocelular);
+
+  return { faltantes, errores };
 }
 
 const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
   isOpen,
   onClose,
-  onUploaded,
+  cargarServiciosExcel,
 }) => {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -171,19 +193,43 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [registros, setRegistros] = useState<ServicioTurismoLote[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [confirmandoFaltantes, setConfirmandoFaltantes] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reporte, setReporte] = useState<{
     exitoso: boolean;
     mensaje: string;
     insertados: number;
-    whatsapp: ResultadoAlertasWhatsapp | null;
-  }>({ exitoso: false, mensaje: '', insertados: 0, whatsapp: null });
+    offline: boolean;
+    notificacionesEnviadas: number;
+  }>({ exitoso: false, mensaje: '', insertados: 0, offline: false, notificacionesEnviadas: 0 });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validaciones = useMemo(
+    () => registros.map((registro) => validarRegistro(registro)),
+    [registros],
+  );
+  const filasConErrores = useMemo(
+    () =>
+      validaciones
+        .map((v, index) => ({ ...v, index }))
+        .filter((v) => v.errores.length > 0),
+    [validaciones],
+  );
+  const filasConFaltantes = useMemo(
+    () =>
+      validaciones
+        .map((v, index) => ({ ...v, index }))
+        .filter((v) => v.faltantes.length > 0),
+    [validaciones],
+  );
+  const hayErrores = filasConErrores.length > 0;
+  const hayFaltantes = filasConFaltantes.length > 0;
 
   const handleReset = () => {
     setArchivo(null);
     setRegistros([]);
+    setConfirmandoFaltantes(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -245,6 +291,20 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
 
   const handleCargarArchivo = () => {
     fileInputRef.current?.click();
+  };
+
+  const cerrarPreview = () => {
+    setShowPreview(false);
+    setConfirmandoFaltantes(false);
+  };
+
+  const handleClickCargarServicios = () => {
+    if (hayErrores) return;
+    if (hayFaltantes && !confirmandoFaltantes) {
+      setConfirmandoFaltantes(true);
+      return;
+    }
+    handleEnviarDatos();
   };
 
   const handleProcesarArchivo = async () => {
@@ -371,52 +431,19 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
   const handleEnviarDatos = async () => {
     setIsSending(true);
     setShowPreview(false);
+    setConfirmandoFaltantes(false);
 
-    try {
-      const response = await fetch(API_LOTE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registros),
-      });
+    const resultado = await cargarServiciosExcel(registros);
 
-      const data = await response.json().catch(() => null);
-
-      if (response.ok) {
-        let whatsapp: ResultadoAlertasWhatsapp | null = null;
-        try {
-          whatsapp = await enviarAlertasWhatsapp(registros);
-        } catch (error) {
-          console.error('Error al enviar alertas de WhatsApp:', error);
-        }
-
-        setReporte({
-          exitoso: true,
-          mensaje: data?.mensaje || 'Servicios insertados correctamente.',
-          insertados: data?.insertados ?? registros.length,
-          whatsapp,
-        });
-      } else {
-        console.error('Error al insertar servicios de turismo:', data);
-        setReporte({
-          exitoso: false,
-          mensaje:
-            data?.error || data?.mensaje || 'Ocurrió un error al insertar los servicios.',
-          insertados: 0,
-          whatsapp: null,
-        });
-      }
-    } catch (error) {
-      console.error('Error de conexión al enviar servicios de turismo:', error);
-      setReporte({
-        exitoso: false,
-        mensaje: 'Error de conexión al enviar los servicios.',
-        insertados: 0,
-        whatsapp: null,
-      });
-    } finally {
-      setIsSending(false);
-      setShowReport(true);
-    }
+    setReporte({
+      exitoso: resultado.ok,
+      mensaje: resultado.mensaje,
+      insertados: resultado.insertados,
+      offline: resultado.offline,
+      notificacionesEnviadas: resultado.notificacionesEnviadas,
+    });
+    setIsSending(false);
+    setShowReport(true);
   };
 
   return (
@@ -526,7 +553,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPreview(false);
+            if (e.target === e.currentTarget) cerrarPreview();
           }}
         >
           <div
@@ -543,12 +570,49 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
                 </span>
               </div>
               <button
-                onClick={() => setShowPreview(false)}
+                onClick={cerrarPreview}
                 className="rounded-full p-1 text-white transition-colors hover:bg-white/20"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
+
+            {(hayErrores || hayFaltantes) && (
+              <div className="space-y-2 border-b border-slate-200 bg-slate-50 px-6 py-3">
+                {hayErrores && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                    <p className="flex items-center gap-1.5 text-xs font-bold text-red-700">
+                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                      {filasConErrores.length} registro{filasConErrores.length === 1 ? '' : 's'} con
+                      errores de formato: corrígelos en el Excel y vuelve a cargarlo
+                    </p>
+                    <ul className="mt-1.5 max-h-20 space-y-0.5 overflow-y-auto text-[11px] text-red-600">
+                      {filasConErrores.map(({ index, errores }) => (
+                        <li key={index}>
+                          Fila {index + 1}: {errores.join(' · ')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {hayFaltantes && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                      <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                      {filasConFaltantes.length} registro{filasConFaltantes.length === 1 ? '' : 's'}{' '}
+                      con datos incompletos
+                    </p>
+                    <ul className="mt-1.5 max-h-20 space-y-0.5 overflow-y-auto text-[11px] text-amber-700">
+                      {filasConFaltantes.map(({ index, faltantes }) => (
+                        <li key={index}>
+                          Fila {index + 1}: falta {faltantes.join(', ')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="min-h-0 flex-1 overflow-auto p-6">
               <table className="w-full whitespace-nowrap text-left text-xs">
@@ -579,58 +643,101 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {registros.map((registro, index) => (
-                    <tr key={index} className="transition-colors hover:bg-blue-50">
-                      <td className="px-3 py-2">{index + 1}</td>
-                      <td className="px-3 py-2 font-semibold text-slate-700">
-                        {registro.fechainicio || 'SIN FECHA'}
-                      </td>
-                      <td className="px-3 py-2">{registro.horainicio}</td>
-                      <td className="px-3 py-2">{registro.horaretorno}</td>
-                      <td className="px-3 py-2">{registro.bus}</td>
-                      <td className="px-3 py-2">{registro.placa}</td>
-                      <td className="px-3 py-2">{registro.brevete}</td>
-                      <td className="px-3 py-2">{registro.piloto}</td>
-                      <td
-                        className={`px-3 py-2 ${registro.celular.length > 9 ? 'font-bold text-red-600' : ''}`}
+                  {registros.map((registro, index) => {
+                    const { faltantes, errores } = validaciones[index];
+                    const faltaFecha = faltantes.includes('Fecha');
+                    const faltaUnidad = faltantes.includes('Unidad (bus/placa)');
+                    const faltaPiloto = faltantes.includes('Conductor (piloto)');
+                    const errorCelular = validarCelular(registro.celular, 'Celular');
+                    const errorCocelular = validarCelular(registro.cocelular, 'Celular Copiloto');
+                    const claseFaltante = 'bg-amber-50 font-semibold text-amber-700';
+                    const claseError = 'bg-red-50 font-bold text-red-600';
+
+                    return (
+                      <tr
+                        key={index}
+                        className={`transition-colors hover:bg-blue-50 ${errores.length > 0 ? 'bg-red-50/40' : ''}`}
                       >
-                        {registro.celular}
-                      </td>
-                      <td className="px-3 py-2">{registro.cobrevete}</td>
-                      <td className="px-3 py-2">{registro.copiloto}</td>
-                      <td
-                        className={`px-3 py-2 ${registro.cocelular.length > 9 ? 'font-bold text-red-600' : ''}`}
-                      >
-                        {registro.cocelular}
-                      </td>
-                      <td className="px-3 py-2">{registro.tipounidad}</td>
-                      <td className="px-3 py-2">{registro.cliente}</td>
-                      <td className="px-3 py-2">{registro.grupo}</td>
-                      <td className="px-3 py-2">{registro.numpax}</td>
-                      <td className="px-3 py-2">{registro.origen}</td>
-                      <td className="px-3 py-2">{registro.destino}</td>
-                      <td className="px-3 py-2">{registro.guiaturista}</td>
-                      <td className="px-3 py-2">{registro.vuelocliente}</td>
-                      <td className="px-3 py-2">{registro.ejecutivo}</td>
-                      <td className="px-3 py-2">{registro.cotizacion}</td>
-                    </tr>
-                  ))}
+                        <td className="px-3 py-2">{index + 1}</td>
+                        <td className={`px-3 py-2 ${faltaFecha ? claseFaltante : 'font-semibold text-slate-700'}`}>
+                          {registro.fechainicio || 'SIN FECHA'}
+                        </td>
+                        <td className="px-3 py-2">{registro.horainicio}</td>
+                        <td className="px-3 py-2">{registro.horaretorno}</td>
+                        <td className={`px-3 py-2 ${faltaUnidad ? claseFaltante : ''}`}>
+                          {registro.bus || (faltaUnidad ? 'SIN UNIDAD' : '')}
+                        </td>
+                        <td className={`px-3 py-2 ${faltaUnidad ? claseFaltante : ''}`}>
+                          {registro.placa}
+                        </td>
+                        <td className="px-3 py-2">{registro.brevete}</td>
+                        <td className={`px-3 py-2 ${faltaPiloto ? claseFaltante : ''}`}>
+                          {registro.piloto || (faltaPiloto ? 'SIN CONDUCTOR' : '')}
+                        </td>
+                        <td
+                          title={errorCelular || undefined}
+                          className={`px-3 py-2 ${errorCelular ? claseError : ''}`}
+                        >
+                          {registro.celular}
+                        </td>
+                        <td className="px-3 py-2">{registro.cobrevete}</td>
+                        <td className="px-3 py-2">{registro.copiloto}</td>
+                        <td
+                          title={errorCocelular || undefined}
+                          className={`px-3 py-2 ${errorCocelular ? claseError : ''}`}
+                        >
+                          {registro.cocelular}
+                        </td>
+                        <td className="px-3 py-2">{registro.tipounidad}</td>
+                        <td className="px-3 py-2">{registro.cliente}</td>
+                        <td className="px-3 py-2">{registro.grupo}</td>
+                        <td className="px-3 py-2">{registro.numpax}</td>
+                        <td className="px-3 py-2">{registro.origen}</td>
+                        <td className="px-3 py-2">{registro.destino}</td>
+                        <td className="px-3 py-2">{registro.guiaturista}</td>
+                        <td className="px-3 py-2">{registro.vuelocliente}</td>
+                        <td className="px-3 py-2">{registro.ejecutivo}</td>
+                        <td className="px-3 py-2">{registro.cotizacion}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
+            {confirmandoFaltantes && !hayErrores && (
+              <div className="flex items-center justify-between gap-3 border-t border-amber-200 bg-amber-50 px-6 py-3">
+                <p className="text-xs font-semibold text-amber-700">
+                  {filasConFaltantes.length} servicio{filasConFaltantes.length === 1 ? '' : 's'} sin
+                  fecha, unidad o conductor asignado. ¿Deseas cargarlos de todas formas?
+                </p>
+                <button
+                  onClick={() => setConfirmandoFaltantes(false)}
+                  className="flex-shrink-0 text-xs font-medium text-amber-700 underline hover:text-amber-900"
+                >
+                  Revisar de nuevo
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              {hayErrores && (
+                <p className="mr-auto text-xs font-medium text-red-600">
+                  Corrige los errores de formato antes de continuar
+                </p>
+              )}
               <button
-                onClick={() => setShowPreview(false)}
+                onClick={cerrarPreview}
                 className="flex items-center gap-2 rounded-md bg-slate-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-slate-700 active:scale-95"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleEnviarDatos}
-                className="flex items-center gap-2 rounded-md bg-brandSecondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brandSecondary-hover active:scale-95"
+                onClick={handleClickCargarServicios}
+                disabled={hayErrores}
+                className="flex items-center gap-2 rounded-md bg-brandSecondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-brandSecondary-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brandSecondary"
               >
-                Cargar Servicios
+                {confirmandoFaltantes && !hayErrores ? 'Sí, cargar de todas formas' : 'Cargar Servicios'}
               </button>
             </div>
           </div>
@@ -673,49 +780,37 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
               {reporte.exitoso && (
                 <div
                   className={`flex items-center gap-3 rounded-xl p-4 ${
-                    reporte.whatsapp === null
-                      ? 'bg-gray-50'
-                      : reporte.whatsapp.fallidos === 0
+                    reporte.offline
+                      ? 'bg-amber-50'
+                      : reporte.notificacionesEnviadas > 0
                         ? 'bg-green-50'
-                        : reporte.whatsapp.enviados === 0
-                          ? 'bg-red-50'
-                          : 'bg-yellow-50'
+                        : 'bg-gray-50'
                   }`}
                 >
                   <MessageCircle
                     className={`h-6 w-6 flex-shrink-0 ${
-                      reporte.whatsapp === null
-                        ? 'text-gray-500'
-                        : reporte.whatsapp.fallidos === 0
+                      reporte.offline
+                        ? 'text-amber-600'
+                        : reporte.notificacionesEnviadas > 0
                           ? 'text-green-600'
-                          : reporte.whatsapp.enviados === 0
-                            ? 'text-red-600'
-                            : 'text-yellow-600'
+                          : 'text-gray-500'
                     }`}
                   />
-                  <div>
-                    {reporte.whatsapp === null ? (
-                      <p className="font-bold text-gray-700">
-                        No se pudieron enviar las alertas de WhatsApp
-                      </p>
-                    ) : reporte.whatsapp.total === 0 ? (
-                      <p className="font-bold text-gray-700">
-                        No hay celulares válidos para alertar
-                      </p>
-                    ) : (
-                      <>
-                        <p className="font-bold text-gray-700">
-                          Alertas WhatsApp: {reporte.whatsapp.enviados}/
-                          {reporte.whatsapp.total} enviadas
-                        </p>
-                        {reporte.whatsapp.fallidos > 0 && (
-                          <p className="text-sm text-red-600">
-                            {reporte.whatsapp.fallidos} fallaron (ver consola)
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  <p
+                    className={`font-bold ${
+                      reporte.offline
+                        ? 'text-amber-700'
+                        : reporte.notificacionesEnviadas > 0
+                          ? 'text-green-700'
+                          : 'text-gray-700'
+                    }`}
+                  >
+                    {reporte.offline
+                      ? 'Sin conexión: las notificaciones se enviarán cuando se sincronice'
+                      : reporte.notificacionesEnviadas > 0
+                        ? `${reporte.notificacionesEnviadas} conductor(es) notificado(s) por WhatsApp`
+                        : 'No se encontraron celulares válidos en la BD para notificar'}
+                  </p>
                 </div>
               )}
 
@@ -731,12 +826,8 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
               <button
                 onClick={() => {
                   setShowReport(false);
-                  const exitoso = reporte.exitoso;
                   handleReset();
                   onClose();
-                  if (exitoso) {
-                    onUploaded();
-                  }
                 }}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 font-bold text-white shadow-lg transition-all hover:bg-red-700"
               >

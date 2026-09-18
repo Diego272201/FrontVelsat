@@ -3,6 +3,7 @@ import { CampoTexto } from './types';
 export const API_BASE = 'https://do.velsat.pe:2083/api/ServTurismo';
 export const API_UNIDADES = 'https://do.velsat.pe:2083/api/Preplan/carros';
 export const API_TAXI = 'https://do.velsat.pe:2083/api/ServTurismo/taxi';
+export const API_LOTE_URL = 'https://do.velsat.pe:2083/api/ServTurismo/lote';
 
 export const CLAVE_OPCIONES_AVANZADAS = 'ST2026';
 

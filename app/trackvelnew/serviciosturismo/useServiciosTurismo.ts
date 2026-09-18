@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useUsername } from '@/hooks/useUsername';
-import { API_BASE, API_TAXI, API_UNIDADES, CLAVE_OPCIONES_AVANZADAS } from './constants';
+import { API_BASE, API_LOTE_URL, API_TAXI, API_UNIDADES, CLAVE_OPCIONES_AVANZADAS } from './constants';
 import { Conductor } from './SelectBuscable';
 import {
   AuditoriaCampo,
@@ -19,9 +19,8 @@ import {
 } from './utils';
 import {
   enviarAlertasWhatsappLote,
-  MENSAJE_NUEVO_SERVICIO,
-  MENSAJE_SERVICIO_MODIFICADO,
-  ResultadoAlertasWhatsapp,
+  resolverTelefonosConductoresDesdeBrevete,
+  TipoPlantillaWhatsapp,
 } from './whatsappAlerta';
 import {
   agregarOperacionPendiente,
@@ -130,6 +129,9 @@ export function useServiciosTurismo() {
   const [procesandoStandbyId, setProcesandoStandbyId] = useState<
     number | null
   >(null);
+  const [notificandoConductorId, setNotificandoConductorId] = useState<
+    number | null
+  >(null);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
 
@@ -232,8 +234,6 @@ export function useServiciosTurismo() {
       payload?: OperacionPendiente['payload'];
       cambiosOptimistas?: Partial<ServicioTurismo>;
       servicioNuevo?: ServicioTurismo;
-      celularParaWhatsapp?: string | null;
-      mensajeWhatsapp?: string;
     }) => {
       const operacion: OperacionPendiente = {
         id: generarIdOperacion(),
@@ -241,8 +241,6 @@ export function useServiciosTurismo() {
         idservicio: params.idservicio,
         fecha,
         payload: params.payload,
-        celularParaWhatsapp: params.celularParaWhatsapp ?? null,
-        mensajeWhatsapp: params.mensajeWhatsapp,
         creadoEn: Date.now(),
       };
       await agregarOperacionPendiente(operacion);
@@ -285,17 +283,26 @@ export function useServiciosTurismo() {
           await quitarOperacionPendiente(op.id);
           huboExito = true;
 
-          if (op.celularParaWhatsapp) {
-            enviarAlertasWhatsappLote([op.celularParaWhatsapp], op.mensajeWhatsapp)
-              .then((resultadoWa) => {
-                if (resultadoWa.enviados > 0) {
-                  mostrarNotificacion(
-                    'success',
-                    'Alerta de WhatsApp enviada al piloto (cambio ya sincronizado)',
-                  );
-                }
-              })
-              .catch(() => {});
+          // Único caso con notificación automática: una carga de Excel que se guardó
+          // localmente (sin conexión) y recién ahora terminó de sincronizarse.
+          if (op.tipo === 'cargaExcel') {
+            const { registros } = op.payload as { registros: Record<string, unknown>[] };
+            const telefonos = resolverTelefonosConductoresDesdeBrevete(
+              registros as { brevete?: string | null; cobrevete?: string | null }[],
+              conductores,
+            );
+            if (telefonos.length > 0) {
+              enviarAlertasWhatsappLote(telefonos)
+                .then((resultadoWa) => {
+                  if (resultadoWa.enviados > 0) {
+                    mostrarNotificacion(
+                      'success',
+                      `Carga de Excel sincronizada: ${resultadoWa.enviados} notificación(es) de WhatsApp enviada(s)`,
+                    );
+                  }
+                })
+                .catch(() => {});
+            }
           }
         } else if (resultado.esFalloRed) {
           break;
@@ -315,7 +322,7 @@ export function useServiciosTurismo() {
         fetchServicios(fecha);
       }
     }
-  }, [fecha, fetchServicios, mostrarNotificacion]);
+  }, [conductores, fecha, fetchServicios, mostrarNotificacion]);
 
   useEffect(() => {
     listarOperacionesPendientes().then((pendientes) =>
@@ -489,13 +496,15 @@ export function useServiciosTurismo() {
     let f = 0;
     let vc = 0;
     let cc = 0;
+    let placaNoRegistrada = 0;
     serviciosVisibles.forEach((servicio) => {
       const est = calcularEstado(servicio);
       if (est === 'Finalizado por Conductor') f++;
       else if (est === 'Visto por Conductor') vc++;
       else if (est === 'Confirmado por Conductor') cc++;
+      if (servicio.placaNoRegistrada) placaNoRegistrada++;
     });
-    return { F: f, VC: vc, CC: cc };
+    return { F: f, VC: vc, CC: cc, PLACA_DESCONOCIDA: placaNoRegistrada };
   }, [serviciosVisibles]);
 
   const totalPilotos = useMemo(() => {
@@ -538,7 +547,8 @@ export function useServiciosTurismo() {
         (estadoFiltro === 'VC' &&
           calcularEstado(servicio) === 'Visto por Conductor') ||
         (estadoFiltro === 'CC' &&
-          calcularEstado(servicio) === 'Confirmado por Conductor');
+          calcularEstado(servicio) === 'Confirmado por Conductor') ||
+        (estadoFiltro === 'PLACA_DESCONOCIDA' && servicio.placaNoRegistrada);
       return (
         coincideTexto &&
         coincideHora &&
@@ -692,8 +702,6 @@ export function useServiciosTurismo() {
           motivo: motivoEdicion.trim() || undefined,
         },
         cambiosOptimistas: payload,
-        celularParaWhatsapp: formEdicion.celular.trim() || null,
-        mensajeWhatsapp: MENSAJE_SERVICIO_MODIFICADO,
       });
       setAuditoriaPorServicio((prev) => {
         const { [editandoId]: _descartado, ...resto } = prev;
@@ -721,31 +729,6 @@ export function useServiciosTurismo() {
           'success',
           data?.mensaje || 'Servicio actualizado correctamente',
         );
-
-        if (formEdicion.celular.trim() !== '') {
-          enviarAlertasWhatsappLote([formEdicion.celular], MENSAJE_SERVICIO_MODIFICADO)
-            .then((resultado) => {
-              if (resultado.total === 0) {
-                mostrarNotificacion(
-                  'error',
-                  'Celular del piloto inválido: no se envió la alerta de WhatsApp',
-                );
-              } else if (resultado.enviados > 0) {
-                mostrarNotificacion('success', 'Alerta de WhatsApp enviada al piloto');
-              } else {
-                mostrarNotificacion(
-                  'error',
-                  'No se pudo enviar la alerta de WhatsApp al piloto',
-                );
-              }
-            })
-            .catch(() => {
-              mostrarNotificacion(
-                'error',
-                'Error de conexión al enviar la alerta de WhatsApp',
-              );
-            });
-        }
 
         setAuditoriaPorServicio((prev) => {
           const { [editandoId]: _descartado, ...resto } = prev;
@@ -935,6 +918,36 @@ export function useServiciosTurismo() {
     [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
   );
 
+  // El backend envía por WhatsApp y por push de la app (Firebase) a la vez, resolviendo el
+  // celular/token contra la ficha del conductor en la BD (vía brevete) — acá solo se manda el
+  // tipo de plantilla elegido, nunca un texto ni un destino, para no depender de (ni poder
+  // pisar) esos datos desde el front.
+  const notificarConductor = useCallback(
+    async (servicio: ServicioTurismoVista, tipo: TipoPlantillaWhatsapp) => {
+      setNotificandoConductorId(servicio.idservicio);
+      try {
+        const res = await fetch(`${API_BASE}/${servicio.idservicio}/notificar`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tipo }),
+        });
+        const data = await res.json().catch(() => null);
+
+        mostrarNotificacion(
+          res.ok ? 'success' : 'error',
+          res.ok
+            ? data?.mensaje || 'Notificación enviada al conductor'
+            : data?.error || data?.mensaje || 'No se pudo enviar la notificación',
+        );
+      } catch {
+        mostrarNotificacion('error', 'Error de conexión al notificar al conductor');
+      } finally {
+        setNotificandoConductorId(null);
+      }
+    },
+    [mostrarNotificacion],
+  );
+
   const solicitarEliminarCarga = useCallback(() => {
     if (!opcionesAvanzadasDesbloqueado) return;
     setMostrarModalEliminarCarga(true);
@@ -980,12 +993,10 @@ export function useServiciosTurismo() {
   const crearServicio = useCallback(
     async (
       campos: Record<string, unknown>,
-      celularPiloto: string,
     ): Promise<{
       ok: boolean;
       offline: boolean;
       mensaje: string;
-      whatsapp: ResultadoAlertasWhatsapp | null;
     }> => {
       const crearOffline = async () => {
         const idTemporal = generarIdTemporal();
@@ -994,14 +1005,11 @@ export function useServiciosTurismo() {
           idservicio: idTemporal,
           payload: { campos },
           servicioNuevo: construirServicioOptimista(idTemporal, campos),
-          celularParaWhatsapp: celularPiloto.trim() || null,
-          mensajeWhatsapp: MENSAJE_NUEVO_SERVICIO,
         });
         return {
           ok: true,
           offline: true,
           mensaje: 'Guardado localmente. Se sincronizará cuando vuelva la conexión.',
-          whatsapp: null,
         };
       };
 
@@ -1019,19 +1027,11 @@ export function useServiciosTurismo() {
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
-          let whatsapp: ResultadoAlertasWhatsapp | null = null;
-          if (celularPiloto.trim() !== '') {
-            try {
-              whatsapp = await enviarAlertasWhatsappLote([celularPiloto]);
-            } catch {
-            }
-          }
           fetchServicios(fecha);
           return {
             ok: true,
             offline: false,
             mensaje: data?.mensaje || 'Servicio creado correctamente',
-            whatsapp,
           };
         }
 
@@ -1039,7 +1039,6 @@ export function useServiciosTurismo() {
           ok: false,
           offline: false,
           mensaje: data?.error || data?.mensaje || 'Error al crear el servicio',
-          whatsapp: null,
         };
       } catch (err) {
         if (esFalloDeRed(err)) {
@@ -1049,11 +1048,101 @@ export function useServiciosTurismo() {
           ok: false,
           offline: false,
           mensaje: 'Error de conexión al crear el servicio',
-          whatsapp: null,
         };
       }
     },
     [encolarYAplicarOptimista, fecha, fetchServicios],
+  );
+
+  // Único flujo con envío automático de WhatsApp: la carga masiva por Excel. El celular
+  // siempre sale de la ficha del conductor en la BD (por brevete/cobrevete), nunca de la
+  // columna "celular"/"cocelular" del archivo. Si no hay conexión, se guarda localmente y
+  // la notificación se envía cuando `sincronizarCola` termine de subir el lote.
+  const cargarServiciosExcel = useCallback(
+    async (
+      registros: Record<string, unknown>[],
+    ): Promise<{
+      ok: boolean;
+      offline: boolean;
+      mensaje: string;
+      insertados: number;
+      notificacionesEnviadas: number;
+    }> => {
+      const cargarOffline = async () => {
+        const idTemporal = generarIdTemporal();
+        await encolarYAplicarOptimista({
+          tipo: 'cargaExcel',
+          idservicio: idTemporal,
+          payload: { registros },
+        });
+        return {
+          ok: true,
+          offline: true,
+          mensaje: 'Guardado localmente. Se sincronizará y notificará a los conductores cuando vuelva la conexión.',
+          insertados: registros.length,
+          notificacionesEnviadas: 0,
+        };
+      };
+
+      try {
+        const res = await fetch(API_LOTE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(registros),
+        });
+
+        if (!res.ok && esFalloDeRed(undefined, res)) {
+          return await cargarOffline();
+        }
+
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          let notificacionesEnviadas = 0;
+          const telefonos = resolverTelefonosConductoresDesdeBrevete(
+            registros as { brevete?: string | null; cobrevete?: string | null }[],
+            conductores,
+          );
+          if (telefonos.length > 0) {
+            try {
+              const resultadoWa = await enviarAlertasWhatsappLote(telefonos);
+              notificacionesEnviadas = resultadoWa.enviados;
+            } catch {
+              // No crítico: los servicios ya quedaron guardados.
+            }
+          }
+
+          fetchServicios(fecha);
+          return {
+            ok: true,
+            offline: false,
+            mensaje: data?.mensaje || 'Servicios insertados correctamente.',
+            insertados: data?.insertados ?? registros.length,
+            notificacionesEnviadas,
+          };
+        }
+
+        return {
+          ok: false,
+          offline: false,
+          mensaje: data?.error || data?.mensaje || 'Ocurrió un error al insertar los servicios.',
+          insertados: 0,
+          notificacionesEnviadas: 0,
+        };
+      } catch (err) {
+        if (esFalloDeRed(err)) {
+          return await cargarOffline();
+        }
+        return {
+          ok: false,
+          offline: false,
+          mensaje: 'Error de conexión al enviar los servicios.',
+          insertados: 0,
+          notificacionesEnviadas: 0,
+        };
+      }
+    },
+    [conductores, encolarYAplicarOptimista, fecha, fetchServicios],
   );
 
   const hayEdicionActiva = editandoId !== null;
@@ -1068,6 +1157,7 @@ export function useServiciosTurismo() {
     pendientesCount,
     sincronizando,
     crearServicio,
+    cargarServiciosExcel,
     serviciosVisibles,
     serviciosFiltrados,
     horasDisponibles,
@@ -1115,6 +1205,8 @@ export function useServiciosTurismo() {
     procesandoStandbyId,
     ponerEnStandby,
     reanudarServicio,
+    notificandoConductorId,
+    notificarConductor,
     notificaciones,
     claveOpcionesAvanzadas,
     setClaveOpcionesAvanzadas,

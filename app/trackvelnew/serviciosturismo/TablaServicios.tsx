@@ -12,6 +12,7 @@ import {
 import { Conductor } from './SelectBuscable';
 import FilaServicio from './FilaServicio';
 import FiltroColumna from './FiltroColumna';
+import { TipoPlantillaWhatsapp } from './whatsappAlerta';
 
 const COLUMNAS_FILTRABLES: { key: ColumnaFiltrable; titulo: string }[] = [
   { key: 'fechainicio', titulo: 'FECHA' },
@@ -56,6 +57,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby: (servicio: ServicioTurismoVista) => void;
   onReanudar: (servicio: ServicioTurismoVista) => void;
   procesandoStandbyId: number | null;
+  onNotificarConductor: (servicio: ServicioTurismoVista, tipo: TipoPlantillaWhatsapp) => void;
+  notificandoConductorId: number | null;
   auditoriaPorServicio: Record<number, AuditoriaCampo[]>;
   cargandoAuditoriaId: number | null;
   opcionesAvanzadasDesbloqueado: boolean;
@@ -87,6 +90,8 @@ const TablaServicios: React.FC<{
   onPonerEnStandby,
   onReanudar,
   procesandoStandbyId,
+  onNotificarConductor,
+  notificandoConductorId,
   auditoriaPorServicio,
   cargandoAuditoriaId,
   opcionesAvanzadasDesbloqueado,
@@ -173,6 +178,8 @@ const TablaServicios: React.FC<{
                 onPonerEnStandby={() => onPonerEnStandby(servicio)}
                 onReanudar={() => onReanudar(servicio)}
                 procesandoStandby={procesandoStandbyId === servicio.idservicio}
+                onNotificarConductor={(tipo) => onNotificarConductor(servicio, tipo)}
+                notificandoConductor={notificandoConductorId === servicio.idservicio}
                 auditoria={auditoriaPorServicio[servicio.idservicio]}
                 cargandoAuditoria={cargandoAuditoriaId === servicio.idservicio}
                 puedeVerHistorial={opcionesAvanzadasDesbloqueado}

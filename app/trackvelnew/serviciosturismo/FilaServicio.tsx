@@ -20,6 +20,7 @@ import {
   PlayCircle,
   History,
   CloudOff,
+  MessageCircle,
 } from 'lucide-react';
 import { AuditoriaCampo, EditFormServicio, ServicioTurismoVista } from './types';
 import {
@@ -41,6 +42,7 @@ import {
   SelectPlacaBuscable,
   SelectTipoUnidad,
 } from './SelectBuscable';
+import { PLANTILLAS_WHATSAPP, TipoPlantillaWhatsapp } from './whatsappAlerta';
 
 const ESTADOS_SERVICIO: Record<
   ClaveEstado,
@@ -111,6 +113,8 @@ const FilaServicio: React.FC<{
   onPonerEnStandby: () => void;
   onReanudar: () => void;
   procesandoStandby: boolean;
+  onNotificarConductor: (tipo: TipoPlantillaWhatsapp) => void;
+  notificandoConductor: boolean;
   auditoria: AuditoriaCampo[] | undefined;
   cargandoAuditoria: boolean;
   puedeVerHistorial: boolean;
@@ -134,6 +138,8 @@ const FilaServicio: React.FC<{
   onPonerEnStandby,
   onReanudar,
   procesandoStandby,
+  onNotificarConductor,
+  notificandoConductor,
   auditoria,
   cargandoAuditoria,
   puedeVerHistorial,
@@ -185,6 +191,49 @@ const FilaServicio: React.FC<{
     return () => window.removeEventListener('scroll', handleScroll, true);
   }, [menuAbierto]);
 
+  // Menú de plantillas del botón de WhatsApp (mismo patrón del menú Cancelar/Stand By de arriba).
+  const [menuNotificarAbierto, setMenuNotificarAbierto] = useState(false);
+  const [posicionMenuNotificar, setPosicionMenuNotificar] = useState({ top: 0, left: 0 });
+  const botonNotificarRef = useRef<HTMLButtonElement>(null);
+  const menuNotificarPortalRef = useRef<HTMLDivElement>(null);
+
+  const toggleMenuNotificar = () => {
+    if (!menuNotificarAbierto && botonNotificarRef.current) {
+      const rect = botonNotificarRef.current.getBoundingClientRect();
+      setPosicionMenuNotificar({ top: rect.bottom + 4, left: rect.right - 240 });
+    }
+    setMenuNotificarAbierto((v) => !v);
+  };
+
+  useEffect(() => {
+    if (!menuNotificarAbierto) return;
+    const handleClickFuera = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        botonNotificarRef.current &&
+        !botonNotificarRef.current.contains(target) &&
+        menuNotificarPortalRef.current &&
+        !menuNotificarPortalRef.current.contains(target)
+      ) {
+        setMenuNotificarAbierto(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickFuera);
+    return () => document.removeEventListener('mousedown', handleClickFuera);
+  }, [menuNotificarAbierto]);
+
+  useEffect(() => {
+    if (!menuNotificarAbierto) return;
+    const handleScroll = () => setMenuNotificarAbierto(false);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [menuNotificarAbierto]);
+
+  const elegirPlantilla = (tipo: TipoPlantillaWhatsapp) => {
+    setMenuNotificarAbierto(false);
+    onNotificarConductor(tipo);
+  };
+
   const seleccionarPiloto = (conductor: Conductor) => {
     onCambioCampo('piloto', conductor.apellidos || '');
     onCambioCampo('brevete', conductor.brevete || '');
@@ -233,7 +282,9 @@ const FilaServicio: React.FC<{
         } ${
           mostrarDetalle
             ? 'border-[#113EB9] bg-blue-50/50'
-            : 'border-transparent hover:border-[#113EB9]/40 hover:bg-blue-50/30'
+            : servicio.placaNoRegistrada
+              ? 'border-orange-400 bg-orange-50 hover:bg-orange-100/70'
+              : 'border-transparent hover:border-[#113EB9]/40 hover:bg-blue-50/30'
         }`}
       >
         <td className="py-2 pl-4 pr-1.5">
@@ -257,7 +308,7 @@ const FilaServicio: React.FC<{
             {servicio.placaCombinada || '-'}
             {servicio.placaNoRegistrada && (
               <span title="Placa no registrada en el sistema: el conductor no ve este servicio en su app">
-                <EyeOff className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <EyeOff className="h-3.5 w-3.5 shrink-0 text-orange-500" />
               </span>
             )}
           </span>
@@ -321,6 +372,46 @@ const FilaServicio: React.FC<{
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
+                <button
+                  ref={botonNotificarRef}
+                  onClick={toggleMenuNotificar}
+                  disabled={notificandoConductor || sincronizandoAlta}
+                  title="Notificar al conductor (WhatsApp + app)"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  {notificandoConductor ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  )}
+                </button>
+                {menuNotificarAbierto &&
+                  createPortal(
+                    <div
+                      ref={menuNotificarPortalRef}
+                      style={{ top: posicionMenuNotificar.top, left: posicionMenuNotificar.left }}
+                      className="fixed z-50 w-60 overflow-hidden rounded-md border border-gray-300 bg-white py-1 shadow-lg"
+                    >
+                      {PLANTILLAS_WHATSAPP.map((plantilla) => (
+                        <button
+                          key={plantilla.id}
+                          onClick={() => elegirPlantilla(plantilla.id)}
+                          className="block w-full px-3 py-2 text-left hover:bg-emerald-50"
+                        >
+                          <span className="block text-[12px] font-semibold text-slate-700">
+                            {plantilla.titulo}
+                          </span>
+                          <span className="block text-[11px] text-slate-400">
+                            {plantilla.construirTexto({
+                              fecha: servicio.fechainicio || '',
+                              hora: servicio.horainicio || '',
+                            })}
+                          </span>
+                        </button>
+                      ))}
+                    </div>,
+                    document.body,
+                  )}
                 {estado === 'Stand By' && (
                   <button
                     onClick={onReanudar}
