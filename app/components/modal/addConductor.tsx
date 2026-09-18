@@ -269,11 +269,26 @@ export default function ConductorDialog({
                   disabled={loading}
                   className={selectClass}
                 >
+<<<<<<< HEAD
                   <option value="">Seleccione</option>
                   <option value="masculino">Masculino</option>
                   <option value="femenino">Femenino</option>
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+=======
+                  <SelectTrigger className={inputClass}>
+                    <SelectValue placeholder="Seleccione" />
+                  </SelectTrigger>
+                  <SelectContent portal={false} className="border-gray-200 bg-white shadow-lg">
+                    <SelectItem value="masculino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                      Masculino
+                    </SelectItem>
+                    <SelectItem value="femenino" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                      Femenino
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+>>>>>>> 747484d4780da778f2fe0b33ac367fa7c51487fb
               </div>
             </div>
             </div>
@@ -398,6 +413,7 @@ export default function ConductorDialog({
                   <Label htmlFor="tipo" className={labelClass}>
                     Tipo
                   </Label>
+<<<<<<< HEAD
                   <div className="relative">
                     <select
                       id="tipo"
@@ -413,6 +429,28 @@ export default function ConductorDialog({
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                   </div>
+=======
+                  <Select
+                    value={formData.tipo}
+                    onValueChange={(value) => handleInputChange('tipo', value)}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className={inputClass}>
+                      <SelectValue placeholder="Seleccione" />
+                    </SelectTrigger>
+                    <SelectContent portal={false} className="border-gray-200 bg-white shadow-lg">
+                      <SelectItem value="Tdp Menores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                        Tdp Menores
+                      </SelectItem>
+                      <SelectItem value="Turismo" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                        Turismo
+                      </SelectItem>
+                      <SelectItem value="Tdp Mayores" className="text-[12px] hover:bg-blue-50 focus:bg-blue-50">
+                        Tdp Mayores
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+>>>>>>> 747484d4780da778f2fe0b33ac367fa7c51487fb
                 </div>
               </div>
             )}

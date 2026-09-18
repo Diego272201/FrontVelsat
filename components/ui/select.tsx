@@ -69,9 +69,15 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    /** Ponlo en false cuando el Select vive dentro de un Modal de NextUI:
+     *  su detección de "click afuera" no reconoce el contenido si se
+     *  renderiza en un Portal fuera del árbol del modal, y lo cierra
+     *  al seleccionar una opción. */
+    portal?: boolean
+  }
+>(({ className, children, position = "popper", portal = true, ...props }, ref) => {
+  const content = (
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
@@ -95,8 +101,14 @@ const SelectContent = React.forwardRef<
       </SelectPrimitive.Viewport>
       <SelectScrollDownButton />
     </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
-))
+  )
+
+  return portal ? (
+    <SelectPrimitive.Portal>{content}</SelectPrimitive.Portal>
+  ) : (
+    content
+  )
+})
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
 const SelectLabel = React.forwardRef<
