@@ -90,7 +90,7 @@ export default function AlertasVelocidadReportContent() {
   }
 
   return (
-    <div className="w-full">
+    <div className="flex h-full w-full flex-col overflow-hidden">
       <ReporteHeader
         title="ALERTAS DE VELOCIDAD"
         deviceId="TODAS LAS UNIDADES"

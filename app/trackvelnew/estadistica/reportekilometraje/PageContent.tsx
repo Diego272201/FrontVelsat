@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Search } from 'lucide-react';
 import '@/app/styles/table.css';
 import { useSearchParams } from 'next/navigation';
@@ -20,7 +20,7 @@ interface Row {
   minimo: number;
 }
 
-const ROWS_PER_PAGE = 22;
+
 
 export default function PageContent() {
   const { data: session } = useSession();
@@ -37,6 +37,43 @@ export default function PageContent() {
   const [selectedTab, setSelectedTab] = useState<'tabla' | 'vista'>('tabla');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
+
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+
+    const calculateRows = () => {
+      const containerHeight = container.clientHeight;
+      if (!containerHeight) return;
+
+      const theadHeight = theadRef.current?.offsetHeight || 32;
+      const availableHeight = containerHeight - theadHeight;
+
+      const firstRow = container.querySelector('tbody tr') as HTMLElement | null;
+      const rowHeight =
+        firstRow?.offsetHeight && firstRow.offsetHeight > 20
+          ? firstRow.offsetHeight
+          : 33;
+
+      const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+      setRowsPerPage((prev) => (prev !== calculatedRows ? calculatedRows : prev));
+    };
+
+    calculateRows();
+
+    const resizeObserver = new ResizeObserver(() => {
+      calculateRows();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [rows.length, isLoading, selectedTab]);
 
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
@@ -121,16 +158,16 @@ export default function PageContent() {
     setPage(1);
   }, [searchTerm, selectedTab]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [totalPages, page]);
 
   const paginatedItems = useMemo(() => {
-    const start = (page - 1) * ROWS_PER_PAGE;
-    return filteredRows.slice(start, start + ROWS_PER_PAGE);
-  }, [filteredRows, page]);
+    const start = (page - 1) * rowsPerPage;
+    return filteredRows.slice(start, start + rowsPerPage);
+  }, [filteredRows, page, rowsPerPage]);
 
   return (
     <div className="flex w-full flex-col h-screen overflow-hidden bg-[#f0f4f8]">
@@ -244,10 +281,13 @@ export default function PageContent() {
             <p className="text-xs text-gray-500">Verifique el periodo seleccionado o la conexión</p>
           </div>
         ) : selectedTab === 'tabla' ? (
-          <div className="w-full p-0">
-            <div className="overflow-auto border-b border-gray-200">
+          <div ref={tableContainerRef} className="w-full h-full flex flex-col p-0">
+            <div className="flex-1 overflow-hidden min-h-0">
               <table className="w-full text-xs text-gray-700">
-                <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
+                <thead
+                  ref={theadRef}
+                  className="bg-gray-300 text-[10px] uppercase text-gray-600"
+                >
                   <tr>
                     <th className="p-2 text-center">ITEM</th>
                     <th className="p-2 text-center">UNIDAD</th>
@@ -268,7 +308,7 @@ export default function PageContent() {
                       const km = Math.max(0, item.maximo - item.minimo);
                       const percentage = totalKm > 0 ? ((km / totalKm) * 100).toFixed(1) : '100';
                       const dailyAvg = (km / diff.daysCount).toFixed(1);
-                      const globalIndex = (page - 1) * ROWS_PER_PAGE + index + 1;
+                      const globalIndex = (page - 1) * rowsPerPage + index + 1;
 
                       return (
                         <tr

@@ -1,9 +1,8 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
-import useCalculateRowsPerPage from './useCalculateRowsPerPage';
 import { Spinner } from '@nextui-org/react';
 
 interface Row {
@@ -80,8 +79,52 @@ export default function TableEvent({ url, deviceId }: AppProps) {
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = useCalculateRowsPerPage(40, 5, 70);
-  const pages = Math.ceil(rows.length / rowsPerPage);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const calculateRows = () => {
+      const containerHeight = container.clientHeight;
+      if (!containerHeight) return;
+
+      const theadHeight = theadRef.current?.offsetHeight || 32;
+      const availableHeight = containerHeight - theadHeight;
+
+      const firstRow = container.querySelector('tbody tr') as HTMLElement | null;
+      const rowHeight =
+        firstRow?.offsetHeight && firstRow.offsetHeight > 20
+          ? firstRow.offsetHeight
+          : 33;
+
+      const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+      setRowsPerPage((prev) => (prev !== calculatedRows ? calculatedRows : prev));
+    };
+
+    calculateRows();
+
+    const resizeObserver = new ResizeObserver(() => {
+      calculateRows();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [rows.length, isLoading]);
+
+  useEffect(() => {
+    setPage((prevPage) => {
+      const maxPage = Math.ceil(rows.length / rowsPerPage) || 1;
+      return prevPage > maxPage ? maxPage : prevPage;
+    });
+  }, [rowsPerPage, rows.length]);
+
+  const pages = Math.ceil(rows.length / rowsPerPage) || 1;
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -90,10 +133,16 @@ export default function TableEvent({ url, deviceId }: AppProps) {
   }, [page, rows, rowsPerPage]);
 
   return (
-    <div className="mx-2 my-1 px-0 py-1">
-      <div className="overflow-auto border border-gray-200">
+    <div className="flex w-full flex-1 flex-col min-h-0 p-0">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-hidden min-h-0"
+      >
         <table className="min-w-full text-xs text-gray-700">
-          <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
+          <thead
+            ref={theadRef}
+            className="bg-gray-300 text-[10px] uppercase text-gray-600"
+          >
             <tr>
               <th className="p-2 text-center">ITEM</th>
               <th className="p-2 text-center">FECHA</th>
@@ -153,7 +202,7 @@ export default function TableEvent({ url, deviceId }: AppProps) {
       </div>
 
       {/* Paginación */}
-      <div className="mt-2 flex justify-center gap-2 text-[14px]">
+      <div className="flex-shrink-0 flex justify-center gap-2 text-[14px] pt-2 pb-5">
         <button
           disabled={page === 1}
           onClick={() => setPage((p) => Math.max(1, p - 1))}

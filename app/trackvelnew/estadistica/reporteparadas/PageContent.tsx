@@ -59,7 +59,7 @@ function PageContent() {
   const periodoText = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   return (
-    <div className="w-full">
+    <div className="flex h-full w-full flex-col overflow-hidden">
       <ReporteHeader
         title="REPORTE DE PARADAS"
         deviceId={deviceId ?? ''}

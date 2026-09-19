@@ -1,9 +1,8 @@
 'use client';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import { useApi } from '@/context/ApiContext';
-import useCalculateRowsPerPage from './useCalculateRowsPerPage';
 import { Spinner } from '@nextui-org/react';
 
 interface Row {
@@ -142,20 +141,43 @@ export default function App({
     fetchData();
   }, [isBaseUrlReady, baseUrl, url]);
 
-  const rowsPerPage = 22;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [rowsPerPage, setRowsPerPage] = useState(15);
 
   useEffect(() => {
-    if (highlightItem) {
-      const targetPage = Math.ceil(highlightItem / rowsPerPage) || 1;
-      setPage(targetPage);
-      setTimeout(() => {
-        const el = document.getElementById(`row-stop-${highlightItem}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 150);
-    }
-  }, [highlightItem, rowsPerPage]);
+    const container = containerRef.current;
+    if (!container) return;
+
+    const calculateRows = () => {
+      const containerHeight = container.clientHeight;
+      if (!containerHeight) return;
+
+      const theadHeight = theadRef.current?.offsetHeight || 32;
+      const availableHeight = containerHeight - theadHeight;
+
+      const firstRow = container.querySelector('tbody tr') as HTMLElement | null;
+      const rowHeight =
+        firstRow?.offsetHeight && firstRow.offsetHeight > 20
+          ? firstRow.offsetHeight
+          : 33;
+
+      const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+      setRowsPerPage((prev) => (prev !== calculatedRows ? calculatedRows : prev));
+    };
+
+    calculateRows();
+
+    const resizeObserver = new ResizeObserver(() => {
+      calculateRows();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [rows.length, isLoading]);
 
   useEffect(() => {
     setPage(1);
@@ -174,6 +196,26 @@ export default function App({
     });
   }, [rows, searchTerm]);
 
+  useEffect(() => {
+    setPage((prevPage) => {
+      const maxPage = Math.ceil(filteredRows.length / rowsPerPage) || 1;
+      return prevPage > maxPage ? maxPage : prevPage;
+    });
+  }, [rowsPerPage, filteredRows.length]);
+
+  useEffect(() => {
+    if (highlightItem) {
+      const targetPage = Math.ceil(highlightItem / rowsPerPage) || 1;
+      setPage(targetPage);
+      setTimeout(() => {
+        const el = document.getElementById(`row-stop-${highlightItem}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  }, [highlightItem, rowsPerPage]);
+
   const pages = Math.ceil(filteredRows.length / rowsPerPage) || 1;
 
   const items = useMemo(() => {
@@ -183,10 +225,16 @@ export default function App({
   }, [page, filteredRows, rowsPerPage]);
 
   return (
-    <div className="w-full p-0">
-      <div className="overflow-auto border-b border-gray-200">
+    <div className="flex w-full flex-1 flex-col min-h-0 p-0">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-hidden min-h-0"
+      >
         <table className="w-full text-xs text-gray-700">
-          <thead className="bg-gray-300 text-[10px] uppercase text-gray-600">
+          <thead
+            ref={theadRef}
+            className="bg-gray-300 text-[10px] uppercase text-gray-600"
+          >
             <tr>
               <th className="p-2 text-center">ITEM</th>
               <th className="p-2 text-center">FECHA INICIO</th>
@@ -254,7 +302,7 @@ export default function App({
       </div>
 
       {/* Paginación */}
-      <div className="mt-2 flex justify-center gap-2 text-[14px]">
+      <div className="flex-shrink-0 flex justify-center gap-2 text-[14px] pt-2 pb-5">
         <button
           disabled={page === 1}
           onClick={() => setPage((p) => Math.max(1, p - 1))}

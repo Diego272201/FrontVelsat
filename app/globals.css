@@ -68,7 +68,17 @@ body {
   width: 100%;
   position: absolute;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
+.tablaReport {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 .optionTables {

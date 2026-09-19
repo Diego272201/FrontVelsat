@@ -42,7 +42,7 @@ export default function EventContent() {
   const extraInfo = `${diff.days} días, ${diff.hours} horas, ${diff.minutes} minutos`;
 
   return (
-    <div>
+    <div className="flex h-full w-full flex-col overflow-hidden">
       <ReporteHeader
         title="REPORTE DE EVENTOS DE LA UNIDAD"
         deviceId={deviceId ?? ''}

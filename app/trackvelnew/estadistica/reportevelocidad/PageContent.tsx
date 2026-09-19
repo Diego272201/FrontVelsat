@@ -65,7 +65,7 @@ const PageContent = () => {
   const umbralText = speedCar ? `> ${speedCar} km/h` : '> 5 km/h';
 
   return (
-    <div className="w-full">
+    <div className="flex h-full w-full flex-col overflow-hidden">
       <ReporteHeader
         title="REPORTE DE VELOCIDAD"
         deviceId={deviceId ?? ""}
