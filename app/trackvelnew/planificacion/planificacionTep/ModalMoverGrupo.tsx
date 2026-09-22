@@ -186,7 +186,11 @@ function ModalMoverGrupoContenido({
             <Button color="danger" variant="light" onPress={onClose}>
               Cancelar
             </Button>
-            <Button color="primary" isDisabled={!uidElegido} onPress={confirmar}>
+            <Button
+              color="primary"
+              isDisabled={!uidElegido}
+              onPress={confirmar}
+            >
               Mover aquí
             </Button>
           </ModalFooter>

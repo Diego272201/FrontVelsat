@@ -17,11 +17,7 @@ import {
   isoToDdMmYyyy,
   calcularEstado,
 } from './utils';
-import {
-  enviarAlertasWhatsappLote,
-  resolverTelefonosConductoresDesdeBrevete,
-  TipoPlantillaWhatsapp,
-} from './whatsappAlerta';
+import { TipoPlantillaWhatsapp } from './whatsappAlerta';
 import {
   agregarOperacionPendiente,
   guardarSnapshot,
@@ -282,28 +278,6 @@ export function useServiciosTurismo() {
         if (resultado.ok) {
           await quitarOperacionPendiente(op.id);
           huboExito = true;
-
-          // Único caso con notificación automática: una carga de Excel que se guardó
-          // localmente (sin conexión) y recién ahora terminó de sincronizarse.
-          if (op.tipo === 'cargaExcel') {
-            const { registros } = op.payload as { registros: Record<string, unknown>[] };
-            const telefonos = resolverTelefonosConductoresDesdeBrevete(
-              registros as { brevete?: string | null; cobrevete?: string | null }[],
-              conductores,
-            );
-            if (telefonos.length > 0) {
-              enviarAlertasWhatsappLote(telefonos)
-                .then((resultadoWa) => {
-                  if (resultadoWa.enviados > 0) {
-                    mostrarNotificacion(
-                      'success',
-                      `Carga de Excel sincronizada: ${resultadoWa.enviados} notificación(es) de WhatsApp enviada(s)`,
-                    );
-                  }
-                })
-                .catch(() => {});
-            }
-          }
         } else if (resultado.esFalloRed) {
           break;
         } else {
@@ -322,7 +296,7 @@ export function useServiciosTurismo() {
         fetchServicios(fecha);
       }
     }
-  }, [conductores, fecha, fetchServicios, mostrarNotificacion]);
+  }, [fecha, fetchServicios, mostrarNotificacion]);
 
   useEffect(() => {
     listarOperacionesPendientes().then((pendientes) =>
@@ -1057,10 +1031,10 @@ export function useServiciosTurismo() {
     [encolarYAplicarOptimista, fecha, fetchServicios],
   );
 
-  // Único flujo con envío automático de WhatsApp: la carga masiva por Excel. El celular
-  // siempre sale de la ficha del conductor en la BD (por brevete/cobrevete), nunca de la
-  // columna "celular"/"cocelular" del archivo. Si no hay conexión, se guarda localmente y
-  // la notificación se envía cuando `sincronizarCola` termine de subir el lote.
+  // Único flujo con envío automático de WhatsApp: la carga masiva por Excel. Lo envía el backend
+  // (POST /lote), que resuelve el celular en la ficha del conductor en la BD (por brevete/cobrevete),
+  // nunca desde la columna "celular"/"cocelular" del archivo. Si no hay conexión, se guarda
+  // localmente y el backend notifica cuando `sincronizarCola` termine de subir el lote.
   const cargarServiciosExcel = useCallback(
     async (
       registros: { brevete?: string | null; cobrevete?: string | null }[],
@@ -1101,24 +1075,13 @@ export function useServiciosTurismo() {
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
-          let notificacionesEnviadas = 0;
-          const telefonos = resolverTelefonosConductoresDesdeBrevete(registros, conductores);
-          if (telefonos.length > 0) {
-            try {
-              const resultadoWa = await enviarAlertasWhatsappLote(telefonos);
-              notificacionesEnviadas = resultadoWa.enviados;
-            } catch {
-              // No crítico: los servicios ya quedaron guardados.
-            }
-          }
-
           fetchServicios(fecha);
           return {
             ok: true,
             offline: false,
             mensaje: data?.mensaje || 'Servicios insertados correctamente.',
             insertados: data?.insertados ?? registros.length,
-            notificacionesEnviadas,
+            notificacionesEnviadas: data?.whatsappEnviados ?? 0,
           };
         }
 
@@ -1142,7 +1105,7 @@ export function useServiciosTurismo() {
         };
       }
     },
-    [conductores, encolarYAplicarOptimista, fecha, fetchServicios],
+    [encolarYAplicarOptimista, fecha, fetchServicios],
   );
 
   const hayEdicionActiva = editandoId !== null;
