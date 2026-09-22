@@ -88,11 +88,14 @@ export default function TableEvent({ url, deviceId }: AppProps) {
     if (!container) return;
 
     const calculateRows = () => {
-      const containerHeight = container.clientHeight;
-      if (!containerHeight) return;
-
+      let containerHeight = container.clientHeight;
       const theadHeight = theadRef.current?.offsetHeight || 32;
-      const availableHeight = containerHeight - theadHeight;
+
+      if (!containerHeight || containerHeight < 150) {
+        containerHeight = Math.max(300, (typeof window !== 'undefined' ? window.innerHeight : 600) - 180);
+      }
+
+      const availableHeight = Math.max(100, containerHeight - theadHeight);
 
       const firstRow = container.querySelector('tbody tr') as HTMLElement | null;
       const rowHeight =
@@ -100,7 +103,7 @@ export default function TableEvent({ url, deviceId }: AppProps) {
           ? firstRow.offsetHeight
           : 33;
 
-      const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+      const calculatedRows = Math.max(5, Math.floor(availableHeight / rowHeight));
       setRowsPerPage((prev) => (prev !== calculatedRows ? calculatedRows : prev));
     };
 

@@ -10,7 +10,7 @@ const ReportContent = loadable(() => import('./ReportContent'), {
 
 export default function Page() {
   return (
-    <div className="w-full">
+    <div className="tablaReport tablaReportMargen">
       <Suspense fallback={<div>Cargando...</div>}>
         <ReportContent />
       </Suspense>

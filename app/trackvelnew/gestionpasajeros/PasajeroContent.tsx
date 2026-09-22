@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import ModalPasajeros from './ModalPasajeros';
 import ModalPasajerosEdit from './ModalPasajerosEdit';
@@ -27,6 +27,13 @@ import {
 interface Pasajero {
   codcliente: number;
   apellidos: string;
+  empresa?: string | null;
+}
+
+interface PasajeroItem {
+  value: number;
+  label: string;
+  empresa: string;
 }
 
 interface PasajeroDetalle {
@@ -45,7 +52,7 @@ interface PasajeroDetalle {
 }
 
 export default function PasajeroContent() {
-  const [pasajeros, setPasajeros] = useState<{ value: number; label: string }[]>([]);
+  const [pasajeros, setPasajeros] = useState<PasajeroItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Tabs: 'nombre' | 'codigo' | 'masiva'
@@ -55,6 +62,8 @@ export default function PasajeroContent() {
   const [inputValue, setInputValue] = useState('');
   const [query, setQuery] = useState('');
   const [selectedCodCliente, setSelectedCodCliente] = useState<number | null>(null);
+  // '' = todas las empresas
+  const [empresaFiltro, setEmpresaFiltro] = useState('');
 
   // Tab: Buscar por código
   const [codigoInputValue, setCodigoInputValue] = useState('');
@@ -66,9 +75,10 @@ export default function PasajeroContent() {
   // Destino seleccionado
   const [destinoSeleccionado, setDestinoSeleccionado] = useState<string | null>(null);
 
-  // Paginación
+  // Paginación: las filas por página se ajustan al alto disponible de la tabla
   const [page, setPage] = useState(1);
-  const rowsPerPage = 12;
+  const [rowsPerPage, setRowsPerPage] = useState(12);
+  const tablaRef = useRef<HTMLDivElement>(null);
 
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
@@ -93,6 +103,7 @@ export default function PasajeroContent() {
         const data = response.data.map((p) => ({
           value: p.codcliente,
           label: p.apellidos,
+          empresa: p.empresa?.trim() ?? '',
         }));
         setPasajeros(data);
       } catch (error) {
@@ -124,6 +135,12 @@ export default function PasajeroContent() {
     setInputValue('');
     setQuery('');
     setSelectedCodCliente(null);
+    setEmpresaFiltro('');
+    setPage(1);
+  };
+
+  const handleEmpresaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setEmpresaFiltro(e.target.value);
     setPage(1);
   };
 
@@ -161,14 +178,26 @@ export default function PasajeroContent() {
     setPage(1);
   };
 
-  // Filtrado de pasajeros por nombre
+  // Empresas presentes en los datos, con su cantidad de pasajeros
+  const empresasDisponibles = useMemo(() => {
+    const conteo = new Map<string, number>();
+    pasajeros.forEach((p) => {
+      if (p.empresa) conteo.set(p.empresa, (conteo.get(p.empresa) ?? 0) + 1);
+    });
+    return Array.from(conteo, ([nombre, total]) => ({ nombre, total })).sort(
+      (a, b) => a.nombre.localeCompare(b.nombre),
+    );
+  }, [pasajeros]);
+
+  // Filtrado de pasajeros por empresa y por nombre
   const filteredPasajeros = useMemo(() => {
-    if (!query.trim()) {
-      return pasajeros;
-    }
     const q = query.toLowerCase().trim();
-    return pasajeros.filter((p) => p.label?.toLowerCase().includes(q));
-  }, [pasajeros, query]);
+    return pasajeros.filter(
+      (p) =>
+        (!empresaFiltro || p.empresa === empresaFiltro) &&
+        (!q || p.label?.toLowerCase().includes(q)),
+    );
+  }, [pasajeros, query, empresaFiltro]);
 
   // Items de la página actual
   const itemsPagina = useMemo(() => {
@@ -183,6 +212,40 @@ export default function PasajeroContent() {
   const totalItems =
     tabActivo === 'codigo' ? codigoResultados.length : filteredPasajeros.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+
+  const hayFilas = itemsPagina.length > 0;
+
+  // Cuántas filas entran en el alto visible de la tabla (se recalcula al
+  // redimensionar la ventana)
+  useEffect(() => {
+    const contenedor = tablaRef.current;
+    if (!contenedor) return;
+
+    const calcular = () => {
+      const altoCabecera =
+        contenedor.querySelector('thead')?.getBoundingClientRect().height || 30;
+      const altoFila =
+        contenedor
+          .querySelector<HTMLElement>('tr[data-fila]')
+          ?.getBoundingClientRect().height || 32;
+
+      const filas = Math.max(
+        5,
+        Math.floor((contenedor.clientHeight - altoCabecera) / altoFila),
+      );
+      setRowsPerPage((prev) => (prev === filas ? prev : filas));
+    };
+
+    calcular();
+    const observer = new ResizeObserver(calcular);
+    observer.observe(contenedor);
+    return () => observer.disconnect();
+  }, [tabActivo, hayFilas]);
+
+  // Si al caber más filas la página actual deja de existir, ir a la última
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   // Cargar detalles de los pasajeros de la página actual para poblar columnas
   useEffect(() => {
@@ -410,7 +473,26 @@ export default function PasajeroContent() {
               />
             </div>
 
-            {inputValue && (
+            <select
+              value={empresaFiltro}
+              onChange={handleEmpresaChange}
+              disabled={empresasDisponibles.length === 0}
+              title={
+                empresasDisponibles.length === 0
+                  ? 'No hay datos de empresa en el listado de pasajeros'
+                  : 'Filtrar pasajeros por empresa'
+              }
+              className="h-8 w-56 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 focus:border-[#113EB9] focus:outline-none transition-colors disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">Todas las empresas</option>
+              {empresasDisponibles.map((e) => (
+                <option key={e.nombre} value={e.nombre}>
+                  {e.nombre} ({e.total})
+                </option>
+              ))}
+            </select>
+
+            {(inputValue || empresaFiltro) && (
               <button
                 type="button"
                 onClick={limpiarBusqueda}
@@ -518,7 +600,7 @@ export default function PasajeroContent() {
       {/* 5. Tabla de Pasajeros */}
       {tabActivo !== 'masiva' ? (
         <div className="mx-4 mb-3 rounded-md border border-slate-200 bg-white overflow-hidden flex-1 flex flex-col min-h-0">
-          <div className="overflow-y-auto flex-1">
+          <div ref={tablaRef} className="overflow-y-auto flex-1">
             <table className="w-full table-fixed border-collapse text-left">
               <thead className="sticky top-0 z-10 bg-gray-200 text-gray-700">
                 <tr className="h-[30px] border-b border-gray-300">
@@ -573,6 +655,7 @@ export default function PasajeroContent() {
                       return (
                         <tr
                           key={item.codigo || idx}
+                          data-fila
                           onClick={() => setSelectedCodCliente(codId)}
                           className={`h-[32px] transition-colors cursor-pointer ${
                             isSelected
@@ -622,7 +705,7 @@ export default function PasajeroContent() {
                           </td>
                           <td className="px-1 py-0.5 text-center border-r border-slate-100 whitespace-nowrap">
                             {item.empresa ? (
-                              <span className="inline-block rounded border border-blue-200/80 bg-blue-50 px-2 py-0.5 text-[9.5px] font-bold uppercase text-blue-700 leading-none">
+                              <span className="text-[10px] font-bold uppercase text-blue-700">
                                 {item.empresa}
                               </span>
                             ) : (
@@ -684,6 +767,7 @@ export default function PasajeroContent() {
                     return (
                       <tr
                         key={codId}
+                        data-fila
                         onClick={() => setSelectedCodCliente(codId)}
                         className={`h-[32px] transition-colors cursor-pointer ${
                           isSelected
@@ -733,7 +817,7 @@ export default function PasajeroContent() {
                         </td>
                         <td className="px-1 py-0.5 text-center border-r border-slate-100 whitespace-nowrap">
                           {detalle?.empresa ? (
-                            <span className="inline-block rounded border border-blue-200/80 bg-blue-50 px-2 py-0.5 text-[9.5px] font-bold uppercase text-blue-700 leading-none">
+                            <span className="text-[10px] font-bold uppercase text-blue-700">
                               {detalle.empresa}
                             </span>
                           ) : (

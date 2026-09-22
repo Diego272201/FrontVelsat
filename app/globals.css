@@ -73,7 +73,8 @@ body {
   overflow: hidden;
 }
 
-.tablaReport {
+.tablaReport,
+.mainPruebas > div {
   display: flex;
   flex-direction: column;
   flex: 1;

@@ -29,6 +29,7 @@ import { IoSpeedometer } from 'react-icons/io5';
 import { FaRoad } from 'react-icons/fa';
 
 import Profile from './Profile';
+import AlertsDropdown from './AlertsDropdown';
 import { SquareCheck } from 'lucide-react';
 import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
@@ -1023,7 +1024,9 @@ const Tollbar: React.FC = () => {
           </div>
           <nav className="navigation">
             <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center">
+                <AlertsDropdown />
+                <div className="mx-1 h-5 w-[1px] bg-white/25" />
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1058,7 +1061,9 @@ const Tollbar: React.FC = () => {
             <SlMenu size={20} />
           </button>
 
-          <div className="exitToolbarM">
+          <div className="exitToolbarM flex items-center gap-1">
+            <AlertsDropdown />
+            <div className="mx-0.5 h-4 w-[1px] bg-white/25" />
             <Profile toggleFullScreen={toggleFullScreen} />
           </div>
         </div>
@@ -1145,7 +1150,9 @@ const Tollbar: React.FC = () => {
               </li>
 
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
-                <div className="flex w-[50px] items-center justify-center p-0">
+                <div className="flex items-center justify-center p-0">
+                  <AlertsDropdown />
+                  <div className="mx-1 h-5 w-[1px] bg-white/25" />
                   <Profile toggleFullScreen={toggleFullScreen} />
                 </div>
               </div>
@@ -1217,7 +1224,9 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center">
+                <AlertsDropdown />
+                <div className="mx-1 h-5 w-[1px] bg-white/25" />
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1240,7 +1249,9 @@ const Tollbar: React.FC = () => {
                   <span>Geocercas</span>
                 </Link>
               </li>
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center">
+                <AlertsDropdown />
+                <div className="mx-1 h-5 w-[1px] bg-white/25" />
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1261,7 +1272,9 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center">
+                <AlertsDropdown />
+                <div className="mx-1 h-5 w-[1px] bg-white/25" />
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1339,7 +1352,9 @@ const Tollbar: React.FC = () => {
                 </>
               )}
 
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center">
+                <AlertsDropdown />
+                <div className="mx-1 h-5 w-[1px] bg-white/25" />
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
