@@ -67,6 +67,7 @@ function construirServicioOptimista(
     visto: null,
     confirmado: null,
     finalizado: null,
+    horafinalizado: null,
     cancelado: null,
     standby: null,
     reprogramado: null,

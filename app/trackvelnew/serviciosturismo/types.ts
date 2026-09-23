@@ -27,6 +27,7 @@ export interface ServicioTurismo {
   visto: number | null;
   confirmado: number | null;
   finalizado: number | null;
+  horafinalizado: string | null;
   cancelado: number | null;
   standby: number | null;
   reprogramado: number | null;

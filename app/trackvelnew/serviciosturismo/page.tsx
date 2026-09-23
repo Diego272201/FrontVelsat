@@ -11,7 +11,7 @@ import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
 import { useServiciosTurismo } from './useServiciosTurismo';
-import { isoToDdMmYyyy, calcularEstado } from './utils';
+import { isoToDdMmYyyy, calcularEstado, formatFechaHoraAuditoria } from './utils';
 
 const ServiciosTurismoPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -117,6 +117,9 @@ const ServiciosTurismoPage: React.FC = () => {
       Indicaciones: s.indicaciones || '',
       Observaciones: s.observaciones || '',
       Estado: calcularEstado(s),
+      'Hora Finalización': s.horafinalizado
+        ? formatFechaHoraAuditoria(s.horafinalizado)
+        : '',
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataExcel);
