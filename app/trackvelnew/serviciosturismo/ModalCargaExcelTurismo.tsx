@@ -807,9 +807,7 @@ const ModalCargaExcelTurismo: React.FC<ModalCargaExcelTurismoProps> = ({
                   >
                     {reporte.offline
                       ? 'Sin conexión: las notificaciones se enviarán cuando se sincronice'
-                      : reporte.notificacionesEnviadas > 0
-                        ? `${reporte.notificacionesEnviadas} conductor(es) notificado(s) por WhatsApp`
-                        : 'No se encontraron celulares válidos en la BD para notificar'}
+                      : 'Notificando a los conductores por WhatsApp (puede tardar unos segundos)'}
                   </p>
                 </div>
               )}
