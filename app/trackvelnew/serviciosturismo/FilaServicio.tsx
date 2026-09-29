@@ -763,6 +763,7 @@ const FilaServicio: React.FC<{
                       <DetalleCampo
                         label="Hora Finalización"
                         value={horaFinalizado}
+                        resaltado
                       />
                     </div>
                   )}

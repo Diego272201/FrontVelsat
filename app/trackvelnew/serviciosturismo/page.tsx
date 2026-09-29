@@ -156,6 +156,9 @@ const ServiciosTurismoPage: React.FC = () => {
         deshabilitado={hayEdicionActiva}
         onConsultar={() => fetchServicios(fecha)}
         onDescargarResumen={handleDescargarResumen}
+        onReporteKilometraje={() =>
+          window.open(`/trackvelnew/serviciosturismo/reportekilometraje?fecha=${fecha}`, '_blank')
+        }
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
         claveOpcionesAvanzadas={claveOpcionesAvanzadas}

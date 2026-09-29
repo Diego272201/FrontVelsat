@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {
   Calendar,
   FileSpreadsheet,
+  Gauge,
   ListFilter,
   Plus,
   RefreshCw,
@@ -41,6 +42,7 @@ interface BarraFiltrosProps {
   deshabilitado: boolean;
   onConsultar: () => void;
   onDescargarResumen: () => void;
+  onReporteKilometraje: () => void;
   onAgregarServicio: () => void;
   onCargarExcel: () => void;
   claveOpcionesAvanzadas: string;
@@ -72,6 +74,7 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
   deshabilitado,
   onConsultar,
   onDescargarResumen,
+  onReporteKilometraje,
   onAgregarServicio,
   onCargarExcel,
   claveOpcionesAvanzadas,
@@ -266,6 +269,16 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 >
                   <FileSpreadsheet className="h-3.5 w-3.5 text-[#113EB9]" />
                   <span>Resumen del día</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onReporteKilometraje}
+                  disabled={deshabilitado}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-[11px] font-semibold text-[#113EB9] transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Gauge className="h-3.5 w-3.5 text-[#113EB9]" />
+                  <span>Reporte Kilometraje</span>
                 </button>
               </div>
             ) : (
