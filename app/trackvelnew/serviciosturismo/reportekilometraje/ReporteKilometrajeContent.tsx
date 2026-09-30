@@ -3,13 +3,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Download, Gauge, RefreshCw, Route } from 'lucide-react';
+import { Download, Gauge, RefreshCw, Route, Search } from 'lucide-react';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
 import { useUsername } from '@/hooks/useUsername';
 import { API_BASE } from '../constants';
 import { ServicioTurismo } from '../types';
-import { combinarPlaca, getIsoToday, isoToDdMmYyyy } from '../utils';
+import { combinarPlaca, convertirUtcALima, getIsoToday, isoToDdMmYyyy } from '../utils';
 import { exportarExcelEstilizado, type ColumnaExcel } from '../exportarExcel';
 
 interface RangoKilometrajeRequest {
@@ -40,6 +40,25 @@ interface FilaReporte {
   duracionMin: number | null;
   kilometros: number | null;
   puedeCalcular: boolean;
+}
+
+// El resto de este archivo trabaja con Dates "de pared" (construidos con getters locales:
+// getDate/getHours/getTime), como fechaInicioDate armado desde fechainicio+horainicio.
+// horafinalizado en cambio llega del backend en UTC, así que se ajusta a hora de Lima y se
+// reconstruye como Date local con esos mismos componentes para poder compararlo/restarlo
+// contra fechaInicioDate sin importar la zona horaria del navegador.
+function convertirUtcALimaComoLocal(iso: string): Date | null {
+  const fechaLima = convertirUtcALima(iso);
+  if (!fechaLima) return null;
+
+  return new Date(
+    fechaLima.getUTCFullYear(),
+    fechaLima.getUTCMonth(),
+    fechaLima.getUTCDate(),
+    fechaLima.getUTCHours(),
+    fechaLima.getUTCMinutes(),
+    fechaLima.getUTCSeconds(),
+  );
 }
 
 function combinarFechaHora(fechaDdMmYyyy: string, horaHhMm: string): Date | null {
@@ -97,8 +116,8 @@ function calcularRangoServicio(servicio: ServicioTurismo): RangoServicio {
   let origenHoraFin: 'finalizado' | 'retorno' | null = null;
 
   if (servicio.horafinalizado) {
-    const d = new Date(servicio.horafinalizado);
-    if (!Number.isNaN(d.getTime())) {
+    const d = convertirUtcALimaComoLocal(servicio.horafinalizado);
+    if (d) {
       fechaFinDate = d;
       origenHoraFin = 'finalizado';
     }
@@ -141,6 +160,7 @@ export default function ReporteKilometrajeContent() {
   const [error, setError] = useState<string | null>(null);
   const [mensajeBackend, setMensajeBackend] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
+  const [busquedaTexto, setBusquedaTexto] = useState('');
 
   // Caché en memoria por fecha: al cambiar de fecha con el selector y volver a una
   // ya consultada, se reutiliza lo guardado acá en vez de volver a pegarle a la API.
@@ -279,15 +299,43 @@ export default function ReporteKilometrajeContent() {
     });
   }, [servicios, resultados]);
 
+  // Filtro global: busca el texto en cualquier campo visible de la fila (unidad, piloto,
+  // cliente, origen, destino, horas, duración, origen de la hora fin y kilometraje).
+  const filasFiltradas = useMemo(() => {
+    const texto = busquedaTexto.trim().toLowerCase();
+    if (!texto) return filas;
+
+    return filas.filter((f) => {
+      const origenHoraFinTexto =
+        f.origenHoraFin === 'finalizado' ? 'finalización' : f.origenHoraFin === 'retorno' ? 'retorno' : '';
+
+      const campos = [
+        f.unidad,
+        f.piloto,
+        f.cliente,
+        f.origen,
+        f.destino,
+        f.horaInicio,
+        f.horaFin,
+        origenHoraFinTexto,
+        formatDuracion(f.duracionMin),
+        f.kilometros !== null ? f.kilometros.toFixed(2) : '',
+      ];
+
+      return campos.some((campo) => (campo || '').toString().toLowerCase().includes(texto));
+    });
+  }, [filas, busquedaTexto]);
+
   const totalKm = useMemo(
-    () => filas.reduce((acc, f) => acc + (f.kilometros || 0), 0),
-    [filas],
+    () => filasFiltradas.reduce((acc, f) => acc + (f.kilometros || 0), 0),
+    [filasFiltradas],
   );
 
-  const conDatos = filas.filter((f) => f.kilometros !== null).length;
-  const sinDatos = filas.length - conDatos;
+  const conDatos = filasFiltradas.filter((f) => f.kilometros !== null).length;
+  const sinDatos = filasFiltradas.length - conDatos;
 
   const handleDescargarExcel = () => {
+    const filas = filasFiltradas;
     if (filas.length === 0) return;
 
     const columnas: ColumnaExcel[] = [
@@ -410,10 +458,32 @@ export default function ReporteKilometrajeContent() {
         </div>
       </div>
 
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-2">
+        <div className="relative flex items-center">
+          <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar en cualquier campo (unidad, piloto, cliente, origen, destino, horas...)"
+            value={busquedaTexto}
+            onChange={(e) => setBusquedaTexto(e.target.value)}
+            className="h-8 w-72 sm:w-96 rounded-md border border-gray-300 bg-white py-1 pl-8 pr-2 text-[12px] text-gray-700 placeholder-gray-400 focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+          />
+        </div>
+        {busquedaTexto && (
+          <button
+            type="button"
+            onClick={() => setBusquedaTexto('')}
+            className="h-8 rounded-md border border-gray-300 bg-white px-2.5 text-[11px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-shrink-0 flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-2 text-xs">
         <div className="flex flex-col">
           <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500">Servicios</span>
-          <span className="text-[13px] font-bold text-slate-900">{filas.length}</span>
+          <span className="text-[13px] font-bold text-slate-900">{filasFiltradas.length}</span>
         </div>
         <div className="flex flex-col border-l border-slate-200 pl-4">
           <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500">Con kilometraje</span>
@@ -457,6 +527,11 @@ export default function ReporteKilometrajeContent() {
             <Route className="mb-2 h-8 w-8 text-slate-300" />
             <p className="text-sm font-semibold text-gray-600">No hay servicios para esta fecha</p>
           </div>
+        ) : filasFiltradas.length === 0 ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+            <Search className="mb-2 h-8 w-8 text-slate-300" />
+            <p className="text-sm font-semibold text-gray-600">Sin resultados para “{busquedaTexto}”</p>
+          </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-xs text-gray-700">
@@ -471,7 +546,7 @@ export default function ReporteKilometrajeContent() {
                 </tr>
               </thead>
               <tbody>
-                {filas.map((fila) => (
+                {filasFiltradas.map((fila) => (
                   <tr key={fila.idservicio} className="border-t border-gray-200 hover:bg-slate-50">
                     <td className="p-2 text-center font-semibold">{fila.unidad}</td>
                     <td className="p-2 text-center">{fila.piloto || '—'}</td>

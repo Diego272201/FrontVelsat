@@ -29,12 +29,20 @@ export function ddMmYyyyToIso(dmy: string | null): string {
 const OFFSET_LIMA_MS = 5 * 60 * 60 * 1000;
 const TIENE_ZONA_HORARIA = /Z$|[+-]\d{2}:\d{2}$/;
 
-export function formatFechaHoraAuditoria(iso: string): string {
+// Convierte una fecha/hora que el backend guardó en UTC (sin sufijo "Z") a un Date cuyos
+// getters UTC (getUTCHours, getUTCDate, etc.) devuelven directamente la hora de Lima
+// (UTC-5), sin depender de la zona horaria del navegador que abre la página.
+export function convertirUtcALima(iso: string): Date | null {
   const isoUtc = TIENE_ZONA_HORARIA.test(iso) ? iso : `${iso}Z`;
   const fechaUtc = new Date(isoUtc);
-  if (Number.isNaN(fechaUtc.getTime())) return iso;
+  if (Number.isNaN(fechaUtc.getTime())) return null;
 
-  const fechaLima = new Date(fechaUtc.getTime() - OFFSET_LIMA_MS);
+  return new Date(fechaUtc.getTime() - OFFSET_LIMA_MS);
+}
+
+export function formatFechaHoraAuditoria(iso: string): string {
+  const fechaLima = convertirUtcALima(iso);
+  if (!fechaLima) return iso;
 
   const dd = String(fechaLima.getUTCDate()).padStart(2, '0');
   const mm = String(fechaLima.getUTCMonth() + 1).padStart(2, '0');
