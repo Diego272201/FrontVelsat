@@ -27,18 +27,23 @@ interface ResultadoKilometraje {
   kilometros: number;
 }
 
+interface KmDiarioRow {
+  deviceId: string;
+  maximo: number;
+  minimo: number;
+}
+
 interface FilaReporte {
   idservicio: number;
   unidad: string;
-  piloto: string | null;
   cliente: string | null;
-  origen: string | null;
-  destino: string | null;
   horaInicio: string | null;
+  horaIniciado: string | null;
   horaFin: string | null;
   origenHoraFin: 'finalizado' | 'retorno' | null;
   duracionMin: number | null;
   kilometros: number | null;
+  kmDiario: number | null;
   puedeCalcular: boolean;
 }
 
@@ -142,6 +147,7 @@ function calcularRangoServicio(servicio: ServicioTurismo): RangoServicio {
 interface DatosFecha {
   servicios: ServicioTurismo[];
   resultados: Map<string, ResultadoKilometraje>;
+  kmDiarioPorUnidad: Map<string, number>;
   mensaje: string | null;
 }
 
@@ -156,6 +162,7 @@ export default function ReporteKilometrajeContent() {
 
   const [servicios, setServicios] = useState<ServicioTurismo[]>([]);
   const [resultados, setResultados] = useState<Map<string, ResultadoKilometraje>>(new Map());
+  const [kmDiarioPorUnidad, setKmDiarioPorUnidad] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mensajeBackend, setMensajeBackend] = useState<string | null>(null);
@@ -181,6 +188,7 @@ export default function ReporteKilometrajeContent() {
     if (cacheado) {
       setServicios(cacheado.servicios);
       setResultados(cacheado.resultados);
+      setKmDiarioPorUnidad(cacheado.kmDiarioPorUnidad);
       setMensajeBackend(cacheado.mensaje);
       setLoading(false);
       setError(null);
@@ -194,15 +202,47 @@ export default function ReporteKilometrajeContent() {
       setError(null);
       setMensajeBackend(null);
       setResultados(new Map());
+      setKmDiarioPorUnidad(new Map());
 
       try {
         const fechaParamApi = isoToDdMmYyyy(fecha);
+
+        // El kilometraje diario por unidad no depende de los servicios del día (es un solo
+        // min/max por dispositivo entre 00:00 y 23:59), así que se pide en paralelo con los
+        // servicios en vez de esperarlos: un único request para TODAS las unidades de la
+        // cuenta, en lugar de uno por servicio.
+        // Importante: la ruta del backend es kilometerall/{fechaini}/{fechafin}/{accountID}, con
+        // cada fecha como UN segmento de URL. Si se manda "dd/MM/yyyy HH:mm" las barras de la
+        // fecha se interpretan como separadores de ruta (o quedan como "%2F", que muchos
+        // servidores rechazan/normalizan), partiendo la URL en más segmentos de los que espera
+        // la ruta y devolviendo 404 en silencio (se ve como "Sin datos" en toda la tabla). Por
+        // eso se usa formato ISO "yyyy-MM-ddTHH:mm" (sin barras): el backend igual lo parsea bien
+        // con DateTime.TryParse.
+        const kmDiarioPromise: Promise<Map<string, number>> = !username
+          ? Promise.resolve(new Map<string, number>())
+          : axios
+              .get(
+                `${baseUrl}/api/Kilometer/kilometerall/${encodeURIComponent(`${fecha}T00:00`)}/${encodeURIComponent(`${fecha}T23:59`)}/${encodeURIComponent(username)}`,
+              )
+              .then((response) => {
+                const filas: KmDiarioRow[] = response.data?.listaKilometros || [];
+                return new Map(
+                  filas
+                    .filter((f) => f.deviceId)
+                    .map((f) => [f.deviceId.trim().toUpperCase(), Math.max(0, f.maximo - f.minimo)] as const),
+                );
+              })
+              .catch(() => new Map<string, number>());
+
         const res = await fetch(`${API_BASE}?fechaInicio=${fechaParamApi}&fechaFin=${fechaParamApi}`);
 
         if (res.status === 404) {
           if (!cancelado) {
+            const kmDiario = await kmDiarioPromise;
+            if (cancelado) return;
             setServicios([]);
-            cacheRef.current.set(fecha, { servicios: [], resultados: new Map(), mensaje: null });
+            setKmDiarioPorUnidad(kmDiario);
+            cacheRef.current.set(fecha, { servicios: [], resultados: new Map(), kmDiarioPorUnidad: kmDiario, mensaje: null });
           }
           return;
         }
@@ -250,7 +290,11 @@ export default function ReporteKilometrajeContent() {
           }
         }
 
-        cacheRef.current.set(fecha, { servicios: lista, resultados: mapa, mensaje });
+        const kmDiario = await kmDiarioPromise;
+        if (cancelado) return;
+        setKmDiarioPorUnidad(kmDiario);
+
+        cacheRef.current.set(fecha, { servicios: lista, resultados: mapa, kmDiarioPorUnidad: kmDiario, mensaje });
       } catch {
         if (!cancelado) setError('Error al cargar el reporte de kilometraje');
       } finally {
@@ -282,25 +326,30 @@ export default function ReporteKilometrajeContent() {
 
       const resultado = puedeCalcular ? resultados.get(String(servicio.idservicio)) : undefined;
 
+      const horaIniciado = servicio.horainiciado
+        ? formatHora(convertirUtcALimaComoLocal(servicio.horainiciado))
+        : null;
+
+      const kmDiario = unidad ? kmDiarioPorUnidad.get(unidad) : undefined;
+
       return {
         idservicio: servicio.idservicio,
         unidad: unidad || '—',
-        piloto: servicio.piloto,
         cliente: servicio.cliente,
-        origen: servicio.origen,
-        destino: servicio.destino,
         horaInicio: formatHora(fechaInicioDate),
+        horaIniciado,
         horaFin: formatHora(fechaFinDate),
         origenHoraFin,
         duracionMin,
         kilometros: resultado ? Math.max(0, resultado.kilometros) : null,
+        kmDiario: kmDiario !== undefined ? kmDiario : null,
         puedeCalcular,
       };
     });
-  }, [servicios, resultados]);
+  }, [servicios, resultados, kmDiarioPorUnidad]);
 
-  // Filtro global: busca el texto en cualquier campo visible de la fila (unidad, piloto,
-  // cliente, origen, destino, horas, duración, origen de la hora fin y kilometraje).
+  // Filtro global: busca el texto en cualquier campo visible de la fila (unidad, cliente,
+  // horas, origen de la hora fin, duración y kilometraje).
   const filasFiltradas = useMemo(() => {
     const texto = busquedaTexto.trim().toLowerCase();
     if (!texto) return filas;
@@ -311,15 +360,14 @@ export default function ReporteKilometrajeContent() {
 
       const campos = [
         f.unidad,
-        f.piloto,
         f.cliente,
-        f.origen,
-        f.destino,
         f.horaInicio,
+        f.horaIniciado,
         f.horaFin,
         origenHoraFinTexto,
         formatDuracion(f.duracionMin),
         f.kilometros !== null ? f.kilometros.toFixed(2) : '',
+        f.kmDiario !== null ? f.kmDiario.toFixed(2) : '',
       ];
 
       return campos.some((campo) => (campo || '').toString().toLowerCase().includes(texto));
@@ -341,42 +389,37 @@ export default function ReporteKilometrajeContent() {
     const columnas: ColumnaExcel[] = [
       { header: '#', width: 6, align: 'center' },
       { header: 'Unidad', width: 16 },
-      { header: 'Piloto', width: 30 },
-      { header: 'Cliente', width: 26 },
-      { header: 'Origen', width: 24 },
-      { header: 'Destino', width: 24 },
+      { header: 'KM Diario recorrido', width: 18, align: 'right', numFmt: '#,##0.00' },
       { header: 'Hora Inicio', width: 12, align: 'center' },
-      { header: 'Hora Fin', width: 12, align: 'center' },
-      { header: 'Origen Hora Fin', width: 16, align: 'center' },
+      { header: 'Hora Iniciada (conductor)', width: 22, align: 'center' },
+      { header: 'Cliente', width: 26 },
+      { header: 'KM Servicio', width: 18, align: 'right', numFmt: '#,##0.00' },
+      { header: 'Hora Finalizada (conductor)', width: 22, align: 'center' },
       { header: 'Duración', width: 14, align: 'center' },
-      { header: 'Kilometraje (km)', width: 18, align: 'right', numFmt: '#,##0.00' },
     ];
 
     const datos = filas.map((f, i) => [
       i + 1,
       f.unidad,
-      f.piloto || '',
-      f.cliente || '',
-      f.origen || '',
-      f.destino || '',
+      f.kmDiario !== null ? Number(f.kmDiario.toFixed(2)) : null,
       f.horaInicio || '',
-      f.horaFin || '',
-      f.origenHoraFin === 'finalizado' ? 'Finalización' : f.origenHoraFin === 'retorno' ? 'Retorno' : '',
-      f.duracionMin !== null ? formatDuracion(f.duracionMin) : '',
+      f.horaIniciado || '',
+      f.cliente || '',
       f.kilometros !== null ? Number(f.kilometros.toFixed(2)) : null,
+      f.horaFin || '',
+      f.duracionMin !== null ? formatDuracion(f.duracionMin) : '',
     ]);
 
     const fechaTexto = isoToDdMmYyyy(fecha);
     const generado = `Generado el ${new Date().toLocaleString('es-PE')}`;
 
     // Resumen agrupado por unidad, ordenado por kilometraje descendente.
-    const porUnidad = new Map<string, { servicios: number; minutos: number; km: number; pilotos: Set<string> }>();
+    const porUnidad = new Map<string, { servicios: number; minutos: number; km: number }>();
     filas.forEach((f) => {
-      const acc = porUnidad.get(f.unidad) ?? { servicios: 0, minutos: 0, km: 0, pilotos: new Set<string>() };
+      const acc = porUnidad.get(f.unidad) ?? { servicios: 0, minutos: 0, km: 0 };
       acc.servicios += 1;
       acc.minutos += f.duracionMin ?? 0;
       acc.km += f.kilometros ?? 0;
-      if (f.piloto) acc.pilotos.add(f.piloto);
       porUnidad.set(f.unidad, acc);
     });
     const resumenUnidades = [...porUnidad.entries()].sort((a, b) => b[1].km - a[1].km);
@@ -384,7 +427,6 @@ export default function ReporteKilometrajeContent() {
     const columnasResumen: ColumnaExcel[] = [
       { header: '#', width: 6, align: 'center' },
       { header: 'Unidad', width: 16 },
-      { header: 'Piloto(s)', width: 40 },
       { header: 'Servicios', width: 12, align: 'center' },
       { header: 'Duración total', width: 16, align: 'center' },
       { header: 'Kilometraje total (km)', width: 22, align: 'right', numFmt: '#,##0.00' },
@@ -393,7 +435,6 @@ export default function ReporteKilometrajeContent() {
     const datosResumen = resumenUnidades.map(([unidad, r], i) => [
       i + 1,
       unidad,
-      [...r.pilotos].join(', '),
       r.servicios,
       formatDuracion(r.minutos),
       Number(r.km.toFixed(2)),
@@ -409,7 +450,7 @@ export default function ReporteKilometrajeContent() {
           subtitulo: `${generado}  ·  ${filas.length} servicio(s)  ·  ${conDatos} con datos  ·  ${sinDatos} sin datos`,
           columnas,
           filas: datos,
-          totales: ['', 'TOTAL', '', '', '', '', '', '', '', formatDuracion(minutosTotales), Number(totalKm.toFixed(2))],
+          totales: ['', 'TOTAL', '', '', '', '', Number(totalKm.toFixed(2)), '', formatDuracion(minutosTotales)],
         },
         {
           sheetName: 'Resumen por Unidad',
@@ -417,7 +458,7 @@ export default function ReporteKilometrajeContent() {
           subtitulo: `${generado}  ·  ${porUnidad.size} unidad(es)`,
           columnas: columnasResumen,
           filas: datosResumen,
-          totales: ['', 'TOTAL', '', filas.length, formatDuracion(minutosTotales), Number(totalKm.toFixed(2)), null],
+          totales: ['', 'TOTAL', filas.length, formatDuracion(minutosTotales), Number(totalKm.toFixed(2)), null],
         },
       ],
       `Reporte_Kilometraje_${fecha}.xlsx`,
@@ -463,7 +504,7 @@ export default function ReporteKilometrajeContent() {
           <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar en cualquier campo (unidad, piloto, cliente, origen, destino, horas...)"
+            placeholder="Buscar en cualquier campo (unidad, cliente, horas, duración...)"
             value={busquedaTexto}
             onChange={(e) => setBusquedaTexto(e.target.value)}
             className="h-8 w-72 sm:w-96 rounded-md border border-gray-300 bg-white py-1 pl-8 pr-2 text-[12px] text-gray-700 placeholder-gray-400 focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
@@ -533,25 +574,71 @@ export default function ReporteKilometrajeContent() {
             <p className="text-sm font-semibold text-gray-600">Sin resultados para “{busquedaTexto}”</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-xs text-gray-700">
-              <thead className="bg-gray-200 text-[10px] uppercase text-gray-600">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full border-separate border-spacing-0 text-xs text-gray-700">
+              <thead className="sticky top-0 z-10 text-[10px] uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="p-2 text-center">Unidad</th>
-                  <th className="p-2 text-center">Piloto</th>
-                  <th className="p-2 text-center">Hora Inicio</th>
-                  <th className="p-2 text-center">Hora Fin</th>
-                  <th className="p-2 text-center">Duración</th>
-                  <th className="p-2 text-center">Kilometraje</th>
+                  <th
+                    colSpan={2}
+                    className="border-b border-slate-200 bg-slate-100 p-1.5 text-center font-bold text-slate-500"
+                  >
+                    Unidad
+                  </th>
+                  <th
+                    colSpan={6}
+                    style={{ borderLeft: '3px solid #113EB9' }}
+                    className="border-b bg-blue-50 p-1.5 text-center font-bold text-[#113EB9]"
+                  >
+                    Servicio
+                  </th>
+                </tr>
+                <tr className="bg-gray-100 text-gray-600">
+                  <th className="p-2 text-center font-semibold">Unidad</th>
+                  <th className="p-2 text-center font-semibold">KM Diario recorrido</th>
+                  <th style={{ borderLeft: '3px solid #113EB9' }} className="p-2 text-center font-semibold">
+                    Hora Inicio
+                  </th>
+                  <th className="p-2 text-center font-semibold">Hora Iniciada (conductor)</th>
+                  <th className="p-2 text-center font-semibold">Cliente</th>
+                  <th className="p-2 text-center font-semibold">KM Servicio</th>
+                  <th className="p-2 text-center font-semibold">Hora Finalizada (conductor)</th>
+                  <th className="p-2 text-center font-semibold">Duración</th>
                 </tr>
               </thead>
               <tbody>
-                {filasFiltradas.map((fila) => (
-                  <tr key={fila.idservicio} className="border-t border-gray-200 hover:bg-slate-50">
-                    <td className="p-2 text-center font-semibold">{fila.unidad}</td>
-                    <td className="p-2 text-center">{fila.piloto || '—'}</td>
-                    <td className="p-2 text-center">{fila.horaInicio || '—'}</td>
-                    <td className="p-2 text-center">
+                {filasFiltradas.map((fila, idx) => (
+                  <tr
+                    key={fila.idservicio}
+                    className={`transition-colors hover:bg-blue-50/60 ${
+                      idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'
+                    }`}
+                  >
+                    <td className="border-t border-slate-100 bg-slate-50/60 p-2 text-center font-semibold text-slate-800">
+                      {fila.unidad}
+                    </td>
+                    <td className="border-t border-slate-100 bg-slate-50/60 p-2 text-center">
+                      {fila.kmDiario !== null ? (
+                        <span className="font-medium text-slate-700">{fila.kmDiario.toFixed(2)} km</span>
+                      ) : (
+                        <span className="text-slate-300">Sin datos</span>
+                      )}
+                    </td>
+                    <td
+                      style={{ borderLeft: '3px solid #113EB9' }}
+                      className="border-t border-slate-100 p-2 text-center"
+                    >
+                      {fila.horaInicio || '—'}
+                    </td>
+                    <td className="border-t border-slate-100 p-2 text-center">{fila.horaIniciado || '—'}</td>
+                    <td className="border-t border-slate-100 p-2 text-center">{fila.cliente || '—'}</td>
+                    <td className="border-t border-slate-100 p-2 text-center font-semibold">
+                      {fila.kilometros !== null ? (
+                        `${fila.kilometros.toFixed(2)} km`
+                      ) : (
+                        <span className="font-normal text-slate-300">Sin datos</span>
+                      )}
+                    </td>
+                    <td className="border-t border-slate-100 p-2 text-center">
                       {fila.horaFin || '—'}
                       {fila.origenHoraFin && (
                         <span
@@ -565,14 +652,7 @@ export default function ReporteKilometrajeContent() {
                         </span>
                       )}
                     </td>
-                    <td className="p-2 text-center">{formatDuracion(fila.duracionMin)}</td>
-                    <td className="p-2 text-center font-semibold">
-                      {fila.kilometros !== null ? (
-                        `${fila.kilometros.toFixed(2)} km`
-                      ) : (
-                        <span className="text-slate-300">Sin datos</span>
-                      )}
-                    </td>
+                    <td className="border-t border-slate-100 p-2 text-center">{formatDuracion(fila.duracionMin)}</td>
                   </tr>
                 ))}
               </tbody>
