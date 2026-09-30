@@ -26,6 +26,7 @@ export interface ServicioTurismo {
   cotizacion: string | null;
   visto: number | null;
   confirmado: number | null;
+  horainiciado: string | null;
   finalizado: number | null;
   horafinalizado: string | null;
   cancelado: number | null;
@@ -107,6 +108,28 @@ export type ColumnaFiltrable =
   | 'grupo'
   | 'origen'
   | 'destino';
+
+// Mensaje/solicitud que el conductor manda desde la app (botón "Mensaje / Solicitud"). Llega en
+// vivo por SignalR (ver useMensajesTurismo) o se recupera con GET /mensajes/pendientes.
+export interface MensajeTurismo {
+  idmensaje: number;
+  idservicio: number;
+  tipo: 'observacion' | 'ampliacion';
+  texto: string | null;
+  horas: number | null;
+  brevete: string | null;
+  fecha: string;
+  atendido: number;
+  fechainicio: string | null;
+  horainicio: string | null;
+  cliente: string | null;
+  origen: string | null;
+  destino: string | null;
+  bus: string | null;
+  placa: string | null;
+  piloto: string | null;
+  celular: string | null;
+}
 
 export interface Notificacion {
   id: string;

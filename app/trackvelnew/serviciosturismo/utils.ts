@@ -21,15 +21,26 @@ export function ddMmYyyyToIso(dmy: string | null): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export function formatFechaHoraAuditoria(iso: string): string {
-  const fecha = new Date(iso);
-  if (Number.isNaN(fecha.getTime())) return iso;
+// El backend guarda estas fechas en UTC (NOW() del servidor) pero el JSON las manda sin sufijo
+// "Z" ("2026-09-30T06:10:00"); sin eso, `new Date(...)` las interpreta como si YA fueran hora
+// local del navegador y se muestran 5 horas adelantadas. Se fuerza UTC y se resta el offset fijo
+// de Lima (UTC-5, Perú no tiene horario de verano), sin depender de la zona horaria del equipo
+// que abre la página.
+const OFFSET_LIMA_MS = 5 * 60 * 60 * 1000;
+const TIENE_ZONA_HORARIA = /Z$|[+-]\d{2}:\d{2}$/;
 
-  const dd = String(fecha.getDate()).padStart(2, '0');
-  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
-  const yyyy = fecha.getFullYear();
-  const hh = String(fecha.getHours()).padStart(2, '0');
-  const min = String(fecha.getMinutes()).padStart(2, '0');
+export function formatFechaHoraAuditoria(iso: string): string {
+  const isoUtc = TIENE_ZONA_HORARIA.test(iso) ? iso : `${iso}Z`;
+  const fechaUtc = new Date(isoUtc);
+  if (Number.isNaN(fechaUtc.getTime())) return iso;
+
+  const fechaLima = new Date(fechaUtc.getTime() - OFFSET_LIMA_MS);
+
+  const dd = String(fechaLima.getUTCDate()).padStart(2, '0');
+  const mm = String(fechaLima.getUTCMonth() + 1).padStart(2, '0');
+  const yyyy = fechaLima.getUTCFullYear();
+  const hh = String(fechaLima.getUTCHours()).padStart(2, '0');
+  const min = String(fechaLima.getUTCMinutes()).padStart(2, '0');
 
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }

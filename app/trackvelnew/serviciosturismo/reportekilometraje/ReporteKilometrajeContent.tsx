@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Download, Gauge, RefreshCw, Route } from 'lucide-react';
 import { Spinner } from '@nextui-org/react';
@@ -11,6 +10,7 @@ import { useUsername } from '@/hooks/useUsername';
 import { API_BASE } from '../constants';
 import { ServicioTurismo } from '../types';
 import { combinarPlaca, getIsoToday, isoToDdMmYyyy } from '../utils';
+import { exportarExcelEstilizado, type ColumnaExcel } from '../exportarExcel';
 
 interface RangoKilometrajeRequest {
   rangoId: string;
@@ -31,6 +31,9 @@ interface FilaReporte {
   idservicio: number;
   unidad: string;
   piloto: string | null;
+  cliente: string | null;
+  origen: string | null;
+  destino: string | null;
   horaInicio: string | null;
   horaFin: string | null;
   origenHoraFin: 'finalizado' | 'retorno' | null;
@@ -263,6 +266,9 @@ export default function ReporteKilometrajeContent() {
         idservicio: servicio.idservicio,
         unidad: unidad || '—',
         piloto: servicio.piloto,
+        cliente: servicio.cliente,
+        origen: servicio.origen,
+        destino: servicio.destino,
         horaInicio: formatHora(fechaInicioDate),
         horaFin: formatHora(fechaFinDate),
         origenHoraFin,
@@ -284,21 +290,90 @@ export default function ReporteKilometrajeContent() {
   const handleDescargarExcel = () => {
     if (filas.length === 0) return;
 
-    const dataExcel = filas.map((f) => ({
-      Unidad: f.unidad,
-      Piloto: f.piloto || '',
-      'Hora Inicio': f.horaInicio || '',
-      'Hora Fin': f.horaFin || '',
-      'Origen Hora Fin':
-        f.origenHoraFin === 'finalizado' ? 'Finalización' : f.origenHoraFin === 'retorno' ? 'Retorno' : '',
-      Duración: formatDuracion(f.duracionMin),
-      'Kilometraje (km)': f.kilometros !== null ? Number(f.kilometros.toFixed(2)) : '',
-    }));
+    const columnas: ColumnaExcel[] = [
+      { header: '#', width: 6, align: 'center' },
+      { header: 'Unidad', width: 16 },
+      { header: 'Piloto', width: 30 },
+      { header: 'Cliente', width: 26 },
+      { header: 'Origen', width: 24 },
+      { header: 'Destino', width: 24 },
+      { header: 'Hora Inicio', width: 12, align: 'center' },
+      { header: 'Hora Fin', width: 12, align: 'center' },
+      { header: 'Origen Hora Fin', width: 16, align: 'center' },
+      { header: 'Duración', width: 14, align: 'center' },
+      { header: 'Kilometraje (km)', width: 18, align: 'right', numFmt: '#,##0.00' },
+    ];
 
-    const ws = XLSX.utils.json_to_sheet(dataExcel);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Kilometraje');
-    XLSX.writeFile(wb, `Reporte_Kilometraje_${fecha}.xlsx`);
+    const datos = filas.map((f, i) => [
+      i + 1,
+      f.unidad,
+      f.piloto || '',
+      f.cliente || '',
+      f.origen || '',
+      f.destino || '',
+      f.horaInicio || '',
+      f.horaFin || '',
+      f.origenHoraFin === 'finalizado' ? 'Finalización' : f.origenHoraFin === 'retorno' ? 'Retorno' : '',
+      f.duracionMin !== null ? formatDuracion(f.duracionMin) : '',
+      f.kilometros !== null ? Number(f.kilometros.toFixed(2)) : null,
+    ]);
+
+    const fechaTexto = isoToDdMmYyyy(fecha);
+    const generado = `Generado el ${new Date().toLocaleString('es-PE')}`;
+
+    // Resumen agrupado por unidad, ordenado por kilometraje descendente.
+    const porUnidad = new Map<string, { servicios: number; minutos: number; km: number; pilotos: Set<string> }>();
+    filas.forEach((f) => {
+      const acc = porUnidad.get(f.unidad) ?? { servicios: 0, minutos: 0, km: 0, pilotos: new Set<string>() };
+      acc.servicios += 1;
+      acc.minutos += f.duracionMin ?? 0;
+      acc.km += f.kilometros ?? 0;
+      if (f.piloto) acc.pilotos.add(f.piloto);
+      porUnidad.set(f.unidad, acc);
+    });
+    const resumenUnidades = [...porUnidad.entries()].sort((a, b) => b[1].km - a[1].km);
+
+    const columnasResumen: ColumnaExcel[] = [
+      { header: '#', width: 6, align: 'center' },
+      { header: 'Unidad', width: 16 },
+      { header: 'Piloto(s)', width: 40 },
+      { header: 'Servicios', width: 12, align: 'center' },
+      { header: 'Duración total', width: 16, align: 'center' },
+      { header: 'Kilometraje total (km)', width: 22, align: 'right', numFmt: '#,##0.00' },
+      { header: 'Promedio por servicio (km)', width: 26, align: 'right', numFmt: '#,##0.00' },
+    ];
+    const datosResumen = resumenUnidades.map(([unidad, r], i) => [
+      i + 1,
+      unidad,
+      [...r.pilotos].join(', '),
+      r.servicios,
+      formatDuracion(r.minutos),
+      Number(r.km.toFixed(2)),
+      Number((r.km / r.servicios).toFixed(2)),
+    ]);
+    const minutosTotales = filas.reduce((acc, f) => acc + (f.duracionMin ?? 0), 0);
+
+    exportarExcelEstilizado(
+      [
+        {
+          sheetName: 'Kilometraje',
+          titulo: `VELSAT — Reporte de Kilometraje Turismo · ${fechaTexto}`,
+          subtitulo: `${generado}  ·  ${filas.length} servicio(s)  ·  ${conDatos} con datos  ·  ${sinDatos} sin datos`,
+          columnas,
+          filas: datos,
+          totales: ['', 'TOTAL', '', '', '', '', '', '', '', formatDuracion(minutosTotales), Number(totalKm.toFixed(2))],
+        },
+        {
+          sheetName: 'Resumen por Unidad',
+          titulo: `VELSAT — Kilometraje por Unidad · ${fechaTexto}`,
+          subtitulo: `${generado}  ·  ${porUnidad.size} unidad(es)`,
+          columnas: columnasResumen,
+          filas: datosResumen,
+          totales: ['', 'TOTAL', '', filas.length, formatDuracion(minutosTotales), Number(totalKm.toFixed(2)), null],
+        },
+      ],
+      `Reporte_Kilometraje_${fecha}.xlsx`,
+    );
   };
 
   return (

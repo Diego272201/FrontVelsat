@@ -66,6 +66,7 @@ function construirServicioOptimista(
     cotizacion: texto('cotizacion'),
     visto: null,
     confirmado: null,
+    horainiciado: null,
     finalizado: null,
     horafinalizado: null,
     cancelado: null,
