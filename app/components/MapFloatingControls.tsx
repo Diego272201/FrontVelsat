@@ -10,6 +10,9 @@ import {
   Minimize,
   PersonStanding,
   Ruler,
+  Search,
+  X,
+  MapPin,
 } from 'lucide-react';
 import { FaTrafficLight } from 'react-icons/fa';
 import { useMapRuler } from '@/hooks/useMapRuler';
@@ -39,12 +42,18 @@ export default function MapFloatingControls({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pegmanReady, setPegmanReady] = useState(false);
   const [rulerActive, setRulerActive] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const ruler = useMapRuler(map, rulerActive);
   const { clear: clearRuler } = ruler;
   const rulerPointCount = ruler.points.length;
 
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pegmanSlotRef = useRef<HTMLDivElement>(null);
 
   // Sincronizar estado inicial del tipo de mapa y escuchar cambios
@@ -308,163 +317,297 @@ export default function MapFloatingControls({
     }
   }, [fullscreenTargetRef]);
 
+  const searchNominatim = useCallback(async (query: string) => {
+    if (!query.trim() || query.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&countrycodes=pe`
+      );
+      const data = await res.json();
+      setSearchResults(data);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      searchNominatim(value);
+    }, 400);
+  }, [searchNominatim]);
+
+  const handleSearchSelect = useCallback((lat: string, lon: string) => {
+    if (!map) return;
+    map.panTo({ lat: parseFloat(lat), lng: parseFloat(lon) });
+    map.setZoom(18);
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, [map]);
+
+  const toggleSearch = useCallback(() => {
+    setSearchOpen((prev) => {
+      if (!prev) {
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      } else {
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+      return !prev;
+    });
+  }, []);
+
   if (!map) return null;
 
   return (
     <div
-      className={`absolute ${positionClassName} pointer-events-auto z-20 flex select-none flex-col items-end gap-2`}
+      className={`absolute ${positionClassName} pointer-events-auto z-20 flex select-none flex-col items-end gap-1.5`}
     >
       {/* Selector de Tipo de Mapa */}
-      <div className="flex items-center overflow-hidden rounded-lg border border-gray-200/80 bg-white/95 p-0.5 shadow-md backdrop-blur-md">
+      <div className="flex items-center overflow-hidden rounded-lg border border-slate-200/90 bg-white/95 p-0.5 shadow-sm backdrop-blur-md">
         <button
           type="button"
           onClick={() => handleSetMapType('roadmap')}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
             mapType === 'roadmap'
-              ? 'shadow-xs bg-[#113EB9] text-white'
-              : 'text-gray-700 hover:bg-gray-100 hover:text-black'
+              ? 'bg-[#113EB9] text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
           title="Mapa vectorial con calles y carreteras"
         >
-          <Map size={14} />
+          <Map size={13} strokeWidth={2.5} />
           <span>Mapa</span>
         </button>
         <button
           type="button"
           onClick={() => handleSetMapType('hybrid')}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
             mapType === 'hybrid'
-              ? 'shadow-xs bg-[#113EB9] text-white'
-              : 'text-gray-700 hover:bg-gray-100 hover:text-black'
+              ? 'bg-[#113EB9] text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`}
           title="Imagen satelital con relieve y nombres de vías"
         >
-          <Layers size={14} />
+          <Layers size={13} strokeWidth={2.5} />
           <span>Satélite</span>
         </button>
       </div>
 
       {/* Botonera de Herramientas */}
-      <div className="flex flex-col divide-y divide-gray-100 rounded-lg border border-gray-200/80 bg-white/95 p-1 shadow-md backdrop-blur-md">
-        {/* Controles de Zoom */}
-        <div className="flex flex-col">
-          <button
-            type="button"
-            onClick={handleZoomIn}
-            className="flex items-center justify-center rounded-md p-2 text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
-            title="Acercar mapa (+)"
-          >
-            <Plus size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomOut}
-            className="flex items-center justify-center rounded-md p-2 text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
-            title="Alejar mapa (-)"
-          >
-            <Minus size={18} />
-          </button>
-        </div>
+      <div className="flex flex-col rounded-lg border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">
+        {/* Zoom In */}
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          className="flex h-8 w-8 items-center justify-center rounded-t-lg text-slate-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
+          title="Acercar mapa (+)"
+        >
+          <Plus size={16} strokeWidth={3.8} />
+        </button>
+
+        {/* Separador */}
+        <div className="mx-1.5 border-t border-slate-200/80" />
+
+        {/* Zoom Out */}
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          className="flex h-8 w-8 items-center justify-center text-slate-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
+          title="Alejar mapa (-)"
+        >
+          <Minus size={16} strokeWidth={3.8} />
+        </button>
+
+        {/* Separador */}
+        <div className="mx-1.5 border-t border-slate-200/80" />
 
         {/* Centrar Flota */}
-        <div className="flex flex-col pt-1">
+        <button
+          type="button"
+          onClick={handleCenter}
+          className="flex h-8 w-8 items-center justify-center text-slate-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
+          title="Centrar vista general de la flota"
+        >
+          <LocateFixed size={16} strokeWidth={3} />
+        </button>
+
+        {/* Separador */}
+        <div className="mx-1.5 border-t border-slate-200/80" />
+
+        {/* Personita Pegman (Street View) */}
+        <div className="relative flex h-8 w-8 items-center justify-center">
+          {!pegmanReady && !isStreetViewActive && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center text-slate-700"
+            >
+              <PersonStanding size={16} className="stroke-[3.5]" />
+            </div>
+          )}
+
+          <div
+            id="pegman-slot"
+            ref={pegmanSlotRef}
+            className={`absolute inset-0 flex items-center justify-center gm-style ${isStreetViewActive ? 'pointer-events-none opacity-0' : ''}`}
+            title="Arrastra la personita al mapa para ver la calle (Street View)"
+          />
+
+          {isStreetViewActive && (
+            <button
+              type="button"
+              onClick={exitStreetView}
+              className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-md bg-slate-300 text-slate-800 shadow-sm transition-all hover:bg-slate-400"
+              title="Salir de Street View y volver al mapa (o presiona Esc)"
+            >
+              <PersonStanding size={16} className="stroke-[3.5]" />
+            </button>
+          )}
+        </div>
+
+        {/* Separador */}
+        <div className="mx-1.5 border-t border-slate-200/80" />
+
+        {/* Botón de Tráfico */}
+        <button
+          type="button"
+          onClick={toggleTraffic}
+          className={`relative flex h-8 w-8 items-center justify-center transition-colors ${
+            trafficActive
+              ? 'bg-green-600 text-white'
+              : 'text-slate-700 hover:bg-blue-50 hover:text-[#113EB9]'
+          }`}
+          title={
+            trafficActive
+              ? 'Desactivar tráfico en vivo'
+              : 'Activar tráfico en tiempo real (Google Traffic)'
+          }
+        >
+          <FaTrafficLight size={14} />
+          {trafficActive && (
+            <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+          )}
+        </button>
+
+        {/* Separador */}
+        <div className="mx-1.5 border-t border-slate-200/80" />
+
+        {/* Pantalla Completa */}
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          className="flex h-8 w-8 items-center justify-center rounded-b-lg text-slate-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
+          title={
+            isFullscreen
+              ? 'Salir de pantalla completa'
+              : 'Modo Pantalla Completa'
+          }
+        >
+          {isFullscreen ? <Minimize size={15} strokeWidth={3} /> : <Maximize size={15} strokeWidth={3} />}
+        </button>
+      </div>
+
+      {/* Buscador de Lugares (Nominatim) */}
+      <div className="relative flex flex-col items-end">
+        <div className="flex flex-col rounded-lg border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">
           <button
             type="button"
-            onClick={handleCenter}
-            className="flex items-center justify-center rounded-md p-2 text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
-            title="Centrar vista general de la flota"
+            onClick={toggleSearch}
+            className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              searchOpen
+                ? 'bg-[#113EB9] text-white shadow-sm'
+                : 'text-slate-700 hover:bg-blue-50 hover:text-[#113EB9]'
+            }`}
+            title="Buscar lugar en el mapa"
           >
-            <LocateFixed size={18} />
+            {searchOpen ? <X size={15} strokeWidth={3} /> : <Search size={15} strokeWidth={3.2} />}
           </button>
         </div>
 
-        {/* Personita Pegman (Street View arrastrable) y Tráfico */}
-        <div className="flex flex-col items-center gap-0.5 pt-1">
-          {/* Contenedor relativo del Pegman */}
-          <div className="relative flex h-9 w-9 items-center justify-center">
-            {/* Marcador de posición: evita el hueco en blanco mientras Google
-                inyecta su control nativo (visible apenas un instante tras un F5) */}
-            {!pegmanReady && !isStreetViewActive && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 flex items-center justify-center text-gray-800"
-              >
-                <PersonStanding size={20} className="stroke-[2.2]" />
+        {searchOpen && (
+          <div className="absolute right-10 top-0 w-72 rounded-lg border border-slate-200/90 bg-white/95 shadow-lg backdrop-blur-md overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+              <Search size={13} className="shrink-0 text-slate-400" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    toggleSearch();
+                  }
+                }}
+                placeholder="Buscar lugar..."
+                className="flex-1 bg-transparent text-[12px] text-slate-800 placeholder-slate-400 outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); searchInputRef.current?.focus(); }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {isSearching && (
+              <div className="px-3 py-3 text-center text-[11px] text-slate-400">
+                Buscando...
               </div>
             )}
 
-            {/* Slot nativo de Google */}
-            <div
-              id="pegman-slot"
-              ref={pegmanSlotRef}
-              className={`gm-style ${isStreetViewActive ? 'pointer-events-none opacity-0' : ''}`}
-              title="Arrastra la personita al mapa para ver la calle (Street View)"
-            />
+            {!isSearching && searchResults.length > 0 && (
+              <ul className="max-h-52 overflow-y-auto">
+                {searchResults.map((result, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => handleSearchSelect(result.lat, result.lon)}
+                      className="flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-blue-50"
+                    >
+                      <MapPin size={13} className="mt-0.5 shrink-0 text-[#113EB9]" />
+                      <span className="text-[11px] leading-tight text-slate-700">
+                        {result.display_name}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            {/* Botón activo gris opaco cuando Street View está abierto: al hacer clic sale de Street View (igual que Esc) */}
-            {isStreetViewActive && (
-              <button
-                type="button"
-                onClick={exitStreetView}
-                className="shadow-xs absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-md border border-gray-400/80 bg-gray-300 text-gray-900 transition-all hover:bg-gray-400"
-                title="Salir de Street View y volver al mapa (o presiona Esc)"
-              >
-                <PersonStanding
-                  size={20}
-                  className="stroke-[2.2] text-gray-900"
-                />
-              </button>
+            {!isSearching && searchQuery.length >= 3 && searchResults.length === 0 && (
+              <div className="px-3 py-3 text-center text-[11px] text-slate-400">
+                No se encontraron resultados
+              </div>
+            )}
+
+            {!isSearching && searchQuery.length > 0 && searchQuery.length < 3 && (
+              <div className="px-3 py-3 text-center text-[11px] text-slate-400">
+                Escribe al menos 3 caracteres
+              </div>
             )}
           </div>
-
-          {/* Botón de Tráfico */}
-          <button
-            type="button"
-            onClick={toggleTraffic}
-            className={`relative flex items-center justify-center rounded-md p-2 transition-colors ${
-              trafficActive
-                ? 'shadow-xs bg-green-700 text-white'
-                : 'text-gray-700 hover:bg-blue-50 hover:text-[#113EB9]'
-            }`}
-            title={
-              trafficActive
-                ? 'Desactivar tráfico en vivo'
-                : 'Activar tráfico en tiempo real (Google Traffic)'
-            }
-          >
-            <FaTrafficLight size={16} />
-            {trafficActive && (
-              <span className="absolute right-1 top-1 h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
-            )}
-          </button>
-        </div>
-
-        {/* Pantalla Completa */}
-        <div className="flex flex-col pt-1">
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="flex items-center justify-center rounded-md p-2 text-gray-700 transition-colors hover:bg-blue-50 hover:text-[#113EB9]"
-            title={
-              isFullscreen
-                ? 'Salir de pantalla completa'
-                : 'Modo Pantalla Completa'
-            }
-          >
-            {isFullscreen ? <Minimize size={17} /> : <Maximize size={17} />}
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* Regla de Medición (sección aparte) */}
-      <div className="flex flex-col rounded-lg border border-gray-200/80 bg-white/95 p-1 shadow-md backdrop-blur-md">
+      {/* Regla de Medición */}
+      <div className="flex flex-col rounded-lg border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">
         <button
           type="button"
           onClick={toggleRuler}
-          className={`relative flex items-center justify-center rounded-md p-2 transition-colors ${
+          className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
             rulerActive
-              ? 'shadow-xs bg-[#113EB9] text-white'
-              : 'text-gray-700 hover:bg-blue-50 hover:text-[#113EB9]'
+              ? 'bg-[#113EB9] text-white shadow-sm'
+              : 'text-slate-700 hover:bg-blue-50 hover:text-[#113EB9]'
           }`}
           title={
             rulerActive
@@ -474,9 +617,9 @@ export default function MapFloatingControls({
                 : 'Medir distancias sobre el mapa (regla)'
           }
         >
-          <Ruler size={17} />
+          <Ruler size={15} strokeWidth={3} />
           {!rulerActive && ruler.points.length > 0 && (
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#113EB9]" />
+            <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[#113EB9]" />
           )}
         </button>
       </div>

@@ -237,7 +237,7 @@ export default function ReporteHeader({
                     TIEMPO DETENIDO
                   </span>
                   <span className="text-[12px] font-bold text-slate-900 leading-tight">
-                    {tiempoDetenido ?? '02h 51m 07s'}
+                    {tiempoDetenido ?? '00h 00m 00s'}
                   </span>
                 </div>
 
@@ -247,7 +247,7 @@ export default function ReporteHeader({
                   </span>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="text-[12px] font-bold text-slate-900 leading-tight">
-                      {paradaMasLarga ?? '01h 03m 00s'}
+                      {paradaMasLarga ?? '00h 00m 00s'}
                     </span>
                     {onVerParadaMasLarga && (
                       <button
@@ -267,8 +267,8 @@ export default function ReporteHeader({
                   <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600 leading-tight">
                     ZONA CON MÁS PARADAS
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={zonaMasParadas || ultimaUbicacion || 'La Victoria, Lima'}>
-                    {zonaMasParadas || ultimaUbicacion || 'La Victoria, Lima'}
+                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={zonaMasParadas || 'Sin datos'}>
+                    {zonaMasParadas || 'Sin datos'}
                   </span>
                 </div>
               </div>
@@ -279,7 +279,7 @@ export default function ReporteHeader({
                     REGISTROS
                   </span>
                   <span className="text-[12px] font-bold text-slate-900 leading-tight">
-                    {registros ?? '40'}
+                    {registros ?? 0}
                   </span>
                 </div>
 
@@ -288,7 +288,7 @@ export default function ReporteHeader({
                     VELOCIDAD MÁXIMA
                   </span>
                   <span className="text-[12px] font-bold text-rose-700 leading-tight">
-                    {velocidadMaxima ?? '57.00 km/h'}
+                    {velocidadMaxima ?? '0 km/h'}
                   </span>
                 </div>
 
@@ -297,7 +297,7 @@ export default function ReporteHeader({
                     PROMEDIO
                   </span>
                   <span className="text-[12px] font-bold text-slate-900 leading-tight">
-                    {promedioVelocidad ?? '31.6 km/h'}
+                    {promedioVelocidad ?? '0 km/h'}
                   </span>
                 </div>
 
@@ -314,8 +314,8 @@ export default function ReporteHeader({
                   <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600 leading-tight">
                     TRAMO PRINCIPAL
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={tramoPrincipal || ultimaUbicacion || 'Carretera Central, Mayobamba, Huánuco, PE'}>
-                    {tramoPrincipal || ultimaUbicacion || 'Carretera Central, Mayobamba, Huánuco, PE'}
+                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={tramoPrincipal || 'Sin datos'}>
+                    {tramoPrincipal || 'Sin datos'}
                   </span>
                 </div>
               </div>
@@ -326,7 +326,7 @@ export default function ReporteHeader({
                     REGISTROS
                   </span>
                   <span className="text-[12px] font-bold text-slate-900 leading-tight">
-                    {registros ?? '69'}
+                    {registros ?? 0}
                   </span>
                 </div>
 
@@ -344,7 +344,7 @@ export default function ReporteHeader({
                     VELOCIDAD MÁXIMA
                   </span>
                   <span className="text-[12px] font-bold text-[#113EB9] leading-tight">
-                    {velocidadMaxima ?? '57 km/h'}
+                    {velocidadMaxima ?? '0 km/h'}
                   </span>
                 </div>
 
@@ -352,8 +352,8 @@ export default function ReporteHeader({
                   <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600 leading-tight">
                     ÚLTIMA UBICACIÓN
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={typeof ultimaUbicacion === 'string' ? ultimaUbicacion : 'Victor Reynel, Lima, Lima, PE'}>
-                    {ultimaUbicacion || 'Victor Reynel, Lima, Lima, PE'}
+                  <span className="text-[11px] font-semibold text-slate-800 truncate leading-tight" title={typeof ultimaUbicacion === 'string' && ultimaUbicacion ? ultimaUbicacion : 'Sin datos'}>
+                    {ultimaUbicacion || 'Sin datos'}
                   </span>
                 </div>
               </div>
@@ -397,7 +397,7 @@ export default function ReporteHeader({
                     title={filterStatus === 'moving' ? 'Haz clic para ver todos los registros' : 'Filtrar registros en movimiento'}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${filterStatus === 'moving' ? 'bg-white' : 'bg-emerald-500'}`} />
-                    En movimiento {enMovimiento ?? 42}
+                    En movimiento {enMovimiento ?? 0}
                   </button>
 
                   <button
@@ -411,7 +411,7 @@ export default function ReporteHeader({
                     title={filterStatus === 'stopped' ? 'Haz clic para ver todos los registros' : 'Filtrar registros detenidos'}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${filterStatus === 'stopped' ? 'bg-white' : 'bg-slate-400'}`} />
-                    Detenido {detenido ?? 27}
+                    Detenido {detenido ?? 0}
                   </button>
                 </>
               )}

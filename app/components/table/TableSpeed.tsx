@@ -102,10 +102,16 @@ export default function App({
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]);
+          if (onDataStats) {
+            onDataStats({ total: 0, maxSpeed: 0, avgSpeed: '0 km/h', excesosMas100: 0, hasta25Count: 0, entre26y40Count: 0, masDe40Count: 0, tramoPrincipal: '' });
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
         setRows([]);
+        if (onDataStats) {
+          onDataStats({ total: 0, maxSpeed: 0, avgSpeed: '0 km/h', excesosMas100: 0, hasta25Count: 0, entre26y40Count: 0, masDe40Count: 0, tramoPrincipal: '' });
+        }
       } finally {
         setIsLoading(false);
       }

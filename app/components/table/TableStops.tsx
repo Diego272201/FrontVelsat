@@ -129,10 +129,16 @@ export default function App({
           }
         } else {
           setRows([]);
+          if (onDataStats) {
+            onDataStats({ total: 0, tiempoDetenido: '00h 00m 00s', paradaMasLarga: '00h 00m 00s', zonaMasParadas: '', longestStopItem: 0 });
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
         setRows([]);
+        if (onDataStats) {
+          onDataStats({ total: 0, tiempoDetenido: '00h 00m 00s', paradaMasLarga: '00h 00m 00s', zonaMasParadas: '', longestStopItem: 0 });
+        }
       } finally {
         setIsLoading(false);
       }

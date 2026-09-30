@@ -353,6 +353,105 @@ export function resolveAccountTraccarServer(
 }
 
 /**
+ * Listar todas las geocercas en Traccar
+ * GET /api/geofences
+ */
+export async function getTraccarGeofences(
+  baseUrl: string = DEFAULT_TRACCAR_URL,
+  authHeader?: string,
+): Promise<TraccarGeofence[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) {
+    return [];
+  }
+  const targetUrl = `${cleanTraccarUrl(baseUrl)}/geofences`;
+  try {
+    const response = await axios.get<TraccarGeofence[]>(targetUrl, {
+      headers: {
+        Authorization: auth,
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (err: any) {
+    console.warn(`[Traccar] Error al listar geocercas en ${baseUrl}:`, err?.message || err);
+    return [];
+  }
+}
+
+/**
+ * Consulta las geocercas asignadas a un dispositivo específico en Traccar
+ * GET /api/geofences?deviceId={deviceId}
+ */
+export async function getTraccarDeviceGeofences(
+  baseUrl: string = DEFAULT_TRACCAR_URL,
+  deviceId: number,
+  authHeader?: string,
+): Promise<TraccarGeofence[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) {
+    return [];
+  }
+  const targetUrl = `${cleanTraccarUrl(baseUrl)}/geofences?deviceId=${deviceId}`;
+  try {
+    const response = await axios.get<TraccarGeofence[]>(targetUrl, {
+      headers: {
+        Authorization: auth,
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (err: any) {
+    console.warn(`[Traccar] Error al consultar geocercas del dispositivo ${deviceId}:`, err?.message || err);
+    return [];
+  }
+}
+
+/**
+ * Verifica si un dispositivo específico está vinculado a una geocerca en Traccar
+ */
+export async function isDeviceLinkedToGeofenceInTraccar(
+  baseUrl: string = DEFAULT_TRACCAR_URL,
+  deviceId: number,
+  geofenceId: number,
+  authHeader?: string,
+): Promise<boolean> {
+  const geofences = await getTraccarDeviceGeofences(baseUrl, deviceId, authHeader);
+  return geofences.some((g) => g.id === geofenceId);
+}
+
+/**
+ * Listar dispositivos vinculados a una geocerca en Traccar
+ * (Mantenido por compatibilidad)
+ */
+export async function getTraccarGeofenceDevices(
+  baseUrl: string = DEFAULT_TRACCAR_URL,
+  geofenceId: number,
+  authHeader?: string,
+): Promise<TraccarDevice[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) {
+    return [];
+  }
+  const targetUrl = `${cleanTraccarUrl(baseUrl)}/devices?geofenceId=${geofenceId}`;
+  try {
+    const response = await axios.get<TraccarDevice[]>(targetUrl, {
+      headers: {
+        Authorization: auth,
+        'Content-Type': 'application/json',
+      },
+      timeout: 10000,
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (err: any) {
+    console.warn(`[Traccar] Error al listar dispositivos para geocerca ${geofenceId}:`, err?.message || err);
+    return [];
+  }
+}
+
+/**
  * Crear la geocerca en Traccar
  * POST /api/geofences
  * Body: { "name": "...", "area": "CIRCLE (...) | POLYGON (...)" }
@@ -561,3 +660,57 @@ export async function unlinkDeviceFromGeofenceTraccar(
     throw new Error(`Traccar desvinculación (${status || 'error'}): ${errorDetails}`);
   }
 }
+
+const deviceGeofencesCache = new Map<number, number[]>();
+
+/**
+ * Busca de forma eficiente todos los dispositivos vinculados a una geocerca en Traccar
+ * utilizando caché en memoria y concurrencia controlada para no bloquear la app.
+ */
+export async function findDevicesLinkedToTraccarGeofence(
+  baseUrl: string = DEFAULT_TRACCAR_URL,
+  geofenceId: number,
+  devicesToCheck: TraccarDevice[],
+  authHeader?: string,
+  concurrency: number = 20,
+): Promise<TraccarDevice[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth || !devicesToCheck || devicesToCheck.length === 0) return [];
+
+  const matched: TraccarDevice[] = [];
+  const uncached: TraccarDevice[] = [];
+
+  for (const d of devicesToCheck) {
+    if (deviceGeofencesCache.has(d.id)) {
+      const geos = deviceGeofencesCache.get(d.id)!;
+      if (geos.includes(geofenceId)) {
+        matched.push(d);
+      }
+    } else {
+      uncached.push(d);
+    }
+  }
+
+  if (uncached.length > 0) {
+    for (let i = 0; i < uncached.length; i += concurrency) {
+      const chunk = uncached.slice(i, i + concurrency);
+      await Promise.all(
+        chunk.map(async (d) => {
+          try {
+            const geos = await getTraccarDeviceGeofences(baseUrl, d.id, auth);
+            const ids = geos.map((g) => g.id);
+            deviceGeofencesCache.set(d.id, ids);
+            if (ids.includes(geofenceId)) {
+              matched.push(d);
+            }
+          } catch {
+            // Ignorar fallos individuales de conexión
+          }
+        }),
+      );
+    }
+  }
+
+  return matched;
+}
+

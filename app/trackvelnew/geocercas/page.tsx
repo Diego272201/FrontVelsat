@@ -3,11 +3,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
+import { useSession } from 'next-auth/react';
 import { toast, Toaster } from 'sonner';
 import {
+  BarChart2,
+  Bell,
   ChevronLeft,
+  ChevronRight,
   Circle as CircleIcon,
   Crosshair,
+  FileSpreadsheet,
   Hexagon,
   Layers,
   Map as MapIcon,
@@ -26,6 +31,10 @@ import {
 import ConfirmDialog from './ConfirmDialog';
 import GeofenceCard from './GeofenceCard';
 import GeofenceModal, { GeofenceFormData } from './GeofenceModal';
+import RealtimeAlertsDrawer from './RealtimeAlertsDrawer';
+import GeocercasReportsModal from './GeocercasReportsModal';
+import { useGeofenceSignalR, RealtimeGeofenceAlert } from './useGeofenceSignalR';
+import { VisitaItem } from './reportsApi';
 import { useMapsReady } from './useMapsReady';
 import TrackvelLoader from '@/components/TrackvelLoader';
 import { useApi } from '@/context/ApiContext';
@@ -57,6 +66,7 @@ import {
   formatPolygonWkt,
   formatCoordenadasJson,
   parseGeocercaGeometry,
+  ApiGeocerca,
 } from './geocercasApi';
 import {
   TRACCAR_SERVERS,
@@ -75,6 +85,10 @@ import {
   deleteTraccarGeofence,
   linkDeviceToGeofenceTraccar,
   unlinkDeviceFromGeofenceTraccar,
+  getTraccarGeofences,
+  getTraccarGeofenceDevices,
+  isDeviceLinkedToGeofenceInTraccar,
+  findDevicesLinkedToTraccarGeofence,
   ServerDevicesResult,
 } from './traccarApi';
 
@@ -103,25 +117,300 @@ export default function GeocercasPage() {
   const mapsReady = useMapsReady();
   const { baseUrl } = useApi();
   const { username } = useUsername();
+  const { data: session } = useSession();
+
+  // Token JWT para las APIs autenticadas de reportes
+  const sessionToken = session?.user?.token;
 
   // Resolución segura de baseUrl y accountID/username apuntando a do.velsat.pe:2083 por defecto
   const effectiveBaseUrl = useMemo(() => {
     if (baseUrl && baseUrl.trim()) return baseUrl.trim();
+    if (session?.user?.serverUrl) return session.user.serverUrl.trim();
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('servidorUrl');
       if (stored && stored.trim()) return stored.trim();
     }
     return DEFAULT_API_BASE_URL;
-  }, [baseUrl]);
+  }, [baseUrl, session]);
 
   const effectiveUsername = useMemo(() => {
+    if (session?.user?.username) return session.user.username.trim();
+    if (session?.user?.login) return session.user.login.trim();
     if (username && username.trim()) return username.trim();
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('currentUser');
       if (stored && stored.trim()) return stored.trim();
     }
     return 'movilbus';
-  }, [username]);
+  }, [session, username]);
+
+  const [alertsDrawerOpen, setAlertsDrawerOpen] = useState(false);
+  const [reportsModalOpen, setReportsModalOpen] = useState(false);
+
+  // Hook SignalR para Alertas en Tiempo Real
+  const {
+    status: signalRStatus,
+    alerts: signalRAlerts,
+    unreadCount: signalRUnreadCount,
+    markAllAsRead: markSignalRAsRead,
+    loadingAlerts: signalRLoading,
+    refreshAlerts: refreshSignalRAlerts,
+    clearAlerts: clearSignalRAlerts,
+  } = useGeofenceSignalR({
+    accountID: effectiveUsername,
+    enabled: Boolean(effectiveUsername),
+    isDrawerOpen: alertsDrawerOpen,
+  });
+
+  const alertMarkerRef = useRef<google.maps.Marker | null>(null);
+  const alertInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const visitMarkersRef = useRef<google.maps.Marker[]>([]);
+
+  // Centrar mapa en alerta en tiempo real con icono de auto (/UnidadK.webp) y popup detallado
+  const handleLocateAlert = useCallback(
+    (
+      alertOrLat: RealtimeGeofenceAlert | number,
+      maybeLng?: number,
+      maybeTitle?: string,
+    ) => {
+      const map = mapRef.current;
+      if (!map || typeof google === 'undefined' || !google.maps) return;
+
+      let lat = 0;
+      let lng = 0;
+      let deviceID = 'Vehículo';
+      let eventType = 'geofenceEnter';
+      let geofenceName = 'Geocerca';
+      let speed = 0;
+      let serverTimeStr = new Date().toISOString();
+
+      if (typeof alertOrLat === 'object' && alertOrLat !== null) {
+        lat = Number(alertOrLat.latitude);
+        lng = Number(alertOrLat.longitude);
+        deviceID = alertOrLat.deviceID || 'Vehículo';
+        eventType = alertOrLat.eventType || 'geofenceEnter';
+        geofenceName = alertOrLat.geofenceName || 'Geocerca';
+        speed = alertOrLat.speed ?? 0;
+        serverTimeStr = alertOrLat.serverTime || new Date().toISOString();
+      } else {
+        lat = Number(alertOrLat);
+        lng = Number(maybeLng || 0);
+        deviceID = maybeTitle || 'Alerta';
+      }
+
+      if (!lat || !lng) return;
+
+      map.setCenter({ lat, lng });
+      map.setZoom(17);
+
+      if (alertMarkerRef.current) {
+        alertMarkerRef.current.setMap(null);
+      }
+      if (alertInfoWindowRef.current) {
+        alertInfoWindowRef.current.close();
+      }
+
+      const isEnter = eventType === 'geofenceEnter';
+      let formattedTime = '00:00';
+      let formattedDate = '-';
+      try {
+        const d = new Date(serverTimeStr);
+        if (!isNaN(d.getTime())) {
+          formattedTime = d.toLocaleTimeString('es-PE', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          });
+          const day = d.getDate();
+          const month = d
+            .toLocaleString('es-PE', { month: 'short' })
+            .replace('.', '')
+            .replace(/set/i, 'sep')
+            .toLowerCase();
+          formattedDate = `${day} ${month}`;
+        }
+      } catch {
+        formattedTime = serverTimeStr;
+      }
+
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        title: `${deviceID} (${isEnter ? 'Entrada' : 'Salida'})`,
+        animation: google.maps.Animation.DROP,
+        icon: {
+          url: '/UnidadK.webp',
+          scaledSize: new google.maps.Size(60, 34),
+          anchor: new google.maps.Point(30, 17),
+        },
+      });
+
+      alertMarkerRef.current = marker;
+
+      const enterSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>`;
+      const exitSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
+
+      const infoWindowContent = `
+        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; padding: 2px 2px 2px 0;">
+          <!-- Encabezado con Icono, Placa y Geocerca -->
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${isEnter ? '#ECFDF5' : '#FEF2F2'};">
+              ${isEnter ? enterSvg : exitSvg}
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-family: monospace; font-size: 14px; font-weight: 700; color: #0F172A; line-height: 1.2; letter-spacing: -0.01em;">
+                ${deviceID}
+              </div>
+              <div style="font-size: 12px; margin-top: 2px; line-height: 1.2;">
+                <strong style="color: ${isEnter ? '#059669' : '#DC2626'}; font-weight: 700;">${isEnter ? 'Entrada' : 'Salida'}</strong><span style="color: #64748B;"> · geocerca ${geofenceName}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila de Estadísticas en 3 Columnas: Velocidad, Hora, Fecha -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid #F1F5F9; padding-top: 8px;">
+            <div style="padding-right: 6px;">
+              <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">VELOCIDAD</div>
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+                ${speed} <span style="font-size: 11px; font-weight: 600; color: #475569;">km/h</span>
+              </div>
+            </div>
+            <div style="padding: 0 6px; border-left: 1px solid #F1F5F9;">
+              <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">HORA</div>
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+                ${formattedTime}
+              </div>
+            </div>
+            <div style="padding-left: 6px; border-left: 1px solid #F1F5F9;">
+              <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">FECHA</div>
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+                ${formattedDate}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const info = new google.maps.InfoWindow({
+        content: infoWindowContent,
+        pixelOffset: new google.maps.Size(0, -18),
+      });
+
+      info.open(map, marker);
+      alertInfoWindowRef.current = info;
+
+      marker.addListener('click', () => {
+        info.open(map, marker);
+      });
+
+      setTimeout(() => {
+        marker.setMap(null);
+        info.close();
+      }, 45000);
+    },
+    [],
+  );
+
+  // Marcar puntos de entrada y salida de visita en el mapa
+  const handleViewVisitOnMap = useCallback((visit: VisitaItem) => {
+    const map = mapRef.current;
+    if (!map || typeof google === 'undefined' || !google.maps) return;
+
+    visitMarkersRef.current.forEach((m) => m.setMap(null));
+    visitMarkersRef.current = [];
+
+    const bounds = new google.maps.LatLngBounds();
+    let hasCoords = false;
+
+    if (visit.latitudEntrada != null && visit.longitudEntrada != null) {
+      const pos = { lat: Number(visit.latitudEntrada), lng: Number(visit.longitudEntrada) };
+      const entryMarker = new google.maps.Marker({
+        position: pos,
+        map,
+        title: `Entrada: ${visit.deviceID} en ${visit.geofenceName}`,
+        label: {
+          text: 'E',
+          color: '#ffffff',
+          fontWeight: 'bold',
+          fontSize: '11px',
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 11,
+          fillColor: '#10B981',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 2,
+        },
+      });
+
+      const entryInfo = new google.maps.InfoWindow({
+        content: `
+          <div style="font-size:11px; padding:2px;">
+            <strong style="color:#059669;">ENTRADA</strong><br/>
+            <strong>Vehículo:</strong> ${visit.deviceID}<br/>
+            <strong>Geocerca:</strong> ${visit.geofenceName}<br/>
+            <strong>Hora:</strong> ${visit.fechaEntrada ? new Date(visit.fechaEntrada).toLocaleString('es-PE') : '-'}
+          </div>
+        `,
+      });
+      entryMarker.addListener('click', () => entryInfo.open(map, entryMarker));
+      visitMarkersRef.current.push(entryMarker);
+      bounds.extend(pos);
+      hasCoords = true;
+    }
+
+    if (visit.latitudSalida != null && visit.longitudSalida != null) {
+      const pos = { lat: Number(visit.latitudSalida), lng: Number(visit.longitudSalida) };
+      const exitMarker = new google.maps.Marker({
+        position: pos,
+        map,
+        title: `Salida: ${visit.deviceID} de ${visit.geofenceName}`,
+        label: {
+          text: 'S',
+          color: '#ffffff',
+          fontWeight: 'bold',
+          fontSize: '11px',
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 11,
+          fillColor: '#EF4444',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 2,
+        },
+      });
+
+      const exitInfo = new google.maps.InfoWindow({
+        content: `
+          <div style="font-size:11px; padding:2px;">
+            <strong style="color:#DC2626;">SALIDA</strong><br/>
+            <strong>Vehículo:</strong> ${visit.deviceID}<br/>
+            <strong>Geocerca:</strong> ${visit.geofenceName}<br/>
+            <strong>Hora:</strong> ${visit.fechaSalida ? new Date(visit.fechaSalida).toLocaleString('es-PE') : '-'}<br/>
+            <strong>Permanencia:</strong> ${visit.duracionMinutos != null ? `${visit.duracionMinutos} min` : '-'}
+          </div>
+        `,
+      });
+      exitMarker.addListener('click', () => exitInfo.open(map, exitMarker));
+      visitMarkersRef.current.push(exitMarker);
+      bounds.extend(pos);
+      hasCoords = true;
+    }
+
+    if (hasCoords) {
+      if (visitMarkersRef.current.length > 1) {
+        map.fitBounds(bounds);
+      } else {
+        map.setCenter(visitMarkersRef.current[0].getPosition()!);
+        map.setZoom(16);
+      }
+      toast.info(`Puntos de visita de ${visit.deviceID} marcados en el mapa`);
+    } else {
+      toast.warning('Esta visita no contiene coordenadas registradas de entrada o salida');
+    }
+  }, []);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -132,6 +421,7 @@ export default function GeocercasPage() {
   const [loadingGeofences, setLoadingGeofences] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const vehiclesRef = useRef<Vehicle[]>([]);
 
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -238,11 +528,136 @@ export default function GeocercasPage() {
           .filter((v: Vehicle) => v.id);
 
         setVehicles(parsedVehicles);
+        vehiclesRef.current = parsedVehicles;
       }
     } catch (error) {
       console.warn('Error al obtener vehículos en vivo del backend:', error);
     }
   }, [effectiveBaseUrl, effectiveUsername]);
+
+  /* ------------------------------------------------------------------ */
+  /* Verificación de Auto-Sync Bidireccional en Segundo Plano (No Bloqueante) */
+  /* ------------------------------------------------------------------ */
+  const runBackgroundSyncCheck = useCallback(
+    async (
+      currentGeofences: Geofence[],
+      authHeader?: string,
+      serverDevices?: ServerDevicesResult[],
+    ) => {
+      if (!authHeader || !serverDevices || serverDevices.length === 0 || currentGeofences.length === 0) {
+        return;
+      }
+
+      try {
+        const allTraccarDevices = serverDevices[0]?.devices || [];
+        if (allTraccarDevices.length === 0) return;
+
+        // Dispositivos de la flota del cliente para priorizar
+        let fleetPlates = vehiclesRef.current.map((v) => v.id);
+        if (fleetPlates.length === 0 && effectiveBaseUrl && effectiveUsername) {
+          try {
+            const cleanUrl = cleanBaseUrl(effectiveBaseUrl);
+            const devListRes = await axios.get(`${cleanUrl}/api/DeviceList/simplified/${effectiveUsername}`);
+            if (Array.isArray(devListRes.data)) {
+              fleetPlates = devListRes.data.map((d: any) => d.deviceId || d.DeviceId || '').filter(Boolean);
+            }
+          } catch {}
+        }
+
+        const fleetPlateSet = new Set(fleetPlates.map((p) => p.trim().toLowerCase()));
+        const candidateDevices = allTraccarDevices.filter((d) => {
+          const name = (d.name || '').trim().toLowerCase();
+          const uniqueId = (d.uniqueId || '').trim().toLowerCase();
+          return fleetPlateSet.size === 0 || fleetPlateSet.has(name) || fleetPlateSet.has(uniqueId);
+        });
+
+        for (const geo of currentGeofences) {
+          if (!geo.geofenceID) continue;
+
+          // 1. Dirección 1: En BD interna pero no confirmado en Traccar
+          const unconfirmedVehicleIds: string[] = [];
+          if (geo.vehicleIds.length > 0) {
+            await Promise.all(
+              geo.vehicleIds.map(async (plate) => {
+                const dev = resolveTraccarDevice(serverDevices, plate, DEFAULT_TRACCAR_URL);
+                if (!dev) {
+                  unconfirmedVehicleIds.push(plate);
+                  return;
+                }
+                try {
+                  const isLinked = await isDeviceLinkedToGeofenceInTraccar(
+                    dev.serverUrl,
+                    dev.deviceId,
+                    geo.geofenceID!,
+                    authHeader,
+                  );
+                  if (!isLinked) {
+                    unconfirmedVehicleIds.push(plate);
+                  }
+                } catch {
+                  unconfirmedVehicleIds.push(plate);
+                }
+              }),
+            );
+
+            if (unconfirmedVehicleIds.length > 0) {
+              console.warn(
+                `⚠️ [Auto-Sync Advertencia] Geocerca "${geo.name}" (ID Traccar: ${geo.geofenceID}) tiene ${unconfirmedVehicleIds.length} vehículo(s) en BD interna que NO están confirmados en Traccar:`,
+                unconfirmedVehicleIds,
+              );
+            }
+          }
+
+          // 2. Dirección 2: En Traccar pero no en BD interna
+          const traccarOnlyVehicleIds: string[] = [];
+          try {
+            const traccarMatched = await findDevicesLinkedToTraccarGeofence(
+              DEFAULT_TRACCAR_URL,
+              geo.geofenceID,
+              candidateDevices.length > 0 ? candidateDevices : allTraccarDevices,
+              authHeader,
+            );
+
+            const currentDbPlates = new Set(geo.vehicleIds.map((v) => v.trim().toLowerCase()));
+            for (const matchedDev of traccarMatched) {
+              const plateOrName = matchedDev.name || matchedDev.uniqueId;
+              const clean = plateOrName.trim().toLowerCase();
+              const cleanUnique = (matchedDev.uniqueId || '').trim().toLowerCase();
+              if (!currentDbPlates.has(clean) && !currentDbPlates.has(cleanUnique)) {
+                traccarOnlyVehicleIds.push(plateOrName);
+              }
+            }
+
+            if (traccarOnlyVehicleIds.length > 0) {
+              console.warn(
+                `⚠️ [Auto-Sync Bidireccional] Geocerca "${geo.name}" (ID Traccar: ${geo.geofenceID}) tiene ${traccarOnlyVehicleIds.length} vehículo(s) en Traccar pero NO en BD interna:`,
+                traccarOnlyVehicleIds,
+              );
+            }
+          } catch (e) {
+            console.warn('[Auto-Sync Bidireccional] Error al escanear dispositivos de Traccar:', e);
+          }
+
+          if (unconfirmedVehicleIds.length > 0 || traccarOnlyVehicleIds.length > 0) {
+            setGeofences((prev) =>
+              prev.map((g) =>
+                g.id === geo.id
+                  ? {
+                      ...g,
+                      unconfirmedVehicleIds,
+                      traccarOnlyVehicleIds,
+                    }
+                  : g,
+              ),
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('[Auto-Sync Background] Error durante la sincronización en segundo plano:', err);
+      }
+    },
+    [effectiveBaseUrl, effectiveUsername],
+  );
 
   /* ------------------------------------------------------------------ */
   /* Carga de Geocercas desde el Backend                                */
@@ -257,7 +672,108 @@ export default function GeocercasPage() {
 
       setLoadingGeofences(true);
       try {
-        const apiGeos = await getGeocercasApi(effectiveBaseUrl, effectiveUsername);
+        // 1. Consultar geocercas en la BD interna (:2083)
+        let apiGeos: ApiGeocerca[] = [];
+        try {
+          apiGeos = await getGeocercasApi(effectiveBaseUrl, effectiveUsername);
+        } catch (err) {
+          console.warn('Error al consultar geocercas de la API interna:', err);
+          apiGeos = [];
+        }
+
+        // 2. Respaldo y Sincronización Automática con Traccar (:2087)
+        try {
+          const authHeader = getTraccarAuthHeader();
+          const traccarGeos = await getTraccarGeofences(DEFAULT_TRACCAR_URL, authHeader);
+
+          if (traccarGeos.length > 0) {
+            const knownGeofenceIds = new Set(
+              apiGeos.map((g) => g.geofenceID).filter(Boolean),
+            );
+            const knownNames = new Set(
+              apiGeos.map((g) => g.nombre.trim().toLowerCase()),
+            );
+
+            for (const tGeo of traccarGeos) {
+              if (
+                !knownGeofenceIds.has(tGeo.id) &&
+                !knownNames.has(tGeo.name.trim().toLowerCase())
+              ) {
+                console.log(
+                  `[Sync] Geocerca "${tGeo.name}" (ID ${tGeo.id}) hallada en Traccar pero no en BD interna. Sincronizando...`,
+                );
+
+                const isCircle = tGeo.area.toUpperCase().startsWith('CIRCLE');
+                const tipo: 'circle' | 'polygon' = isCircle ? 'circle' : 'polygon';
+
+                let coordsJson = '[]';
+                if (isCircle) {
+                  const matchCircle = tGeo.area.match(
+                    /CIRCLE\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*,\s*([-\d.]+)\s*\)/i,
+                  );
+                  if (matchCircle) {
+                    coordsJson = JSON.stringify([
+                      {
+                        lat: parseFloat(matchCircle[1]),
+                        lng: parseFloat(matchCircle[2]),
+                        radius: Math.round(parseFloat(matchCircle[3])),
+                      },
+                    ]);
+                  }
+                }
+
+                try {
+                  const saved = await createGeocercaApi(effectiveBaseUrl, {
+                    accountID: effectiveUsername,
+                    geofenceID: tGeo.id,
+                    nombre: tGeo.name,
+                    descripcion: tGeo.description || '',
+                    tipo,
+                    areaWkt: tGeo.area,
+                    coordenadasJson: coordsJson,
+                    color: '#113EB9',
+                  });
+
+                  apiGeos.push({
+                    id: saved.id,
+                    accountID: effectiveUsername,
+                    geofenceID: tGeo.id,
+                    nombre: tGeo.name,
+                    descripcion: tGeo.description || '',
+                    tipo,
+                    areaWkt: tGeo.area,
+                    coordenadasJson: coordsJson,
+                    color: '#113EB9',
+                    activo: true,
+                  });
+                } catch (syncErr) {
+                  console.warn(
+                    `[Sync] No se pudo guardar en BD interna, mostrando directamente desde Traccar:`,
+                    syncErr,
+                  );
+                  apiGeos.push({
+                    id: tGeo.id,
+                    accountID: effectiveUsername,
+                    geofenceID: tGeo.id,
+                    nombre: tGeo.name,
+                    descripcion: tGeo.description || '',
+                    tipo,
+                    areaWkt: tGeo.area,
+                    coordenadasJson: coordsJson,
+                    color: '#113EB9',
+                    activo: true,
+                  });
+                }
+              }
+            }
+          }
+        } catch (traccarErr) {
+          console.warn('[Traccar] No se pudieron sincronizar geocercas desde Traccar:', traccarErr);
+        }
+
+        // 3. Mapeo a modelo de vista Geofence (Carga Rápida en <200ms)
+        const authHeader = getTraccarAuthHeader();
+        const serverDevices = authHeader ? await getCachedOrFreshTraccarDevices(authHeader) : [];
 
         const parsedList = await Promise.all(
           apiGeos.map(async (geo) => {
@@ -292,6 +808,11 @@ export default function GeocercasPage() {
         if (showFeedback) {
           toast.success(`Se cargaron ${parsedList.length} geocercas`);
         }
+
+        // 4. Disparar verificación bidireccional en SEGUNDO PLANO (No bloqueante)
+        setTimeout(() => {
+          runBackgroundSyncCheck(parsedList, authHeader, serverDevices);
+        }, 100);
       } catch (error: any) {
         console.error('Error al cargar geocercas del servidor:', error);
         if (showFeedback) {
@@ -303,7 +824,7 @@ export default function GeocercasPage() {
         setHydrated(true);
       }
     },
-    [effectiveBaseUrl, effectiveUsername],
+    [effectiveBaseUrl, effectiveUsername, runBackgroundSyncCheck, getCachedOrFreshTraccarDevices],
   );
 
   useEffect(() => {
@@ -323,18 +844,26 @@ export default function GeocercasPage() {
   /* Pantalla de carga (Loader / Splash)                                 */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    if (!hydrated) return;
-
-    if (mapReady) {
+    // Safety fallback: Asegurar que el loader NUNCA se quede pegado más de 2 segundos bajo ninguna condición
+    const safetyTimer = setTimeout(() => {
       window.trackvelLoader?.hide();
-      return;
+    }, 2000);
+
+    if (hydrated) {
+      if (mapReady) {
+        window.trackvelLoader?.hide();
+      } else {
+        const timer = setTimeout(() => {
+          window.trackvelLoader?.hide();
+        }, 150);
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(safetyTimer);
+        };
+      }
     }
 
-    const timer = setTimeout(() => {
-      window.trackvelLoader?.hide();
-    }, 300);
-
-    return () => clearTimeout(timer);
+    return () => clearTimeout(safetyTimer);
   }, [hydrated, mapReady]);
 
   /* ------------------------------------------------------------------ */
@@ -343,7 +872,7 @@ export default function GeocercasPage() {
   useEffect(() => {
     if (!mapsReady || mapRef.current || !mapDivRef.current) return;
 
-    mapRef.current = new google.maps.Map(mapDivRef.current, {
+    const map = new google.maps.Map(mapDivRef.current, {
       center: LIMA_CENTER,
       zoom: 13,
       mapTypeId: 'roadmap',
@@ -351,7 +880,13 @@ export default function GeocercasPage() {
       clickableIcons: false,
       gestureHandling: 'greedy',
     });
+    mapRef.current = map;
     setMapReady(true);
+
+    setTimeout(() => {
+      google.maps.event.trigger(map, 'resize');
+      map.setCenter(LIMA_CENTER);
+    }, 150);
   }, [mapsReady]);
 
   // Reajustar viewport del mapa cuando se abre/cierra el sidebar
@@ -1131,6 +1666,100 @@ export default function GeocercasPage() {
     getCachedOrFreshTraccarDevices,
   ]);
 
+  const handleSyncVehiclesToTraccar = useCallback(
+    async (geofence: Geofence) => {
+      if (!geofence.geofenceID || !geofence.unconfirmedVehicleIds || geofence.unconfirmedVehicleIds.length === 0) {
+        return;
+      }
+
+      const count = geofence.unconfirmedVehicleIds.length;
+      const toastId = toast.loading(`Sincronizando ${count} vehículo(s) con Traccar...`);
+
+      try {
+        const authHeader = getTraccarAuthHeader();
+        if (!authHeader) {
+          toast.error('No se configuraron credenciales de Traccar', { id: toastId });
+          return;
+        }
+
+        const serverDevices = await getCachedOrFreshTraccarDevices(authHeader, true);
+        const targetServer = resolveAccountTraccarServer(
+          effectiveUsername,
+          serverDevices,
+          effectiveBaseUrl,
+        );
+
+        let successCount = 0;
+        const failed: string[] = [];
+
+        for (const plate of geofence.unconfirmedVehicleIds) {
+          const resolved = resolveTraccarDevice(serverDevices, plate, targetServer);
+          if (!resolved) {
+            failed.push(`${plate} (No encontrado en Traccar)`);
+            continue;
+          }
+
+          try {
+            await linkDeviceToGeofenceTraccar(
+              resolved.serverUrl,
+              resolved.deviceId,
+              geofence.geofenceID,
+              authHeader,
+            );
+            successCount++;
+          } catch (e: any) {
+            failed.push(`${plate} (${e.message || 'Error'})`);
+          }
+        }
+
+        if (successCount > 0) {
+          toast.success(`Se sincronizaron ${successCount} de ${count} vehículo(s) en Traccar exitosamente`, {
+            id: toastId,
+            duration: 6000,
+          });
+          await fetchGeocercas();
+        } else {
+          toast.error(`No se pudo sincronizar en Traccar: ${failed.join(', ')}`, {
+            id: toastId,
+            duration: 8000,
+          });
+        }
+      } catch (err: any) {
+        console.error('Error al sincronizar vehículos con Traccar:', err);
+        toast.error('Error inesperado al sincronizar con Traccar', { id: toastId });
+      }
+    },
+    [effectiveUsername, effectiveBaseUrl, getCachedOrFreshTraccarDevices, fetchGeocercas],
+  );
+
+  const handleImportTraccarVehicles = useCallback(
+    async (geofence: Geofence) => {
+      if (!geofence.numericId || !geofence.traccarOnlyVehicleIds || geofence.traccarOnlyVehicleIds.length === 0) {
+        return;
+      }
+
+      const count = geofence.traccarOnlyVehicleIds.length;
+      const toastId = toast.loading(`Importando ${count} vehículo(s) desde Traccar a la base de datos...`);
+
+      try {
+        // Directamente a la BD interna. NO llamar a Traccar permissions porque ya están vinculados en Traccar.
+        await assignVehiculosToGeocercaApi(effectiveBaseUrl, geofence.numericId, geofence.traccarOnlyVehicleIds);
+
+        toast.success(`Se importaron ${count} vehículo(s) a la BD interna exitosamente`, {
+          id: toastId,
+          duration: 6000,
+        });
+
+        await fetchGeocercas();
+      } catch (err: any) {
+        console.error('Error al importar vehículos desde Traccar:', err);
+        const msg = err?.response?.data?.message || err?.message || 'Error al importar';
+        toast.error(`Error al importar: ${msg}`, { id: toastId });
+      }
+    },
+    [effectiveBaseUrl, fetchGeocercas],
+  );
+
   const centerOnGeofence = useCallback((geofence: Geofence) => {
     const map = mapRef.current;
     setSelectedId(geofence.id);
@@ -1268,7 +1897,7 @@ export default function GeocercasPage() {
 
   return (
     <div className="relative flex h-screen w-full flex-row overflow-hidden bg-slate-100">
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="bottom-right" />
       <TrackvelLoader spinner="ring" />
 
       {/* Sidebar de Geocercas */}
@@ -1300,27 +1929,7 @@ export default function GeocercasPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 pr-2">
-            <button
-              type="button"
-              onClick={testTraccarConnection}
-              disabled={testingTraccar}
-              title="Probar conexión con servidores Traccar (:2087)"
-              className="flex items-center gap-1 rounded bg-orange-500/90 px-2 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-orange-600 transition-colors disabled:opacity-50"
-            >
-              <Radio size={12} className={testingTraccar ? 'animate-spin' : ''} />
-              <span>Probar Traccar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fetchGeocercas(true)}
-              title="Recargar geocercas"
-              className={`flex h-7 w-7 items-center justify-center rounded text-white/80 hover:bg-white/10 hover:text-white transition-colors ${
-                loadingGeofences ? 'animate-spin' : ''
-              }`}
-            >
-              <RefreshCw size={14} />
-            </button>
+          <div className="flex items-center pr-2">
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -1448,6 +2057,8 @@ export default function GeocercasPage() {
                 onSaveShape={saveShapeEdit}
                 onCancelShape={cancelShapeEdit}
                 onDelete={setPendingDelete}
+                onSyncVehiclesToTraccar={handleSyncVehiclesToTraccar}
+                onImportTraccarVehicles={handleImportTraccarVehicles}
               />
             ))
           )}
@@ -1456,20 +2067,167 @@ export default function GeocercasPage() {
 
       {/* Contenedor del Mapa */}
       <div className="relative h-full min-w-0 flex-1">
-        <div ref={mapDivRef} className="absolute inset-0" />
+        <div ref={mapDivRef} className="absolute inset-0 w-full h-full" style={{ width: '100%', height: '100%' }} />
 
-        {/* Botón flotante para abrir sidebar si está colapsado */}
-        {!sidebarOpen && (
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            title="Abrir panel de geocercas"
-            className="absolute left-4 top-4 z-20 flex items-center gap-2 rounded-lg border border-gray-200/80 bg-white/95 px-3 py-2 text-[12px] font-bold text-[#113EB9] shadow-md backdrop-blur-md transition hover:bg-blue-50"
+        {/* Barra flotante sobre el mapa (Acceso a Sidebar, Reportes, Alertas y Traccar) */}
+        <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
+          {!sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              title="Abrir panel de geocercas"
+              className="flex h-[40px] items-stretch overflow-hidden rounded-[10px] shadow-md transition-all hover:opacity-95 hover:shadow-lg"
+              style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}
+            >
+              {/* Bloque naranja: 42px de ancho, degradado de #f97316 a #ef4444, icono de 18px */}
+              <div
+                className="flex w-[42px] shrink-0 items-center justify-center"
+                style={{ background: 'linear-gradient(to right, #f97316, #ef4444)' }}
+              >
+                <Image
+                  src="/LogoWeb.png"
+                  alt="Velsat"
+                  width={18}
+                  height={18}
+                  className="h-[18px] w-[18px] object-contain"
+                />
+              </div>
+
+              {/* Línea divisoria: 2px × 20px, blanco al 45% */}
+              <div
+                className="self-center shrink-0"
+                style={{
+                  width: '2px',
+                  height: '20px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.45)',
+                }}
+              />
+
+              {/* Bloque azul: degradado de #1447c0 a #1a3fae, separación de 8px entre elementos, relleno lateral de 10px */}
+              <div
+                className="flex items-center h-full text-white"
+                style={{
+                  background: 'linear-gradient(to right, #1447c0, #1a3fae)',
+                  paddingLeft: '10px',
+                  paddingRight: '10px',
+                  gap: '8px',
+                }}
+              >
+                {/* "GEOCERCAS": 12.5px, bold (700), en mayúsculas, espaciado de letras 0.02em, color #fff */}
+                <span
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.02em',
+                    color: '#ffffff',
+                    lineHeight: 1,
+                  }}
+                >
+                  GEOCERCAS
+                </span>
+
+                {/* Contador "1": 11px, bold (700), cápsula de 18px de alto y 20px de ancho mínimo, fondo blanco al 20% */}
+                <span
+                  style={{
+                    height: '18px',
+                    minWidth: '20px',
+                    paddingLeft: '4px',
+                    paddingRight: '4px',
+                    borderRadius: '9999px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.20)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      lineHeight: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontVariantNumeric: 'tabular-nums',
+                      transform: 'translateY(-0.5px)',
+                    }}
+                  >
+                    {geofences.length}
+                  </span>
+                </span>
+
+                {/* Flecha: 15px, grosor de trazo 2.4 */}
+                <ChevronRight size={15} strokeWidth={2.4} color="#ffffff" className="shrink-0" />
+              </div>
+            </button>
+          )}
+
+          {/* Contenedor Compacto de Herramientas: Alto 40px, esquinas 10px */}
+          <div
+            className="flex h-[40px] items-center rounded-[10px] border border-slate-200/80 bg-white p-1 shadow-md gap-1"
+            style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}
           >
-            <Menu size={16} />
-            <span>Geocercas ({geofences.length})</span>
-          </button>
-        )}
+            <button
+              type="button"
+              onClick={() => {
+                setReportsModalOpen((prev) => !prev);
+                if (!reportsModalOpen) setAlertsDrawerOpen(false);
+              }}
+              title="Reportes de geocercas"
+              className={`flex h-full items-center gap-1.5 rounded-lg px-2.5 text-[11.5px] font-semibold transition-all ${
+                reportsModalOpen
+                  ? 'bg-[#113EB9] text-white shadow-2xs font-bold'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <BarChart2 size={13} className={reportsModalOpen ? 'text-white' : 'text-slate-600'} />
+              <span>Reportes</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const nextOpen = !alertsDrawerOpen;
+                setAlertsDrawerOpen(nextOpen);
+                if (nextOpen) {
+                  setReportsModalOpen(false);
+                  markSignalRAsRead();
+                  if (signalRAlerts.length === 0) {
+                    refreshSignalRAlerts();
+                  }
+                }
+              }}
+              title={`Alertas en tiempo real (SignalR: ${signalRStatus})`}
+              className={`flex h-full items-center gap-1.5 rounded-lg px-2.5 text-[11.5px] transition-all ${
+                alertsDrawerOpen || signalRUnreadCount > 0
+                  ? 'bg-[#113EB9] text-white shadow-2xs font-bold'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-semibold'
+              }`}
+            >
+              <Bell size={13} className={alertsDrawerOpen || signalRUnreadCount > 0 ? 'text-white' : 'text-slate-600'} />
+              <span>Alertas</span>
+              {signalRUnreadCount > 0 && (
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/25 px-1 text-[10px] font-bold text-white leading-none">
+                  {signalRUnreadCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={testTraccarConnection}
+              disabled={testingTraccar}
+              title="Probar conexión con servidores Traccar (:2087)"
+              className="flex h-full items-center gap-1.5 rounded-lg px-2.5 text-[11.5px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all disabled:opacity-50"
+            >
+              <Radio size={13} className={testingTraccar ? 'animate-spin text-[#FB7B0F]' : 'text-slate-600'} />
+              <span>Traccar</span>
+            </button>
+          </div>
+        </div>
 
         {!mapReady && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
@@ -1630,6 +2388,30 @@ export default function GeocercasPage() {
         message={`Se eliminará “${pendingDelete?.name}” y sus vinculaciones de vehículos. Esta acción no se puede deshacer.`}
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      {/* Drawer de Alertas en Tiempo Real (SignalR) */}
+      <RealtimeAlertsDrawer
+        open={alertsDrawerOpen}
+        onClose={() => setAlertsDrawerOpen(false)}
+        alerts={signalRAlerts}
+        unreadCount={signalRUnreadCount}
+        status={signalRStatus}
+        loading={signalRLoading}
+        onRefresh={refreshSignalRAlerts}
+        onClear={clearSignalRAlerts}
+        onLocateAlert={handleLocateAlert}
+      />
+
+      {/* Modal de Reportes de Visitas y Resumen Estadístico */}
+      <GeocercasReportsModal
+        open={reportsModalOpen}
+        onClose={() => setReportsModalOpen(false)}
+        token={sessionToken}
+        accountID={effectiveUsername}
+        geofences={geofences}
+        vehicles={vehicles}
+        onViewVisitOnMap={handleViewVisitOnMap}
       />
     </div>
   );
