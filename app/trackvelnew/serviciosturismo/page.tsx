@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import * as XLSX from 'xlsx';
+import { exportarExcelEstilizado, type ColumnaExcel } from './exportarExcel';
 import { CloudOff } from 'lucide-react';
 import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
@@ -10,11 +10,17 @@ import ModalConfirmarEliminarCarga from './ModalConfirmarEliminarCarga';
 import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
+import AlertasMensajesTurismo from './AlertasMensajesTurismo';
+import ModalDetalleMensajeTurismo from './ModalDetalleMensajeTurismo';
 import { useServiciosTurismo } from './useServiciosTurismo';
-import { isoToDdMmYyyy, calcularEstado } from './utils';
+import { useMensajesTurismo } from './useMensajesTurismo';
+import { MensajeTurismo } from './types';
+import { isoToDdMmYyyy, calcularEstado, formatFechaHoraAuditoria } from './utils';
 
 const ServiciosTurismoPage: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
+  const [mensajeAbierto, setMensajeAbierto] = useState<MensajeTurismo | null>(null);
+  const { alertas, marcarAtendida } = useMensajesTurismo();
 
   const {
     fecha,
@@ -94,43 +100,91 @@ const ServiciosTurismoPage: React.FC = () => {
 
   const handleDescargarResumen = () => {
     if (serviciosFiltrados.length === 0) return;
-    const dataExcel = serviciosFiltrados.map((s) => ({
-      Fecha: s.fechainicio || '',
-      'Hora Inicio': s.horainicio || '',
-      'Hora Retorno': s.horaretorno || '',
-      'Tipo Unidad': s.tipounidad || '',
-      Placa: s.placaCombinada || '',
-      Piloto: s.piloto || '',
-      Brevete: s.brevete || '',
-      Celular: s.celular || '',
-      Copiloto: s.copiloto || '',
-      Cliente: s.cliente || '',
-      Grupo: s.grupo || '',
-      'N° Pax': s.numpax || '',
-      Origen: s.origen || '',
-      Destino: s.destino || '',
-      'Guía Turista': s.guiaturista || '',
-      'Vuelo Cliente': s.vuelocliente || '',
-      Ejecutivo: s.ejecutivo || '',
-      Cotización: s.cotizacion || '',
-      Instrucciones: s.instrucciones || '',
-      Indicaciones: s.indicaciones || '',
-      Observaciones: s.observaciones || '',
-      Estado: calcularEstado(s),
-    }));
+    const columnas: ColumnaExcel[] = [
+      { header: '#', width: 6, align: 'center' },
+      { header: 'Fecha', width: 12, align: 'center' },
+      { header: 'Hora Inicio', width: 11, align: 'center' },
+      { header: 'Hora Retorno', width: 12, align: 'center' },
+      { header: 'Tipo Unidad', width: 16 },
+      { header: 'Placa', width: 16 },
+      { header: 'Piloto', width: 28 },
+      { header: 'Brevete', width: 14 },
+      { header: 'Celular', width: 14 },
+      { header: 'Copiloto', width: 24 },
+      { header: 'Cliente', width: 26 },
+      { header: 'Grupo', width: 20 },
+      { header: 'N° Pax', width: 8, align: 'center' },
+      { header: 'Origen', width: 26 },
+      { header: 'Destino', width: 26 },
+      { header: 'Guía Turista', width: 22 },
+      { header: 'Vuelo Cliente', width: 16 },
+      { header: 'Ejecutivo', width: 20 },
+      { header: 'Cotización', width: 14 },
+      { header: 'Instrucciones', width: 34 },
+      { header: 'Indicaciones', width: 34 },
+      { header: 'Observaciones', width: 34 },
+      { header: 'Estado', width: 26, align: 'center' },
+      { header: 'Hora Inicio (Conductor)', width: 20, align: 'center', colorTexto: 'FF15803D' },
+      { header: 'Hora Finalización', width: 20, align: 'center', colorTexto: 'FFB91C1C' },
+    ];
 
-    const ws = XLSX.utils.json_to_sheet(dataExcel);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Servicios');
-    XLSX.writeFile(
-      wb,
-      `Resumen_Servicios_Turismo_${isoToDdMmYyyy(fecha).replace(/\//g, '-')}.xlsx`,
-    );
+    const filas = serviciosFiltrados.map((s, i) => [
+      i + 1,
+      s.fechainicio || '',
+      s.horainicio || '',
+      s.horaretorno || '',
+      s.tipounidad || '',
+      s.placaCombinada || '',
+      s.piloto || '',
+      s.brevete || '',
+      s.celular || '',
+      s.copiloto || '',
+      s.cliente || '',
+      s.grupo || '',
+      s.numpax || '',
+      s.origen || '',
+      s.destino || '',
+      s.guiaturista || '',
+      s.vuelocliente || '',
+      s.ejecutivo || '',
+      s.cotizacion || '',
+      s.instrucciones || '',
+      s.indicaciones || '',
+      s.observaciones || '',
+      calcularEstado(s) as string,
+      s.horainiciado ? formatFechaHoraAuditoria(s.horainiciado) : '',
+      s.horafinalizado ? formatFechaHoraAuditoria(s.horafinalizado) : '',
+    ]);
+
+    const fechaTexto = isoToDdMmYyyy(fecha);
+    exportarExcelEstilizado([{
+      sheetName: 'Servicios',
+      titulo: `VELSAT — Resumen de Servicios Turismo · ${fechaTexto}`,
+      subtitulo: `Generado el ${new Date().toLocaleString('es-PE')}  ·  ${filas.length} servicio(s)  ·  ${totalPilotos} piloto(s)`,
+      columnas,
+      filas,
+      columnaEstado: 22,
+    }], `Resumen_Servicios_Turismo_${fechaTexto.replace(/\//g, '-')}.xlsx`);
   };
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16">
       <NotificacionesFlotantes notificaciones={notificaciones} />
+
+      <AlertasMensajesTurismo
+        alertas={alertas}
+        onAbrir={setMensajeAbierto}
+        onCerrar={marcarAtendida}
+      />
+
+      <ModalDetalleMensajeTurismo
+        mensaje={mensajeAbierto}
+        onCerrar={() => setMensajeAbierto(null)}
+        onAtender={(idmensaje) => {
+          marcarAtendida(idmensaje);
+          setMensajeAbierto(null);
+        }}
+      />
 
       <BarraFiltros
         totalServicios={serviciosFiltrados.length}
@@ -153,6 +207,9 @@ const ServiciosTurismoPage: React.FC = () => {
         deshabilitado={hayEdicionActiva}
         onConsultar={() => fetchServicios(fecha)}
         onDescargarResumen={handleDescargarResumen}
+        onReporteKilometraje={() =>
+          window.open(`/trackvelnew/serviciosturismo/reportekilometraje?fecha=${fecha}`, '_blank')
+        }
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
         claveOpcionesAvanzadas={claveOpcionesAvanzadas}

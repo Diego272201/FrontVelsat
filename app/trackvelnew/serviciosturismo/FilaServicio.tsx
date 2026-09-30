@@ -264,6 +264,13 @@ const FilaServicio: React.FC<{
 
   const estado = calcularEstado(servicio);
   const celdaEstado = ESTADOS_SERVICIO[estado];
+  const horaIniciado = servicio.horainiciado
+    ? formatFechaHoraAuditoria(servicio.horainiciado)
+    : null;
+  const horaFinalizado =
+    estado === 'Finalizado por Conductor' && servicio.horafinalizado
+      ? formatFechaHoraAuditoria(servicio.horafinalizado)
+      : null;
   const sincronizandoAlta = servicio.idservicio < 0;
 
   const mostrarDetalle = expandido || editando;
@@ -496,7 +503,13 @@ const FilaServicio: React.FC<{
               </span>
             )}
             <span
-              title={celdaEstado.titulo}
+              title={
+                horaFinalizado
+                  ? `${celdaEstado.titulo} · ${horaFinalizado}`
+                  : horaIniciado
+                    ? `${celdaEstado.titulo} · ${horaIniciado}`
+                    : celdaEstado.titulo
+              }
               className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${celdaEstado.chip}`}
             >
               {celdaEstado.icono}
@@ -750,6 +763,24 @@ const FilaServicio: React.FC<{
                       value={servicio.horaretorno}
                     />
                   </div>
+                  {(horaIniciado || horaFinalizado) && (
+                    <div className="mb-2 grid grid-cols-3 gap-2 border-b border-slate-100 pb-2">
+                      {horaIniciado && (
+                        <DetalleCampo
+                          label="Hora Inicio (conductor)"
+                          value={horaIniciado}
+                          resaltado="verde"
+                        />
+                      )}
+                      {horaFinalizado && (
+                        <DetalleCampo
+                          label="Hora Finalización"
+                          value={horaFinalizado}
+                          resaltado="rojo"
+                        />
+                      )}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     {CAMPOS_SERVICIO.map((campo) => (
                       <DetalleCampo
