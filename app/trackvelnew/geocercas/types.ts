@@ -18,6 +18,8 @@ export interface Geofence {
   radius?: number;
   path?: LatLng[];
   vehicleIds: string[];
+  unconfirmedVehicleIds?: string[];
+  traccarOnlyVehicleIds?: string[];
   createdAt: number;
 }
 

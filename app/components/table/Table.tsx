@@ -75,10 +75,16 @@ export default function App({
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]);
+          if (onDataStats) {
+            onDataStats({ total: 0, moving: 0, stopped: 0, maxSpeed: 0, lastAddress: '' });
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
         setRows([]);
+        if (onDataStats) {
+          onDataStats({ total: 0, moving: 0, stopped: 0, maxSpeed: 0, lastAddress: '' });
+        }
       } finally {
         setIsLoading(false);
       }

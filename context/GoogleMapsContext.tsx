@@ -139,15 +139,6 @@ export function GoogleMapsProvider({
   const shouldSkipGoogleMaps = disabled || usesOSM;
 
   useEffect(() => {
-    //     console.log('🔍 GoogleMapsContext DEBUG:', {
-    //   username,
-    //   servidorUrl,
-    //   forceGoogleMaps,
-    //   usesOSM,
-    //   shouldSkipGoogleMaps,
-    //   disabled
-    // });
-
     // EARLY RETURN: Si está deshabilitado o usa OSM, no hacer nada más
     if (shouldSkipGoogleMaps) {
       // if (disabled) {
