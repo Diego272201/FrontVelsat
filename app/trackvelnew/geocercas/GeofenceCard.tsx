@@ -3,17 +3,14 @@ import React from 'react';
 import {
   AlertTriangle,
   Check,
-  Circle as CircleIcon,
   Crosshair,
-  Hexagon,
   Move,
   Pencil,
   Radio,
   Trash2,
-  Truck,
   X,
 } from 'lucide-react';
-import { Geofence, Vehicle, describeShape } from './types';
+import { Geofence, Vehicle, formatDistance } from './types';
 
 interface GeofenceCardProps {
   geofence: Geofence;
@@ -31,6 +28,9 @@ interface GeofenceCardProps {
   onImportTraccarVehicles?: (geofence: Geofence) => void;
 }
 
+const actionBtn =
+  'flex h-7 w-7 items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-white/70 hover:text-[#1447c0]';
+
 export default function GeofenceCard({
   geofence,
   vehicles,
@@ -46,40 +46,81 @@ export default function GeofenceCard({
   onSyncVehiclesToTraccar,
   onImportTraccarVehicles,
 }: GeofenceCardProps) {
-  const assigned = geofence.vehicleIds
-    .map((id) => vehicles.find((v) => v.id === id) || { id, label: id, position: { lat: 0, lng: 0 } })
-    .filter((v): v is Vehicle => Boolean(v));
+  const assigned = geofence.vehicleIds.map(
+    (id) => vehicles.find((v) => v.id === id) || { id, label: id, position: { lat: 0, lng: 0 } },
+  );
+  const traccarOnly = geofence.traccarOnlyVehicleIds ?? [];
+  const totalUnits = assigned.length + traccarOnly.length;
 
-  const hasTraccarOnly = Boolean(geofence.traccarOnlyVehicleIds && geofence.traccarOnlyVehicleIds.length > 0);
+  const shapeLabel =
+    geofence.type === 'circle'
+      ? `Círculo · ${formatDistance(geofence.radius || 0)}`
+      : `Polígono · ${geofence.path?.length || 0} vértices`;
+
+  const stop = (fn: () => void) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    fn();
+  };
 
   return (
     <div
       onClick={() => onSelect(geofence.id)}
-      className={`cursor-pointer rounded-lg border p-2.5 transition ${
+      className={`cursor-pointer rounded-r-[6px] px-3 pb-3 pt-2.5 transition-colors ${
         selected
-          ? 'border-[#113EB9] bg-blue-50/60 shadow-sm'
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+          ? 'bg-[#dbe6fb] shadow-[inset_3px_0_0_#1447c0]'
+          : 'bg-[#e2e6ec] hover:bg-[#d5dae2]'
       }`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2.5">
         <span
-          className="mt-1 h-3 w-3 shrink-0 rounded-full ring-2 ring-white"
-          style={{ backgroundColor: geofence.color, boxShadow: '0 0 0 1px #e5e7eb' }}
+          className="h-3.5 w-3.5 shrink-0 rounded-full"
+          style={{
+            backgroundColor: geofence.color,
+            boxShadow: '0 0 0 2px #ffffff, 0 0 0 3px rgba(15,23,42,0.12)',
+          }}
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[12.5px] font-bold text-gray-800">{geofence.name}</p>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-gray-400">
-            {geofence.type === 'circle' ? <CircleIcon size={10} /> : <Hexagon size={10} />}
-            <span>{describeShape(geofence)}</span>
-          </div>
+          <p className="truncate text-[14px] font-bold leading-tight text-slate-900">
+            {geofence.name}
+          </p>
+          <p className="truncate text-[12px] leading-tight text-slate-500">{shapeLabel}</p>
         </div>
+
+        {!editingShape && (
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button type="button" onClick={stop(() => onCenter(geofence))} title="Centrar en el mapa" className={actionBtn}>
+              <Crosshair size={15} />
+            </button>
+            <button type="button" onClick={stop(() => onEditShape(geofence))} title="Ajustar forma en el mapa" className={actionBtn}>
+              <Move size={15} />
+            </button>
+            <button type="button" onClick={stop(() => onEditDetails(geofence))} title="Editar nombre, color y unidades" className={actionBtn}>
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={stop(() => onDelete(geofence))}
+              title="Eliminar geocerca"
+              className="flex h-7 w-7 items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1">
-        {assigned.length === 0 && !hasTraccarOnly ? (
-          <span className="text-[10.5px] italic text-gray-400">Sin unidades asignadas</span>
+      <div className="mt-2.5 border-t border-slate-900/10 pt-2">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+            Unidades asignadas
+          </span>
+          <span className="text-[11px] font-semibold tabular-nums text-slate-500">{totalUnits}</span>
+        </div>
+
+        {totalUnits === 0 ? (
+          <span className="text-[11.5px] italic text-slate-400">Sin unidades asignadas</span>
         ) : (
-          <>
+          <div className="grid grid-cols-3 gap-1">
             {assigned.map((v) => {
               const isUnconfirmed = geofence.unconfirmedVehicleIds?.includes(v.id);
               return (
@@ -90,43 +131,37 @@ export default function GeofenceCard({
                       ? `⚠️ ${v.id}: Registrado en BD interna pero NO confirmado en Traccar`
                       : `✓ ${v.id}: Confirmado en Traccar`
                   }
-                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition ${
+                  className={`flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] px-1.5 text-[12px] font-semibold ${
                     isUnconfirmed
-                      ? 'bg-amber-100 text-amber-900 border border-amber-300 ring-1 ring-amber-300/60'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-300'
+                      : 'bg-white text-[#1e3a8a]'
                   }`}
                 >
-                  {isUnconfirmed ? (
-                    <AlertTriangle size={9} className="text-amber-700 animate-pulse" />
-                  ) : (
-                    <Truck size={9} />
-                  )}
-                  <span>{v.id}</span>
                   {isUnconfirmed && (
-                    <span className="text-[9px] font-bold text-amber-700">!</span>
+                    <AlertTriangle size={11} className="shrink-0 animate-pulse text-amber-700" />
                   )}
+                  <span className="truncate">{v.id}</span>
                 </span>
               );
             })}
 
-            {geofence.traccarOnlyVehicleIds?.map((plate) => (
+            {traccarOnly.map((plate) => (
               <span
                 key={`traccar-${plate}`}
                 title={`📡 ${plate}: Vinculado en Traccar pero no registrado en BD interna (Haz clic en Importar)`}
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-blue-400 bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 ring-1 ring-blue-300/40"
+                className="flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] border border-dashed border-blue-400 bg-blue-50 px-1.5 text-[12px] font-semibold text-blue-800"
               >
-                <Radio size={9} className="text-[#113EB9] animate-pulse" />
-                <span>{plate}</span>
-                <span className="text-[9px] font-bold text-[#113EB9]">+</span>
+                <Radio size={11} className="shrink-0 animate-pulse text-[#113EB9]" />
+                <span className="truncate">{plate}</span>
               </span>
             ))}
-          </>
+          </div>
         )}
       </div>
 
-      {Boolean(geofence.unconfirmedVehicleIds && geofence.unconfirmedVehicleIds.length > 0) && (
-        <div className="mt-2 flex items-center justify-between gap-1.5 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10.5px] text-amber-800">
-          <div className="flex items-center gap-1.5 min-w-0">
+      {Boolean(geofence.unconfirmedVehicleIds?.length) && (
+        <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[5px] border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
+          <div className="flex min-w-0 items-center gap-1.5">
             <AlertTriangle size={12} className="shrink-0 text-amber-600" />
             <span className="truncate">
               {geofence.unconfirmedVehicleIds!.length} vehículo(s) sin confirmar en Traccar
@@ -135,12 +170,9 @@ export default function GeofenceCard({
           {onSyncVehiclesToTraccar && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSyncVehiclesToTraccar(geofence);
-              }}
+              onClick={stop(() => onSyncVehiclesToTraccar(geofence))}
               title="Vincular permisos en Traccar ahora"
-              className="shrink-0 rounded bg-amber-600 px-1.5 py-0.5 text-[9.5px] font-bold text-white hover:bg-amber-700 transition"
+              className="shrink-0 rounded bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white transition hover:bg-amber-700"
             >
               Sincronizar
             </button>
@@ -148,23 +180,18 @@ export default function GeofenceCard({
         </div>
       )}
 
-      {hasTraccarOnly && (
-        <div className="mt-2 flex items-center justify-between gap-1.5 rounded border border-blue-200 bg-blue-50/90 px-2 py-1 text-[10.5px] text-blue-900">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Radio size={12} className="shrink-0 text-[#113EB9] animate-pulse" />
-            <span className="truncate">
-              {geofence.traccarOnlyVehicleIds!.length} vehículo(s) en Traccar pero no en BD
-            </span>
+      {traccarOnly.length > 0 && (
+        <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[5px] border border-blue-200 bg-blue-50/90 px-2 py-1 text-[11px] text-blue-900">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Radio size={12} className="shrink-0 animate-pulse text-[#113EB9]" />
+            <span className="truncate">{traccarOnly.length} vehículo(s) en Traccar pero no en BD</span>
           </div>
           {onImportTraccarVehicles && (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onImportTraccarVehicles(geofence);
-              }}
+              onClick={stop(() => onImportTraccarVehicles(geofence))}
               title="Importar a BD interna con un clic (sin llamar a Traccar)"
-              className="shrink-0 rounded bg-[#113EB9] px-2 py-0.5 text-[9.5px] font-bold text-white hover:bg-blue-800 transition shadow-xs"
+              className="shrink-0 rounded bg-[#113EB9] px-2 py-0.5 text-[10px] font-bold text-white transition hover:bg-blue-800"
             >
               Importar
             </button>
@@ -172,80 +199,25 @@ export default function GeofenceCard({
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-1 border-t border-gray-100 pt-2">
-        {editingShape ? (
-          <>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSaveShape();
-              }}
-              className="flex flex-1 items-center justify-center gap-1 rounded-md bg-green-600 px-2 py-1 text-[10.5px] font-bold text-white transition hover:bg-green-700"
-            >
-              <Check size={12} /> Guardar forma
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCancelShape();
-              }}
-              title="Descartar cambios de forma"
-              className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-1 text-gray-600 transition hover:bg-gray-200"
-            >
-              <X size={12} />
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onCenter(geofence);
-              }}
-              title="Centrar en el mapa"
-              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-blue-50 hover:text-[#113EB9]"
-            >
-              <Crosshair size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditShape(geofence);
-              }}
-              title="Ajustar forma en el mapa"
-              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-blue-50 hover:text-[#113EB9]"
-            >
-              <Move size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditDetails(geofence);
-              }}
-              title="Editar nombre, color y unidades"
-              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-blue-50 hover:text-[#113EB9]"
-            >
-              <Pencil size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(geofence);
-              }}
-              title="Eliminar geocerca"
-              className="flex items-center justify-center rounded-md p-1.5 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
-            >
-              <Trash2 size={13} />
-            </button>
-          </>
-        )}
-      </div>
+      {editingShape && (
+        <div className="mt-2.5 flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={stop(onSaveShape)}
+            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[5px] bg-green-600 text-[12px] font-semibold text-white transition hover:bg-green-700"
+          >
+            <Check size={14} /> Guardar forma
+          </button>
+          <button
+            type="button"
+            onClick={stop(onCancelShape)}
+            title="Descartar cambios de forma"
+            className="flex h-8 w-8 items-center justify-center rounded-[5px] bg-white text-slate-600 transition hover:bg-slate-100"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

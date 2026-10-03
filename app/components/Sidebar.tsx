@@ -4,8 +4,8 @@ import { GrFormNext } from 'react-icons/gr';
 import { TbView360 } from 'react-icons/tb';
 import { Search, X } from 'lucide-react';
 import '@/app/styles/sidebar.css';
-import Unidad from './Unidad';
 import axios from 'axios';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
@@ -26,6 +26,13 @@ interface UnidadData {
   lastValidSpeed: number;
   lastValidLatitude: number;
   lastValidLongitude: number;
+}
+
+function getColorBySpeed(speed: number): string {
+  if (speed < 1) return '#FF0000';
+  if (speed <= 20) return '#f69300';
+  if (speed <= 45) return '#319602';
+  return '#0066FF';
 }
 
 export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sharedDeviceList }: SidebarProps) {
@@ -68,8 +75,7 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sh
           deviceId: item.DeviceId || item.deviceId || '',
           lastValidSpeed: item.LastValidSpeed || item.lastValidSpeed || 0,
           lastValidLatitude: item.LastValidLatitude || item.lastValidLatitude || 0,
-          lastValidLongitude: item.LastValidLongitude || item.lastValidLongitude || 0,
-        }));
+          lastValidLongitude: item.LastValidLongitude || item.lastValidLongitude || 0,        }));
         
         setUnidades(unidadesFormateadas);
         setIsLoading(false);
@@ -283,94 +289,45 @@ const filteredUnidades = useMemo(() => {
             </div>
           </div>
 
-          <div className="search">
-            <div className="iconS">
-              <Search className="iconSearch" size={17} />
-            </div>
+          <div className="sb2-search">
+            <Search className="sb2-search-icon" size={15} />
             <input
-              className="input"
+              className="sb2-search-input"
               type="text"
-              placeholder="Buscar Unidad"
+              placeholder="Buscar unidad"
               value={searchTerm}
               onChange={handleSearchChange}
-              style={{ borderRadius: '4px' }}
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-800 hover:text-black p-1 transition-colors z-10"
+                className="sb2-search-clear"
                 title="Limpiar búsqueda"
               >
-                <X size={15} />
+                <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Filtros rápidos por estado */}
-          <div className="flex items-center gap-1 px-1.5 pt-2 pb-0.5 text-[11px]">
-            <button
-              type="button"
-              onClick={() => setFiltroMovimiento('todos')}
-              className={`w-[76px] shrink-0 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
-                filtroMovimiento === 'todos'
-                  ? 'bg-[#113EB9] text-white font-bold shadow-xs'
-                  : 'bg-gray-300 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              <span className="whitespace-nowrap">Todas</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
-                  filtroMovimiento === 'todos'
-                    ? 'bg-white/20 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
+          <div className="sb2-tabs">
+            {(
+              [
+                { key: 'todos', label: 'Todas', count: metricas.total },
+                { key: 'movimiento', label: 'En marcha', count: metricas.movimiento },
+                { key: 'detenidas', label: 'Detenidas', count: metricas.detenidas },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setFiltroMovimiento(tab.key)}
+                className={`sb2-tab ${filtroMovimiento === tab.key ? 'sb2-tab-active' : ''}`}
               >
-                {metricas.total}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setFiltroMovimiento('movimiento')}
-              className={`flex-1 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
-                filtroMovimiento === 'movimiento'
-                  ? 'bg-green-700 text-white font-bold shadow-xs'
-                  : 'bg-gray-300 text-gray-800 hover:bg-green-50 hover:text-green-800'
-              }`}
-            >
-              <span className="whitespace-nowrap">En marcha</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
-                  filtroMovimiento === 'movimiento'
-                    ? 'bg-white/10 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {metricas.movimiento}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setFiltroMovimiento('detenidas')}
-              className={`flex-1 py-1.5 px-1 rounded text-center transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
-                filtroMovimiento === 'detenidas'
-                  ? 'bg-red-600 text-white font-bold shadow-xs'
-                  : 'bg-gray-300 text-gray-800 hover:bg-red-50 hover:text-red-800'
-              }`}
-            >
-              <span className="whitespace-nowrap">Detenidas</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold tabular-nums shrink-0 ${
-                  filtroMovimiento === 'detenidas'
-                    ? 'bg-white/10 text-white'
-                    : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {metricas.detenidas}
-              </span>
-            </button>
+                {tab.label}
+                <span className="sb2-tab-count">{tab.count}</span>
+              </button>
+            ))}
           </div>
 
           {username === 'sedapal' && (
@@ -379,9 +336,12 @@ const filteredUnidades = useMemo(() => {
             </div>
           )}
 
-          <div
-            className="unidadesScroll mt-2 flex-1 min-h-0 overflow-y-auto pb-0 pr-0.5"
-          >
+          <div className="sb2-colhead">
+            <span>Placa</span>
+            <span>Vel</span>
+          </div>
+
+          <div className="unidadesScroll sb2-list flex-1 min-h-0 overflow-y-auto">
             {idLoading ? (
               <div className="h-[400px] flex items-center justify-center w-full">
                 <Spinner />
@@ -397,22 +357,44 @@ const filteredUnidades = useMemo(() => {
                 </p>
               </div>
             ) : (
-              <>
-                {filteredUnidades.map((unidad) => (
-                  <Unidad
+              filteredUnidades.map((unidad) => {
+                const codigo = unidad.deviceId.toUpperCase();
+                const speed = Math.round(unidad.lastValidSpeed);
+                return (
+                  <button
                     key={unidad.deviceId}
-                    codigoUnidad={unidad.deviceId.toUpperCase()}
-                    velocidad={unidad.lastValidSpeed}
-                    latitud={unidad.lastValidLatitude}
-                    longitud={unidad.lastValidLongitude}
-                    onSelectUnit={handleSelectUnit}
-                    lastCheckedId={lastCheckedId}
-                    onCheckboxChange={handleCheckboxChange}
-                    username={username}
-                  />
-                ))}
-                <div className="h-2 shrink-0" />
-              </>
+                    type="button"
+                    className={`sb2-row ${lastCheckedId === codigo ? 'sb2-row-active' : ''}`}
+                    onClick={() => {
+                      handleCheckboxChange(codigo);
+                      handleSelectUnit(
+                        {
+                          latitud: unidad.lastValidLatitude,
+                          longitud: unidad.lastValidLongitude,
+                        },
+                        codigo,
+                      );
+                    }}
+                    title={`Clic para centrar ${codigo}`}
+                  >
+                    <span
+                      className="sb2-dot"
+                      style={{ backgroundColor: getColorBySpeed(unidad.lastValidSpeed) }}
+                    />
+                    <Image
+                      src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
+                      alt=""
+                      width={44}
+                      height={24}
+                      className="sb2-car"
+                    />
+                    <span className="sb2-plate">{codigo}</span>
+                    <span className={`sb2-speed ${speed >= 1 ? 'sb2-speed-moving' : ''}`}>
+                      {speed}km/h
+                    </span>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

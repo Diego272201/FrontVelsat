@@ -77,11 +77,25 @@ function getAuthHeaders(_token?: string) {
   };
 }
 
-// Helper para convertir fechas a ISO 8601 (ej: '2026-09-01T00:00:00Z')
+// Helper para convertir fechas a ISO 8601 con soporte para horas (ej: '2026-09-01T00:00:00Z')
 function toIsoDate(dateStr?: string, isEnd = false): string | undefined {
   if (!dateStr || !dateStr.trim()) return undefined;
-  if (dateStr.includes('T')) return dateStr;
-  return isEnd ? `${dateStr}T23:59:59Z` : `${dateStr}T00:00:00Z`;
+  const trimmed = dateStr.trim();
+  if (trimmed.includes('T')) {
+    // Formato datetime-local HTML: YYYY-MM-DDTHH:mm (16 caracteres)
+    if (trimmed.length === 16) {
+      return isEnd ? `${trimmed}:59Z` : `${trimmed}:00Z`;
+    }
+    // Formato con segundos sin zona: YYYY-MM-DDTHH:mm:ss (19 caracteres)
+    if (trimmed.length === 19) {
+      return `${trimmed}Z`;
+    }
+    if (!trimmed.endsWith('Z') && !trimmed.includes('+')) {
+      return `${trimmed}Z`;
+    }
+    return trimmed;
+  }
+  return isEnd ? `${trimmed}T23:59:59Z` : `${trimmed}T00:00:00Z`;
 }
 
 /**

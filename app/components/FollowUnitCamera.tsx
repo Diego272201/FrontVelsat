@@ -1,6 +1,14 @@
 'use client';
 import React, { useMemo, useRef, useState } from 'react';
-import { Camera, ChevronDown, ChevronUp, ExternalLink, X } from 'lucide-react';
+import {
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Maximize,
+  Minimize,
+  X,
+} from 'lucide-react';
 
 interface DeviceData {
   deviceId: string;
@@ -39,6 +47,7 @@ export default function FollowUnitCamera({
   onToggleMinimize,
 }: FollowUnitCameraProps) {
   const [internalMinimized, setInternalMinimized] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const isMinimized =
     controlledMinimized !== undefined ? controlledMinimized : internalMinimized;
 
@@ -138,64 +147,77 @@ export default function FollowUnitCamera({
     window.open(url, '_blank');
   };
 
+  const headerBtn =
+    'flex h-[26px] w-[26px] items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900';
+
   return (
     <aside
       aria-label="Cámara fija de unidad"
-      className="fixed bottom-4 right-4 z-[990] select-none rounded-md  transition-all duration-200 overflow-hidden w-[340px] max-w-[calc(100vw-32px)]"
-      style={{ backgroundColor: '#113EB9' }}
+      className={`fixed bottom-4 right-4 z-[990] select-none overflow-hidden rounded-lg bg-white shadow-[0_2px_6px_rgba(15,23,42,0.12),0_12px_28px_rgba(15,23,42,0.18)] transition-[width] duration-200 max-w-[calc(100vw-32px)] ${
+        isExpanded ? 'w-[560px]' : 'w-[340px]'
+      }`}
+      style={{ fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif" }}
     >
-      {/* Cabecera superior interactiva en el azul del topbar (#113EB9) sin sombra */}
-      <div className="flex items-center justify-between bg-[#fff] px-3 py-1">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Camera className="h-4 w-4 text-gray-800 flex-shrink-0" />
+      <div className="flex h-[36px] items-center gap-2 border-b border-slate-200 bg-slate-50 pl-3 pr-1.5">
+        <span className="flex-1 truncate text-[13px] font-semibold tracking-[0.01em] text-slate-900">
+          {device.deviceId.toUpperCase()}
+        </span>
 
-  <span className="font-bold text-[11px] tracking-wider text-gray-800 uppercase truncate">
-  {device.deviceId} - {speed} <span className="normal-case">km/h</span>
-</span>
+        <span className="flex-shrink-0 text-[12px] tabular-nums text-slate-500">
+          <span className="font-semibold text-slate-900">{speed}</span> km/h
+        </span>
 
-          {/* Velocidad sin borde */}
-  
-        </div>
+        <span className="mx-0.5 h-[18px] w-px flex-shrink-0 bg-slate-200" />
 
-        {/* Botones de acción */}
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-          {/* Abrir en ventana separada */}
+        <div className="flex flex-shrink-0 items-center gap-0.5">
+          {!isMinimized && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              title={isExpanded ? 'Tamaño normal' : 'Agrandar visor'}
+              className={`${headerBtn} ${isExpanded ? 'bg-slate-200 text-slate-900' : ''}`}
+            >
+              {isExpanded ? <Minimize size={14} /> : <Maximize size={14} />}
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleOpenFullFollow}
             title="Abrir seguimiento en nueva pestaña"
-            className="rounded p-1 text-gray-800/80 hover:bg-gray-800/20 hover:text-gray-800 transition-colors"
+            className={headerBtn}
           >
-            <ExternalLink size={13} />
+            <ExternalLink size={14} />
           </button>
 
-          {/* Minimizar / Expandir */}
           <button
             type="button"
             onClick={handleToggleMinimize}
-            title={isMinimized ? 'Expandir visor' : 'Minimizar visor'}
-            className="rounded p-1 text-gray-800/80 hover:bg-gray-800/20 hover:text-gray-800 transition-colors"
+            title={isMinimized ? 'Mostrar visor' : 'Minimizar visor'}
+            className={headerBtn}
           >
-            {isMinimized ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {isMinimized ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
 
-          {/* Cerrar / Detener seguimiento */}
           <button
             type="button"
             onClick={onClose}
             title="Detener cámara fija y cerrar"
-            className="rounded p-1 text-gray-800/80 hover:bg-red-600 hover:text-white transition-colors"
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-red-600 hover:text-white"
           >
-            <X size={14} />
+            <X size={15} />
           </button>
         </div>
       </div>
 
-      {/* Cuerpo con Street View cuando está expandido */}
       {!isMinimized && (
         <>
-          {/* Contenedor con overflow hidden que recorta la tarjeta de dirección superior y los controles de zoom laterales */}
-          <div className="relative w-full h-[200px] bg-neutral-900 overflow-hidden">
+          {/* overflow hidden recorta la tarjeta de dirección, los controles laterales y la franja inferior del embed */}
+          <div
+            className={`relative w-full bg-neutral-900 overflow-hidden transition-[height] duration-200 ${
+              isExpanded ? 'h-[320px]' : 'h-[200px]'
+            }`}
+          >
             {/* Iframe actual (permanece visible mientras el nuevo carga para evitar pantalla negra) */}
             {currentUrl && (
               <iframe
@@ -206,7 +228,7 @@ export default function FollowUnitCamera({
                   top: '-95px',
                   left: '0',
                   width: 'calc(100% + 60px)',
-                  height: 'calc(100% + 95px)',
+                  height: 'calc(100% + 111px)',
                   border: 0,
                   zIndex: 1,
                   opacity: 1,
@@ -229,7 +251,7 @@ export default function FollowUnitCamera({
                   top: '-95px',
                   left: '0',
                   width: 'calc(100% + 60px)',
-                  height: 'calc(100% + 95px)',
+                  height: 'calc(100% + 111px)',
                   border: 0,
                   zIndex: 2,
                   opacity: incomingReady ? 1 : 0,

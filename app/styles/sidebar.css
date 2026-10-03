@@ -178,3 +178,205 @@ label[id^='label'] {
 .lista-carros {
   margin-bottom: 3px;
 }
+
+/* ==========================================================================
+   SIDEBAR v2 — buscador, pestañas y lista de unidades
+   ========================================================================== */
+.sb2-search,
+.sb2-tabs,
+.sb2-colhead,
+.sb2-list {
+  font-family: 'IBM Plex Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.sb2-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 6px 6px 0;
+}
+
+.sb2-search-icon {
+  position: absolute;
+  left: 11px;
+  color: #3f2d00;
+  pointer-events: none;
+}
+
+.sb2-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 30px 0 32px;
+  border-radius: 6px;
+  border: 1px solid #e59a00;
+  background-color: #ffaa00;
+  color: #212529;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sb2-search-input::placeholder {
+  color: #3f2d00;
+  opacity: 0.85;
+  font-weight: 500;
+}
+
+.sb2-search-input:focus {
+  background-color: #ffb733;
+  border-color: #113eb9;
+}
+
+.sb2-search-clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  color: #3f2d00;
+}
+
+.sb2-search-clear:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.sb2-tabs {
+  display: flex;
+  gap: 14px;
+  padding: 0 10px;
+  margin-top: 2px;
+  border-bottom: 1px solid #e5e9f0;
+}
+
+.sb2-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 0 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.sb2-tab:hover {
+  color: #334155;
+}
+
+.sb2-tab-count {
+  font-weight: 500;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb2-tab-active {
+  color: #113eb9;
+  font-weight: 700;
+}
+
+.sb2-tab-active .sb2-tab-count {
+  color: #64748b;
+}
+
+.sb2-tab-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background-color: #113eb9;
+}
+
+.sb2-colhead {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 12px 4px 24px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e5e9f0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.sb2-list {
+  background-color: #ffffff;
+  padding-top: 3px;
+}
+
+.sb2-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  margin-bottom: 3px;
+  padding: 0 10px 0 14px;
+  border: none;
+  border-radius: 0 5px 5px 0;
+  background-color: #e2e6ec;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.sb2-row:hover {
+  background-color: #d5dae2;
+}
+
+.sb2-row-active,
+.sb2-row-active:hover {
+  background-color: #dbe6fb;
+  box-shadow: inset 3px 0 0 #1447c0;
+}
+
+.sb2-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sb2-car {
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.sb2-plate {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e3a8a;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb2-speed {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb2-speed-moving {
+  color: #111827;
+  font-weight: 500;
+}

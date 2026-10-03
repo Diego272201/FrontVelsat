@@ -11,6 +11,7 @@ import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import ExpiryAlerts from '../components/ExpiryAlerts';
 import FollowUnitCamera from '../components/FollowUnitCamera';
+import ShareUnitDrawer from '../components/ShareUnitDrawer';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
@@ -75,6 +76,10 @@ const COLOR_MAP: Record<string, string> = {
 
 function extractColor(colorClass: string, fallback = '#fca311'): string {
   return COLOR_MAP[colorClass] || fallback;
+}
+
+function formatKm(value: number): string {
+  return value.toLocaleString('en-US', { maximumFractionDigits: 1 });
 }
 
 function extractTextColor(textColorClass: string): string {
@@ -192,6 +197,7 @@ export default function RequestPage() {
 
   const { data: session, status } = useSession();
   const [deviceList, setDeviceList] = useState<DeviceList[]>([]);
+  const [shareDeviceId, setShareDeviceId] = useState<string | null>(null);
   const markersDataRef = useRef<{ [key: string]: MarkerData }>({});
   const { isLoaded } = useGoogleMaps();
   const {
@@ -240,6 +246,17 @@ export default function RequestPage() {
   const globalClockIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const fontId = 'pv2-popup-fonts';
+    if (document.getElementById(fontId)) return;
+    const link = document.createElement('link');
+    link.id = fontId;
+    link.rel = 'stylesheet';
+    link.href =
+      'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap';
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
     globalClockIntervalRef.current = setInterval(() => {
       const now = new Date();
       const day = String(now.getDate()).padStart(2, '0');
@@ -248,11 +265,11 @@ export default function RequestPage() {
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
-      const html = `<strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}`;
+      const text = `${day}/${month}/${year} · ${hours}:${minutes}:${seconds}`;
 
       const elements = document.querySelectorAll('[id^="fecha-"]');
       elements.forEach((el) => {
-        el.innerHTML = html;
+        el.textContent = text;
       });
     }, 1000);
 
@@ -792,9 +809,7 @@ export default function RequestPage() {
         device.lastOdometerKM != null &&
         device.odometerini != null &&
         device.kmini != null
-          ? Math.round(
-              device.lastOdometerKM - device.odometerini + device.kmini,
-            )
+          ? device.lastOdometerKM - device.odometerini + device.kmini
           : 0;
 
       const isMovilbusUser = session?.user?.username === 'movilbus';
@@ -821,72 +836,104 @@ export default function RequestPage() {
       const safeDeviceId = sanitize(device.deviceId);
       const safeDireccion = sanitize(device.direccion);
       const isFollowed = device.deviceId === followedDeviceIdRef.current;
+      const kmValue = isMovilbusUser ? formatKm(kilometraje) : '—';
 
       return `
-            <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} text-[12px] flex flex-col w-[290px] rounded border ${colorScheme.popup2.borderColor}" id="content2-${safeDeviceId}">
-              <h3 class="popup-title font-bold flex items-center justify-between" style="border-bottom: 1px solid #4b5563; background-color: #1f2937; color: #ffffff; font-size: 11px;">
-                <div style="display: flex; align-items: center; gap: 4px;">
-                  <button id="close-btn-${safeDeviceId}" class="popup-close-btn text-sm color-red">X</button>
-                  <span style="font-weight: 700;">${safeDeviceId.toUpperCase()}</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
+            <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} pv2-popup border ${colorScheme.popup2.borderColor}" id="content2-${safeDeviceId}" style="--pv2-tint: ${extractColor(colorScheme.popup2.bgColor, '#1f2937')};">
+              <div class="pv2-card">
+                <div class="pv2-header">
+                  <button id="close-btn-${safeDeviceId}" class="pv2-close-btn">X</button>
+                  <span class="pv2-plate">${safeDeviceId.toUpperCase()}</span>
+                  <div class="pv2-online">
+                    <span class="pv2-online-dot-wrap">
+                      <span class="pv2-online-halo"></span>
+                      <span class="pv2-online-dot"></span>
+                    </span>
+                    <span class="pv2-online-text">Online</span>
+                  </div>
+                  <span class="pv2-divider"></span>
                   <button
                     type="button"
                     id="camera-btn-${safeDeviceId}"
-                    class="camera-track-btn"
+                    class="camera-track-btn pv2-cam-btn${isFollowed ? ' pv2-cam-btn-active' : ''}"
                     data-device-id="${safeDeviceId}"
                     title="${isFollowed ? 'Desactivar cámara fija' : 'Fijar cámara en este vehículo'}"
-                    style="background-color: ${isFollowed ? '#16a34a' : '#374151'}; color: ${isFollowed ? '#ffffff' : '#9ca3af'}; border: 1px solid ${isFollowed ? '#22c55e' : '#4b5563'}; border-radius: 4px; width: 26px; height: 22px; padding: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
                       <circle cx="12" cy="13" r="3"/>
                     </svg>
                   </button>
-                  <div class="radar-container">
-                    <div class="radar-point"></div>
-                    <div class="radar-wave radar-wave-1"></div>
-                    <div class="radar-wave radar-wave-2"></div>
-                    <div class="radar-wave radar-wave-3"></div>
-                  </div>
-                  <span style="font-size: 12px; color: #38b000; font-weight: 600;">Online</span>
                 </div>
-              </h3>
 
-              ${conductor ? `<p class="px-2"><strong>Conductor:</strong> <span class="conductor-value">${conductor}</span></p>` : ''}
-              ${servicioCompleto ? `<p class="px-2"><strong>Servicio Actual:</strong> <span class="servicio-value">${servicioCompleto}</span></p><br>` : ''}
+                <div class="pv2-body">
+                  ${conductor || servicioCompleto ? `
+                  <div class="pv2-meta">
+                    ${conductor ? `<p class="pv2-meta-row"><span class="pv2-meta-label">Conductor</span><span class="pv2-meta-value conductor-value">${conductor}</span></p>` : ''}
+                    ${servicioCompleto ? `<p class="pv2-meta-row"><span class="pv2-meta-label">Servicio Actual</span><span class="pv2-meta-value servicio-value">${servicioCompleto}</span></p>` : ''}
+                  </div>` : ''}
 
-              <p class="px-2"><strong>Velocidad:</strong> <span class="speed-value">${Math.round(device.lastValidSpeed)} Km/h</span></p>
-              <p class="px-2"><strong>Estado:</strong> <span class="state-value">${getEstado(device.lastValidSpeed)}</span></p>
-              ${isMovilbusUser ? `<p class="px-2"><strong>Kilometraje:</strong> <span class="kilometraje-value">${kilometraje.toFixed(0)} Km</span></p>` : ''}
-              <br>
+                  <div class="pv2-stats">
+                    <div class="pv2-stat">
+                      <span class="pv2-stat-label">Velocidad</span>
+                      <span class="pv2-stat-value"><span class="speed-value">${Math.round(device.lastValidSpeed)}</span><span class="pv2-stat-unit">km/h</span></span>
+                    </div>
+                    <div class="pv2-stat">
+                      <span class="pv2-stat-label">Estado</span>
+                      <span class="pv2-stat-value state-value">${getEstado(device.lastValidSpeed)}</span>
+                    </div>
+                    <div class="pv2-stat">
+                      <span class="pv2-stat-label">Km</span>
+                      <span class="pv2-stat-value kilometraje-value">${kmValue}</span>
+                    </div>
+                  </div>
 
-              <h4 class="px-2 font-bold uppercase" style="#fff">Último Reporte</h4>
-              <p class="px-2" id="fecha-${safeDeviceId}">
-                <strong>Fecha:</strong> ${day}/${month}/${year} <strong>Hora:</strong> ${hours}:${minutes}:${seconds}
-              </p>        
-              <span class="px-2"><strong>Dirección:</strong> <span class="direction-value">${getDireccion(device.lastValidHeading)}</span></span>
-              <span class="px-2"><strong>Ubicación:</strong> <span class="location-value">${safeDireccion}</span></span>
-              <div style="display: flex; padding: 12px 8px 12px 8px; gap: 8px;">
+                  <div class="pv2-report">
+                    <span class="pv2-report-heading">Último reporte</span>
+                    <div class="pv2-report-row">
+                      <span class="pv2-report-label">Fecha</span>
+                      <span class="pv2-report-value" id="fecha-${safeDeviceId}">${day}/${month}/${year} · ${hours}:${minutes}:${seconds}</span>
+                    </div>
+                    <div class="pv2-report-row">
+                      <span class="pv2-report-label">Dirección</span>
+                      <span class="pv2-report-value direction-value">${getDireccion(device.lastValidHeading)}</span>
+                    </div>
+                    <div class="pv2-report-row">
+                      <span class="pv2-report-label">Ubicación</span>
+                      <span class="pv2-report-value location-value">${safeDireccion}</span>
+                    </div>
+                  </div>
 
-              <a href="" class="street-view-link" style="width: 50% !important; height: 32px !important; background-color: ${isMovilbusUser ? '#6b7280' : '#c2410c'} !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" ${isMovilbusUser ? '' : `onmouseover="this.style.backgroundColor='#c2410c'" onmouseout="this.style.backgroundColor='#ea580c'"`} data-lat="${device.lastValidLatitude}" data-lng="${device.lastValidLongitude}">
-                <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                </svg>
-                <span>Vista 3D</span>
-              </a>
+                  <div class="pv2-actions">
+                    <a href="" class="follow-link pv2-btn-primary" data-device-id="${device.deviceId}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <span>Seguir unidad</span>
+                    </a>
 
-              <a href="" class="follow-link" style="width: 50% !important; height: 32px !important; background-color: #2563eb !important; color: white !important; padding: 6px 8px !important; border-radius: 4px !important; text-align: center !important; text-decoration: none !important; display: flex !important; align-items: center !important; justify-content: center !important; transition: background-color 0.3s !important; font-size: 11px !important; margin: 0 !important;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'" data-device-id="${device.deviceId}">
-                <svg style="width: 14px; height: 14px; margin-right: 3px;" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg> 
-              <span style="color: white; font-weight: bold; font-size: 11px;">Seguir Unidad</span>
-              </a>
+                    <a href="" class="street-view-link pv2-btn-icon" title="Vista 3D" data-lat="${device.lastValidLatitude}" data-lng="${device.lastValidLongitude}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                      </svg>
+                    </a>
 
+                    <a href="" class="share-link pv2-btn-icon" title="Compartir" data-device-id="${safeDeviceId}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
           `;
     },
     [getEstado, getDireccion, getColorScheme],
@@ -897,9 +944,7 @@ export default function RequestPage() {
       const btnDeviceId = btn.getAttribute('data-device-id');
       const isFollowed = btnDeviceId === activeId;
       const btnEl = btn as HTMLElement;
-      btnEl.style.backgroundColor = isFollowed ? '#16a34a' : '#374151';
-      btnEl.style.color = isFollowed ? '#ffffff' : '#e2e8f0';
-      btnEl.style.borderColor = isFollowed ? '#22c55e' : '#4b5563';
+      btnEl.classList.toggle('pv2-cam-btn-active', isFollowed);
       btnEl.title = isFollowed
         ? 'Desactivar cámara fija'
         : 'Fijar cámara en este vehículo';
@@ -940,6 +985,8 @@ export default function RequestPage() {
 
       const content2 = document.createElement('div');
       content2.innerHTML = getOptimizedPopupContent(device);
+      content2.style.padding = '0';
+      content2.style.overflow = 'visible';
 
       const popup2Element = content2.firstElementChild as HTMLElement;
       if (popup2Element) {
@@ -1088,6 +1135,7 @@ export default function RequestPage() {
 
             const bgColor = extractColor(colorScheme.popup2.bgColor, '#1f2937');
             const borderColor = extractColor(colorScheme.popup2.borderColor, '#1f2937');
+            popupElement.style.setProperty('--pv2-tint', bgColor);
 
             if (shouldBlink) {
               startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
@@ -1113,6 +1161,7 @@ export default function RequestPage() {
         } else {
           const bgColor = extractColor(colorScheme.popup2.bgColor, '#1f2937');
           const borderColor = extractColor(colorScheme.popup2.borderColor, '#1f2937');
+          popupElement.style.setProperty('--pv2-tint', bgColor);
 
           if (shouldBlink) {
             startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
@@ -1128,16 +1177,8 @@ export default function RequestPage() {
         const cameraBtn = popupElement.querySelector('.camera-track-btn') as HTMLElement;
         if (cameraBtn) {
           const isFollowed = device.deviceId === followedDeviceIdRef.current;
-          cameraBtn.style.backgroundColor = isFollowed ? '#16a34a' : '#374151';
-          cameraBtn.style.color = isFollowed ? '#ffffff' : '#9ca3af';
-          cameraBtn.style.borderColor = isFollowed ? '#22c55e' : '#4b5563';
+          cameraBtn.classList.toggle('pv2-cam-btn-active', isFollowed);
           cameraBtn.title = isFollowed ? 'Desactivar cámara fija' : 'Fijar cámara en este vehículo';
-          cameraBtn.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-              <circle cx="12" cy="13" r="3"/>
-            </svg>
-          `;
         }
 
         const speedElement = popupElement.querySelector('.speed-value');
@@ -1153,7 +1194,7 @@ export default function RequestPage() {
           popupElement.querySelector('.servicio-value');
 
         if (speedElement)
-          speedElement.textContent = `${Math.round(device.lastValidSpeed)} Km/h`;
+          speedElement.textContent = `${Math.round(device.lastValidSpeed)}`;
         if (stateElement)
           stateElement.textContent = getEstado(device.lastValidSpeed);
         if (directionElement)
@@ -1173,7 +1214,7 @@ export default function RequestPage() {
         if (kilometrajeElement && isMovilbusUser) {
           const kilometraje =
             device.lastOdometerKM - device.odometerini + device.kmini;
-          kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
+          kilometrajeElement.textContent = formatKm(kilometraje);
         }
 
         if (device.ultimoServicio !== null) {
@@ -1221,6 +1262,21 @@ export default function RequestPage() {
     },
     [openStreetView],
   );
+
+  const closeShareDrawer = useCallback(() => setShareDeviceId(null), []);
+
+  const handleShareClick = useCallback((e: MouseEvent) => {
+    if (typeof window === 'undefined') return;
+
+    const target = e.target as HTMLElement;
+    const shareLink = target.closest('.share-link');
+
+    if (shareLink) {
+      e.preventDefault();
+      const deviceId = shareLink.getAttribute('data-device-id');
+      if (deviceId) setShareDeviceId(deviceId);
+    }
+  }, []);
 
   const handleFollowLinkClick = useCallback((e: MouseEvent) => {
     if (typeof window === 'undefined') return;
@@ -1292,6 +1348,7 @@ export default function RequestPage() {
 
       document.addEventListener('click', handleFollowLinkClick, eventOptions);
       document.addEventListener('click', handleStreetViewClick, eventOptions);
+      document.addEventListener('click', handleShareClick, eventOptions);
       document.addEventListener('click', handleCameraTrackClick, eventOptions);
       clickListenerAttached.current = true;
     }
@@ -1315,13 +1372,23 @@ export default function RequestPage() {
         );
         document.removeEventListener(
           'click',
+          handleShareClick,
+          eventOptions,
+        );
+        document.removeEventListener(
+          'click',
           handleCameraTrackClick,
           eventOptions,
         );
         clickListenerAttached.current = false;
       }
     };
-  }, [handleFollowLinkClick, handleStreetViewClick, handleCameraTrackClick]);
+  }, [
+    handleFollowLinkClick,
+    handleStreetViewClick,
+    handleShareClick,
+    handleCameraTrackClick,
+  ]);
 
   const centerMap = useCallback(() => {
     if (mapRef.current) {
@@ -1492,6 +1559,12 @@ export default function RequestPage() {
       />
 
       <ExpiryAlerts />
+
+      <ShareUnitDrawer
+        deviceId={shareDeviceId}
+        username={session?.user?.username || ''}
+        onClose={closeShareDrawer}
+      />
 
       {followedDevice && (
         <FollowUnitCamera

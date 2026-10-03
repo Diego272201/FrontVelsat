@@ -24,6 +24,8 @@ import {
   Search,
   Undo2,
   X,
+  Check,
+  Copy,
   RefreshCw,
   Radio,
 } from 'lucide-react';
@@ -104,6 +106,7 @@ interface PendingShape {
 interface ShapeEntry {
   type: ShapeType;
   overlay: google.maps.Circle | google.maps.Polygon;
+  labelMarker?: google.maps.Marker | null;
 }
 
 interface DrawDraft {
@@ -111,6 +114,10 @@ interface DrawDraft {
   points: LatLng[];
   preview: google.maps.Circle | google.maps.Polygon | null;
   vertexMarkers: google.maps.Marker[];
+  radiusLine?: google.maps.Polyline | null;
+  radiusHandle?: google.maps.Marker | null;
+  distanceMarker?: google.maps.Marker | null;
+  isRadiusFixed?: boolean;
 }
 
 export default function GeocercasPage() {
@@ -164,7 +171,28 @@ export default function GeocercasPage() {
 
   const alertMarkerRef = useRef<google.maps.Marker | null>(null);
   const alertInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [activeAlertOnMap, setActiveAlertOnMap] = useState<RealtimeGeofenceAlert | null>(null);
   const visitMarkersRef = useRef<google.maps.Marker[]>([]);
+  const visitOverlaysRef = useRef<google.maps.OverlayView[]>([]);
+  const visitPolylineRef = useRef<google.maps.Polyline | null>(null);
+
+  // Limpiar marcador de auto y popup de alerta del mapa
+  const handleClearAlertMarker = useCallback(() => {
+    if (alertTimeoutRef.current) {
+      clearTimeout(alertTimeoutRef.current);
+      alertTimeoutRef.current = null;
+    }
+    if (alertMarkerRef.current) {
+      alertMarkerRef.current.setMap(null);
+      alertMarkerRef.current = null;
+    }
+    if (alertInfoWindowRef.current) {
+      alertInfoWindowRef.current.close();
+      alertInfoWindowRef.current = null;
+    }
+    setActiveAlertOnMap(null);
+  }, []);
 
   // Centrar mapa en alerta en tiempo real con icono de auto (/UnidadK.webp) y popup detallado
   const handleLocateAlert = useCallback(
@@ -176,6 +204,19 @@ export default function GeocercasPage() {
       const map = mapRef.current;
       if (!map || typeof google === 'undefined' || !google.maps) return;
 
+      // Limpiar marcas previas de alerta
+      handleClearAlertMarker();
+
+      // Limpiar marcas previas de visitas si las hubiera
+      visitMarkersRef.current.forEach((m) => m.setMap(null));
+      visitMarkersRef.current = [];
+      visitOverlaysRef.current.forEach((o) => o.setMap(null));
+      visitOverlaysRef.current = [];
+      if (visitPolylineRef.current) {
+        visitPolylineRef.current.setMap(null);
+        visitPolylineRef.current = null;
+      }
+
       let lat = 0;
       let lng = 0;
       let deviceID = 'Vehículo';
@@ -183,8 +224,10 @@ export default function GeocercasPage() {
       let geofenceName = 'Geocerca';
       let speed = 0;
       let serverTimeStr = new Date().toISOString();
+      let alertObj: RealtimeGeofenceAlert | null = null;
 
       if (typeof alertOrLat === 'object' && alertOrLat !== null) {
+        alertObj = alertOrLat;
         lat = Number(alertOrLat.latitude);
         lng = Number(alertOrLat.longitude);
         deviceID = alertOrLat.deviceID || 'Vehículo';
@@ -202,13 +245,6 @@ export default function GeocercasPage() {
 
       map.setCenter({ lat, lng });
       map.setZoom(17);
-
-      if (alertMarkerRef.current) {
-        alertMarkerRef.current.setMap(null);
-      }
-      if (alertInfoWindowRef.current) {
-        alertInfoWindowRef.current.close();
-      }
 
       const isEnter = eventType === 'geofenceEnter';
       let formattedTime = '00:00';
@@ -251,14 +287,14 @@ export default function GeocercasPage() {
       const exitSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
 
       const infoWindowContent = `
-        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 220px; padding: 2px 2px 2px 0;">
+        <div style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 220px; padding: 2px 2px 0 0;">
           <!-- Encabezado con Icono, Placa y Geocerca -->
-          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 8px;">
             <div style="width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: ${isEnter ? '#ECFDF5' : '#FEF2F2'};">
               ${isEnter ? enterSvg : exitSvg}
             </div>
             <div style="min-width: 0; flex: 1;">
-              <div style="font-family: monospace; font-size: 14px; font-weight: 700; color: #0F172A; line-height: 1.2; letter-spacing: -0.01em;">
+              <div style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14.5px; font-weight: 700; color: #0F172A; line-height: 1.2; letter-spacing: 0.01em;">
                 ${deviceID}
               </div>
               <div style="font-size: 12px; margin-top: 2px; line-height: 1.2;">
@@ -271,22 +307,30 @@ export default function GeocercasPage() {
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid #F1F5F9; padding-top: 8px;">
             <div style="padding-right: 6px;">
               <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">VELOCIDAD</div>
-              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px; font-variant-numeric: tabular-nums;">
                 ${speed} <span style="font-size: 11px; font-weight: 600; color: #475569;">km/h</span>
               </div>
             </div>
             <div style="padding: 0 6px; border-left: 1px solid #F1F5F9;">
               <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">HORA</div>
-              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px; font-variant-numeric: tabular-nums;">
                 ${formattedTime}
               </div>
             </div>
             <div style="padding-left: 6px; border-left: 1px solid #F1F5F9;">
               <div style="font-size: 9px; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em;">FECHA</div>
-              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px;">
+              <div style="font-size: 13px; font-weight: 800; color: #0F172A; margin-top: 3px; font-variant-numeric: tabular-nums;">
                 ${formattedDate}
               </div>
             </div>
+          </div>
+
+          <!-- Botón de Quitar Marcador y Popup del Mapa -->
+          <div style="display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 6px; border-top: 1px solid #F1F5F9;">
+            <button id="btn-quitar-alerta-popup" type="button" style="border: none; background: #F8FAFC; color: #DC2626; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: background 0.15s ease; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <span>Quitar del mapa</span>
+            </button>
           </div>
         </div>
       `;
@@ -299,117 +343,634 @@ export default function GeocercasPage() {
       info.open(map, marker);
       alertInfoWindowRef.current = info;
 
+      if (alertObj) {
+        setActiveAlertOnMap(alertObj);
+      } else {
+        setActiveAlertOnMap({
+          id: `custom-${Date.now()}`,
+          accountID: effectiveUsername || '',
+          deviceID,
+          geofenceID: 0,
+          eventType: eventType === 'geofenceExit' ? 'geofenceExit' : 'geofenceEnter',
+          geofenceName,
+          speed,
+          serverTime: serverTimeStr,
+          latitude: lat,
+          longitude: lng,
+          durationMinutes: null,
+          receivedAt: Date.now(),
+        });
+      }
+
+      // Reabrir popup al hacer clic en el auto
       marker.addListener('click', () => {
         info.open(map, marker);
       });
 
-      setTimeout(() => {
-        marker.setMap(null);
-        info.close();
-      }, 45000);
+      // Clic derecho en el auto para quitarlo inmediatamente
+      marker.addListener('rightclick', () => {
+        handleClearAlertMarker();
+      });
+
+      // ¡IMPORTANTE! Al cerrar la InfoWindow (X), quitar también el auto del mapa
+      info.addListener('closeclick', () => {
+        handleClearAlertMarker();
+      });
+
+      // Escuchar clic en botón dentro del contenido HTML
+      google.maps.event.addListenerOnce(info, 'domready', () => {
+        const btnQuitar = document.getElementById('btn-quitar-alerta-popup');
+        if (btnQuitar) {
+          btnQuitar.onclick = () => {
+            handleClearAlertMarker();
+          };
+        }
+      });
+
+      // Auto-limpieza tras 60s
+      alertTimeoutRef.current = setTimeout(() => {
+        handleClearAlertMarker();
+      }, 60000);
     },
-    [],
+    [handleClearAlertMarker],
   );
 
-  // Marcar puntos de entrada y salida de visita en el mapa
+  function makeDistanceBadgeIcon(text: string): google.maps.Icon {
+    const width = Math.max(72, text.length * 9 + 24);
+    const height = 26;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="13" fill="#ffffff" stroke="#93c5fd" stroke-width="1.3" />
+      <text x="${width / 2}" y="17" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" font-weight="700" fill="#1447C0" text-anchor="middle">${text}</text>
+    </svg>`;
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+      scaledSize: new google.maps.Size(width, height),
+      anchor: new google.maps.Point(width / 2, height / 2),
+    };
+  }
+
+  function escapeXml(str: string): string {
+    return str.replace(/[<>&'"]/g, (c) => {
+      switch (c) {
+        case '<': return '&lt;';
+        case '>': return '&gt;';
+        case '&': return '&amp;';
+        case '\'': return '&apos;';
+        case '"': return '&quot;';
+        default: return c;
+      }
+    });
+  }
+
+  function makeGeofenceLabelIcon(name: string, color?: string): google.maps.Icon {
+    const text = escapeXml(name.trim().toUpperCase());
+    const width = Math.max(70, text.length * 9.5 + 24);
+    const height = 26;
+    const textColor = color || '#0f172a';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <style>
+        .geo-lbl {
+          font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.06em;
+          paint-order: stroke fill;
+          stroke: #ffffff;
+          stroke-width: 3.5px;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+      </style>
+      <text x="${width / 2}" y="17" class="geo-lbl" fill="${textColor}" text-anchor="middle">${text}</text>
+    </svg>`;
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+      scaledSize: new google.maps.Size(width, height),
+      anchor: new google.maps.Point(width / 2, height / 2),
+    };
+  }
+
+  // =========================================================================
+  // Helpers para Visualización de Visita en Mapa (Entrada/Salida/Distancia)
+  // =========================================================================
+
+  // Cache de clase OverlayView para tarjetas y cápsula de visita
+  let CustomVisitOverlayClass: any = null;
+
+  function getCustomVisitOverlayClass() {
+    if (CustomVisitOverlayClass) return CustomVisitOverlayClass;
+    if (typeof google === 'undefined' || !google.maps || !google.maps.OverlayView) return null;
+
+    CustomVisitOverlayClass = class CustomVisitOverlay extends google.maps.OverlayView {
+      private position: google.maps.LatLng;
+      private containerDiv: HTMLDivElement;
+      private offset: { x: number; y: number };
+
+      constructor(
+        position: google.maps.LatLngLiteral,
+        htmlContent: string,
+        offset: { x: number; y: number } = { x: 0, y: 0 },
+        alignCenter: boolean = false,
+      ) {
+        super();
+        this.position = new google.maps.LatLng(position.lat, position.lng);
+        this.offset = offset;
+
+        this.containerDiv = document.createElement('div');
+        this.containerDiv.style.position = 'absolute';
+        this.containerDiv.style.cursor = 'default';
+        this.containerDiv.style.zIndex = alignCenter ? '90' : '100';
+        this.containerDiv.style.transform = alignCenter
+          ? 'translate(-50%, -50%)'
+          : 'translate(-50%, -100%)';
+        this.containerDiv.style.pointerEvents = 'auto';
+        this.containerDiv.innerHTML = htmlContent;
+
+        if ((google.maps.OverlayView as any).preventMapHitsAndGesturesFrom) {
+          (google.maps.OverlayView as any).preventMapHitsAndGesturesFrom(this.containerDiv);
+        }
+      }
+
+      onAdd() {
+        const panes = this.getPanes();
+        if (panes) {
+          panes.floatPane.appendChild(this.containerDiv);
+        }
+      }
+
+      onRemove() {
+        if (this.containerDiv.parentElement) {
+          this.containerDiv.parentElement.removeChild(this.containerDiv);
+        }
+      }
+
+      draw() {
+        const projection = this.getProjection();
+        if (!projection || !this.position || !this.containerDiv) return;
+        const pixel = projection.fromLatLngToDivPixel(this.position);
+        if (pixel) {
+          this.containerDiv.style.left = `${pixel.x + this.offset.x}px`;
+          this.containerDiv.style.top = `${pixel.y + this.offset.y}px`;
+        }
+      }
+    };
+
+    return CustomVisitOverlayClass;
+  }
+
+  // Calcular distancia Haversine en kilómetros entre dos coordenadas
+  function calculateDistanceBetweenKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Radio terrestre en km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function formatVisitDistanceText(km: number): string {
+    if (km < 1) {
+      return `${Math.round(km * 1000)} m`;
+    }
+    return `${km.toFixed(1)} km`;
+  }
+
+  function formatVisitCardDate(dateStr?: string | null): string {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      const secs = String(d.getSeconds()).padStart(2, '0');
+      return `${day}/${month}/${year} · ${hours}:${mins}:${secs}`;
+    } catch {
+      return dateStr;
+    }
+  }
+
+  function getVisitDurationBadgeText(
+    duracionMinutos?: number | null,
+    fechaEntrada?: string | null,
+    fechaSalida?: string | null,
+  ): string {
+    if (fechaEntrada && fechaSalida) {
+      const tEntrada = new Date(fechaEntrada).getTime();
+      const tSalida = new Date(fechaSalida).getTime();
+      if (!isNaN(tEntrada) && !isNaN(tSalida) && tSalida >= tEntrada) {
+        const diffSec = Math.floor((tSalida - tEntrada) / 1000);
+        if (diffSec < 60) return `${diffSec} s`;
+        if (diffSec < 3600) {
+          const m = Math.floor(diffSec / 60);
+          const s = diffSec % 60;
+          return s > 0 ? `${m} min ${s} s` : `${m} min`;
+        }
+        const h = Math.floor(diffSec / 3600);
+        const remSec = diffSec % 3600;
+        const m = Math.floor(remSec / 60);
+        return m > 0 ? `${h} h ${m} min` : `${h} h`;
+      }
+    }
+    if (duracionMinutos != null && duracionMinutos > 0) {
+      const m = Math.round(duracionMinutos);
+      if (m < 60) return `${m} min`;
+      const h = Math.floor(m / 60);
+      const rem = m % 60;
+      return rem > 0 ? `${h} h ${rem} min` : `${h} h`;
+    }
+    return 'En curso';
+  }
+
+  // Marcar puntos de entrada y salida de visita en el mapa con auto (/UnidadK.webp), tarjetas y cápsula de distancia/duración
   const handleViewVisitOnMap = useCallback((visit: VisitaItem) => {
+    setReportsModalOpen(false);
     const map = mapRef.current;
     if (!map || typeof google === 'undefined' || !google.maps) return;
 
+    // 1. Limpiar marcas previas
+    handleClearAlertMarker();
     visitMarkersRef.current.forEach((m) => m.setMap(null));
     visitMarkersRef.current = [];
+    visitOverlaysRef.current.forEach((o) => o.setMap(null));
+    visitOverlaysRef.current = [];
+    if (visitPolylineRef.current) {
+      visitPolylineRef.current.setMap(null);
+      visitPolylineRef.current = null;
+    }
 
     const bounds = new google.maps.LatLngBounds();
-    let hasCoords = false;
+    let posEntrada: google.maps.LatLngLiteral | null = null;
+    let posSalida: google.maps.LatLngLiteral | null = null;
 
+    const OverlayClass = getCustomVisitOverlayClass();
+
+    // 2. Punto de Entrada
     if (visit.latitudEntrada != null && visit.longitudEntrada != null) {
-      const pos = { lat: Number(visit.latitudEntrada), lng: Number(visit.longitudEntrada) };
-      const entryMarker = new google.maps.Marker({
-        position: pos,
+      posEntrada = { lat: Number(visit.latitudEntrada), lng: Number(visit.longitudEntrada) };
+
+      // Halo verde detrás del auto
+      const entryHalo = new google.maps.Marker({
+        position: posEntrada,
         map,
-        title: `Entrada: ${visit.deviceID} en ${visit.geofenceName}`,
-        label: {
-          text: 'E',
-          color: '#ffffff',
-          fontWeight: 'bold',
-          fontSize: '11px',
-        },
+        zIndex: 10,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 11,
+          scale: 18,
           fillColor: '#10B981',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
+          fillOpacity: 0.25,
+          strokeColor: '#059669',
+          strokeOpacity: 0.65,
           strokeWeight: 2,
         },
       });
+      visitMarkersRef.current.push(entryHalo);
 
-      const entryInfo = new google.maps.InfoWindow({
-        content: `
-          <div style="font-size:11px; padding:2px;">
-            <strong style="color:#059669;">ENTRADA</strong><br/>
-            <strong>Vehículo:</strong> ${visit.deviceID}<br/>
-            <strong>Geocerca:</strong> ${visit.geofenceName}<br/>
-            <strong>Hora:</strong> ${visit.fechaEntrada ? new Date(visit.fechaEntrada).toLocaleString('es-PE') : '-'}
-          </div>
-        `,
+      // Icono del auto (/UnidadK.webp) igual que en alertas
+      const entryMarker = new google.maps.Marker({
+        position: posEntrada,
+        map,
+        zIndex: 20,
+        title: `Entrada: ${visit.deviceID} en ${visit.geofenceName || 'Geocerca'}`,
+        animation: google.maps.Animation.DROP,
+        icon: {
+          url: '/UnidadK.webp',
+          scaledSize: new google.maps.Size(56, 32),
+          anchor: new google.maps.Point(28, 16),
+        },
       });
-      entryMarker.addListener('click', () => entryInfo.open(map, entryMarker));
       visitMarkersRef.current.push(entryMarker);
-      bounds.extend(pos);
-      hasCoords = true;
+
+      // Tarjeta detallada de Entrada (exacta a la referencia)
+      if (OverlayClass) {
+        const entryCardHtml = `
+          <div style="
+            position: relative;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.18), 0 4px 6px -2px rgba(15, 23, 42, 0.08);
+            border: 1px solid #E2E8F0;
+            width: 240px;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+          ">
+            <div style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 8px 12px;
+              background: #F0FDF4;
+              border-top-left-radius: 11px;
+              border-top-right-radius: 11px;
+              border-bottom: 1px solid #DCFCE7;
+            ">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="
+                  width: 18px;
+                  height: 18px;
+                  border-radius: 4px;
+                  background: #16A34A;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                  </svg>
+                </div>
+                <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: #15803D;">ENTRADA</span>
+              </div>
+              <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
+                ${visit.deviceID}
+              </span>
+            </div>
+            <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                <span style="color: #64748B; font-weight: 500;">Geocerca</span>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                  <span style="width: 7px; height: 7px; border-radius: 9999px; background: #2563EB;"></span>
+                  <span style="font-weight: 700; color: #1E293B;">${visit.geofenceName || 'Geocerca'}</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                <span style="color: #64748B; font-weight: 500;">Fecha</span>
+                <span style="font-weight: 600; color: #1E293B; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-variant-numeric: tabular-nums;">
+                  ${formatVisitCardDate(visit.fechaEntrada)}
+                </span>
+              </div>
+            </div>
+            <div style="
+              position: absolute;
+              bottom: -7px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 7px solid transparent;
+              border-right: 7px solid transparent;
+              border-top: 7px solid #ffffff;
+              filter: drop-shadow(0 2px 1px rgba(0,0,0,0.06));
+            "></div>
+          </div>
+        `;
+        const entryOverlay = new OverlayClass(posEntrada, entryCardHtml, { x: 0, y: -24 }, false);
+        entryOverlay.setMap(map);
+        visitOverlaysRef.current.push(entryOverlay);
+      }
+
+      bounds.extend(posEntrada);
     }
 
+    // 3. Punto de Salida
     if (visit.latitudSalida != null && visit.longitudSalida != null) {
-      const pos = { lat: Number(visit.latitudSalida), lng: Number(visit.longitudSalida) };
-      const exitMarker = new google.maps.Marker({
-        position: pos,
+      posSalida = { lat: Number(visit.latitudSalida), lng: Number(visit.longitudSalida) };
+
+      // Halo rojo detrás del auto
+      const exitHalo = new google.maps.Marker({
+        position: posSalida,
         map,
-        title: `Salida: ${visit.deviceID} de ${visit.geofenceName}`,
-        label: {
-          text: 'S',
-          color: '#ffffff',
-          fontWeight: 'bold',
-          fontSize: '11px',
-        },
+        zIndex: 10,
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 11,
+          scale: 18,
           fillColor: '#EF4444',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
+          fillOpacity: 0.25,
+          strokeColor: '#DC2626',
+          strokeOpacity: 0.65,
           strokeWeight: 2,
         },
       });
+      visitMarkersRef.current.push(exitHalo);
 
-      const exitInfo = new google.maps.InfoWindow({
-        content: `
-          <div style="font-size:11px; padding:2px;">
-            <strong style="color:#DC2626;">SALIDA</strong><br/>
-            <strong>Vehículo:</strong> ${visit.deviceID}<br/>
-            <strong>Geocerca:</strong> ${visit.geofenceName}<br/>
-            <strong>Hora:</strong> ${visit.fechaSalida ? new Date(visit.fechaSalida).toLocaleString('es-PE') : '-'}<br/>
-            <strong>Permanencia:</strong> ${visit.duracionMinutos != null ? `${visit.duracionMinutos} min` : '-'}
-          </div>
-        `,
+      // Icono del auto (/UnidadK.webp) igual que en alertas
+      const exitMarker = new google.maps.Marker({
+        position: posSalida,
+        map,
+        zIndex: 20,
+        title: `Salida: ${visit.deviceID} de ${visit.geofenceName || 'Geocerca'}`,
+        animation: google.maps.Animation.DROP,
+        icon: {
+          url: '/UnidadK.webp',
+          scaledSize: new google.maps.Size(56, 32),
+          anchor: new google.maps.Point(28, 16),
+        },
       });
-      exitMarker.addListener('click', () => exitInfo.open(map, exitMarker));
       visitMarkersRef.current.push(exitMarker);
-      bounds.extend(pos);
-      hasCoords = true;
+
+      // Tarjeta detallada de Salida (exacta a la referencia)
+      if (OverlayClass) {
+        const exitCardHtml = `
+          <div style="
+            position: relative;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.18), 0 4px 6px -2px rgba(15, 23, 42, 0.08);
+            border: 1px solid #E2E8F0;
+            width: 240px;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+          ">
+            <div style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 8px 12px;
+              background: #FEF2F2;
+              border-top-left-radius: 11px;
+              border-top-right-radius: 11px;
+              border-bottom: 1px solid #FEE2E2;
+            ">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="
+                  width: 18px;
+                  height: 18px;
+                  border-radius: 4px;
+                  background: #DC2626;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                ">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </div>
+                <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: #B91C1C;">SALIDA</span>
+              </div>
+              <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
+                ${visit.deviceID}
+              </span>
+            </div>
+            <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                <span style="color: #64748B; font-weight: 500;">Geocerca</span>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                  <span style="width: 7px; height: 7px; border-radius: 9999px; background: #2563EB;"></span>
+                  <span style="font-weight: 700; color: #1E293B;">${visit.geofenceName || 'Geocerca'}</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                <span style="color: #64748B; font-weight: 500;">Fecha</span>
+                <span style="font-weight: 600; color: #1E293B; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-variant-numeric: tabular-nums;">
+                  ${formatVisitCardDate(visit.fechaSalida)}
+                </span>
+              </div>
+            </div>
+            <div style="
+              position: absolute;
+              bottom: -7px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 7px solid transparent;
+              border-right: 7px solid transparent;
+              border-top: 7px solid #ffffff;
+              filter: drop-shadow(0 2px 1px rgba(0,0,0,0.06));
+            "></div>
+          </div>
+        `;
+        const exitOverlay = new OverlayClass(posSalida, exitCardHtml, { x: 0, y: -24 }, false);
+        exitOverlay.setMap(map);
+        visitOverlaysRef.current.push(exitOverlay);
+      }
+
+      bounds.extend(posSalida);
     }
 
-    if (hasCoords) {
-      if (visitMarkersRef.current.length > 1) {
-        map.fitBounds(bounds);
-      } else {
-        map.setCenter(visitMarkersRef.current[0].getPosition()!);
-        map.setZoom(16);
+    // 4. Si existen ambos puntos: Línea discontinua y Cápsula de Distancia/Duración
+    if (posEntrada && posSalida) {
+      // Línea punteada/discontinua entre Entrada y Salida
+      const lineSymbol = {
+        path: 'M 0,-1 0,1',
+        strokeOpacity: 1,
+        scale: 2.5,
+        strokeColor: '#334155',
+      };
+      const polyline = new google.maps.Polyline({
+        path: [posEntrada, posSalida],
+        strokeOpacity: 0,
+        icons: [
+          {
+            icon: lineSymbol,
+            offset: '0',
+            repeat: '12px',
+          },
+        ],
+        map,
+      });
+      visitPolylineRef.current = polyline;
+
+      // Calcular distancia y duración
+      const distanceKm = calculateDistanceBetweenKm(
+        posEntrada.lat,
+        posEntrada.lng,
+        posSalida.lat,
+        posSalida.lng,
+      );
+      const distanceText = formatVisitDistanceText(distanceKm);
+      const durationText = getVisitDurationBadgeText(
+        visit.duracionMinutos,
+        visit.fechaEntrada,
+        visit.fechaSalida,
+      );
+
+      // Posición del punto medio de la línea
+      const midPos = {
+        lat: (posEntrada.lat + posSalida.lat) / 2,
+        lng: (posEntrada.lng + posSalida.lng) / 2,
+      };
+
+      if (OverlayClass) {
+        const pillHtml = `
+          <div style="
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0B1120;
+            color: #FFFFFF;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 11.5px;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(11, 17, 32, 0.45);
+            border: 1px solid #1E293B;
+            white-space: nowrap;
+            user-select: none;
+          ">
+            <div style="display: flex; align-items: center; gap: 5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>${durationText}</span>
+            </div>
+            <span style="color: #475569; font-weight: 300;">|</span>
+            <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #F8FAFC; font-variant-numeric: tabular-nums;">${distanceText}</span>
+          </div>
+        `;
+
+        const pillOverlay = new OverlayClass(midPos, pillHtml, { x: 0, y: 0 }, true);
+        pillOverlay.setMap(map);
+        visitOverlaysRef.current.push(pillOverlay);
       }
-      toast.info(`Puntos de visita de ${visit.deviceID} marcados en el mapa`);
+
+      try {
+        map.fitBounds(bounds, 120);
+      } catch {
+        map.fitBounds(bounds);
+      }
+      toast.info(`Visita de ${visit.deviceID}: ${durationText} · ${distanceText}`);
+    } else if (posEntrada) {
+      map.setCenter(posEntrada);
+      map.setZoom(16);
+      toast.info(`Punto de entrada de ${visit.deviceID} marcado en el mapa`);
+    } else if (posSalida) {
+      map.setCenter(posSalida);
+      map.setZoom(16);
+      toast.info(`Punto de salida de ${visit.deviceID} marcado en el mapa`);
     } else {
       toast.warning('Esta visita no contiene coordenadas registradas de entrada o salida');
     }
+  }, []);
+
+  // Limpiar marcadores, overlays de visita y alertas al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      if (alertMarkerRef.current) {
+        alertMarkerRef.current.setMap(null);
+      }
+      if (alertInfoWindowRef.current) {
+        alertInfoWindowRef.current.close();
+      }
+      visitMarkersRef.current.forEach((m) => m.setMap(null));
+      visitMarkersRef.current = [];
+      visitOverlaysRef.current.forEach((o) => o.setMap(null));
+      visitOverlaysRef.current = [];
+      if (visitPolylineRef.current) {
+        visitPolylineRef.current.setMap(null);
+        visitPolylineRef.current = null;
+      }
+    };
   }, []);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
@@ -498,10 +1059,129 @@ export default function GeocercasPage() {
     vertexMarkers: [],
   });
   const finishPolygonRef = useRef<() => void>(() => {});
+  const finishCircleRef = useRef<() => void>(() => {});
   const undoPointRef = useRef<() => void>(() => {});
+  const addPointRef = useRef<(point: LatLng) => void>(() => {});
   const originalShapeRef = useRef<{ center?: LatLng; radius?: number; path?: LatLng[] } | null>(
     null,
   );
+
+  const [manualInputOpen, setManualInputOpen] = useState(false);
+  const [manualLat, setManualLat] = useState('');
+  const [manualLng, setManualLng] = useState('');
+  const [manualRadiusKm, setManualRadiusKm] = useState('');
+  const [circleCenter, setCircleCenter] = useState<LatLng | null>(null);
+  const [circleRadius, setCircleRadius] = useState<number>(0);
+  const applyCircleToMapRef = useRef<(center: LatLng, radius: number) => void>(() => {});
+  const initialFitDoneRef = useRef(false);
+  const [drawVertices, setDrawVertices] = useState<LatLng[]>([]);
+  const [cursorCoord, setCursorCoord] = useState<{ lat: number; lng: number; x: number; y: number } | null>(null);
+
+  const copyCoord = useCallback((lat: number, lng: number) => {
+    const text = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      toast.success(`Coordenada copiada: ${text}`);
+    }
+  }, []);
+
+  const copyAllCoords = useCallback(() => {
+    if (!drawVertices.length) {
+      toast.info('No hay coordenadas para copiar');
+      return;
+    }
+    const text = drawVertices
+      .map((v, i) => `${i + 1}\t${v.lat.toFixed(6)}\t${v.lng.toFixed(6)}`)
+      .join('\n');
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      toast.success('Todas las coordenadas copiadas al portapapeles');
+    }
+  }, [drawVertices]);
+
+  const handleLatChange = useCallback((val: string) => {
+    if (val.includes(',') || val.trim().includes(' ')) {
+      const parts = val.includes(',') ? val.split(',') : val.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        const latPart = parts[0].trim();
+        const lngPart = parts.slice(1).join(' ').trim();
+        setManualLat(latPart);
+        setManualLng(lngPart);
+        return;
+      }
+    }
+    setManualLat(val);
+  }, []);
+
+  const handleAddManualCoordinate = useCallback(() => {
+    let lat = parseFloat(manualLat.trim());
+    let lng = parseFloat(manualLng.trim());
+
+    if (isNaN(lat) && isNaN(lng) && cursorCoord) {
+      lat = cursorCoord.lat;
+      lng = cursorCoord.lng;
+    }
+
+    if (isNaN(lat) || isNaN(lng)) {
+      toast.error('Ingresa una latitud y longitud válidas');
+      return;
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      toast.error('Coordenadas fuera de rango válido (-90 a 90, -180 a 180)');
+      return;
+    }
+
+    addPointRef.current({ lat, lng });
+    setManualLat('');
+    setManualLng('');
+  }, [manualLat, manualLng, cursorCoord]);
+
+  const handleApplyManualCircle = useCallback(() => {
+    let lat = parseFloat(manualLat.trim());
+    let lng = parseFloat(manualLng.trim());
+
+    if (isNaN(lat) || isNaN(lng)) {
+      if (circleCenter) {
+        lat = circleCenter.lat;
+        lng = circleCenter.lng;
+      } else if (cursorCoord) {
+        lat = cursorCoord.lat;
+        lng = cursorCoord.lng;
+      }
+    }
+
+    if (isNaN(lat) || isNaN(lng)) {
+      toast.error('Ingresa una latitud y longitud válidas para el centro');
+      return;
+    }
+
+    let radiusKm = parseFloat(manualRadiusKm.trim().replace(',', '.'));
+    if (isNaN(radiusKm) || radiusKm <= 0) {
+      if (circleRadius >= MIN_RADIUS_M) {
+        radiusKm = circleRadius / 1000;
+      } else {
+        toast.error('Ingresa un radio válido en km (ej. 0.77)');
+        return;
+      }
+    }
+
+    // Si el usuario ingresó más de 50, se asume metros (ej. 500 ó 750); si es menor, km (ej. 0.77)
+    const radiusMeters = radiusKm > 50 ? radiusKm : radiusKm * 1000;
+
+    if (radiusMeters < MIN_RADIUS_M) {
+      toast.error(`El radio mínimo es de ${MIN_RADIUS_M} metros`);
+      return;
+    }
+
+    const centerPoint = { lat, lng };
+    setCircleCenter(centerPoint);
+    setCircleRadius(radiusMeters);
+    setDrawInfo({ points: 1, radius: radiusMeters });
+
+    applyCircleToMapRef.current(centerPoint, radiusMeters);
+    toast.success(`Círculo fijado: radio de ${(radiusMeters / 1000).toFixed(2)} km`);
+  }, [manualLat, manualLng, manualRadiusKm, circleCenter, circleRadius, cursorCoord]);
 
   /* ------------------------------------------------------------------ */
   /* Carga de Vehículos en Vivo (desde la API real)                     */
@@ -771,48 +1451,72 @@ export default function GeocercasPage() {
           console.warn('[Traccar] No se pudieron sincronizar geocercas desde Traccar:', traccarErr);
         }
 
-        // 3. Mapeo a modelo de vista Geofence (Carga Rápida en <200ms)
+        // 3. Mapeo RÁPIDO a modelo de vista (SIN esperar vehículos asignados)
         const authHeader = getTraccarAuthHeader();
-        const serverDevices = authHeader ? await getCachedOrFreshTraccarDevices(authHeader) : [];
 
-        const parsedList = await Promise.all(
-          apiGeos.map(async (geo) => {
-            let vehicleIds: string[] = [];
-            try {
-              const assignedVehs = await getGeocercaVehiculosApi(effectiveBaseUrl, geo.id);
-              vehicleIds = assignedVehs.map((v) => v.deviceID);
-            } catch (e) {
-              console.error(`Error al cargar vehículos vinculados a la geocerca ${geo.id}:`, e);
-            }
+        const parsedList: Geofence[] = apiGeos.map((geo) => {
+          const geometry = parseGeocercaGeometry(geo);
+          const tipo: ShapeType = geo.tipo?.toLowerCase() === 'polygon' ? 'polygon' : 'circle';
 
-            const geometry = parseGeocercaGeometry(geo);
-            const tipo: ShapeType = geo.tipo?.toLowerCase() === 'polygon' ? 'polygon' : 'circle';
+          return {
+            id: `gf-${geo.id}`,
+            numericId: geo.id,
+            geofenceID: geo.geofenceID,
+            name: geo.nombre,
+            description: geo.descripcion || '',
+            color: geo.color || '#113EB9',
+            type: tipo,
+            active: geo.activo !== false,
+            ...geometry,
+            vehicleIds: [],
+            createdAt: geo.fechaCreacion ? new Date(geo.fechaCreacion).getTime() : Date.now(),
+          } as Geofence;
+        });
 
-            return {
-              id: `gf-${geo.id}`,
-              numericId: geo.id,
-              geofenceID: geo.geofenceID,
-              name: geo.nombre,
-              description: geo.descripcion || '',
-              color: geo.color || '#113EB9',
-              type: tipo,
-              active: geo.activo !== false,
-              ...geometry,
-              vehicleIds,
-              createdAt: geo.fechaCreacion ? new Date(geo.fechaCreacion).getTime() : Date.now(),
-            } as Geofence;
-          }),
-        );
-
+        // Mostrar geocercas INMEDIATAMENTE en el sidebar (sin vehículos aún)
         setGeofences(parsedList);
         if (showFeedback) {
           toast.success(`Se cargaron ${parsedList.length} geocercas`);
         }
 
-        // 4. Disparar verificación bidireccional en SEGUNDO PLANO (No bloqueante)
-        setTimeout(() => {
-          runBackgroundSyncCheck(parsedList, authHeader, serverDevices);
-        }, 100);
+        // Marcar como cargado INMEDIATAMENTE → el splash se oculta
+        setLoadingGeofences(false);
+        setHydrated(true);
+
+        // 4. Cargar vehículos asignados EN SEGUNDO PLANO (no bloquea la UI)
+        const serverDevicesPromise = authHeader ? getCachedOrFreshTraccarDevices(authHeader) : Promise.resolve([]);
+
+        Promise.all(
+          apiGeos.map(async (geo) => {
+            try {
+              const assignedVehs = await getGeocercaVehiculosApi(effectiveBaseUrl, geo.id);
+              return { geoId: geo.id, vehicleIds: assignedVehs.map((v) => v.deviceID) };
+            } catch {
+              return { geoId: geo.id, vehicleIds: [] as string[] };
+            }
+          }),
+        ).then((results) => {
+          setGeofences((prev) =>
+            prev.map((g) => {
+              const match = results.find((r) => `gf-${r.geoId}` === g.id);
+              return match && match.vehicleIds.length > 0 ? { ...g, vehicleIds: match.vehicleIds } : g;
+            }),
+          );
+
+          // 5. Disparar verificación bidireccional en SEGUNDO PLANO
+          serverDevicesPromise.then((serverDevices) => {
+            setTimeout(() => {
+              runBackgroundSyncCheck(
+                parsedList.map((g) => {
+                  const match = results.find((r) => `gf-${r.geoId}` === g.id);
+                  return match ? { ...g, vehicleIds: match.vehicleIds } : g;
+                }),
+                authHeader,
+                serverDevices,
+              );
+            }, 100);
+          });
+        });
       } catch (error: any) {
         console.error('Error al cargar geocercas del servidor:', error);
         if (showFeedback) {
@@ -844,23 +1548,16 @@ export default function GeocercasPage() {
   /* Pantalla de carga (Loader / Splash)                                 */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    // Safety fallback: Asegurar que el loader NUNCA se quede pegado más de 2 segundos bajo ninguna condición
+    // Safety fallback: máximo absoluto 10 s por si algo falla catastróficamente
     const safetyTimer = setTimeout(() => {
+      console.warn('[Loader] Safety fallback: ocultando loader tras 10 s');
       window.trackvelLoader?.hide();
-    }, 2000);
+    }, 10000);
 
-    if (hydrated) {
-      if (mapReady) {
-        window.trackvelLoader?.hide();
-      } else {
-        const timer = setTimeout(() => {
-          window.trackvelLoader?.hide();
-        }, 150);
-        return () => {
-          clearTimeout(timer);
-          clearTimeout(safetyTimer);
-        };
-      }
+    // Solo ocultar cuando AMBOS estén listos: datos cargados + mapa renderizado
+    if (hydrated && mapReady) {
+      window.trackvelLoader?.hide();
+      clearTimeout(safetyTimer);
     }
 
     return () => clearTimeout(safetyTimer);
@@ -902,7 +1599,10 @@ export default function GeocercasPage() {
   useEffect(() => {
     const shapes = shapesRef.current;
     return () => {
-      Object.values(shapes).forEach((entry) => entry.overlay.setMap(null));
+      Object.values(shapes).forEach((entry) => {
+        entry.overlay.setMap(null);
+        entry.labelMarker?.setMap(null);
+      });
     };
   }, []);
 
@@ -948,8 +1648,19 @@ export default function GeocercasPage() {
       draft.preview = null;
       draft.vertexMarkers.forEach((marker) => marker.setMap(null));
       draft.vertexMarkers = [];
+      draft.radiusLine?.setMap(null);
+      draft.radiusLine = null;
+      draft.radiusHandle?.setMap(null);
+      draft.radiusHandle = null;
+      draft.distanceMarker?.setMap(null);
+      draft.distanceMarker = null;
       draft.center = null;
       draft.points = [];
+      draft.isRadiusFixed = false;
+      setCircleCenter(null);
+      setCircleRadius(0);
+      setDrawVertices([]);
+      setCursorCoord(null);
     };
 
     const finishPolygon = () => {
@@ -967,20 +1678,270 @@ export default function GeocercasPage() {
       setPendingShape({ type: 'polygon', path: points });
     };
 
+    const refreshVertexMarkers = () => {
+      draft.vertexMarkers.forEach((m) => m.setMap(null));
+      draft.vertexMarkers = [];
+      draft.points.forEach((pt, index) => {
+        const isLast = index === draft.points.length - 1;
+        const marker = new google.maps.Marker({
+          map,
+          position: pt,
+          clickable: false,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: isLast ? '#FB7B0F' : '#ffffff',
+            fillOpacity: 1,
+            strokeColor: isLast ? '#FB7B0F' : '#1447C0',
+            strokeWeight: 2,
+          },
+          label: {
+            text: String(index + 1),
+            color: isLast ? '#ffffff' : '#1447C0',
+            fontSize: '11px',
+            fontWeight: 'bold',
+          },
+          zIndex: 60 + index,
+        });
+        draft.vertexMarkers.push(marker);
+      });
+    };
+
+    const applyCircleToMap = (center: LatLng, radius: number) => {
+      draft.center = center;
+      draft.isRadiusFixed = true;
+
+      if (!draft.preview) {
+        draft.preview = new google.maps.Circle({
+          ...previewStyle,
+          map,
+          center,
+          radius,
+        });
+      } else {
+        const circle = draft.preview as google.maps.Circle;
+        circle.setCenter(center);
+        circle.setRadius(radius);
+      }
+
+      // Marcador del centro (punto naranja con borde blanco)
+      if (!draft.vertexMarkers.length) {
+        const centerMarker = new google.maps.Marker({
+          map,
+          position: center,
+          clickable: false,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 6,
+            fillColor: '#FB7B0F',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 2.5,
+          },
+          zIndex: 66,
+        });
+        draft.vertexMarkers.push(centerMarker);
+      } else {
+        draft.vertexMarkers[0].setPosition(center);
+      }
+
+      // Punto del perímetro (hacia el Este)
+      const lngOffset = radius / (111320 * Math.cos((center.lat * Math.PI) / 180));
+      const perimeterPoint = { lat: center.lat, lng: center.lng + lngOffset };
+
+      // Línea segmentada de radio
+      if (!draft.radiusLine) {
+        draft.radiusLine = new google.maps.Polyline({
+          map,
+          path: [center, perimeterPoint],
+          strokeOpacity: 0,
+          icons: [
+            {
+              icon: {
+                path: 'M 0,-1 0,1',
+                strokeOpacity: 1,
+                scale: 2,
+                strokeColor: '#1447C0',
+              },
+              offset: '0',
+              repeat: '10px',
+            },
+          ],
+          zIndex: 55,
+        });
+      } else {
+        draft.radiusLine.setPath([center, perimeterPoint]);
+      }
+
+      // Badge con distancia en el punto medio
+      const midpoint = {
+        lat: (center.lat + perimeterPoint.lat) / 2,
+        lng: (center.lng + perimeterPoint.lng) / 2,
+      };
+      const distText = formatDistance(radius);
+      if (!draft.distanceMarker) {
+        draft.distanceMarker = new google.maps.Marker({
+          map,
+          position: midpoint,
+          clickable: false,
+          icon: makeDistanceBadgeIcon(distText),
+          zIndex: 70,
+        });
+      } else {
+        draft.distanceMarker.setPosition(midpoint);
+        draft.distanceMarker.setIcon(makeDistanceBadgeIcon(distText));
+      }
+
+      // Asa circular en el perímetro
+      if (!draft.radiusHandle) {
+        draft.radiusHandle = new google.maps.Marker({
+          map,
+          position: perimeterPoint,
+          clickable: false,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 4.5,
+            fillColor: '#ffffff',
+            fillOpacity: 1,
+            strokeColor: '#1447C0',
+            strokeWeight: 2,
+          },
+          zIndex: 65,
+        });
+      } else {
+        draft.radiusHandle.setPosition(perimeterPoint);
+      }
+    };
+    applyCircleToMapRef.current = applyCircleToMap;
+
+    const addPoint = (point: LatLng) => {
+      if (drawMode === 'circle') {
+        if (!draft.center) {
+          draft.center = point;
+          draft.isRadiusFixed = false;
+          setCircleCenter(point);
+          setManualLat(point.lat.toFixed(5));
+          setManualLng(point.lng.toFixed(5));
+          draft.preview = new google.maps.Circle({
+            ...previewStyle,
+            map,
+            center: point,
+            radius: 1,
+          });
+
+          // Marcador del centro (punto naranja con borde blanco)
+          const centerMarker = new google.maps.Marker({
+            map,
+            position: point,
+            clickable: false,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 6,
+              fillColor: '#FB7B0F',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2.5,
+            },
+            zIndex: 66,
+          });
+          draft.vertexMarkers.push(centerMarker);
+
+          // Línea segmentada de radio
+          draft.radiusLine = new google.maps.Polyline({
+            map,
+            path: [point, point],
+            strokeOpacity: 0,
+            icons: [
+              {
+                icon: {
+                  path: 'M 0,-1 0,1',
+                  strokeOpacity: 1,
+                  scale: 2,
+                  strokeColor: '#1447C0',
+                },
+                offset: '0',
+                repeat: '10px',
+              },
+            ],
+            zIndex: 55,
+          });
+
+          // Badge de distancia
+          draft.distanceMarker = new google.maps.Marker({
+            map,
+            position: point,
+            clickable: false,
+            icon: makeDistanceBadgeIcon('0 m'),
+            zIndex: 70,
+          });
+
+          // Asa en el perímetro
+          draft.radiusHandle = new google.maps.Marker({
+            map,
+            position: point,
+            clickable: false,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 4.5,
+              fillColor: '#ffffff',
+              fillOpacity: 1,
+              strokeColor: '#1447C0',
+              strokeWeight: 2,
+            },
+            zIndex: 65,
+          });
+
+          setDrawInfo({ points: 1, radius: 0 });
+          setCircleRadius(0);
+        }
+        return;
+      }
+
+      draft.points.push(point);
+      if (!draft.preview) {
+        draft.preview = new google.maps.Polygon({ ...previewStyle, map, paths: [point] });
+      } else {
+        (draft.preview as google.maps.Polygon).setPath(draft.points);
+      }
+      refreshVertexMarkers();
+      setDrawInfo({ points: draft.points.length, radius: 0 });
+      setDrawVertices([...draft.points]);
+    };
+
     const undoPoint = () => {
+      if (drawMode === 'circle') {
+        if (draft.center) {
+          clearDraft();
+          setDrawInfo({ points: 0, radius: 0 });
+        }
+        return;
+      }
       if (!draft.points.length) return;
       draft.points.pop();
-      draft.vertexMarkers.pop()?.setMap(null);
       if (draft.points.length) {
         (draft.preview as google.maps.Polygon | null)?.setPath(draft.points);
       } else {
         draft.preview?.setMap(null);
         draft.preview = null;
       }
+      refreshVertexMarkers();
       setDrawInfo({ points: draft.points.length, radius: 0 });
+      setDrawVertices([...draft.points]);
     };
 
+    const finishCircle = () => {
+      if (drawMode !== 'circle' || !draft.center || !draft.preview) return;
+      const radius = (draft.preview as google.maps.Circle).getRadius();
+      if (radius < MIN_RADIUS_M) return;
+      const center = draft.center;
+      clearDraft();
+      setDrawMode(null);
+      setPendingShape({ type: 'circle', center, radius });
+    };
+
+    addPointRef.current = addPoint;
     finishPolygonRef.current = finishPolygon;
+    finishCircleRef.current = finishCircle;
     undoPointRef.current = undoPoint;
 
     const clickListener = map.addListener('click', (event: google.maps.MapMouseEvent) => {
@@ -989,23 +1950,30 @@ export default function GeocercasPage() {
 
       if (drawMode === 'circle') {
         if (!draft.center) {
-          draft.center = point;
-          draft.preview = new google.maps.Circle({
-            ...previewStyle,
-            map,
-            center: point,
-            radius: 1,
-          });
-          setDrawInfo({ points: 1, radius: 0 });
+          addPoint(point);
           return;
         }
 
         const radius = distanceMeters(draft.center, point);
-        if (radius < MIN_RADIUS_M) return;
-        const center = draft.center;
-        clearDraft();
-        setDrawMode(null);
-        setPendingShape({ type: 'circle', center, radius });
+        if (radius >= MIN_RADIUS_M) {
+          draft.isRadiusFixed = true;
+          (draft.preview as google.maps.Circle).setRadius(radius);
+          setCircleRadius(radius);
+          setDrawInfo({ points: 1, radius });
+          setManualLat(draft.center.lat.toFixed(5));
+          setManualLng(draft.center.lng.toFixed(5));
+          setManualRadiusKm((radius / 1000).toFixed(2));
+
+          // Actualizar la línea de radio y marcadores a la posición clickeada
+          draft.radiusLine?.setPath([draft.center, point]);
+          const midpoint = {
+            lat: (draft.center.lat + point.lat) / 2,
+            lng: (draft.center.lng + point.lng) / 2,
+          };
+          draft.distanceMarker?.setPosition(midpoint);
+          draft.distanceMarker?.setIcon(makeDistanceBadgeIcon(formatDistance(radius)));
+          draft.radiusHandle?.setPosition(point);
+        }
         return;
       }
 
@@ -1018,34 +1986,61 @@ export default function GeocercasPage() {
         }
       }
 
-      draft.points.push(point);
-      if (!draft.preview) {
-        draft.preview = new google.maps.Polygon({ ...previewStyle, map, paths: [point] });
-      } else {
-        (draft.preview as google.maps.Polygon).setPath(draft.points);
-      }
-      draft.vertexMarkers.push(
-        new google.maps.Marker({ map, position: point, clickable: false, icon: vertexIcon, zIndex: 60 }),
-      );
-      setDrawInfo({ points: draft.points.length, radius: 0 });
+      addPoint(point);
     });
 
     const moveListener = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
       if (!event.latLng) return;
       const point = { lat: event.latLng.lat(), lng: event.latLng.lng() };
 
+      const domEvent = event.domEvent as MouseEvent | undefined;
+      if (domEvent && mapDivRef.current) {
+        const rect = mapDivRef.current.getBoundingClientRect();
+        setCursorCoord({
+          lat: point.lat,
+          lng: point.lng,
+          x: domEvent.clientX - rect.left,
+          y: domEvent.clientY - rect.top,
+        });
+      }
+
       if (drawMode === 'circle' && draft.center && draft.preview) {
-        const radius = distanceMeters(draft.center, point);
-        (draft.preview as google.maps.Circle).setRadius(radius);
-        setDrawInfo((prev) =>
-          Math.abs(prev.radius - radius) < 2 ? prev : { points: 1, radius },
-        );
+        if (!draft.isRadiusFixed) {
+          const radius = distanceMeters(draft.center, point);
+          (draft.preview as google.maps.Circle).setRadius(radius);
+          setCircleRadius(radius);
+          setDrawInfo((prev) =>
+            Math.abs(prev.radius - radius) < 2 ? prev : { points: 1, radius },
+          );
+
+          if (draft.radiusLine) {
+            draft.radiusLine.setPath([draft.center, point]);
+          }
+
+          const midpoint = {
+            lat: (draft.center.lat + point.lat) / 2,
+            lng: (draft.center.lng + point.lng) / 2,
+          };
+          const distText = formatDistance(radius);
+          if (draft.distanceMarker) {
+            draft.distanceMarker.setPosition(midpoint);
+            draft.distanceMarker.setIcon(makeDistanceBadgeIcon(distText));
+          }
+
+          if (draft.radiusHandle) {
+            draft.radiusHandle.setPosition(point);
+          }
+        }
         return;
       }
 
       if (drawMode === 'polygon' && draft.points.length && draft.preview) {
         (draft.preview as google.maps.Polygon).setPath([...draft.points, point]);
       }
+    });
+
+    const mouseOutListener = map.addListener('mouseout', () => {
+      setCursorCoord(null);
     });
 
     const dblClickListener = map.addListener('dblclick', () => {
@@ -1055,6 +2050,7 @@ export default function GeocercasPage() {
     return () => {
       google.maps.event.removeListener(clickListener);
       google.maps.event.removeListener(moveListener);
+      google.maps.event.removeListener(mouseOutListener);
       google.maps.event.removeListener(dblClickListener);
       clearDraft();
       map.setOptions({ draggableCursor: null, disableDoubleClickZoom: false });
@@ -1074,6 +2070,7 @@ export default function GeocercasPage() {
       const geofence = geofences.find((g) => g.id === id);
       if (!geofence || geofence.type !== store[id].type) {
         store[id].overlay.setMap(null);
+        store[id].labelMarker?.setMap(null);
         delete store[id];
       }
     });
@@ -1094,26 +2091,64 @@ export default function GeocercasPage() {
       };
 
       const entry = store[geofence.id];
+      const center = geofenceCenter(geofence);
+      const labelIcon = geofence.name ? makeGeofenceLabelIcon(geofence.name, geofence.color) : null;
 
       if (!entry) {
+        let overlay: google.maps.Circle | google.maps.Polygon | null = null;
         if (geofence.type === 'circle' && geofence.center && geofence.radius != null) {
-          const overlay = new google.maps.Circle({
+          overlay = new google.maps.Circle({
             ...style,
             map,
             center: geofence.center,
             radius: geofence.radius,
           });
           overlay.addListener('click', () => setSelectedId(geofence.id));
-          store[geofence.id] = { type: 'circle', overlay };
         } else if (geofence.type === 'polygon' && geofence.path && geofence.path.length >= 3) {
-          const overlay = new google.maps.Polygon({ ...style, map, paths: geofence.path });
+          overlay = new google.maps.Polygon({ ...style, map, paths: geofence.path });
           overlay.addListener('click', () => setSelectedId(geofence.id));
-          store[geofence.id] = { type: 'polygon', overlay };
+        }
+
+        if (overlay) {
+          let labelMarker: google.maps.Marker | null = null;
+          if (center && labelIcon) {
+            labelMarker = new google.maps.Marker({
+              map,
+              position: center,
+              clickable: !drawMode,
+              icon: labelIcon,
+              zIndex: isSelected ? 26 : 16,
+            });
+            labelMarker.addListener('click', () => setSelectedId(geofence.id));
+          }
+          store[geofence.id] = { type: geofence.type, overlay, labelMarker };
         }
         return;
       }
 
       entry.overlay.setOptions(style);
+
+      // Sincronizar etiqueta del nombre en el centro de la geocerca
+      if (center && labelIcon) {
+        if (!entry.labelMarker) {
+          entry.labelMarker = new google.maps.Marker({
+            map,
+            position: center,
+            clickable: !drawMode,
+            icon: labelIcon,
+            zIndex: isSelected ? 26 : 16,
+          });
+          entry.labelMarker.addListener('click', () => setSelectedId(geofence.id));
+        } else {
+          entry.labelMarker.setPosition(center);
+          entry.labelMarker.setIcon(labelIcon);
+          entry.labelMarker.setZIndex(isSelected ? 26 : 16);
+          entry.labelMarker.setOptions({ clickable: !drawMode });
+        }
+      } else if (entry.labelMarker) {
+        entry.labelMarker.setMap(null);
+        entry.labelMarker = null;
+      }
 
       if (isEditing) return;
 
@@ -1135,6 +2170,11 @@ export default function GeocercasPage() {
   const startDrawing = useCallback((type: ShapeType) => {
     setShapeMenuOpen(false);
     setEditingShapeId(null);
+    setCircleCenter(null);
+    setCircleRadius(0);
+    setManualLat('');
+    setManualLng('');
+    setManualRadiusKm('');
     setDrawMode(type);
   }, []);
 
@@ -1645,6 +2685,7 @@ export default function GeocercasPage() {
       const entry = shapesRef.current[id];
       if (entry) {
         entry.overlay.setMap(null);
+        entry.labelMarker?.setMap(null);
         delete shapesRef.current[id];
       }
 
@@ -1796,15 +2837,42 @@ export default function GeocercasPage() {
       if (geofence.type === 'circle') {
         const circle = shapesRef.current[geofence.id]?.overlay as google.maps.Circle | undefined;
         const circleBounds = circle?.getBounds();
-        if (circleBounds) bounds.union(circleBounds);
-        else if (geofence.center) bounds.extend(geofence.center);
+        if (circleBounds) {
+          bounds.union(circleBounds);
+        } else if (geofence.center) {
+          if (geofence.radius != null) {
+            const latOffset = geofence.radius / 111320;
+            const lngOffset = geofence.radius / (111320 * Math.cos((geofence.center.lat * Math.PI) / 180));
+            bounds.extend({ lat: geofence.center.lat + latOffset, lng: geofence.center.lng + lngOffset });
+            bounds.extend({ lat: geofence.center.lat - latOffset, lng: geofence.center.lng - lngOffset });
+          } else {
+            bounds.extend(geofence.center);
+          }
+        }
       } else {
         geofence.path?.forEach((point) => bounds.extend(point));
       }
     });
 
-    if (!bounds.isEmpty()) map.fitBounds(bounds, 90);
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, 90);
+      google.maps.event.addListenerOnce(map, 'idle', () => {
+        if ((map.getZoom() || 13) > 16) {
+          map.setZoom(16);
+        }
+      });
+    }
   }, [geofences]);
+
+  // Auto-ajustar automáticamente la vista para encuadrar todas las geocercas al entrar a la página (idéntico a la segunda imagen)
+  useEffect(() => {
+    if (!mapReady || !geofences.length || initialFitDoneRef.current) return;
+    initialFitDoneRef.current = true;
+    const timer = setTimeout(() => {
+      fitAllGeofences();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [mapReady, geofences, fitAllGeofences]);
 
   const zoomBy = useCallback((delta: number) => {
     const map = mapRef.current;
@@ -1828,6 +2896,9 @@ export default function GeocercasPage() {
         if (drawMode === 'polygon') {
           event.preventDefault();
           finishPolygonRef.current();
+        } else if (drawMode === 'circle') {
+          event.preventDefault();
+          finishCircleRef.current();
         } else if (editingShapeId) {
           event.preventDefault();
           saveShapeEdit();
@@ -1942,22 +3013,51 @@ export default function GeocercasPage() {
         </div>
 
         {/* Controles de Búsqueda, Acción y Filtros Rápidos */}
-        <div className="shrink-0 border-b border-gray-200 bg-slate-50 p-2.5 space-y-2">
+        <div
+          className="shrink-0 bg-white"
+          style={{ fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif" }}
+        >
+          <div className="flex items-center gap-2 px-3 pt-3">
+          {/* Buscador */}
+          <div className="relative min-w-0 flex-1">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar geocerca"
+              className="h-9 w-full rounded-[6px] border border-slate-300 bg-white pl-9 pr-7 text-[13px] text-slate-800 placeholder-slate-400 outline-none transition focus:border-[#113EB9] focus:ring-1 focus:ring-[#113EB9]/20"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                title="Limpiar búsqueda"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
           {/* Botón Nueva Geocerca */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               disabled={!mapReady}
               onClick={() => setShapeMenuOpen((open) => !open)}
-              className="flex w-full items-center justify-center gap-1.5 rounded bg-[#FB7B0F] py-2 px-3 text-[12px] font-semibold text-white shadow-xs transition hover:bg-[#e56d09] disabled:cursor-not-allowed disabled:opacity-50"
+              title="Nueva geocerca"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-[6px] bg-[#FB7B0F] px-3.5 text-[13px] font-semibold text-white transition hover:bg-[#e56d09] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus size={14} /> Nueva geocerca
+              <Plus size={16} strokeWidth={2.5} /> Nueva
             </button>
 
             {shapeMenuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setShapeMenuOpen(false)} />
-                <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 overflow-hidden rounded border border-gray-200 bg-white shadow-lg">
+                <div className="absolute right-0 top-[calc(100%+4px)] z-40 w-44 overflow-hidden rounded-[6px] border border-gray-200 bg-white shadow-lg">
                   <button
                     type="button"
                     onClick={() => startDrawing('circle')}
@@ -1976,60 +3076,48 @@ export default function GeocercasPage() {
               </>
             )}
           </div>
-
-          {/* Buscador */}
-          <div className="relative">
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nombre..."
-              className="h-8 w-full rounded border border-gray-300 bg-white pl-8 pr-7 text-[11.5px] text-gray-800 placeholder-gray-400 outline-none transition focus:border-[#113EB9] focus:ring-1 focus:ring-[#113EB9]/20 shadow-xs"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                title="Limpiar búsqueda"
-              >
-                <X size={13} />
-              </button>
-            )}
           </div>
 
           {/* Filtros rápidos */}
-          <div className="flex items-center gap-1 text-[10.5px] font-semibold">
-            <button
-              type="button"
-              onClick={() => setStatusFilter('todos')}
-              className={`flex-1 rounded py-1 px-1 text-center transition-all ${
-                statusFilter === 'todos'
-                  ? 'bg-[#113EB9] text-white shadow-xs font-bold'
-                  : 'bg-gray-200/80 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Todas ({geofences.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setStatusFilter('asignadas')}
-              className={`flex-1 rounded py-1 px-1 text-center transition-all ${
-                statusFilter === 'asignadas'
-                  ? 'bg-blue-600 text-white shadow-xs font-bold'
-                  : 'bg-gray-200/80 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Asignadas ({assignedCount})
-            </button>
+          <div className="mt-2 flex gap-5 border-b border-slate-200 px-3">
+            {(
+              [
+                { key: 'todos', label: 'Todas', count: geofences.length },
+                { key: 'asignadas', label: 'Asignadas', count: assignedCount },
+              ] as const
+            ).map((tab) => {
+              const active = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={`relative flex items-center gap-1.5 pb-2 pt-1.5 text-[12.5px] transition-colors ${
+                    active
+                      ? 'font-bold text-[#113EB9]'
+                      : 'font-semibold text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                  <span
+                    className={`font-medium tabular-nums ${active ? 'text-[#113EB9]/70' : 'text-slate-400'}`}
+                  >
+                    {tab.count}
+                  </span>
+                  {active && (
+                    <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-t bg-[#113EB9]" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Lista con scroll de Geocercas */}
-        <div className="geocercas-scroll flex-1 space-y-1.5 overflow-y-auto p-2 bg-slate-50/40">
+        <div
+          className="geocercas-scroll flex-1 space-y-[3px] overflow-y-auto bg-white pb-2 pr-1.5 pt-1.5"
+          style={{ fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif" }}
+        >
           {filteredGeofences.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <MapPin size={24} className="mb-2 text-gray-300" />
@@ -2068,6 +3156,30 @@ export default function GeocercasPage() {
       {/* Contenedor del Mapa */}
       <div className="relative h-full min-w-0 flex-1">
         <div ref={mapDivRef} className="absolute inset-0 w-full h-full" style={{ width: '100%', height: '100%' }} />
+
+        {/* Coordenadas en tiempo real junto al cursor del mouse al dibujar */}
+        {drawMode && cursorCoord && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${cursorCoord.x + 14}px`,
+              top: `${cursorCoord.y + 16}px`,
+              pointerEvents: 'none',
+              zIndex: 25,
+              fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            }}
+            className="rounded-xl bg-white px-3 py-1.5 shadow-xl border border-slate-200/90 select-none -translate-y-1/2 animate-fadeIn"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 w-6">LAT</span>
+              <span className="text-[11.5px] font-bold text-slate-800 tabular-nums">{cursorCoord.lat.toFixed(5)}</span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] font-bold text-slate-400 w-6">LNG</span>
+              <span className="text-[11.5px] font-bold text-slate-800 tabular-nums">{cursorCoord.lng.toFixed(5)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Barra flotante sobre el mapa (Acceso a Sidebar, Reportes, Alertas y Traccar) */}
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
@@ -2295,54 +3407,458 @@ export default function GeocercasPage() {
           </div>
         )}
 
-        {/* Barra de dibujo */}
+        {/* Tarjeta de dibujo en la parte inferior derecha (Estilo moderno idéntico a la referencia) */}
         {drawMode && (
-          <div className="absolute left-1/2 top-4 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-gray-200/80 bg-white/95 py-2 pl-4 pr-2 text-[12px] font-medium text-gray-700 shadow-lg backdrop-blur-md">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#FB7B0F]" />
+          <div
+            style={{ fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+            className="absolute bottom-6 right-6 z-30 w-[360px] sm:w-[380px] rounded-2xl bg-white shadow-2xl border border-slate-200/80 overflow-hidden select-none animate-fadeIn"
+          >
+            {/* Cabecera azul (#1447C0) */}
+            <div className="bg-[#1447C0] px-4 py-3.5 flex items-center justify-between gap-3 text-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-[38px] h-[38px] rounded-xl bg-gradient-to-br from-[#FB7B0F] to-[#E26500] flex items-center justify-center shrink-0 shadow-sm">
+                  {drawMode === 'circle' ? (
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <circle cx="12" cy="12" r="8" />
+                      <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-white"
+                    >
+                      <polygon points="12 2 22 8.5 18 20 6 20 2 8.5" />
+                      <circle cx="12" cy="2" r="1.5" fill="currentColor" />
+                      <circle cx="22" cy="8.5" r="1.5" fill="currentColor" />
+                      <circle cx="18" cy="20" r="1.5" fill="currentColor" />
+                      <circle cx="6" cy="20" r="1.5" fill="currentColor" />
+                      <circle cx="2" cy="8.5" r="1.5" fill="currentColor" />
+                    </svg>
+                  )}
+                </div>
 
-            {drawMode === 'circle' ? (
-              <span>
-                {drawInfo.points === 0
-                  ? 'Haz clic para marcar el centro del círculo'
-                  : `Clic para fijar el radio · ${formatDistance(drawInfo.radius)}`}
-              </span>
-            ) : (
-              <span>
-                {drawInfo.points === 0
-                  ? 'Haz clic en el mapa para marcar cada vértice'
-                  : `${drawInfo.points} ${drawInfo.points === 1 ? 'vértice' : 'vértices'} · pulsa Enter o “Finalizar” para cerrar`}
-              </span>
-            )}
+                <div className="min-w-0">
+                  <h4 className="text-[14.5px] font-bold text-white leading-tight">
+                    {drawMode === 'circle' ? 'Nueva geocerca' : 'Nueva geocerca'}
+                  </h4>
+                  <p className="text-[11.5px] text-blue-100/90 leading-tight mt-0.5 truncate">
+                    {drawMode === 'circle'
+                      ? !circleCenter
+                        ? 'Haz clic en el mapa para marcar el centro'
+                        : circleRadius >= MIN_RADIUS_M
+                        ? 'Listo para guardar'
+                        : 'Haz clic en el mapa para fijar el radio'
+                      : drawInfo.points < 3
+                      ? 'Haz clic en el mapa para agregar vértices'
+                      : 'Pulsa Enter o Finalizar para cerrar'}
+                  </p>
+                </div>
+              </div>
 
-            {drawMode === 'polygon' && drawInfo.points > 0 && (
-              <button
-                type="button"
-                onClick={() => undoPointRef.current()}
-                title="Deshacer último punto"
-                className="flex items-center justify-center rounded-full bg-gray-100 p-1.5 text-gray-600 transition hover:bg-gray-200"
-              >
-                <Undo2 size={13} />
-              </button>
-            )}
+              {/* Badge naranja en cabecera */}
+              <div className="px-3 py-1 rounded-full bg-[#FB7B0F] text-white text-[12px] font-bold shrink-0 tabular-nums shadow-xs flex items-center justify-center">
+                {drawMode === 'circle'
+                  ? circleRadius >= MIN_RADIUS_M
+                    ? `${(circleRadius / 1000).toFixed(2)} km`
+                    : circleRadius > 0
+                    ? `${Math.round(circleRadius)} m`
+                    : 'Sin radio'
+                  : `${drawInfo.points} ${drawInfo.points === 1 ? 'vértice' : 'vértices'}`}
+              </div>
+            </div>
 
-            {drawMode === 'polygon' && (
-              <button
-                type="button"
-                disabled={drawInfo.points < 3}
-                onClick={() => finishPolygonRef.current()}
-                className="rounded-full bg-green-600 px-3 py-1 text-[11px] font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Finalizar (Enter)
-              </button>
-            )}
+            {/* Cuerpo de la tarjeta */}
+            <div className="p-3.5 bg-white flex flex-col">
+              {/* Selector de tipo (Polígono / Círculo) */}
+              <div className="grid grid-cols-2 p-1 bg-slate-100/90 rounded-xl gap-1">
+                <button
+                  type="button"
+                  onClick={() => setDrawMode('polygon')}
+                  className={`py-1.5 flex items-center justify-center gap-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer ${
+                    drawMode === 'polygon'
+                      ? 'bg-white text-[#1447C0] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="12 2 22 8.5 18 20 6 20 2 8.5" />
+                  </svg>
+                  <span>Polígono</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawMode('circle')}
+                  className={`py-1.5 flex items-center justify-center gap-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer ${
+                    drawMode === 'circle'
+                      ? 'bg-white text-[#1447C0] shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="8" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  </svg>
+                  <span>Círculo</span>
+                </button>
+              </div>
 
-            <button
-              type="button"
-              onClick={cancelDrawing}
-              className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-500 transition hover:bg-gray-200"
-            >
-              Cancelar
-            </button>
+              {drawMode === 'circle' ? (
+                /* Vista de Círculo: CENTRO y RADIO (idéntica a media_1790969309511.png) */
+                <div className="rounded-xl border border-slate-200/90 p-3 bg-white mt-3 mb-2.5 space-y-2 shadow-2xs">
+                  <div className="flex items-center">
+                    <span className="text-[11px] font-bold text-slate-400 tracking-wider w-16 uppercase shrink-0">
+                      CENTRO
+                    </span>
+                    <span className="text-[12.5px] font-bold text-slate-800 tabular-nums flex-1 pl-4 truncate">
+                      {circleCenter
+                        ? `${circleCenter.lat.toFixed(5)}, ${circleCenter.lng.toFixed(5)}`
+                        : 'Haz clic en el mapa'}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-[11px] font-bold text-slate-400 tracking-wider w-16 uppercase shrink-0">
+                      RADIO
+                    </span>
+                    <span className="text-[12.5px] font-bold text-slate-800 tabular-nums flex-1 pl-4">
+                      {circleRadius >= MIN_RADIUS_M
+                        ? `${(circleRadius / 1000).toFixed(2)} km`
+                        : circleRadius > 0
+                        ? `${Math.round(circleRadius)} m`
+                        : '0.00 km'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Vista de Polígono: Barra de progreso y Tabla de vértices */
+                <>
+                  {/* Barra de progreso segmentada */}
+                  <div className="grid grid-cols-3 gap-1.5 mt-3 mb-2.5">
+                    <div
+                      className={`h-[3px] rounded-full transition-all duration-300 ${
+                        drawInfo.points >= 1 ? 'bg-[#FB7B0F]' : 'bg-slate-200'
+                      }`}
+                    />
+                    <div
+                      className={`h-[3px] rounded-full transition-all duration-300 ${
+                        drawInfo.points >= 2 ? 'bg-[#FB7B0F]' : 'bg-slate-200'
+                      }`}
+                    />
+                    <div
+                      className={`h-[3px] rounded-full transition-all duration-300 ${
+                        drawInfo.points >= 3 ? 'bg-[#FB7B0F]' : 'bg-slate-200'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Tabla de coordenadas de vértices */}
+                  <div className="rounded-lg border border-slate-200/90 overflow-hidden mb-2.5">
+                    <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-500 px-3 py-1.5 border-b border-slate-100 bg-slate-50">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 text-center">#</span>
+                        <span className="w-[105px]">LATITUD</span>
+                        <span>LONGITUD</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={copyAllCoords}
+                        title="Copiar todas las coordenadas"
+                        className="p-1 rounded text-slate-400 hover:text-[#1447C0] hover:bg-white transition cursor-pointer"
+                      >
+                        <Copy size={13} />
+                      </button>
+                    </div>
+
+                    <div className="max-h-[110px] overflow-y-auto divide-y divide-slate-100 text-[11.5px] bg-white">
+                      {drawVertices.length === 0 ? (
+                        <div className="py-3 text-center text-slate-400 text-[11.5px] italic">
+                          Sin vértices marcados aún
+                        </div>
+                      ) : (
+                        drawVertices.map((v, idx) => {
+                          const isLast = idx === drawVertices.length - 1;
+                          return (
+                            <div
+                              key={idx}
+                              className={`group flex items-center justify-between px-3 py-1.5 transition ${
+                                isLast
+                                  ? 'bg-blue-50/50 border-l-[3px] border-[#FB7B0F]'
+                                  : 'hover:bg-slate-50 border-l-[3px] border-transparent'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                                    isLast
+                                      ? 'bg-[#1447C0] text-white'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {idx + 1}
+                                </span>
+                                <span className={`w-[105px] tabular-nums ${isLast ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                                  {v.lat.toFixed(6)}
+                                </span>
+                                <span className={`tabular-nums ${isLast ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                                  {v.lng.toFixed(6)}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => copyCoord(v.lat, v.lng)}
+                                title="Copiar coordenada"
+                                className="p-1 rounded text-slate-400 opacity-60 group-hover:opacity-100 hover:text-[#1447C0] transition cursor-pointer"
+                              >
+                                <Copy size={12} />
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Switch: INGRESAR COORDENADAS MANUALMENTE */}
+              <div className="flex items-center justify-between py-2 border-t border-slate-100">
+                <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">
+                  Ingresar coordenadas manualmente
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={manualInputOpen}
+                  onClick={() => setManualInputOpen((prev) => !prev)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    manualInputOpen ? 'bg-[#1447C0]' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                      manualInputOpen ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Sección desplegable al activar el switch */}
+              {manualInputOpen && (
+                <div className="pb-2 space-y-1.5 animate-fadeIn">
+                  {drawMode === 'circle' ? (
+                    /* Entradas para Círculo: Latitud, Longitud, Radio km y botón Aplicar */
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={manualLat}
+                        onChange={(e) => handleLatChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyManualCircle();
+                          }
+                        }}
+                        placeholder="Latitud"
+                        className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                      />
+                      <input
+                        type="text"
+                        value={manualLng}
+                        onChange={(e) => setManualLng(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyManualCircle();
+                          }
+                        }}
+                        placeholder="Longitud"
+                        className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                      />
+                      <input
+                        type="text"
+                        value={manualRadiusKm}
+                        onChange={(e) => setManualRadiusKm(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyManualCircle();
+                          }
+                        }}
+                        placeholder="Radio km"
+                        className="w-[85px] shrink-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyManualCircle}
+                        title="Aplicar centro y radio"
+                        className="h-9 px-3.5 shrink-0 rounded-lg bg-[#1447C0] hover:bg-[#113EB9] active:bg-[#0d2f8e] text-white flex items-center justify-center font-bold text-[12px] shadow-xs transition cursor-pointer"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  ) : (
+                    /* Entradas para Polígono: Latitud, Longitud, botón + y texto de ayuda */
+                    <>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={manualLat}
+                          onChange={(e) => handleLatChange(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddManualCoordinate();
+                            }
+                          }}
+                          placeholder={cursorCoord ? `Latitud ${cursorCoord.lat.toFixed(5)}` : 'Latitud -12.08712'}
+                          className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                        />
+                        <input
+                          type="text"
+                          value={manualLng}
+                          onChange={(e) => setManualLng(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddManualCoordinate();
+                            }
+                          }}
+                          placeholder={cursorCoord ? `Longitud ${cursorCoord.lng.toFixed(5)}` : 'Longitud -76.97834'}
+                          className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddManualCoordinate}
+                          title="Agregar coordenada"
+                          className="h-9 w-9 shrink-0 rounded-lg bg-[#1447C0] hover:bg-[#113EB9] active:bg-[#0d2f8e] text-white flex items-center justify-center font-bold shadow-xs transition cursor-pointer"
+                        >
+                          <Plus size={16} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400 italic">
+                        También puedes pegar "lat, lng" en el primer campo
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Fila de Botones: Deshacer, Cancelar y Finalizar */}
+              <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={drawMode === 'circle' ? !circleCenter : drawInfo.points === 0}
+                    onClick={() => undoPointRef.current()}
+                    title={drawMode === 'circle' ? 'Limpiar centro' : 'Deshacer último vértice'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-semibold text-[12px] transition disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                  >
+                    <Undo2 size={13} className="text-slate-600 stroke-[2.2]" />
+                    <span>Deshacer</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={cancelDrawing}
+                    className="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-[12px] transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+
+                {drawMode === 'polygon' ? (
+                  drawInfo.points >= 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => finishPolygonRef.current()}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#FB7B0F] hover:bg-[#e26a05] active:bg-[#c95d03] text-white font-bold text-[12px] shadow-sm transition cursor-pointer"
+                    >
+                      <Check size={14} className="stroke-[2.5]" />
+                      <span>Finalizar</span>
+                      <span className="bg-black/15 text-white text-[10px] font-bold px-1.5 py-0.5 rounded leading-none">
+                        Enter
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-semibold text-[12px] cursor-not-allowed select-none">
+                      <Check size={14} className="text-slate-400 stroke-[2.5]" />
+                      <span>Finalizar</span>
+                      <span className="bg-slate-200/90 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded leading-none">
+                        Enter
+                      </span>
+                    </div>
+                  )
+                ) : circleCenter && circleRadius >= MIN_RADIUS_M ? (
+                  <button
+                    type="button"
+                    onClick={() => finishCircleRef.current()}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#FB7B0F] hover:bg-[#e26a05] active:bg-[#c95d03] text-white font-bold text-[12px] shadow-sm transition cursor-pointer"
+                  >
+                    <Check size={14} className="stroke-[2.5]" />
+                    <span>Finalizar</span>
+                    <span className="bg-black/15 text-white text-[10px] font-bold px-1.5 py-0.5 rounded leading-none">
+                      Enter
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-semibold text-[12px] cursor-not-allowed select-none">
+                    <Check size={14} className="text-slate-400 stroke-[2.5]" />
+                    <span>Finalizar</span>
+                    <span className="bg-slate-200/90 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded leading-none">
+                      Enter
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Texto de ayuda al pie */}
+              <div className="text-right text-[11px] text-slate-500 font-medium mt-2">
+                {drawMode === 'polygon'
+                  ? drawInfo.points < 3
+                    ? 'Mínimo 3 vértices para cerrar'
+                    : 'Listo para cerrar · Pulsa Enter o Finalizar'
+                  : !circleCenter
+                  ? 'Marca el centro del círculo en el mapa'
+                  : circleRadius >= MIN_RADIUS_M
+                  ? 'Listo para guardar · Pulsa Enter o Finalizar'
+                  : 'Haz clic en el mapa para fijar el radio o pulsa Finalizar'}
+              </div>
+            </div>
           </div>
         )}
 
@@ -2399,8 +3915,13 @@ export default function GeocercasPage() {
         status={signalRStatus}
         loading={signalRLoading}
         onRefresh={refreshSignalRAlerts}
-        onClear={clearSignalRAlerts}
+        onClear={() => {
+          clearSignalRAlerts();
+          handleClearAlertMarker();
+        }}
         onLocateAlert={handleLocateAlert}
+        selectedAlertId={activeAlertOnMap?.id || null}
+        onClearAlertMarker={handleClearAlertMarker}
       />
 
       {/* Modal de Reportes de Visitas y Resumen Estadístico */}

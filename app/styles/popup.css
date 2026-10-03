@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
 #map {
   height: 100%;
 }
@@ -380,6 +382,18 @@ div[aria-label*="Street View"] .gm-iv-address {
   pointer-events: none !important;
 }
 
+/* Ocultar el enlace "Combinaciones de teclas" (los atajos de teclado siguen activos) */
+.gm-style button[aria-label='Combinaciones de teclas'],
+.gm-style button[aria-label='Combinaciones de teclas del mapa'],
+.gm-style button[aria-label='Keyboard shortcuts'],
+.gm-style div:has(> button[aria-label='Combinaciones de teclas']),
+.gm-style div:has(> button[aria-label='Combinaciones de teclas del mapa']),
+.gm-style div:has(> button[aria-label='Keyboard shortcuts']),
+.gm-style a[href*='mapclient=apiv3'],
+.gm-style .gm-style-cc:has(a[href*='mapclient=apiv3']) {
+  display: none !important;
+}
+
 /* Ocultar botón nativo de pantalla completa en Street View (nuestra botonera flotante ya lo incluye) */
 .gm-style .gm-fullscreen-control,
 .gm-fullscreen-control,
@@ -402,6 +416,363 @@ div[aria-label*="Street View"] .gm-fullscreen-control {
 
 .camera-track-btn:active {
   filter: brightness(0.95);
+}
+
+/* ==========================================================================
+   POPUP DE UNIDAD — v2 (estructura/tipografía, colores del proyecto intactos)
+   ========================================================================== */
+.popup-bubble:has(> .pv2-popup) {
+  top: -35px;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.pv2-popup {
+  position: relative;
+  width: 288px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14), 0 14px 32px rgba(15, 23, 42, 0.2);
+  font-family: 'IBM Plex Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.pv2-card {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pv2-header {
+  height: 38px;
+  padding: 0 6px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1f2937;
+  color: #ffffff;
+}
+
+.pv2-close-btn {
+  position: static;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: #d90429;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pv2-close-btn:hover {
+  background: #d90429;
+  filter: brightness(1.1);
+}
+
+.pv2-plate {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+}
+
+.pv2-online {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.pv2-online-dot-wrap {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pv2-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #38b000;
+}
+
+.pv2-online-halo {
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background-color: #38b000;
+  opacity: 0.35;
+  animation: pv2-halo-pulse 2s ease-out infinite;
+}
+
+@keyframes pv2-halo-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.pv2-online-text {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #38b000;
+}
+
+.pv2-divider {
+  width: 1px;
+  height: 18px;
+  background-color: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.pv2-cam-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pv2-cam-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.pv2-cam-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pv2-cam-btn-active {
+  background: #ffffff;
+  color: #111827;
+}
+
+.pv2-cam-btn-active:hover {
+  background: #e5e7eb;
+}
+
+.pv2-body {
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pv2-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 1px;
+}
+
+.pv2-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  margin: 0;
+}
+
+.pv2-meta-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.pv2-meta-value {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.pv2-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background-color: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.pv2-stat {
+  position: relative;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pv2-stat + .pv2-stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background-color: rgba(15, 23, 42, 0.12);
+}
+
+.pv2-stat-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3f4a3f;
+  color: color-mix(in srgb, var(--pv2-tint, #64748b) 40%, #000000);
+}
+
+.pv2-stat-value {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.pv2-stat-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: #3f4a3f;
+  color: color-mix(in srgb, var(--pv2-tint, #64748b) 40%, #000000);
+  margin-left: 2px;
+}
+
+.pv2-report {
+  padding: 2px 2px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pv2-report-heading {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: inherit;
+  color: color-mix(in srgb, var(--pv2-tint, #64748b) 40%, currentColor);
+}
+
+.pv2-report-row {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 2px 6px;
+}
+
+.pv2-report-label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.pv2-report-value {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: inherit;
+  opacity: 0.88;
+  font-variant-numeric: tabular-nums;
+}
+
+.pv2-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pv2-actions > a {
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+}
+
+.pv2-btn-primary {
+  flex: 1;
+  height: 28px;
+  border-radius: 5px;
+  border: none;
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pv2-btn-primary:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.pv2-btn-primary svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.pv2-btn-icon {
+  width: 32px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: none;
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pv2-btn-icon:hover {
+  background-color: #374151 !important;
+}
+
+.pv2-btn-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 
