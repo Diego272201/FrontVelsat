@@ -7,7 +7,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const showTollbar = pathname === '/trackvelnew';
   const isGeocercas = pathname?.includes('/geocercas');
-
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       {isGeocercas ? (
