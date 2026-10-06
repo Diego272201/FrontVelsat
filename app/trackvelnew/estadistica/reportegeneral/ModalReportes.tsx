@@ -81,8 +81,10 @@ const AppModalReportes: React.FC<AppModalProps> = ({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 11) {
-      toast.error('El límite de fechas es de 11 días', {
+    const maxDays = nameurl === 'reportegeneral' ? 31 : 11;
+
+    if (diffDays > maxDays) {
+      toast.error(`El límite de fechas es de ${maxDays} días`, {
         className: 'toast-slide-in',
         richColors: true,
       });
