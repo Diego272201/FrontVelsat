@@ -36,7 +36,7 @@ export default function ButtonDownloadFloat({
     });
 
     if (nameurl !== 'reporteeventos') {
-      const errorMsg = validateDateRange(startDate, endDate);
+      const errorMsg = validateDateRange(startDate, endDate, nameurl === 'reportegeneral' ? 31 : 11);
       if (errorMsg) {
         toast.error(errorMsg, {
           id: toastId,
