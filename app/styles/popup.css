@@ -616,7 +616,7 @@ div[aria-label*="Street View"] .gm-fullscreen-control {
 
 .pv2-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   background-color: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 7px;
