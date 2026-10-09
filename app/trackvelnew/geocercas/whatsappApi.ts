@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 export const WHATSAPP_API_BASE =
-  process.env.NEXT_PUBLIC_WHATSAPP_API_URL ||
   process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
   'https://do.velsat.pe:8443/notificaciones-trackbell';
-export const WHATSAPP_STATIC_TOKEN = 'trackvel-static-token-2026';
+export const WHATSAPP_STATIC_TOKEN =
+  process.env.NEXT_PUBLIC_TRACKVEL_STATIC_TOKEN || 'trackvel-static-token-2026';
 
 export interface DestinoWhatsAppDto {
   id: number;
