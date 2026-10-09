@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_TRACKVEL_API_URL || 'http://localhost:5000';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
+  'https://do.velsat.pe:8443/notificaciones-trackbell';
 export const REPORTS_API_BASE = `${BASE_URL.replace(/\/+$/, '')}/api/reportes/geocercas`;
 
 export const STATIC_TOKEN =

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Map,
   Layers,
@@ -13,9 +13,14 @@ import {
   Search,
   X,
   MapPin,
+  Hexagon,
+  RefreshCw,
+  Maximize2,
+  CircleDot,
 } from 'lucide-react';
 import { FaTrafficLight } from 'react-icons/fa';
 import { useMapRuler } from '@/hooks/useMapRuler';
+import { useMapGeofences } from '@/hooks/useMapGeofences';
 import RulerPanel from './RulerPanel';
 
 interface MapFloatingControlsProps {
@@ -46,6 +51,29 @@ export default function MapFloatingControls({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: string; lon: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [geofencesActive, setGeofencesActive] = useState(false);
+  const [geofencesPanelOpen, setGeofencesPanelOpen] = useState(false);
+  const [geofenceSearch, setGeofenceSearch] = useState('');
+
+  const {
+    loading: loadingGeofences,
+    geofenceCount,
+    geofencesList,
+    selectedGeofenceId,
+    focusGeofence,
+    fitAllGeofences,
+    refetch: refetchGeofences,
+  } = useMapGeofences(map, geofencesActive);
+
+  const filteredGeofences = useMemo(() => {
+    if (!geofenceSearch.trim()) return geofencesList;
+    const q = geofenceSearch.toLowerCase().trim();
+    return geofencesList.filter(
+      (g) =>
+        g.nombre.toLowerCase().includes(q) ||
+        (g.descripcion && g.descripcion.toLowerCase().includes(q)),
+    );
+  }, [geofencesList, geofenceSearch]);
 
   const ruler = useMapRuler(map, rulerActive);
   const { clear: clearRuler } = ruler;
@@ -266,8 +294,30 @@ export default function MapFloatingControls({
   }, [map]);
 
   const toggleRuler = useCallback(() => {
-    setRulerActive((prev) => !prev);
+    setRulerActive((prev) => {
+      const next = !prev;
+      if (next) {
+        setSearchOpen(false);
+      }
+      return next;
+    });
   }, []);
+
+  const handleToggleGeofences = useCallback(() => {
+    if (!geofencesActive) {
+      setSearchOpen(false);
+      setGeofencesActive(true);
+      setGeofencesPanelOpen(true);
+    } else {
+      if (!geofencesPanelOpen) {
+        setSearchOpen(false);
+        setGeofencesPanelOpen(true);
+      } else {
+        setGeofencesActive(false);
+        setGeofencesPanelOpen(false);
+      }
+    }
+  }, [geofencesActive, geofencesPanelOpen]);
 
   // Atajos de la regla:
   //   Esc   cancela y descarta lo medido, como si no se hubiera marcado nada
@@ -356,6 +406,7 @@ export default function MapFloatingControls({
   const toggleSearch = useCallback(() => {
     setSearchOpen((prev) => {
       if (!prev) {
+        setGeofencesPanelOpen(false);
         setTimeout(() => searchInputRef.current?.focus(), 100);
       } else {
         setSearchQuery('');
@@ -622,6 +673,208 @@ export default function MapFloatingControls({
             <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-[#113EB9]" />
           )}
         </button>
+      </div>
+
+      {/* Botón y Panel Flotante de Geocercas */}
+      <div className="relative flex flex-col items-end">
+        <div className="flex flex-col rounded-lg border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">
+          <button
+            type="button"
+            onClick={handleToggleGeofences}
+            className={`relative flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+              geofencesActive
+                ? 'bg-[#113EB9] text-white shadow-sm'
+                : 'text-slate-700 hover:bg-blue-50 hover:text-[#113EB9]'
+            }`}
+            title={
+              geofencesActive
+                ? `Geocercas en mapa (${geofenceCount}) - Clic para ver lista u ocultar`
+                : 'Mostrar geocercas en el mapa'
+            }
+          >
+            {loadingGeofences ? (
+              <RefreshCw size={14} className="animate-spin text-white" />
+            ) : (
+              <Hexagon size={16} strokeWidth={2.6} />
+            )}
+            {geofencesActive && !loadingGeofences && (
+              <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Popover / Flyout lateral con la lista de geocercas */}
+        {geofencesPanelOpen && geofencesActive && (
+          <div className="absolute right-10 bottom-0 w-80 max-h-[min(480px,calc(100vh-140px))] rounded-xl border border-slate-200/90 bg-white/95 shadow-2xl backdrop-blur-md flex flex-col overflow-hidden z-30 animate-in fade-in slide-in-from-right-1 duration-150">
+            {/* Cabecera */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-3.5 py-2.5">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-100/70 text-[#113EB9]">
+                  <Hexagon size={13} className="stroke-[2.5]" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12px] font-bold text-slate-800">Geocercas</span>
+                  <span className="rounded-full bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-[#113EB9]">
+                    {geofenceCount}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {geofenceCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={fitAllGeofences}
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-[#113EB9] hover:shadow-xs"
+                    title="Ajustar zoom para ver todas las geocercas"
+                  >
+                    <Maximize2 size={13} strokeWidth={2.5} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={refetchGeofences}
+                  disabled={loadingGeofences}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-[#113EB9] hover:shadow-xs disabled:opacity-50"
+                  title="Recargar geocercas"
+                >
+                  <RefreshCw
+                    size={13}
+                    strokeWidth={2.5}
+                    className={loadingGeofences ? 'animate-spin text-[#113EB9]' : ''}
+                  />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGeofencesPanelOpen(false)}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white hover:text-slate-700 hover:shadow-xs"
+                  title="Cerrar ventana (las geocercas continúan en el mapa)"
+                >
+                  <X size={14} strokeWidth={2.5} />
+                </button>
+              </div>
+            </div>
+
+            {/* Buscador de geocercas */}
+            {geofenceCount > 2 && (
+              <div className="border-b border-slate-100 bg-white px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50 px-2.5 py-1.5 transition-colors focus-within:border-blue-400 focus-within:bg-white">
+                  <Search size={13} className="shrink-0 text-slate-400" />
+                  <input
+                    type="text"
+                    value={geofenceSearch}
+                    onChange={(e) => setGeofenceSearch(e.target.value)}
+                    placeholder="Buscar geocerca..."
+                    className="flex-1 bg-transparent text-[11px] text-slate-800 placeholder-slate-400 outline-none"
+                  />
+                  {geofenceSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setGeofenceSearch('')}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Lista scrollable de geocercas */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 max-h-[300px]">
+              {loadingGeofences && geofencesList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center text-slate-400 gap-2">
+                  <RefreshCw size={18} className="animate-spin text-[#113EB9]" />
+                  <span className="text-[11px] font-medium">Cargando geocercas...</span>
+                </div>
+              ) : filteredGeofences.length === 0 ? (
+                <div className="py-7 text-center text-[11px] text-slate-400 px-4">
+                  {geofenceSearch
+                    ? 'No se encontraron geocercas coincidentes'
+                    : 'No hay geocercas activas registradas'}
+                </div>
+              ) : (
+                filteredGeofences.map((geo) => {
+                  const isSelected = selectedGeofenceId === geo.id;
+                  return (
+                    <button
+                      key={geo.id}
+                      type="button"
+                      onClick={() => focusGeofence(geo.id)}
+                      className={`w-full px-3 py-2.5 flex items-center justify-between text-left transition-all group ${
+                        isSelected
+                          ? 'bg-blue-50/90 border-l-[3px] border-[#113EB9]'
+                          : 'hover:bg-slate-50/90 border-l-[3px] border-transparent'
+                      }`}
+                      title={`Ir directamente a ${geo.nombre} en el mapa`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        {/* Indicador de forma y color */}
+                        <div
+                          className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white shadow-xs"
+                          style={{ backgroundColor: `${geo.color}18` }}
+                        >
+                          {geo.tipo === 'circle' ? (
+                            <CircleDot size={15} style={{ color: geo.color }} />
+                          ) : (
+                            <Hexagon size={15} style={{ color: geo.color }} />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-semibold text-slate-800 truncate group-hover:text-[#113EB9] transition-colors">
+                              {geo.nombre}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                            <span>{geo.tipo === 'circle' ? 'Círculo' : 'Polígono'}</span>
+                            {geo.tipo === 'circle' && geo.radius ? (
+                              <>
+                                <span>•</span>
+                                <span>
+                                  {geo.radius >= 1000
+                                    ? `${(geo.radius / 1000).toFixed(1)} km`
+                                    : `${Math.round(geo.radius)} m`}
+                                </span>
+                              </>
+                            ) : null}
+                            {geo.tipo === 'polygon' && geo.pointCount ? (
+                              <>
+                                <span>•</span>
+                                <span>{geo.pointCount} vértices</span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center text-slate-300 group-hover:text-[#113EB9] transition-colors">
+                        <LocateFixed size={14} className="group-hover:scale-110 transition-transform" />
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Pie con ayuda y opción para ocultar todas */}
+            <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-2 flex items-center justify-between text-[10px] text-slate-500">
+              <span className="truncate">Clic en una geocerca para enfocar</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setGeofencesActive(false);
+                  setGeofencesPanelOpen(false);
+                }}
+                className="font-medium text-red-500 hover:text-red-700 transition-colors shrink-0 pl-2"
+                title="Desactivar geocercas del mapa"
+              >
+                Ocultar del mapa
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Panel de la Regla */}

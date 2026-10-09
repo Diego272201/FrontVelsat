@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 export type TrackvelLoaderSpinner = 'ring' | 'dots' | 'bar';
 
@@ -184,6 +185,13 @@ const CSS = `
   background: linear-gradient(160deg, #F4602F 0%, #E8502A 55%, #D9421F 100%);
   box-shadow: 0 10px 26px rgba(216, 66, 31, 0.28);
   z-index: 1;
+}
+
+.tvl-mark img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
 }
 
 .tvl-words {
@@ -452,13 +460,14 @@ export default function TrackvelLoader({
           <div className="tvl-mark-container">
             <span className="tvl-pulse" aria-hidden="true" />
             <div className="tvl-mark">
-              <svg width="30" height="34" viewBox="0 0 30 34" fill="none" aria-hidden="true">
-                <path
-                  d="M15 2.6c-5.3 0-9.6 4.2-9.6 9.4 0 3.9 2.6 7.2 6.2 8.6l2.3 8.4c.3 1.1 1.9 1.1 2.2 0l2.3-8.4c3.6-1.4 6.2-4.7 6.2-8.6 0-5.2-4.3-9.4-9.6-9.4Z"
-                  fill="#FFFFFF"
-                />
-                <circle cx="15" cy="11.8" r="3.5" fill="#E8502A" />
-              </svg>
+              <Image
+                src="/LogoWeb.png"
+                alt="Velsat"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+                priority
+              />
             </div>
           </div>
 

@@ -91,6 +91,7 @@ import {
   getTraccarGeofenceDevices,
   isDeviceLinkedToGeofenceInTraccar,
   findDevicesLinkedToTraccarGeofence,
+  clearDeviceGeofencesCache,
   ServerDevicesResult,
 } from './traccarApi';
 
@@ -979,6 +980,8 @@ export default function GeocercasPage() {
   const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>('roadmap');
 
   const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const geofencesRef = useRef<Geofence[]>([]);
+  geofencesRef.current = geofences;
   const [loadingGeofences, setLoadingGeofences] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -1000,6 +1003,7 @@ export default function GeocercasPage() {
   const [pendingShape, setPendingShape] = useState<PendingShape | null>(null);
   const [editingDetails, setEditingDetails] = useState<Geofence | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Geofence | null>(null);
+  const [modalInitialTab, setModalInitialTab] = useState<'general' | 'whatsapp'>('general');
 
   const [testingTraccar, setTestingTraccar] = useState(false);
   const traccarDevicesRef = useRef<ServerDevicesResult[] | null>(null);
@@ -1018,23 +1022,24 @@ export default function GeocercasPage() {
 
   const testTraccarConnection = useCallback(async () => {
     setTestingTraccar(true);
-    const toastId = toast.loading('Probando conexión con Traccar (https://do.velsat.pe:2087)...');
+    const targetTraccarUrl = getTraccarServerForUrl(effectiveBaseUrl);
+    const toastId = toast.loading(`Probando conexión con Traccar (${targetTraccarUrl})...`);
     try {
       const auth = getTraccarAuthHeader();
       if (!auth) {
         toast.error('No se encontró NEXT_PUBLIC_TRACCAR_EMAIL / PASSWORD en .env.local', { id: toastId });
         return;
       }
-      const result = await testTraccarAuth(DEFAULT_TRACCAR_URL, auth);
+      const result = await testTraccarAuth(targetTraccarUrl, auth);
       if (result.ok) {
-        console.log('✅ Conexión con Traccar (:2087) exitosa:', result);
-        toast.success(`Traccar DO (:2087): ${result.message}`, {
+        console.log(`✅ Conexión con Traccar (${targetTraccarUrl}) exitosa:`, result);
+        toast.success(`Traccar (${targetTraccarUrl}): ${result.message}`, {
           id: toastId,
           duration: 5000,
         });
       } else {
-        console.error('❌ Error de conexión con Traccar:', result.message);
-        toast.error(`Traccar DO (:2087): ${result.message}`, {
+        console.error(`❌ Error de conexión con Traccar (${targetTraccarUrl}):`, result.message);
+        toast.error(`Traccar (${targetTraccarUrl}): ${result.message}`, {
           id: toastId,
           duration: 6000,
         });
@@ -1049,7 +1054,7 @@ export default function GeocercasPage() {
     } finally {
       setTestingTraccar(false);
     }
-  }, []);
+  }, [effectiveBaseUrl]);
 
   const shapesRef = useRef<Record<string, ShapeEntry>>({});
   const drawRef = useRef<DrawDraft>({
@@ -1098,6 +1103,60 @@ export default function GeocercasPage() {
       toast.success('Todas las coordenadas copiadas al portapapeles');
     }
   }, [drawVertices]);
+
+  // Métricas en vivo del polígono en dibujo: perímetro (desde 2 vértices), área (desde 3) y vértices
+  const polygonStats = useMemo(() => {
+    const pts = drawVertices;
+    if (pts.length < 2) return null;
+    const R = 6378137;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const closed = pts.length >= 3;
+    let area = 0;
+    let perimeter = 0;
+    const edges = closed ? pts.length : pts.length - 1;
+    for (let i = 0; i < edges; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % pts.length];
+      perimeter += distanceMeters(p1, p2);
+      if (closed) {
+        area += toRad(p2.lng - p1.lng) * (2 + Math.sin(toRad(p1.lat)) + Math.sin(toRad(p2.lat)));
+      }
+    }
+    area = Math.abs((area * R * R) / 2);
+    const areaText = !closed
+      ? null
+      : area >= 100000
+        ? `${(area / 1_000_000).toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} km²`
+        : `${Math.round(area).toLocaleString('es-PE')} m²`;
+    const perimeterText =
+      perimeter >= 1000
+        ? `${(perimeter / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+        : `${perimeter.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+    return { areaText, perimeterText, vertices: pts.length };
+  }, [drawVertices]);
+
+  // Métricas en vivo del círculo en dibujo: radio, área y perímetro
+  const circleStats = useMemo(() => {
+    if (drawMode !== 'circle' || !circleCenter || circleRadius < MIN_RADIUS_M) return null;
+    const r = circleRadius;
+    const area = Math.PI * r * r;
+    const perimeter = 2 * Math.PI * r;
+
+    const radioText =
+      r >= 1000
+        ? `${(r / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+        : `${Math.round(r).toLocaleString('es-PE')} m`;
+    const areaText =
+      area >= 100000
+        ? `${(area / 1_000_000).toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} km²`
+        : `${Math.round(area).toLocaleString('es-PE')} m²`;
+    const perimeterText =
+      perimeter >= 1000
+        ? `${(perimeter / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+        : `${perimeter.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+
+    return { radioText, areaText, perimeterText };
+  }, [drawMode, circleCenter, circleRadius]);
 
   const handleLatChange = useCallback((val: string) => {
     if (val.includes(',') || val.trim().includes(' ')) {
@@ -1218,6 +1277,7 @@ export default function GeocercasPage() {
   /* ------------------------------------------------------------------ */
   /* Verificación de Auto-Sync Bidireccional en Segundo Plano (No Bloqueante) */
   /* ------------------------------------------------------------------ */
+  const syncGenerationRef = useRef(0);
   const runBackgroundSyncCheck = useCallback(
     async (
       currentGeofences: Geofence[],
@@ -1227,6 +1287,11 @@ export default function GeocercasPage() {
       if (!authHeader || !serverDevices || serverDevices.length === 0 || currentGeofences.length === 0) {
         return;
       }
+
+      // Cada verificación recibe un número de generación. Si mientras corre se dispara otra
+      // (p. ej. tras guardar), esta queda obsoleta y NO debe escribir su resultado viejo.
+      const generation = ++syncGenerationRef.current;
+      const isStale = () => generation !== syncGenerationRef.current;
 
       try {
         const allTraccarDevices = serverDevices[0]?.devices || [];
@@ -1251,6 +1316,8 @@ export default function GeocercasPage() {
           return fleetPlateSet.size === 0 || fleetPlateSet.has(name) || fleetPlateSet.has(uniqueId);
         });
 
+        const effectiveTraccarUrl = getTraccarServerForUrl(effectiveBaseUrl);
+
         for (const geo of currentGeofences) {
           if (!geo.geofenceID) continue;
 
@@ -1259,7 +1326,7 @@ export default function GeocercasPage() {
           if (geo.vehicleIds.length > 0) {
             await Promise.all(
               geo.vehicleIds.map(async (plate) => {
-                const dev = resolveTraccarDevice(serverDevices, plate, DEFAULT_TRACCAR_URL);
+                const dev = resolveTraccarDevice(serverDevices, plate, effectiveTraccarUrl);
                 if (!dev) {
                   unconfirmedVehicleIds.push(plate);
                   return;
@@ -1292,7 +1359,7 @@ export default function GeocercasPage() {
           const traccarOnlyVehicleIds: string[] = [];
           try {
             const traccarMatched = await findDevicesLinkedToTraccarGeofence(
-              DEFAULT_TRACCAR_URL,
+              effectiveTraccarUrl,
               geo.geofenceID,
               candidateDevices.length > 0 ? candidateDevices : allTraccarDevices,
               authHeader,
@@ -1318,19 +1385,35 @@ export default function GeocercasPage() {
             console.warn('[Auto-Sync Bidireccional] Error al escanear dispositivos de Traccar:', e);
           }
 
-          if (unconfirmedVehicleIds.length > 0 || traccarOnlyVehicleIds.length > 0) {
-            setGeofences((prev) =>
-              prev.map((g) =>
-                g.id === geo.id
-                  ? {
-                      ...g,
-                      unconfirmedVehicleIds,
-                      traccarOnlyVehicleIds,
-                    }
-                  : g,
-              ),
-            );
-          }
+          // Si ya hay una verificación más reciente en curso, descartar este resultado viejo.
+          if (isStale()) return;
+
+          // Actualizar estado de la geocerca para reflejar con precisión el estado actual,
+          // asegurando que se limpien advertencias y listas de huérfanos cuando ya no apliquen.
+          setGeofences((prev) =>
+            prev.map((g) => {
+              if (g.id !== geo.id) return g;
+              // Solo advertir sobre unidades que SIGUEN asignadas en este momento en BD
+              const currentAssigned = new Set(g.vehicleIds);
+              const nextUnc = unconfirmedVehicleIds.filter((v) => currentAssigned.has(v));
+              const nextTrac = traccarOnlyVehicleIds.filter((v) => !currentAssigned.has(v));
+              const prevUnc = g.unconfirmedVehicleIds || [];
+              const prevTrac = g.traccarOnlyVehicleIds || [];
+              if (
+                prevUnc.length === nextUnc.length &&
+                prevTrac.length === nextTrac.length &&
+                prevUnc.every((v) => nextUnc.includes(v)) &&
+                prevTrac.every((v) => nextTrac.includes(v))
+              ) {
+                return g;
+              }
+              return {
+                ...g,
+                unconfirmedVehicleIds: nextUnc,
+                traccarOnlyVehicleIds: nextTrac,
+              };
+            }),
+          );
         }
       } catch (err) {
         console.warn('[Auto-Sync Background] Error durante la sincronización en segundo plano:', err);
@@ -1354,17 +1437,28 @@ export default function GeocercasPage() {
       try {
         // 1. Consultar geocercas en la BD interna (:2083)
         let apiGeos: ApiGeocerca[] = [];
+        let apiFailed = false;
         try {
           apiGeos = await getGeocercasApi(effectiveBaseUrl, effectiveUsername);
         } catch (err) {
           console.warn('Error al consultar geocercas de la API interna:', err);
           apiGeos = [];
+          apiFailed = true;
         }
 
-        // 2. Respaldo y Sincronización Automática con Traccar (:2087)
+        // Si la API interna falló de forma transitoria y ya hay geocercas en pantalla,
+        // conservarlas en lugar de vaciar el sidebar (evita que "desaparezcan").
+        if (apiFailed && geofencesRef.current.length > 0) {
+          setLoadingGeofences(false);
+          setHydrated(true);
+          return;
+        }
+
+        // 2. Respaldo y Sincronización Automática con Traccar
         try {
           const authHeader = getTraccarAuthHeader();
-          const traccarGeos = await getTraccarGeofences(DEFAULT_TRACCAR_URL, authHeader);
+          const targetTraccarUrl = getTraccarServerForUrl(effectiveBaseUrl);
+          const traccarGeos = await getTraccarGeofences(targetTraccarUrl, authHeader);
 
           if (traccarGeos.length > 0) {
             const knownGeofenceIds = new Set(
@@ -1473,8 +1567,27 @@ export default function GeocercasPage() {
           } as Geofence;
         });
 
-        // Mostrar geocercas INMEDIATAMENTE en el sidebar (sin vehículos aún)
-        setGeofences(parsedList);
+        // Mostrar geocercas INMEDIATAMENTE en el sidebar conservando las unidades que ya
+        // se ven en pantalla (evita el parpadeo: antes se vaciaban a [] y luego reaparecían).
+        const mergeWithPrev = (prevList: Geofence[]): Geofence[] => {
+          const prevById = new Map(prevList.map((g) => [g.id, g]));
+          return parsedList.map((g) => {
+            const prev = prevById.get(g.id);
+            return prev
+              ? {
+                  ...g,
+                  vehicleIds: prev.vehicleIds,
+                  unconfirmedVehicleIds: prev.unconfirmedVehicleIds,
+                  traccarOnlyVehicleIds: prev.traccarOnlyVehicleIds,
+                }
+              : g;
+          });
+        };
+        setGeofences((prevList) => {
+          const merged = mergeWithPrev(prevList);
+          geofencesRef.current = merged;
+          return merged;
+        });
         if (showFeedback) {
           toast.success(`Se cargaron ${parsedList.length} geocercas`);
         }
@@ -1492,16 +1605,32 @@ export default function GeocercasPage() {
               const assignedVehs = await getGeocercaVehiculosApi(effectiveBaseUrl, geo.id);
               return { geoId: geo.id, vehicleIds: assignedVehs.map((v) => v.deviceID) };
             } catch {
-              return { geoId: geo.id, vehicleIds: [] as string[] };
+              // null = no se pudo consultar; se conservan las unidades actuales en pantalla
+              return { geoId: geo.id, vehicleIds: null as string[] | null };
             }
           }),
-        ).then((results) => {
+        ).then((rawResults) => {
           setGeofences((prev) =>
             prev.map((g) => {
-              const match = results.find((r) => `gf-${r.geoId}` === g.id);
-              return match && match.vehicleIds.length > 0 ? { ...g, vehicleIds: match.vehicleIds } : g;
+              const match = rawResults.find((r) => `gf-${r.geoId}` === g.id);
+              if (!match || match.vehicleIds === null) return g;
+              const assigned = new Set(match.vehicleIds);
+              return {
+                ...g,
+                vehicleIds: match.vehicleIds,
+                // Quitar advertencias de unidades que ya no están asignadas
+                unconfirmedVehicleIds: (g.unconfirmedVehicleIds || []).filter((v) => assigned.has(v)),
+                traccarOnlyVehicleIds: (g.traccarOnlyVehicleIds || []).filter((v) => !assigned.has(v)),
+              };
             }),
           );
+
+          const results = rawResults.map((r) => ({
+            geoId: r.geoId,
+            vehicleIds:
+              r.vehicleIds ??
+              (geofencesRef.current.find((g) => g.id === `gf-${r.geoId}`)?.vehicleIds || []),
+          }));
 
           // 5. Disparar verificación bidireccional en SEGUNDO PLANO
           serverDevicesPromise.then((serverDevices) => {
@@ -1582,7 +1711,6 @@ export default function GeocercasPage() {
 
     setTimeout(() => {
       google.maps.event.trigger(map, 'resize');
-      map.setCenter(LIMA_CENTER);
     }, 150);
   }, [mapsReady]);
 
@@ -1678,6 +1806,55 @@ export default function GeocercasPage() {
       setPendingShape({ type: 'polygon', path: points });
     };
 
+    /**
+     * Vista previa estática del polígono (no sigue al cursor):
+     *  - 2 vértices → línea segmentada entre ambos
+     *  - 3+ vértices → polígono cerrado y relleno
+     * (Para polígonos reutilizamos draft.radiusLine como línea segmentada).
+     */
+    const renderPolygonPreview = () => {
+      const pts = draft.points;
+      if (pts.length === 2) {
+        if (!draft.radiusLine) {
+          draft.radiusLine = new google.maps.Polyline({
+            map,
+            path: pts,
+            strokeOpacity: 0,
+            clickable: false,
+            icons: [
+              {
+                icon: {
+                  path: 'M 0,-1 0,1',
+                  strokeOpacity: 1,
+                  scale: 2.5,
+                  strokeColor: '#1447C0',
+                },
+                offset: '0',
+                repeat: '10px',
+              },
+            ],
+            zIndex: 55,
+          });
+        } else {
+          draft.radiusLine.setPath(pts);
+        }
+      } else if (draft.radiusLine) {
+        draft.radiusLine.setMap(null);
+        draft.radiusLine = null;
+      }
+
+      if (pts.length >= 3) {
+        if (!draft.preview) {
+          draft.preview = new google.maps.Polygon({ ...previewStyle, map, paths: pts });
+        } else {
+          (draft.preview as google.maps.Polygon).setPath(pts);
+        }
+      } else if (draft.preview) {
+        draft.preview.setMap(null);
+        draft.preview = null;
+      }
+    };
+
     const refreshVertexMarkers = () => {
       draft.vertexMarkers.forEach((m) => m.setMap(null));
       draft.vertexMarkers = [];
@@ -1686,7 +1863,13 @@ export default function GeocercasPage() {
         const marker = new google.maps.Marker({
           map,
           position: pt,
-          clickable: false,
+          clickable: true,
+          draggable: true,
+          cursor: index === 0 && draft.points.length >= 3 ? 'pointer' : 'move',
+          title:
+            index === 0 && draft.points.length >= 3
+              ? 'Clic para cerrar la geocerca · Arrastra para mover'
+              : 'Arrastra para mover el vértice',
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 10,
@@ -1703,8 +1886,176 @@ export default function GeocercasPage() {
           },
           zIndex: 60 + index,
         });
+
+        // Arrastrar un vértice para ajustar la forma
+        marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
+          if (!e.latLng) return;
+          draft.points[index] = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+          renderPolygonPreview();
+        });
+        marker.addListener('dragend', () => {
+          setDrawVertices([...draft.points]);
+        });
+
+        // Clic sobre el vértice 1 (con 3+ vértices) cierra la geocerca
+        marker.addListener('click', () => {
+          if (index === 0 && draft.points.length >= 3) finishPolygon();
+        });
+
         draft.vertexMarkers.push(marker);
       });
+    };
+
+    const fixCircleRadius = (radius: number, perimeterPoint: LatLng) => {
+      draft.isRadiusFixed = true;
+      updateCircleRadius(radius, perimeterPoint);
+      setManualLat(draft.center!.lat.toFixed(5));
+      setManualLng(draft.center!.lng.toFixed(5));
+      setManualRadiusKm((radius / 1000).toFixed(2));
+      setCursorCoord(null);
+      map.setOptions({ draggableCursor: null });
+
+      if (draft.radiusHandle) {
+        draft.radiusHandle.setOptions({
+          clickable: true,
+          draggable: true,
+          cursor: 'ew-resize',
+        });
+      }
+      if (draft.vertexMarkers[0]) {
+        draft.vertexMarkers[0].setOptions({
+          clickable: true,
+          draggable: true,
+          cursor: 'move',
+        });
+      }
+    };
+
+    const updateCircleRadius = (radius: number, perimeterPoint: LatLng) => {
+      if (!draft.center || !draft.preview) return;
+      (draft.preview as google.maps.Circle).setRadius(radius);
+      setCircleRadius(radius);
+      setDrawInfo({ points: 1, radius });
+      setManualRadiusKm((radius / 1000).toFixed(2));
+
+      if (draft.radiusLine) {
+        draft.radiusLine.setPath([draft.center, perimeterPoint]);
+      }
+      const midpoint = {
+        lat: (draft.center.lat + perimeterPoint.lat) / 2,
+        lng: (draft.center.lng + perimeterPoint.lng) / 2,
+      };
+      if (draft.distanceMarker) {
+        draft.distanceMarker.setPosition(midpoint);
+        draft.distanceMarker.setIcon(makeDistanceBadgeIcon(formatDistance(radius)));
+      }
+      if (draft.radiusHandle) {
+        draft.radiusHandle.setPosition(perimeterPoint);
+      }
+    };
+
+    const updateCircleCenter = (newCenter: LatLng) => {
+      draft.center = newCenter;
+      setCircleCenter(newCenter);
+      setManualLat(newCenter.lat.toFixed(5));
+      setManualLng(newCenter.lng.toFixed(5));
+
+      if (draft.preview) {
+        (draft.preview as google.maps.Circle).setCenter(newCenter);
+        const radius = (draft.preview as google.maps.Circle).getRadius();
+        const lngOffset = radius / (111320 * Math.cos((newCenter.lat * Math.PI) / 180));
+        const perimeterPoint = { lat: newCenter.lat, lng: newCenter.lng + lngOffset };
+
+        if (draft.radiusLine) {
+          draft.radiusLine.setPath([newCenter, perimeterPoint]);
+        }
+        const midpoint = {
+          lat: (newCenter.lat + perimeterPoint.lat) / 2,
+          lng: (newCenter.lng + perimeterPoint.lng) / 2,
+        };
+        if (draft.distanceMarker) {
+          draft.distanceMarker.setPosition(midpoint);
+        }
+        if (draft.radiusHandle) {
+          draft.radiusHandle.setPosition(perimeterPoint);
+        }
+      }
+      if (draft.vertexMarkers[0]) {
+        draft.vertexMarkers[0].setPosition(newCenter);
+      }
+    };
+
+    const createRadiusHandle = (pos: LatLng) => {
+      const handle = new google.maps.Marker({
+        map,
+        position: pos,
+        clickable: true,
+        draggable: true,
+        cursor: 'ew-resize',
+        title: 'Arrastra para cambiar el radio del círculo · Clic para finalizar',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 7,
+          fillColor: '#ffffff',
+          fillOpacity: 1,
+          strokeColor: '#1447C0',
+          strokeWeight: 2.5,
+        },
+        zIndex: 75,
+      });
+
+      handle.addListener('drag', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng || !draft.center) return;
+        const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        const newRadius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
+        updateCircleRadius(newRadius, pt);
+      });
+      handle.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng || !draft.center) return;
+        const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        const newRadius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
+        updateCircleRadius(newRadius, pt);
+        draft.isRadiusFixed = true;
+      });
+      handle.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (!draft.isRadiusFixed && draft.center) {
+          const pt = e.latLng
+            ? { lat: e.latLng.lat(), lng: e.latLng.lng() }
+            : (handle.getPosition()?.toJSON() || null);
+          if (pt) {
+            const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
+            fixCircleRadius(radius, pt);
+          }
+        } else if (draft.isRadiusFixed && (draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+          finishCircle();
+        }
+      });
+      return handle;
+    };
+
+    const createCenterMarker = (pos: LatLng) => {
+      const marker = new google.maps.Marker({
+        map,
+        position: pos,
+        clickable: true,
+        draggable: true,
+        cursor: 'move',
+        title: 'Arrastra para mover el centro del círculo',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 6.5,
+          fillColor: '#FB7B0F',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2.5,
+        },
+        zIndex: 70,
+      });
+      marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
+        updateCircleCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      });
+      return marker;
     };
 
     const applyCircleToMap = (center: LatLng, radius: number) => {
@@ -1724,25 +2075,12 @@ export default function GeocercasPage() {
         circle.setRadius(radius);
       }
 
-      // Marcador del centro (punto naranja con borde blanco)
+      // Marcador del centro (arrastrable)
       if (!draft.vertexMarkers.length) {
-        const centerMarker = new google.maps.Marker({
-          map,
-          position: center,
-          clickable: false,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 6,
-            fillColor: '#FB7B0F',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2.5,
-          },
-          zIndex: 66,
-        });
-        draft.vertexMarkers.push(centerMarker);
+        draft.vertexMarkers.push(createCenterMarker(center));
       } else {
         draft.vertexMarkers[0].setPosition(center);
+        draft.vertexMarkers[0].setDraggable(true);
       }
 
       // Punto del perímetro (hacia el Este)
@@ -1792,24 +2130,12 @@ export default function GeocercasPage() {
         draft.distanceMarker.setIcon(makeDistanceBadgeIcon(distText));
       }
 
-      // Asa circular en el perímetro
+      // Asa circular en el perímetro (arrastrable)
       if (!draft.radiusHandle) {
-        draft.radiusHandle = new google.maps.Marker({
-          map,
-          position: perimeterPoint,
-          clickable: false,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 4.5,
-            fillColor: '#ffffff',
-            fillOpacity: 1,
-            strokeColor: '#1447C0',
-            strokeWeight: 2,
-          },
-          zIndex: 65,
-        });
+        draft.radiusHandle = createRadiusHandle(perimeterPoint);
       } else {
         draft.radiusHandle.setPosition(perimeterPoint);
+        draft.radiusHandle.setDraggable(true);
       }
     };
     applyCircleToMapRef.current = applyCircleToMap;
@@ -1829,22 +2155,8 @@ export default function GeocercasPage() {
             radius: 1,
           });
 
-          // Marcador del centro (punto naranja con borde blanco)
-          const centerMarker = new google.maps.Marker({
-            map,
-            position: point,
-            clickable: false,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 6,
-              fillColor: '#FB7B0F',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 2.5,
-            },
-            zIndex: 66,
-          });
-          draft.vertexMarkers.push(centerMarker);
+          // Marcador del centro (arrastrable)
+          draft.vertexMarkers.push(createCenterMarker(point));
 
           // Línea segmentada de radio
           draft.radiusLine = new google.maps.Polyline({
@@ -1875,21 +2187,8 @@ export default function GeocercasPage() {
             zIndex: 70,
           });
 
-          // Asa en el perímetro
-          draft.radiusHandle = new google.maps.Marker({
-            map,
-            position: point,
-            clickable: false,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 4.5,
-              fillColor: '#ffffff',
-              fillOpacity: 1,
-              strokeColor: '#1447C0',
-              strokeWeight: 2,
-            },
-            zIndex: 65,
-          });
+          // Asa en el perímetro (arrastrable)
+          draft.radiusHandle = createRadiusHandle(point);
 
           setDrawInfo({ points: 1, radius: 0 });
           setCircleRadius(0);
@@ -1898,11 +2197,7 @@ export default function GeocercasPage() {
       }
 
       draft.points.push(point);
-      if (!draft.preview) {
-        draft.preview = new google.maps.Polygon({ ...previewStyle, map, paths: [point] });
-      } else {
-        (draft.preview as google.maps.Polygon).setPath(draft.points);
-      }
+      renderPolygonPreview();
       refreshVertexMarkers();
       setDrawInfo({ points: draft.points.length, radius: 0 });
       setDrawVertices([...draft.points]);
@@ -1912,18 +2207,14 @@ export default function GeocercasPage() {
       if (drawMode === 'circle') {
         if (draft.center) {
           clearDraft();
+          map.setOptions({ draggableCursor: 'crosshair' });
           setDrawInfo({ points: 0, radius: 0 });
         }
         return;
       }
       if (!draft.points.length) return;
       draft.points.pop();
-      if (draft.points.length) {
-        (draft.preview as google.maps.Polygon | null)?.setPath(draft.points);
-      } else {
-        draft.preview?.setMap(null);
-        draft.preview = null;
-      }
+      renderPolygonPreview();
       refreshVertexMarkers();
       setDrawInfo({ points: draft.points.length, radius: 0 });
       setDrawVertices([...draft.points]);
@@ -1954,25 +2245,16 @@ export default function GeocercasPage() {
           return;
         }
 
-        const radius = distanceMeters(draft.center, point);
-        if (radius >= MIN_RADIUS_M) {
-          draft.isRadiusFixed = true;
-          (draft.preview as google.maps.Circle).setRadius(radius);
-          setCircleRadius(radius);
-          setDrawInfo({ points: 1, radius });
-          setManualLat(draft.center.lat.toFixed(5));
-          setManualLng(draft.center.lng.toFixed(5));
-          setManualRadiusKm((radius / 1000).toFixed(2));
+        // Si el radio aún no estaba fijo: este clic FIJA el radio
+        if (!draft.isRadiusFixed) {
+          const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, point)));
+          fixCircleRadius(radius, point);
+          return;
+        }
 
-          // Actualizar la línea de radio y marcadores a la posición clickeada
-          draft.radiusLine?.setPath([draft.center, point]);
-          const midpoint = {
-            lat: (draft.center.lat + point.lat) / 2,
-            lng: (draft.center.lng + point.lng) / 2,
-          };
-          draft.distanceMarker?.setPosition(midpoint);
-          draft.distanceMarker?.setIcon(makeDistanceBadgeIcon(formatDistance(radius)));
-          draft.radiusHandle?.setPosition(point);
+        // Si ya estaba fijo y vuelve a hacer clic en el mapa, finaliza el dibujo
+        if ((draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+          finishCircle();
         }
         return;
       }
@@ -1993,6 +2275,12 @@ export default function GeocercasPage() {
       if (!event.latLng) return;
       const point = { lat: event.latLng.lat(), lng: event.latLng.lng() };
 
+      // Si el círculo ya está fijado, el mouse se mueve libremente sin alterar el radio ni mostrar tooltip
+      if (drawMode === 'circle' && draft.isRadiusFixed) {
+        setCursorCoord(null);
+        return;
+      }
+
       const domEvent = event.domEvent as MouseEvent | undefined;
       if (domEvent && mapDivRef.current) {
         const rect = mapDivRef.current.getBoundingClientRect();
@@ -2004,39 +2292,13 @@ export default function GeocercasPage() {
         });
       }
 
-      if (drawMode === 'circle' && draft.center && draft.preview) {
-        if (!draft.isRadiusFixed) {
-          const radius = distanceMeters(draft.center, point);
-          (draft.preview as google.maps.Circle).setRadius(radius);
-          setCircleRadius(radius);
-          setDrawInfo((prev) =>
-            Math.abs(prev.radius - radius) < 2 ? prev : { points: 1, radius },
-          );
-
-          if (draft.radiusLine) {
-            draft.radiusLine.setPath([draft.center, point]);
-          }
-
-          const midpoint = {
-            lat: (draft.center.lat + point.lat) / 2,
-            lng: (draft.center.lng + point.lng) / 2,
-          };
-          const distText = formatDistance(radius);
-          if (draft.distanceMarker) {
-            draft.distanceMarker.setPosition(midpoint);
-            draft.distanceMarker.setIcon(makeDistanceBadgeIcon(distText));
-          }
-
-          if (draft.radiusHandle) {
-            draft.radiusHandle.setPosition(point);
-          }
-        }
+      if (drawMode === 'circle' && draft.center && draft.preview && !draft.isRadiusFixed) {
+        const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, point)));
+        updateCircleRadius(radius, point);
         return;
       }
 
-      if (drawMode === 'polygon' && draft.points.length && draft.preview) {
-        (draft.preview as google.maps.Polygon).setPath([...draft.points, point]);
-      }
+      // Polígono: la vista previa es estática (no sigue al cursor) para que la forma no "se deforme"
     });
 
     const mouseOutListener = map.addListener('mouseout', () => {
@@ -2045,6 +2307,9 @@ export default function GeocercasPage() {
 
     const dblClickListener = map.addListener('dblclick', () => {
       if (drawMode === 'polygon') finishPolygon();
+      if (drawMode === 'circle' && draft.center && (draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+        finishCircle();
+      }
     });
 
     return () => {
@@ -2310,10 +2575,24 @@ export default function GeocercasPage() {
   const closeModal = useCallback(() => {
     setPendingShape(null);
     setEditingDetails(null);
+    setModalInitialTab('general');
+  }, []);
+
+  const handleEditDetails = useCallback((geofence: Geofence) => {
+    setModalInitialTab('general');
+    setEditingDetails(geofence);
+  }, []);
+
+  const handleConfigureWhatsApp = useCallback((geofence: Geofence) => {
+    setModalInitialTab('whatsapp');
+    setEditingDetails(geofence);
   }, []);
 
   const saveGeofence = useCallback(
     async (data: GeofenceFormData) => {
+      // Invalidar cualquier verificación en segundo plano en curso: su resultado sería anterior
+      // a este guardado y podría mostrar advertencias falsas ("sin confirmar en Traccar").
+      syncGenerationRef.current++;
       const toastId = toast.loading(
         editingDetails ? 'Actualizando geocerca...' : 'Creando geocerca...',
       );
@@ -2369,10 +2648,15 @@ export default function GeocercasPage() {
           }
 
           // 2. Traccar Core: Sincronizar permisos de vehículos
-          const prevVehicles = editingDetails.vehicleIds || [];
+          const allPrevVehicles = Array.from(
+            new Set([
+              ...(editingDetails.vehicleIds || []),
+              ...(editingDetails.traccarOnlyVehicleIds || []),
+            ]),
+          );
           const newVehicles = data.vehicleIds || [];
-          const toAdd = newVehicles.filter((v) => !prevVehicles.includes(v));
-          const toRemove = prevVehicles.filter((v) => !newVehicles.includes(v));
+          const toAdd = newVehicles.filter((v) => !allPrevVehicles.includes(v));
+          const toRemove = allPrevVehicles.filter((v) => !newVehicles.includes(v));
 
           const successfulToAdd: string[] = [];
           const failedToAdd: { plate: string; reason: string }[] = [];
@@ -2448,14 +2732,27 @@ export default function GeocercasPage() {
           }
 
           // Vehículos finales efectivos en memoria
-          const finalVehicleIds = prevVehicles
+          const finalVehicleIds = (editingDetails.vehicleIds || [])
             .filter((v) => !successfulToRemove.includes(v))
             .concat(successfulToAdd);
+
+          const finalTraccarOnly = (editingDetails.traccarOnlyVehicleIds || [])
+            .filter((v) => !successfulToRemove.includes(v) && !successfulToAdd.includes(v));
+
+          const finalUnconfirmed = (editingDetails.unconfirmedVehicleIds || []).filter(
+            (v) => finalVehicleIds.includes(v) && !successfulToAdd.includes(v),
+          );
 
           setGeofences((prev) =>
             prev.map((geofence) =>
               geofence.id === editingDetails.id
-                ? { ...geofence, ...data, vehicleIds: finalVehicleIds }
+                ? {
+                    ...geofence,
+                    ...data,
+                    vehicleIds: finalVehicleIds,
+                    traccarOnlyVehicleIds: finalTraccarOnly,
+                    unconfirmedVehicleIds: finalUnconfirmed,
+                  }
                 : geofence,
             ),
           );
@@ -2476,6 +2773,7 @@ export default function GeocercasPage() {
             toast.success('Geocerca actualizada exitosamente', { id: toastId });
           }
 
+          clearDeviceGeofencesCache();
           closeModal();
           fetchGeocercas();
         } else if (pendingShape) {
@@ -2628,6 +2926,7 @@ export default function GeocercasPage() {
             toast.success('Geocerca creada y sincronizada exitosamente con Traccar', { id: toastId });
           }
 
+          clearDeviceGeofencesCache();
           closeModal();
           fetchGeocercas();
         }
@@ -2672,6 +2971,7 @@ export default function GeocercasPage() {
             effectiveBaseUrl,
           );
           await deleteTraccarGeofence(targetServer, traccarId, authHeader);
+          clearDeviceGeofencesCache();
         } catch (traccarErr) {
           console.warn('Error al eliminar geocerca en Traccar:', traccarErr);
         }
@@ -2754,6 +3054,7 @@ export default function GeocercasPage() {
         }
 
         if (successCount > 0) {
+          clearDeviceGeofencesCache();
           toast.success(`Se sincronizaron ${successCount} de ${count} vehículo(s) en Traccar exitosamente`, {
             id: toastId,
             duration: 6000,
@@ -2786,6 +3087,7 @@ export default function GeocercasPage() {
         // Directamente a la BD interna. NO llamar a Traccar permissions porque ya están vinculados en Traccar.
         await assignVehiculosToGeocercaApi(effectiveBaseUrl, geofence.numericId, geofence.traccarOnlyVehicleIds);
 
+        clearDeviceGeofencesCache();
         toast.success(`Se importaron ${count} vehículo(s) a la BD interna exitosamente`, {
           id: toastId,
           duration: 6000,
@@ -2828,51 +3130,78 @@ export default function GeocercasPage() {
     }
   }, []);
 
-  const fitAllGeofences = useCallback(() => {
-    const map = mapRef.current;
-    if (!map || !geofences.length) return;
+  const fitAllGeofences = useCallback(
+    (customList?: Geofence[]) => {
+      const map = mapRef.current;
+      const list =
+        Array.isArray(customList) && customList.length > 0
+          ? customList
+          : geofencesRef.current.length > 0
+            ? geofencesRef.current
+            : geofences;
+      if (!map || !list.length) return;
 
-    const bounds = new google.maps.LatLngBounds();
-    geofences.forEach((geofence) => {
-      if (geofence.type === 'circle') {
-        const circle = shapesRef.current[geofence.id]?.overlay as google.maps.Circle | undefined;
-        const circleBounds = circle?.getBounds();
-        if (circleBounds) {
-          bounds.union(circleBounds);
-        } else if (geofence.center) {
-          if (geofence.radius != null) {
-            const latOffset = geofence.radius / 111320;
-            const lngOffset = geofence.radius / (111320 * Math.cos((geofence.center.lat * Math.PI) / 180));
-            bounds.extend({ lat: geofence.center.lat + latOffset, lng: geofence.center.lng + lngOffset });
-            bounds.extend({ lat: geofence.center.lat - latOffset, lng: geofence.center.lng - lngOffset });
-          } else {
-            bounds.extend(geofence.center);
+      // Asegurar dimensiones actualizadas del mapa
+      google.maps.event.trigger(map, 'resize');
+
+      const bounds = new google.maps.LatLngBounds();
+      list.forEach((geofence) => {
+        if (geofence.type === 'circle') {
+          const circle = shapesRef.current[geofence.id]?.overlay as google.maps.Circle | undefined;
+          const circleBounds = circle?.getBounds();
+          if (circleBounds) {
+            bounds.union(circleBounds);
+          } else if (geofence.center) {
+            if (geofence.radius != null) {
+              const latOffset = geofence.radius / 111320;
+              const lngOffset = geofence.radius / (111320 * Math.cos((geofence.center.lat * Math.PI) / 180));
+              bounds.extend({ lat: geofence.center.lat + latOffset, lng: geofence.center.lng + lngOffset });
+              bounds.extend({ lat: geofence.center.lat - latOffset, lng: geofence.center.lng - lngOffset });
+            } else {
+              bounds.extend(geofence.center);
+            }
           }
-        }
-      } else {
-        geofence.path?.forEach((point) => bounds.extend(point));
-      }
-    });
-
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, 90);
-      google.maps.event.addListenerOnce(map, 'idle', () => {
-        if ((map.getZoom() || 13) > 16) {
-          map.setZoom(16);
+        } else {
+          geofence.path?.forEach((point) => bounds.extend(point));
         }
       });
-    }
-  }, [geofences]);
+
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, 90);
+        google.maps.event.addListenerOnce(map, 'idle', () => {
+          if ((map.getZoom() || 13) > 16) {
+            map.setZoom(16);
+          }
+        });
+      }
+    },
+    [geofences],
+  );
+
+  const fitAllGeofencesRef = useRef(fitAllGeofences);
+  fitAllGeofencesRef.current = fitAllGeofences;
 
   // Auto-ajustar automáticamente la vista para encuadrar todas las geocercas al entrar a la página (idéntico a la segunda imagen)
   useEffect(() => {
-    if (!mapReady || !geofences.length || initialFitDoneRef.current) return;
-    initialFitDoneRef.current = true;
-    const timer = setTimeout(() => {
-      fitAllGeofences();
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [mapReady, geofences, fitAllGeofences]);
+    if (!mapReady || !geofences.length) return;
+    if (initialFitDoneRef.current) return;
+
+    // Primer ajuste rápido en cuanto los datos y el mapa estén listos
+    const timer1 = setTimeout(() => {
+      fitAllGeofencesRef.current();
+    }, 150);
+
+    // Segundo ajuste para asegurar el encuadre exacto cuando el splash termine su animación
+    const timer2 = setTimeout(() => {
+      fitAllGeofencesRef.current();
+      initialFitDoneRef.current = true;
+    }, 550);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [mapReady, geofences.length]);
 
   const zoomBy = useCallback((delta: number) => {
     const map = mapRef.current;
@@ -2941,7 +3270,12 @@ export default function GeocercasPage() {
             name: editingDetails.name,
             description: editingDetails.description || '',
             color: editingDetails.color,
-            vehicleIds: editingDetails.vehicleIds,
+            vehicleIds: Array.from(
+              new Set([
+                ...(editingDetails.vehicleIds || []),
+                ...(editingDetails.traccarOnlyVehicleIds || []),
+              ]),
+            ),
             active: editingDetails.active,
           }
         : {
@@ -3140,7 +3474,8 @@ export default function GeocercasPage() {
                 editingShape={editingShapeId === geofence.id}
                 onSelect={setSelectedId}
                 onCenter={centerOnGeofence}
-                onEditDetails={setEditingDetails}
+                onEditDetails={handleEditDetails}
+                onConfigureWhatsApp={handleConfigureWhatsApp}
                 onEditShape={startEditShape}
                 onSaveShape={saveShapeEdit}
                 onCancelShape={cancelShapeEdit}
@@ -3322,22 +3657,25 @@ export default function GeocercasPage() {
               <Bell size={13} className={alertsDrawerOpen || signalRUnreadCount > 0 ? 'text-white' : 'text-slate-600'} />
               <span>Alertas</span>
               {signalRUnreadCount > 0 && (
-                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white/25 px-1 text-[10px] font-bold text-white leading-none">
+                <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white leading-none shadow-xs">
                   {signalRUnreadCount}
                 </span>
               )}
             </button>
 
+            {/* Botón Traccar ocultado temporalmente por solicitud del usuario */}
+            {/*
             <button
               type="button"
               onClick={testTraccarConnection}
               disabled={testingTraccar}
-              title="Probar conexión con servidores Traccar (:2087)"
+              title="Probar conexión con servidores Traccar"
               className="flex h-full items-center gap-1.5 rounded-lg px-2.5 text-[11.5px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all disabled:opacity-50"
             >
               <Radio size={13} className={testingTraccar ? 'animate-spin text-[#FB7B0F]' : 'text-slate-600'} />
               <span>Traccar</span>
             </button>
+            */}
           </div>
         </div>
 
@@ -3397,7 +3735,7 @@ export default function GeocercasPage() {
               </button>
               <button
                 type="button"
-                onClick={fitAllGeofences}
+                onClick={() => fitAllGeofences()}
                 title="Ver todas las geocercas"
                 className="mt-0.5 flex items-center justify-center rounded-md border-t border-gray-100 p-2 text-gray-700 transition hover:bg-blue-50 hover:text-[#113EB9]"
               >
@@ -3476,7 +3814,9 @@ export default function GeocercasPage() {
               <div className="px-3 py-1 rounded-full bg-[#FB7B0F] text-white text-[12px] font-bold shrink-0 tabular-nums shadow-xs flex items-center justify-center">
                 {drawMode === 'circle'
                   ? circleRadius >= MIN_RADIUS_M
-                    ? `${(circleRadius / 1000).toFixed(2)} km`
+                    ? circleRadius >= 1000
+                      ? `${(circleRadius / 1000).toFixed(2)} km`
+                      : `${Math.round(circleRadius)} m`
                     : circleRadius > 0
                     ? `${Math.round(circleRadius)} m`
                     : 'Sin radio'
@@ -3538,31 +3878,34 @@ export default function GeocercasPage() {
               </div>
 
               {drawMode === 'circle' ? (
-                /* Vista de Círculo: CENTRO y RADIO (idéntica a media_1790969309511.png) */
-                <div className="rounded-xl border border-slate-200/90 p-3 bg-white mt-3 mb-2.5 space-y-2 shadow-2xs">
-                  <div className="flex items-center">
-                    <span className="text-[11px] font-bold text-slate-400 tracking-wider w-16 uppercase shrink-0">
-                      CENTRO
-                    </span>
-                    <span className="text-[12.5px] font-bold text-slate-800 tabular-nums flex-1 pl-4 truncate">
-                      {circleCenter
-                        ? `${circleCenter.lat.toFixed(5)}, ${circleCenter.lng.toFixed(5)}`
-                        : 'Haz clic en el mapa'}
-                    </span>
+                /* Vista de Círculo: Radio, Área y Perímetro */
+                circleStats ? (
+                  <div className="rounded-lg border border-slate-200/90 bg-slate-50/70 px-3 py-2 mt-3 mb-2.5 space-y-1 text-[12px] animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Radio</span>
+                      <span className="font-semibold text-slate-800 tabular-nums">{circleStats.radioText}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Área</span>
+                      <span className="font-semibold text-slate-800 tabular-nums">{circleStats.areaText}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Perímetro</span>
+                      <span className="font-semibold text-slate-800 tabular-nums">{circleStats.perimeterText}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-[11px] font-bold text-slate-400 tracking-wider w-16 uppercase shrink-0">
-                      RADIO
-                    </span>
-                    <span className="text-[12.5px] font-bold text-slate-800 tabular-nums flex-1 pl-4">
-                      {circleRadius >= MIN_RADIUS_M
-                        ? `${(circleRadius / 1000).toFixed(2)} km`
-                        : circleRadius > 0
-                        ? `${Math.round(circleRadius)} m`
-                        : '0.00 km'}
-                    </span>
+                ) : (
+                  <div className="rounded-xl border border-slate-200/90 p-3 bg-white mt-3 mb-2.5 space-y-1.5 shadow-2xs">
+                    <p className="text-[12px] font-semibold text-slate-700">
+                      {!circleCenter
+                        ? '1. Haz clic en el mapa para fijar el centro'
+                        : '2. Mueve el mouse y haz clic para fijar el radio'}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Podrás arrastrar el asa del borde para ajustar el tamaño o mover el centro.
+                    </p>
                   </div>
-                </div>
+                )
               ) : (
                 /* Vista de Polígono: Barra de progreso y Tabla de vértices */
                 <>
@@ -3652,6 +3995,26 @@ export default function GeocercasPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Métricas del polígono: Área (3+), Perímetro (2+), Vértices */}
+                  {polygonStats && (
+                    <div className="rounded-lg border border-slate-200/90 bg-slate-50/70 px-3 py-2 mb-2.5 space-y-1 text-[12px] animate-fadeIn">
+                      {polygonStats.areaText && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Área</span>
+                          <span className="font-semibold text-slate-800 tabular-nums">{polygonStats.areaText}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Perímetro</span>
+                        <span className="font-semibold text-slate-800 tabular-nums">{polygonStats.perimeterText}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Vértices</span>
+                        <span className="font-semibold text-slate-800 tabular-nums">{polygonStats.vertices}</span>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -3850,13 +4213,13 @@ export default function GeocercasPage() {
               <div className="text-right text-[11px] text-slate-500 font-medium mt-2">
                 {drawMode === 'polygon'
                   ? drawInfo.points < 3
-                    ? 'Mínimo 3 vértices para cerrar'
-                    : 'Listo para cerrar · Pulsa Enter o Finalizar'
+                    ? 'Mínimo 3 vértices · Puedes mover el mapa libremente'
+                    : 'Arrastra los vértices para ajustar · Enter o Finalizar'
                   : !circleCenter
                   ? 'Marca el centro del círculo en el mapa'
                   : circleRadius >= MIN_RADIUS_M
-                  ? 'Listo para guardar · Pulsa Enter o Finalizar'
-                  : 'Haz clic en el mapa para fijar el radio o pulsa Finalizar'}
+                  ? 'Arrastra el asa para ajustar el radio · Enter o Finalizar'
+                  : 'Mueve el mouse y haz clic para fijar el radio'}
               </div>
             </div>
           </div>
@@ -3894,6 +4257,8 @@ export default function GeocercasPage() {
         initial={modalInitial}
         shapeSummary={modalShapeSummary}
         vehicles={vehicles}
+        geofenceID={editingDetails?.geofenceID ?? editingDetails?.numericId}
+        initialTab={modalInitialTab}
         onCancel={closeModal}
         onSave={saveGeofence}
       />

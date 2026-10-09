@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock,
   Download,
   Filter,
@@ -70,6 +71,74 @@ const getDefaultDates = () => {
     hasta: formatDateTimeLocal(now),
   };
 };
+
+// Rango para la pestaña Resumen: desde las 00:00 de hoy hasta la hora actual
+const getTodayResumenDates = () => {
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  return {
+    desde: formatDateTimeLocal(startOfDay),
+    hasta: formatDateTimeLocal(now),
+  };
+};
+
+// Formateador de duración para el resumen (ej: "148 h 58 min", "51 h", "10 min")
+function formatDurationSummary(minutesInput?: number | null): string {
+  const mins = Number(minutesInput) || 0;
+  if (mins <= 0) return '0 min';
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+
+  if (h > 0 && m > 0) {
+    return `${h.toLocaleString('en-US')} h ${m} min`;
+  }
+  if (h > 0) {
+    return `${h.toLocaleString('en-US')} h`;
+  }
+  return `${m} min`;
+}
+
+// Renderizador visual para las tarjetas KPI de resumen
+function renderKpiDuration(totalMinutes: number) {
+  if (!totalMinutes || totalMinutes <= 0) {
+    return (
+      <span className="text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums">
+        0 min
+      </span>
+    );
+  }
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+
+  if (h > 0 && m > 0) {
+    return (
+      <div className="flex items-baseline gap-1 whitespace-nowrap">
+        <span className="text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums">
+          {h.toLocaleString('en-US')} h {m}
+        </span>
+        <span className="text-[11px] font-semibold text-slate-500">min</span>
+      </div>
+    );
+  }
+  if (h > 0) {
+    return (
+      <div className="flex items-baseline gap-1 whitespace-nowrap">
+        <span className="text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums">
+          {h.toLocaleString('en-US')}
+        </span>
+        <span className="text-[11px] font-semibold text-slate-500">h</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-baseline gap-1 whitespace-nowrap">
+      <span className="text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums">{m}</span>
+      <span className="text-[11px] font-semibold text-slate-500">min</span>
+    </div>
+  );
+}
 
 // Formato visual corto para fechas en tabla: DD/MM HH:mm
 function formatTableDate(dateStr?: string | null): string {
@@ -238,12 +307,15 @@ export default function GeocercasReportsModal({
   /* ------------------------------------------------------------------ */
   /* Estado: Resumen de Visitas                                         */
   /* ------------------------------------------------------------------ */
-  const [resumenFilters, setResumenFilters] = useState<ResumenFilterParams>({
-    accountID: currentAccountID,
-    fechaDesde: defaultDates.desde,
-    fechaHasta: defaultDates.hasta,
-    geofenceID: '',
-    deviceID: '',
+  const [resumenFilters, setResumenFilters] = useState<ResumenFilterParams>(() => {
+    const today = getTodayResumenDates();
+    return {
+      accountID: currentAccountID,
+      fechaDesde: today.desde,
+      fechaHasta: today.hasta,
+      geofenceID: '',
+      deviceID: '',
+    };
   });
 
   const [resumenList, setResumenList] = useState<ResumenItem[]>([]);
@@ -325,13 +397,22 @@ export default function GeocercasReportsModal({
     [token, currentAccountID, resumenFilters, handleApiError],
   );
 
-  // Ejecutar carga inicial al abrir el drawer
+  // Ejecutar carga inicial al abrir el drawer o cambiar de pestaña
   useEffect(() => {
     if (open) {
       if (activeTab === 'visitas') {
         fetchVisitas();
       } else {
-        fetchResumen();
+        const today = getTodayResumenDates();
+        setResumenFilters((prev) => {
+          const next = {
+            ...prev,
+            fechaDesde: today.desde,
+            fechaHasta: today.hasta,
+          };
+          fetchResumen(next);
+          return next;
+        });
       }
     }
   }, [open, activeTab]);
@@ -521,8 +602,54 @@ export default function GeocercasReportsModal({
   /* ------------------------------------------------------------------ */
   const totalVisitasGlobal = resumenList.reduce((acc, r) => acc + (Number(r.totalVisitas) || 0), 0);
   const totalMinutosGlobal = resumenList.reduce((acc, r) => acc + (Number(r.minutosTotales) || 0), 0);
-  const promedioGlobal =
-    totalVisitasGlobal > 0 ? (totalMinutosGlobal / totalVisitasGlobal).toFixed(1) : '0';
+  const totalVehiculosGlobal = useMemo(() => {
+    return new Set(resumenList.map((r) => r.deviceID).filter(Boolean)).size;
+  }, [resumenList]);
+
+  // Ordenamiento de tabla de Resumen (por defecto Tiempo Total descendente)
+  const [resumenSortKey, setResumenSortKey] = useState<
+    'vehiculo' | 'geocerca' | 'visitas' | 'tiempo' | 'promedio'
+  >('tiempo');
+  const [resumenSortAsc, setResumenSortAsc] = useState<boolean>(false);
+
+  const handleSortResumen = (key: 'vehiculo' | 'geocerca' | 'visitas' | 'tiempo' | 'promedio') => {
+    if (resumenSortKey === key) {
+      setResumenSortAsc((prev) => !prev);
+    } else {
+      setResumenSortKey(key);
+      setResumenSortAsc(false); // descendente por defecto
+    }
+  };
+
+  const sortedResumenList = useMemo(() => {
+    return [...resumenList].sort((a, b) => {
+      let comp = 0;
+      if (resumenSortKey === 'tiempo') {
+        comp = (Number(a.minutosTotales) || 0) - (Number(b.minutosTotales) || 0);
+      } else if (resumenSortKey === 'visitas') {
+        comp = (Number(a.totalVisitas) || 0) - (Number(b.totalVisitas) || 0);
+      } else if (resumenSortKey === 'promedio') {
+        const avgA =
+          a.minutosPromedioPorVisita !== undefined
+            ? Number(a.minutosPromedioPorVisita)
+            : a.totalVisitas
+            ? (Number(a.minutosTotales) || 0) / Number(a.totalVisitas)
+            : 0;
+        const avgB =
+          b.minutosPromedioPorVisita !== undefined
+            ? Number(b.minutosPromedioPorVisita)
+            : b.totalVisitas
+            ? (Number(b.minutosTotales) || 0) / Number(b.totalVisitas)
+            : 0;
+        comp = avgA - avgB;
+      } else if (resumenSortKey === 'vehiculo') {
+        comp = (a.deviceID || '').localeCompare(b.deviceID || '');
+      } else if (resumenSortKey === 'geocerca') {
+        comp = (a.geofenceName || '').localeCompare(b.geofenceName || '');
+      }
+      return resumenSortAsc ? comp : -comp;
+    });
+  }, [resumenList, resumenSortKey, resumenSortAsc]);
 
   return (
     <AnimatePresence>
@@ -587,7 +714,22 @@ export default function GeocercasReportsModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('resumen')}
+                    onClick={() => {
+                      if (activeTab === 'resumen') {
+                        const today = getTodayResumenDates();
+                        setResumenFilters((prev) => {
+                          const next = {
+                            ...prev,
+                            fechaDesde: today.desde,
+                            fechaHasta: today.hasta,
+                          };
+                          fetchResumen(next);
+                          return next;
+                        });
+                      } else {
+                        setActiveTab('resumen');
+                      }
+                    }}
                     className={`rounded-md px-3 py-1 transition ${
                       activeTab === 'resumen'
                         ? 'bg-white text-[#113EB9] font-bold shadow-xs'
@@ -774,7 +916,11 @@ export default function GeocercasReportsModal({
           </div>
 
           {/* TABLA DE VISITAS COMPACTA */}
-          <div className={`flex-1 ${selectedVisitId !== null ? 'overflow-hidden' : 'overflow-auto'}`}>
+          <div
+            className={`flex-1 ${
+              selectedVisitId !== null ? 'overflow-hidden' : 'overflow-auto'
+            } custom-scrollbar-reportes [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full`}
+          >
             <table className="w-full border-collapse text-left text-[12px]">
               <thead className="sticky top-0 z-10 border-b border-gray-200 bg-[#F8FAFC] text-[10px] font-bold uppercase tracking-wider text-gray-500">
                 <tr>
@@ -1127,86 +1273,197 @@ export default function GeocercasReportsModal({
             </div>
           </div>
 
-          {/* KPI Cards Resumen */}
-          <div className="grid grid-cols-3 gap-3 p-5">
-            <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-xs">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-gray-400">
-                Total Visitas
-              </span>
-              <p className="mt-1 text-2xl font-black text-[#113EB9]">{totalVisitasGlobal}</p>
-            </div>
+          {/* KPI Cards Resumen (diseño compacto, sin desborde de texto) */}
+          <div className="px-5 pt-3 pb-2.5">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
+              <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+                {/* 1. VISITAS */}
+                <div className="px-4 py-2 sm:py-2.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Visitas
+                  </span>
+                  <div className="mt-0.5 text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums leading-tight">
+                    {totalVisitasGlobal.toLocaleString('en-US')}
+                  </div>
+                </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-xs">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-gray-400">
-                Permanencia Total
-              </span>
-              <p className="mt-1 text-2xl font-black text-emerald-700">
-                {totalMinutosGlobal >= 60
-                  ? `${(totalMinutosGlobal / 60).toFixed(1)} h`
-                  : `${totalMinutosGlobal} min`}
-              </p>
-            </div>
+                {/* 2. PERMANENCIA TOTAL */}
+                <div className="px-4 py-2 sm:py-2.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Permanencia Total
+                  </span>
+                  <div className="mt-0.5 leading-tight">
+                    {renderKpiDuration(totalMinutosGlobal)}
+                  </div>
+                </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-xs">
-              <span className="text-[10.5px] font-bold uppercase tracking-wider text-gray-400">
-                Promedio / Visita
-              </span>
-              <p className="mt-1 text-2xl font-black text-amber-600">{promedioGlobal} min</p>
+                {/* 3. PROMEDIO POR VISITA */}
+                <div className="px-4 py-2 sm:py-2.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Promedio por Visita
+                  </span>
+                  <div className="mt-0.5 leading-tight">
+                    {renderKpiDuration(
+                      totalVisitasGlobal > 0 ? totalMinutosGlobal / totalVisitasGlobal : 0,
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. VEHÍCULOS */}
+                <div className="px-4 py-2 sm:py-2.5">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Vehículos
+                  </span>
+                  <div className="mt-0.5 text-[18px] sm:text-[19px] font-extrabold text-slate-900 tabular-nums leading-tight">
+                    {totalVehiculosGlobal}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Tabla Resumen */}
-          <div className={`flex-1 ${selectedVisitId !== null ? 'overflow-hidden' : 'overflow-auto'} px-5 pb-5`}>
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
-              <table className="w-full border-collapse text-left text-[12px]">
-                <thead className="border-b border-gray-200 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                  <tr>
-                    <th className="py-1.5 px-3">Vehículo</th>
-                    <th className="py-1.5 px-3">Geocerca</th>
-                    <th className="py-1.5 px-3 text-center">Visitas</th>
-                    <th className="py-1.5 px-3 text-center">Tiempo Total</th>
-                    <th className="py-1.5 px-3 text-center">Promedio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-700">
-                  {loadingResumen ? (
+          {/* Tabla Resumen con scroll vertical personalizado y encabezado/pie sticky */}
+          <div className="flex-1 min-h-0 px-5 pb-4 flex flex-col">
+            <div className="flex-1 min-h-0 rounded-xl border border-gray-200 bg-white shadow-xs overflow-hidden flex flex-col">
+              <div
+                className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar-reportes [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full ${
+                  selectedVisitId !== null ? 'pointer-events-none' : ''
+                }`}
+              >
+                <table className="w-full border-collapse text-left text-[12.5px]">
+                  <thead className="sticky top-0 z-10 border-b border-gray-200 bg-white text-[10.5px] font-bold uppercase tracking-wider text-slate-500 shadow-2xs">
                     <tr>
-                      <td colSpan={5} className="py-10 text-center text-gray-400 text-xs">
-                        Calculando métricas...
-                      </td>
+                      <th
+                        onClick={() => handleSortResumen('vehiculo')}
+                        className={`py-2.5 px-4 text-left cursor-pointer transition select-none ${
+                          resumenSortKey === 'vehiculo' ? 'text-[#113EB9]' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span>Vehículo</span>
+                          {resumenSortKey === 'vehiculo' && (
+                            resumenSortAsc ? <ChevronUp size={12} className="text-[#113EB9]" /> : <ChevronDown size={12} className="text-[#113EB9]" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortResumen('geocerca')}
+                        className={`py-2.5 px-4 text-left cursor-pointer transition select-none ${
+                          resumenSortKey === 'geocerca' ? 'text-[#113EB9]' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className="inline-flex items-center gap-1">
+                          <span>Geocerca</span>
+                          {resumenSortKey === 'geocerca' && (
+                            resumenSortAsc ? <ChevronUp size={12} className="text-[#113EB9]" /> : <ChevronDown size={12} className="text-[#113EB9]" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortResumen('visitas')}
+                        className={`py-2.5 px-4 text-right cursor-pointer transition select-none ${
+                          resumenSortKey === 'visitas' ? 'text-[#113EB9]' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <span>Visitas</span>
+                          {resumenSortKey === 'visitas' && (
+                            resumenSortAsc ? <ChevronUp size={12} className="text-[#113EB9]" /> : <ChevronDown size={12} className="text-[#113EB9]" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortResumen('tiempo')}
+                        className={`py-2.5 px-4 text-right cursor-pointer transition select-none ${
+                          resumenSortKey === 'tiempo' ? 'text-[#113EB9]' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <span>Tiempo Total</span>
+                          {resumenSortKey === 'tiempo' && (
+                            resumenSortAsc ? <ChevronUp size={12} className="text-[#113EB9]" /> : <ChevronDown size={12} className="text-[#113EB9]" />
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        onClick={() => handleSortResumen('promedio')}
+                        className={`py-2.5 px-4 text-right cursor-pointer transition select-none ${
+                          resumenSortKey === 'promedio' ? 'text-[#113EB9]' : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <span>Promedio</span>
+                          {resumenSortKey === 'promedio' && (
+                            resumenSortAsc ? <ChevronUp size={12} className="text-[#113EB9]" /> : <ChevronDown size={12} className="text-[#113EB9]" />
+                          )}
+                        </div>
+                      </th>
                     </tr>
-                  ) : resumenList.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-10 text-center text-gray-400 text-xs">
-                        No hay datos de resumen para el rango seleccionado
-                      </td>
-                    </tr>
-                  ) : (
-                    resumenList.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-1.5 px-3 font-mono font-bold text-[12px] text-[#113EB9]">
-                          {item.deviceID || 'Todos'}
-                        </td>
-                        <td className="py-1.5 px-3 font-medium text-[12px] text-gray-800">
-                          {item.geofenceName || `#${item.geofenceID}`}
-                        </td>
-                        <td className="py-1.5 px-3 text-center font-bold text-[12px] text-[#113EB9]">
-                          {item.totalVisitas}
-                        </td>
-                        <td className="py-1.5 px-3 text-center font-semibold text-[12px] text-emerald-700">
-                          {item.minutosTotales} min
-                        </td>
-                        <td className="py-1.5 px-3 text-center font-medium text-[12px] text-amber-700">
-                          {item.minutosPromedioPorVisita !== undefined
-                            ? Number(item.minutosPromedioPorVisita).toFixed(1)
-                            : '-'}{' '}
-                          min
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-gray-700">
+                    {loadingResumen ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-gray-400 text-xs">
+                          Calculando métricas...
                         </td>
                       </tr>
-                    ))
+                    ) : sortedResumenList.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-gray-400 text-xs">
+                          No hay datos de resumen para el rango seleccionado
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedResumenList.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-2.5 px-4 font-bold text-[12.5px] text-[#113EB9]">
+                            {item.deviceID || 'Todos'}
+                          </td>
+                          <td className="py-2.5 px-4 font-medium text-[12.5px] text-slate-700">
+                            {item.geofenceName || `#${item.geofenceID}`}
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-bold text-[12.5px] text-slate-900 tabular-nums">
+                            {item.totalVisitas}
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-bold text-[12.5px] text-slate-900 tabular-nums">
+                            {formatDurationSummary(item.minutosTotales)}
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-normal text-[12.5px] text-slate-600 tabular-nums">
+                            {formatDurationSummary(
+                              item.minutosPromedioPorVisita !== undefined
+                                ? item.minutosPromedioPorVisita
+                                : item.totalVisitas
+                                ? (Number(item.minutosTotales) || 0) / Number(item.totalVisitas)
+                                : 0,
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                  {!loadingResumen && sortedResumenList.length > 0 && (
+                    <tfoot className="sticky bottom-0 z-10 border-t-2 border-slate-200 bg-white shadow-2xs">
+                      <tr>
+                        <td className="py-2.5 px-4 text-left text-[11px] font-bold text-slate-500 tracking-wider uppercase">
+                          TOTAL · {totalVehiculosGlobal} {totalVehiculosGlobal === 1 ? 'VEHÍCULO' : 'VEHÍCULOS'}
+                        </td>
+                        <td className="py-2.5 px-4"></td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[12.5px] text-slate-900 tabular-nums">
+                          {totalVisitasGlobal.toLocaleString('en-US')}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[12.5px] text-slate-900 tabular-nums">
+                          {formatDurationSummary(totalMinutosGlobal)}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-bold text-[12.5px] text-slate-900 tabular-nums">
+                          {formatDurationSummary(
+                            totalVisitasGlobal > 0 ? totalMinutosGlobal / totalVisitasGlobal : 0,
+                          )}
+                        </td>
+                      </tr>
+                    </tfoot>
                   )}
-                </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           </div>
         </div>

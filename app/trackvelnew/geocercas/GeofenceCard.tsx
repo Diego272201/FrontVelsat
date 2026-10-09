@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { WhatsAppIcon } from './WhatsAppIcon';
 import { Geofence, Vehicle, formatDistance } from './types';
 
 interface GeofenceCardProps {
@@ -20,6 +21,7 @@ interface GeofenceCardProps {
   onSelect: (id: string) => void;
   onCenter: (geofence: Geofence) => void;
   onEditDetails: (geofence: Geofence) => void;
+  onConfigureWhatsApp?: (geofence: Geofence) => void;
   onEditShape: (geofence: Geofence) => void;
   onSaveShape: () => void;
   onCancelShape: () => void;
@@ -39,6 +41,7 @@ export default function GeofenceCard({
   onSelect,
   onCenter,
   onEditDetails,
+  onConfigureWhatsApp,
   onEditShape,
   onSaveShape,
   onCancelShape,
@@ -50,6 +53,9 @@ export default function GeofenceCard({
     (id) => vehicles.find((v) => v.id === id) || { id, label: id, position: { lat: 0, lng: 0 } },
   );
   const traccarOnly = geofence.traccarOnlyVehicleIds ?? [];
+  const unconfirmed = (geofence.unconfirmedVehicleIds ?? []).filter((id) =>
+    geofence.vehicleIds.includes(id),
+  );
   const totalUnits = assigned.length + traccarOnly.length;
 
   const shapeLabel =
@@ -97,6 +103,16 @@ export default function GeofenceCard({
             <button type="button" onClick={stop(() => onEditDetails(geofence))} title="Editar nombre, color y unidades" className={actionBtn}>
               <Pencil size={14} />
             </button>
+            {onConfigureWhatsApp && (
+              <button
+                type="button"
+                onClick={stop(() => onConfigureWhatsApp(geofence))}
+                title="Configurar Alertas por WhatsApp"
+                className="flex h-7 w-7 items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+              >
+                <WhatsAppIcon size={14} />
+              </button>
+            )}
             <button
               type="button"
               onClick={stop(() => onDelete(geofence))}
@@ -128,8 +144,8 @@ export default function GeofenceCard({
                   key={v.id}
                   title={
                     isUnconfirmed
-                      ? `⚠️ ${v.id}: Registrado en BD interna pero NO confirmado en Traccar`
-                      : `✓ ${v.id}: Confirmado en Traccar`
+                      ? `${v.id}: Registrado en BD interna pero NO confirmado en Traccar`
+                      : `${v.id}: Confirmado en Traccar`
                   }
                   className={`flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] px-1.5 text-[12px] font-semibold ${
                     isUnconfirmed
@@ -148,7 +164,7 @@ export default function GeofenceCard({
             {traccarOnly.map((plate) => (
               <span
                 key={`traccar-${plate}`}
-                title={`📡 ${plate}: Vinculado en Traccar pero no registrado en BD interna (Haz clic en Importar)`}
+                title={`${plate}: Vinculado en Traccar pero no registrado en BD interna (Haz clic en Importar)`}
                 className="flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] border border-dashed border-blue-400 bg-blue-50 px-1.5 text-[12px] font-semibold text-blue-800"
               >
                 <Radio size={11} className="shrink-0 animate-pulse text-[#113EB9]" />
@@ -159,12 +175,12 @@ export default function GeofenceCard({
         )}
       </div>
 
-      {Boolean(geofence.unconfirmedVehicleIds?.length) && (
+      {unconfirmed.length > 0 && (
         <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[5px] border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
           <div className="flex min-w-0 items-center gap-1.5">
             <AlertTriangle size={12} className="shrink-0 text-amber-600" />
             <span className="truncate">
-              {geofence.unconfirmedVehicleIds!.length} vehículo(s) sin confirmar en Traccar
+              {unconfirmed.length} vehículo(s) sin confirmar en Traccar
             </span>
           </div>
           {onSyncVehiclesToTraccar && (

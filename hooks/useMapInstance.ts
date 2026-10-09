@@ -7,6 +7,9 @@ export function useMapInstance() {
   const onLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
     setMapLoaded(true);
+    if (typeof window !== 'undefined') {
+      (window as any).__trackvelMap = map;
+    }
     
     // Configuraciones comunes del mapa
     const trafficLayer = new google.maps.TrafficLayer();
@@ -14,6 +17,9 @@ export function useMapInstance() {
   }, []);
 
   const onUnmount = useCallback(() => {
+    if (typeof window !== 'undefined' && (window as any).__trackvelMap === mapRef.current) {
+      (window as any).__trackvelMap = null;
+    }
     mapRef.current = null;
     setMapLoaded(false);
   }, []);

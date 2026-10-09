@@ -5,7 +5,9 @@ import * as signalR from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { getAlertasReport, AlertaItem } from './reportsApi';
 
-const BASE_URL = process.env.NEXT_PUBLIC_TRACKVEL_API_URL || 'http://localhost:5000';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
+  'https://do.velsat.pe:8443/notificaciones-trackbell';
 export const SIGNALR_HUB_URL = `${BASE_URL.replace(/\/+$/, '')}/notificationsHub`;
 
 export interface RealtimeGeofenceAlert {

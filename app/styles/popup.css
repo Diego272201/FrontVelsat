@@ -243,6 +243,26 @@
   height: 0;
   position: absolute;
   width: 200px;
+  z-index: 5 !important;
+}
+
+.popup-container:has(.pv2-popup) {
+  z-index: 50 !important;
+}
+
+/* InfoWindow de Google Maps y Alertas en tiempo real siempre por encima de las placas y popups de vehículos */
+.gm-style-iw-a,
+.gm-style-iw-c,
+.gm-style-iw-d,
+.gm-style-iw-t,
+.gm-style-iw-tc,
+div[class*="gm-style-iw"] {
+  z-index: 99999999 !important;
+}
+
+.gm-style div:has(> .gm-style-iw-a),
+.gm-style div:has(> div[class*="gm-style-iw"]) {
+  z-index: 99999999 !important;
 }
 
 .popup-bubble,

@@ -1,10 +1,14 @@
 import axios from 'axios';
 
+export const TRACCAR_DO_URL = 'https://do.velsat.pe:2087/api';
+export const TRACCAR_SR_URL = 'https://sr.velsat.pe:2087/api';
+
 export const TRACCAR_SERVERS = [
-  'https://do.velsat.pe:2087/api',
+  TRACCAR_DO_URL,
+  TRACCAR_SR_URL,
 ] as const;
 
-export const DEFAULT_TRACCAR_URL = TRACCAR_SERVERS[0];
+export const DEFAULT_TRACCAR_URL = TRACCAR_DO_URL;
 
 export interface TraccarDevice {
   id: number;
@@ -53,9 +57,40 @@ export function cleanTraccarUrl(url: string = DEFAULT_TRACCAR_URL): string {
 }
 
 /**
- * Determina el servidor Traccar (fijado a https://do.velsat.pe:2087/api)
+ * Determina dinámicamente el servidor Traccar correspondiente según la URL base / servidorUrl de la sesión:
+ * - Si es https://sub.velsat.pe:2096 (o sub.velsat.pe / sr.velsat.pe / 2096) -> https://sr.velsat.pe:2087/api
+ * - Si es https://do.velsat.pe:2083 (o do.velsat.pe / 2083) -> https://do.velsat.pe:2087/api
  */
-export function getTraccarServerForUrl(_baseUrl?: string): string {
+export function getTraccarServerForUrl(baseUrl?: string): string {
+  const url = (baseUrl || '').toLowerCase().trim();
+
+  if (
+    url.includes('sub.velsat.pe') ||
+    url.includes('sr.velsat.pe') ||
+    url.includes('2096')
+  ) {
+    return TRACCAR_SR_URL;
+  }
+
+  if (url.includes('do.velsat.pe') || url.includes('2083')) {
+    return TRACCAR_DO_URL;
+  }
+
+  // Fallback directo de localStorage si no se recibió parámetro
+  if (typeof window !== 'undefined') {
+    const stored = (localStorage.getItem('servidorUrl') || '').toLowerCase().trim();
+    if (
+      stored.includes('sub.velsat.pe') ||
+      stored.includes('sr.velsat.pe') ||
+      stored.includes('2096')
+    ) {
+      return TRACCAR_SR_URL;
+    }
+    if (stored.includes('do.velsat.pe') || stored.includes('2083')) {
+      return TRACCAR_DO_URL;
+    }
+  }
+
   return DEFAULT_TRACCAR_URL;
 }
 
@@ -342,14 +377,14 @@ export function resolveTraccarDevice(
 }
 
 /**
- * Determina el servidor Traccar (fijado a https://do.velsat.pe:2087/api)
+ * Determina el servidor Traccar dinámico para la cuenta según su URL base / servidorUrl
  */
 export function resolveAccountTraccarServer(
   _username?: string,
   _serverDevicesList?: ServerDevicesResult[],
-  _fallbackBaseUrl?: string,
+  fallbackBaseUrl?: string,
 ): string {
-  return DEFAULT_TRACCAR_URL;
+  return getTraccarServerForUrl(fallbackBaseUrl);
 }
 
 /**
@@ -380,6 +415,50 @@ export async function getTraccarGeofences(
   }
 }
 
+interface DeviceGeofencesCacheEntry {
+  geofenceIds: number[];
+  timestamp: number;
+}
+
+const deviceGeofencesCache = new Map<number, DeviceGeofencesCacheEntry>();
+const GEOFENCE_CACHE_TTL_MS = 30000; // 30 segundos de vigencia en memoria
+
+export function clearDeviceGeofencesCache(deviceId?: number): void {
+  if (deviceId !== undefined) {
+    deviceGeofencesCache.delete(deviceId);
+  } else {
+    deviceGeofencesCache.clear();
+  }
+}
+
+export function updateDeviceGeofencesCache(deviceId: number, geofenceIds: number[]): void {
+  deviceGeofencesCache.set(deviceId, {
+    geofenceIds,
+    timestamp: Date.now(),
+  });
+}
+
+export function removeDeviceGeofenceFromCache(deviceId: number, geofenceId: number): void {
+  const existing = deviceGeofencesCache.get(deviceId);
+  if (existing) {
+    deviceGeofencesCache.set(deviceId, {
+      geofenceIds: existing.geofenceIds.filter((id) => id !== geofenceId),
+      timestamp: Date.now(),
+    });
+  }
+}
+
+export function addDeviceGeofenceToCache(deviceId: number, geofenceId: number): void {
+  const existing = deviceGeofencesCache.get(deviceId);
+  const current = existing ? existing.geofenceIds : [];
+  if (!current.includes(geofenceId)) {
+    deviceGeofencesCache.set(deviceId, {
+      geofenceIds: [...current, geofenceId],
+      timestamp: Date.now(),
+    });
+  }
+}
+
 /**
  * Consulta las geocercas asignadas a un dispositivo específico en Traccar
  * GET /api/geofences?deviceId={deviceId}
@@ -402,7 +481,9 @@ export async function getTraccarDeviceGeofences(
       },
       timeout: 10000,
     });
-    return Array.isArray(response.data) ? response.data : [];
+    const result = Array.isArray(response.data) ? response.data : [];
+    updateDeviceGeofencesCache(deviceId, result.map((g) => g.id));
+    return result;
   } catch (err: any) {
     console.warn(`[Traccar] Error al consultar geocercas del dispositivo ${deviceId}:`, err?.message || err);
     return [];
@@ -589,6 +670,7 @@ export async function linkDeviceToGeofenceTraccar(
     console.log(
       `[Traccar] ✅ Permiso otorgado exitosamente en ${baseUrl} (HTTP ${response.status}) para deviceId: ${deviceId} y geofenceId: ${geofenceId}`,
     );
+    addDeviceGeofenceToCache(deviceId, geofenceId);
   } catch (error: any) {
     const status = error.response?.status;
     const errorDetails =
@@ -643,10 +725,12 @@ export async function unlinkDeviceFromGeofenceTraccar(
     console.log(
       `[Traccar] ✅ Desvinculación exitosa en ${baseUrl} (HTTP ${response.status}) deviceId: ${deviceId}, geofenceId: ${geofenceId}`,
     );
+    removeDeviceGeofenceFromCache(deviceId, geofenceId);
   } catch (error: any) {
     // Si ya no existía el permiso o el recurso fue eliminado (404/204), no considerarlo fallo bloqueante
     if (error.response?.status === 404) {
       console.warn(`[Traccar] Permiso ya no existía en ${baseUrl}, continuando.`);
+      removeDeviceGeofenceFromCache(deviceId, geofenceId);
       return;
     }
 
@@ -661,11 +745,9 @@ export async function unlinkDeviceFromGeofenceTraccar(
   }
 }
 
-const deviceGeofencesCache = new Map<number, number[]>();
-
 /**
  * Busca de forma eficiente todos los dispositivos vinculados a una geocerca en Traccar
- * utilizando caché en memoria y concurrencia controlada para no bloquear la app.
+ * utilizando caché en memoria con TTL y concurrencia controlada para no bloquear la app.
  */
 export async function findDevicesLinkedToTraccarGeofence(
   baseUrl: string = DEFAULT_TRACCAR_URL,
@@ -673,17 +755,19 @@ export async function findDevicesLinkedToTraccarGeofence(
   devicesToCheck: TraccarDevice[],
   authHeader?: string,
   concurrency: number = 20,
+  forceRefresh: boolean = false,
 ): Promise<TraccarDevice[]> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth || !devicesToCheck || devicesToCheck.length === 0) return [];
 
   const matched: TraccarDevice[] = [];
   const uncached: TraccarDevice[] = [];
+  const now = Date.now();
 
   for (const d of devicesToCheck) {
-    if (deviceGeofencesCache.has(d.id)) {
-      const geos = deviceGeofencesCache.get(d.id)!;
-      if (geos.includes(geofenceId)) {
+    const cached = deviceGeofencesCache.get(d.id);
+    if (!forceRefresh && cached && now - cached.timestamp < GEOFENCE_CACHE_TTL_MS) {
+      if (cached.geofenceIds.includes(geofenceId)) {
         matched.push(d);
       }
     } else {
@@ -699,7 +783,6 @@ export async function findDevicesLinkedToTraccarGeofence(
           try {
             const geos = await getTraccarDeviceGeofences(baseUrl, d.id, auth);
             const ids = geos.map((g) => g.id);
-            deviceGeofencesCache.set(d.id, ids);
             if (ids.includes(geofenceId)) {
               matched.push(d);
             }

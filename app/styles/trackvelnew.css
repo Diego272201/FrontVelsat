@@ -5,3 +5,17 @@
     background-size: cover;
     top: 0px;
 }
+
+/* Las alertas en tiempo real (InfoWindow) siempre deben estar por encima de las placas y popups de los vehículos */
+.gm-style-iw-a,
+.gm-style-iw-c,
+.gm-style-iw-d,
+.gm-style-iw-t,
+.gm-style-iw-tc,
+div[class*="gm-style-iw"] {
+    z-index: 99999999 !important;
+}
+
+.popup-container {
+    z-index: 5 !important;
+}
