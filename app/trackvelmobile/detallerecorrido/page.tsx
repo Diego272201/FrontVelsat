@@ -4,8 +4,7 @@ import React, { Suspense } from 'react';
 import loadable from 'next/dynamic';
 import { Toaster } from 'sonner';
 
-// Reutiliza el mismo componente que /trackvelnew/estadistica/detallerecorrido
-// para que ambas rutas se vean y se comporten exactamente igual.
+
 const MapContent = loadable(
   () => import('@/app/trackvelnew/estadistica/detallerecorrido/MapContent'),
   {
