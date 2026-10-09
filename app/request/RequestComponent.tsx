@@ -78,10 +78,6 @@ function extractColor(colorClass: string, fallback = '#fca311'): string {
   return COLOR_MAP[colorClass] || fallback;
 }
 
-function formatKm(value: number): string {
-  return value.toLocaleString('en-US', { maximumFractionDigits: 1 });
-}
-
 function extractTextColor(textColorClass: string): string {
   if (textColorClass === 'text-black') return 'black';
   if (textColorClass === 'text-gray-800') return '#1f2937';
@@ -152,8 +148,6 @@ interface DeviceList {
   lastValidHeading: number;
   lastGPSTimestamp: number;
   lastOdometerKM: number;
-  odometerini: number;
-  kmini: number;
   rutaact: string;
   servicio: string;
   ultimoServicio?: {
@@ -805,15 +799,6 @@ export default function RequestPage() {
 
       const colorScheme = getColorScheme(device);
 
-      const kilometraje =
-        device.lastOdometerKM != null &&
-        device.odometerini != null &&
-        device.kmini != null
-          ? device.lastOdometerKM - device.odometerini + device.kmini
-          : 0;
-
-      const isMovilbusUser = session?.user?.username === 'movilbus';
-
       const hasUltimoServicio = device.ultimoServicio !== null;
       const conductor = hasUltimoServicio
         ? sanitize(device.ultimoServicio?.conductor?.apepate || 'Sin asignar')
@@ -836,7 +821,6 @@ export default function RequestPage() {
       const safeDeviceId = sanitize(device.deviceId);
       const safeDireccion = sanitize(device.direccion);
       const isFollowed = device.deviceId === followedDeviceIdRef.current;
-      const kmValue = isMovilbusUser ? formatKm(kilometraje) : '—';
 
       return `
             <div class="${colorScheme.popup2.bgColor} ${colorScheme.popup2.textColor} pv2-popup border ${colorScheme.popup2.borderColor}" id="content2-${safeDeviceId}" style="--pv2-tint: ${extractColor(colorScheme.popup2.bgColor, '#1f2937')};">
@@ -881,10 +865,6 @@ export default function RequestPage() {
                     <div class="pv2-stat">
                       <span class="pv2-stat-label">Estado</span>
                       <span class="pv2-stat-value state-value">${getEstado(device.lastValidSpeed)}</span>
-                    </div>
-                    <div class="pv2-stat">
-                      <span class="pv2-stat-label">Km</span>
-                      <span class="pv2-stat-value kilometraje-value">${kmValue}</span>
                     </div>
                   </div>
 
@@ -1186,8 +1166,6 @@ export default function RequestPage() {
         const directionElement = popupElement.querySelector('.direction-value');
         const locationElement = popupElement.querySelector('.location-value');
         const streetViewLink = popupElement.querySelector('.street-view-link');
-        const kilometrajeElement =
-          popupElement.querySelector('.kilometraje-value');
         const conductorElementFinal =
           popupElement.querySelector('.conductor-value');
         const servicioElementFinal =
@@ -1209,12 +1187,6 @@ export default function RequestPage() {
             'data-lng',
             device.lastValidLongitude.toString(),
           );
-        }
-
-        if (kilometrajeElement && isMovilbusUser) {
-          const kilometraje =
-            device.lastOdometerKM - device.odometerini + device.kmini;
-          kilometrajeElement.textContent = formatKm(kilometraje);
         }
 
         if (device.ultimoServicio !== null) {

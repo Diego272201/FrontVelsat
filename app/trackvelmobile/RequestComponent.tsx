@@ -34,8 +34,6 @@ interface DeviceList {
   lastValidHeading: number;
   lastGPSTimestamp: number;
   lastOdometerKM: number;
-  odometerini: number;
-  kmini: number;
   rutaact: string;
   servicio: string;
   ultimoServicio?: {
@@ -220,8 +218,6 @@ export default function RequestPage() {
               direccion: device.direccion,
               lastGPSTimestamp: 0,
               lastOdometerKM: 0,
-              odometerini: 0,
-              kmini: 0,
               rutaact: '',
               servicio: '',
               ultimoServicio: null,
@@ -630,15 +626,6 @@ export default function RequestPage() {
 
       const colorScheme = getColorScheme(device);
 
-      const kilometraje =
-        device.lastOdometerKM != null &&
-        device.odometerini != null &&
-        device.kmini != null
-          ? Math.round(
-              device.lastOdometerKM - device.odometerini + device.kmini,
-            )
-          : 0;
-
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
       const hasUltimoServicio = device.ultimoServicio !== null;
@@ -700,7 +687,6 @@ export default function RequestPage() {
 
               <p class="px-2"><strong>Velocidad:</strong> <span class="speed-value">${Math.round(device.lastValidSpeed)} Km/h</span></p>
               <p class="px-2"><strong>Estado:</strong> <span class="state-value">${getEstado(device.lastValidSpeed)}</span></p>
-              ${isMovilbusUser ? `<p class="px-2"><strong>Kilometraje:</strong> <span class="kilometraje-value">${kilometraje.toFixed(0)} Km</span></p>` : ''}
               <br>
 
               <h4 class="px-2 font-bold uppercase" style="#fff">Último Reporte</h4>
@@ -1215,8 +1201,6 @@ export default function RequestPage() {
         const directionElement = popupElement.querySelector('.direction-value');
         const locationElement = popupElement.querySelector('.location-value');
         const streetViewLink = popupElement.querySelector('.street-view-link');
-        const kilometrajeElement =
-          popupElement.querySelector('.kilometraje-value');
         const conductorElementFinal =
           popupElement.querySelector('.conductor-value');
         const servicioElementFinal =
@@ -1238,12 +1222,6 @@ export default function RequestPage() {
             'data-lng',
             device.lastValidLongitude.toString(),
           );
-        }
-
-        if (kilometrajeElement && isMovilbusUser) {
-          const kilometraje =
-            device.lastOdometerKM - device.odometerini + device.kmini;
-          kilometrajeElement.textContent = `${kilometraje.toFixed(1)} Km`;
         }
 
         if (device.ultimoServicio !== null) {

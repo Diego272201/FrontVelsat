@@ -117,7 +117,7 @@ export default function BtnCompletarHoraAto({ data, className }: Props) {
         if (primerPuntoEnGeocerca) {
           listaParaEnviar.push({
             codservicio: servicio.codServicio,
-            fechaObtenida: `${primerPuntoEnGeocerca.date} ${primerPuntoEnGeocerca.time}`,
+            fechaObtenida: `${primerPuntoEnGeocerca.date} ${primerPuntoEnGeocerca.time.slice(0, 5)}`,
           });
         }
       } catch (error) {

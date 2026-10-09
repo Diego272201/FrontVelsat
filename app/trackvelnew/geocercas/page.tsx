@@ -393,7 +393,7 @@ export default function GeocercasPage() {
         handleClearAlertMarker();
       }, 60000);
     },
-    [handleClearAlertMarker],
+    [handleClearAlertMarker, effectiveUsername],
   );
 
   function makeDistanceBadgeIcon(text: string): google.maps.Icon {
@@ -423,7 +423,7 @@ export default function GeocercasPage() {
     });
   }
 
-  function makeGeofenceLabelIcon(name: string, color?: string): google.maps.Icon {
+  const makeGeofenceLabelIcon = useCallback((name: string, color?: string): google.maps.Icon => {
     const text = escapeXml(name.trim().toUpperCase());
     const width = Math.max(70, text.length * 9.5 + 24);
     const height = 26;
@@ -449,20 +449,20 @@ export default function GeocercasPage() {
       scaledSize: new google.maps.Size(width, height),
       anchor: new google.maps.Point(width / 2, height / 2),
     };
-  }
+  }, []);
 
   // =========================================================================
   // Helpers para Visualización de Visita en Mapa (Entrada/Salida/Distancia)
   // =========================================================================
 
   // Cache de clase OverlayView para tarjetas y cápsula de visita
-  let CustomVisitOverlayClass: any = null;
+  const customVisitOverlayClassRef = useRef<any>(null);
 
-  function getCustomVisitOverlayClass() {
-    if (CustomVisitOverlayClass) return CustomVisitOverlayClass;
+  const getCustomVisitOverlayClass = useCallback(() => {
+    if (customVisitOverlayClassRef.current) return customVisitOverlayClassRef.current;
     if (typeof google === 'undefined' || !google.maps || !google.maps.OverlayView) return null;
 
-    CustomVisitOverlayClass = class CustomVisitOverlay extends google.maps.OverlayView {
+    customVisitOverlayClassRef.current = class CustomVisitOverlay extends google.maps.OverlayView {
       private position: google.maps.LatLng;
       private containerDiv: HTMLDivElement;
       private offset: { x: number; y: number };
@@ -516,8 +516,8 @@ export default function GeocercasPage() {
       }
     };
 
-    return CustomVisitOverlayClass;
-  }
+    return customVisitOverlayClassRef.current;
+  }, []);
 
   // Calcular distancia Haversine en kilómetros entre dos coordenadas
   function calculateDistanceBetweenKm(
@@ -949,7 +949,7 @@ export default function GeocercasPage() {
     } else {
       toast.warning('Esta visita no contiene coordenadas registradas de entrada o salida');
     }
-  }, []);
+  }, [getCustomVisitOverlayClass, handleClearAlertMarker]);
 
   // Limpiar marcadores, overlays de visita y alertas al desmontar el componente
   useEffect(() => {
@@ -2425,7 +2425,7 @@ export default function GeocercasPage() {
         (entry.overlay as google.maps.Polygon).setPath(geofence.path);
       }
     });
-  }, [geofences, selectedId, editingShapeId, drawMode, mapReady]);
+  }, [geofences, selectedId, editingShapeId, drawMode, mapReady, makeGeofenceLabelIcon]);
 
 
 
@@ -4134,7 +4134,7 @@ export default function GeocercasPage() {
                         </button>
                       </div>
                       <p className="text-[11px] text-slate-400 italic">
-                        También puedes pegar "lat, lng" en el primer campo
+                        También puedes pegar &quot;lat, lng&quot; en el primer campo
                       </p>
                     </>
                   )}
