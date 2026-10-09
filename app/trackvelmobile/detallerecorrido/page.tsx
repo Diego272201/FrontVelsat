@@ -12,6 +12,7 @@ const MapContent = loadable(
   },
 );
 
+
 export default function RequestPageDetail() {
   return (
     <div>
