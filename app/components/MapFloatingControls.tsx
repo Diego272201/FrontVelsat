@@ -834,7 +834,7 @@ export default function MapFloatingControls({
                                 <span>•</span>
                                 <span>
                                   {geo.radius >= 1000
-                                    ? `${(geo.radius / 1000).toFixed(1)} km`
+                                    ? `${(geo.radius / 1000).toFixed(2)} km`
                                     : `${Math.round(geo.radius)} m`}
                                 </span>
                               </>

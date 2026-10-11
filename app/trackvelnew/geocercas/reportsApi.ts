@@ -79,25 +79,36 @@ function getAuthHeaders(_token?: string) {
   };
 }
 
-// Helper para convertir fechas a ISO 8601 con soporte para horas (ej: '2026-09-01T00:00:00Z')
+const HAS_TIMEZONE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * El backend guarda las fechas de visitas en UTC pero las devuelve SIN la "Z" final
+ * (ej: "2026-10-11T17:48:25" = 12:48 en Lima). Sin zona, el navegador las tomaría como
+ * hora local y se verían 5 h corridas. Usar SIEMPRE esto para leer fechas del backend.
+ */
+export function parseApiDate(dateStr?: string | null): Date {
+  if (!dateStr) return new Date(NaN);
+  const trimmed = dateStr.trim();
+  const isDateTimeWithoutZone = trimmed.includes('T') && !HAS_TIMEZONE.test(trimmed);
+  return new Date(isDateTimeWithoutZone ? `${trimmed}Z` : trimmed);
+}
+
+/**
+ * Convierte un filtro en hora local del usuario (input datetime-local "YYYY-MM-DDTHH:mm"
+ * o fecha "YYYY-MM-DD") a ISO 8601 en UTC, que es como filtra el backend.
+ * Ej. en Lima: "2026-10-11T00:00" -> "2026-10-11T05:00:00Z".
+ */
 function toIsoDate(dateStr?: string, isEnd = false): string | undefined {
   if (!dateStr || !dateStr.trim()) return undefined;
   const trimmed = dateStr.trim();
-  if (trimmed.includes('T')) {
-    // Formato datetime-local HTML: YYYY-MM-DDTHH:mm (16 caracteres)
-    if (trimmed.length === 16) {
-      return isEnd ? `${trimmed}:59Z` : `${trimmed}:00Z`;
-    }
-    // Formato con segundos sin zona: YYYY-MM-DDTHH:mm:ss (19 caracteres)
-    if (trimmed.length === 19) {
-      return `${trimmed}Z`;
-    }
-    if (!trimmed.endsWith('Z') && !trimmed.includes('+')) {
-      return `${trimmed}Z`;
-    }
-    return trimmed;
-  }
-  return isEnd ? `${trimmed}T23:59:59Z` : `${trimmed}T00:00:00Z`;
+  if (trimmed.includes('T') && HAS_TIMEZONE.test(trimmed)) return trimmed;
+
+  let local = trimmed.includes('T') ? trimmed : `${trimmed}T${isEnd ? '23:59' : '00:00'}`;
+  if (local.length === 16) local += isEnd ? ':59' : ':00';
+
+  const d = new Date(local); // sin zona => el navegador lo interpreta como hora local
+  if (isNaN(d.getTime())) return trimmed;
+  return d.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Check, Crosshair, Move, Pencil, Trash2, X } from 'lucide-react';
+import { Crosshair, Move, Pencil, Trash2 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Geofence, Vehicle, formatDistance } from './types';
 
@@ -14,8 +14,6 @@ interface GeofenceCardProps {
   onEditDetails: (geofence: Geofence) => void;
   onConfigureWhatsApp?: (geofence: Geofence) => void;
   onEditShape: (geofence: Geofence) => void;
-  onSaveShape: () => void;
-  onCancelShape: () => void;
   onDelete: (geofence: Geofence) => void;
 }
 
@@ -32,8 +30,6 @@ export default function GeofenceCard({
   onEditDetails,
   onConfigureWhatsApp,
   onEditShape,
-  onSaveShape,
-  onCancelShape,
   onDelete,
 }: GeofenceCardProps) {
   const assigned = geofence.vehicleIds.map(
@@ -133,25 +129,6 @@ export default function GeofenceCard({
         )}
       </div>
 
-      {editingShape && (
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={stop(onSaveShape)}
-            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-[5px] bg-green-600 text-[12px] font-semibold text-white transition hover:bg-green-700"
-          >
-            <Check size={14} /> Guardar forma
-          </button>
-          <button
-            type="button"
-            onClick={stop(onCancelShape)}
-            title="Descartar cambios de forma"
-            className="flex h-8 w-8 items-center justify-center rounded-[5px] bg-white text-slate-600 transition hover:bg-slate-100"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ import GeofenceModal, { GeofenceFormData } from './GeofenceModal';
 import RealtimeAlertsDrawer from './RealtimeAlertsDrawer';
 import GeocercasReportsModal from './GeocercasReportsModal';
 import { useGeofenceSignalR, RealtimeGeofenceAlert } from './useGeofenceSignalR';
-import { VisitaItem } from './reportsApi';
+import { VisitaItem, parseApiDate } from './reportsApi';
 import { useMapsReady } from './useMapsReady';
 import TrackvelLoader from '@/components/TrackvelLoader';
 import { useApi } from '@/context/ApiContext';
@@ -99,6 +99,112 @@ import {
 } from './traccarApi';
 
 const MIN_RADIUS_M = 25;
+
+// Área (fórmula esférica) y perímetro de un polígono; con 2 puntos solo hay perímetro.
+function computePolygonMetrics(pts: LatLng[]): { area: number | null; perimeter: number } {
+  const R = 6378137;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const closed = pts.length >= 3;
+  let area = 0;
+  let perimeter = 0;
+  const edges = closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < edges; i++) {
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % pts.length];
+    perimeter += distanceMeters(p1, p2);
+    if (closed) {
+      area += toRad(p2.lng - p1.lng) * (2 + Math.sin(toRad(p1.lat)) + Math.sin(toRad(p2.lat)));
+    }
+  }
+  return { area: closed ? Math.abs((area * R * R) / 2) : null, perimeter };
+}
+
+function formatAreaText(m2: number): string {
+  return m2 >= 100000
+    ? `${(m2 / 1_000_000).toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} km²`
+    : `${Math.round(m2).toLocaleString('es-PE')} m²`;
+}
+
+function formatLengthText(m: number): string {
+  return m >= 1000
+    ? `${(m / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+    : `${m.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
+}
+
+function formatRadiusText(m: number): string {
+  return m >= 1000
+    ? `${(m / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
+    : `${Math.round(m).toLocaleString('es-PE')} m`;
+}
+
+type RadiusUnit = 'm' | 'km';
+
+// Texto del campo de radio en la unidad elegida (km con 3 decimales = precisión de 1 m)
+function radiusToText(meters: number, unit: RadiusUnit): string {
+  return unit === 'km' ? String(Number((meters / 1000).toFixed(3))) : String(Math.round(meters));
+}
+
+// Radio en metros a partir del texto del campo; NaN si no es un número válido
+function parseRadiusMeters(text: string, unit: RadiusUnit): number {
+  const value = parseFloat(text.trim().replace(',', '.'));
+  if (isNaN(value) || value <= 0) return NaN;
+  return unit === 'km' ? value * 1000 : value;
+}
+
+// Al cambiar de unidad se convierte lo escrito (ej. 1.5 km -> 1500 m)
+function convertRadiusText(text: string, from: RadiusUnit, to: RadiusUnit): string {
+  const meters = parseRadiusMeters(text, from);
+  return isNaN(meters) ? text : radiusToText(meters, to);
+}
+
+// Campo de radio con selector de unidad (m / km) dentro del mismo campo
+function RadiusInput({
+  value,
+  unit,
+  onChange,
+  onUnitChange,
+  onEnter,
+}: {
+  value: string;
+  unit: RadiusUnit;
+  onChange: (value: string) => void;
+  onUnitChange: (unit: RadiusUnit) => void;
+  onEnter: () => void;
+}) {
+  return (
+    <div className="relative w-[96px] shrink-0">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onEnter();
+          }
+        }}
+        placeholder="Radio"
+        title={`Radio en ${unit === 'km' ? 'kilómetros' : 'metros'}`}
+        className="w-full h-9 pl-2.5 pr-10 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+      />
+      <button
+        type="button"
+        onClick={() => onUnitChange(unit === 'km' ? 'm' : 'km')}
+        title={unit === 'km' ? 'Cambiar a metros' : 'Cambiar a kilómetros'}
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 min-w-[30px] px-1.5 rounded-md border border-slate-200 bg-white text-[11px] font-bold text-[#1447C0] transition hover:bg-blue-50"
+      >
+        {unit}
+      </button>
+    </div>
+  );
+}
+
+// Diferencia con signo para mostrar cuánto creció o se achicó (ej. "+430 m", "−1,20 km")
+function formatSignedDelta(delta: number, format: (v: number) => string): string {
+  const sign = delta > 0 ? '+' : '−';
+  return `${sign}${format(Math.abs(delta))}`;
+}
 
 interface PendingShape {
   type: ShapeType;
@@ -568,7 +674,7 @@ export default function GeocercasPage() {
   function formatVisitCardDate(dateStr?: string | null): string {
     if (!dateStr) return '-';
     try {
-      const d = new Date(dateStr);
+      const d = parseApiDate(dateStr);
       if (isNaN(d.getTime())) return dateStr;
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -588,8 +694,8 @@ export default function GeocercasPage() {
     fechaSalida?: string | null,
   ): string {
     if (fechaEntrada && fechaSalida) {
-      const tEntrada = new Date(fechaEntrada).getTime();
-      const tSalida = new Date(fechaSalida).getTime();
+      const tEntrada = parseApiDate(fechaEntrada).getTime();
+      const tSalida = parseApiDate(fechaSalida).getTime();
       if (!isNaN(tEntrada) && !isNaN(tSalida) && tSalida >= tEntrada) {
         const diffSec = Math.floor((tSalida - tEntrada) / 1000);
         if (diffSec < 60) return `${diffSec} s`;
@@ -1141,7 +1247,15 @@ export default function GeocercasPage() {
   const [manualInputOpen, setManualInputOpen] = useState(false);
   const [manualLat, setManualLat] = useState('');
   const [manualLng, setManualLng] = useState('');
-  const [manualRadiusKm, setManualRadiusKm] = useState('');
+  const [manualRadius, setManualRadius] = useState('');
+  const [manualRadiusUnit, setManualRadiusUnit] = useState<RadiusUnit>('km');
+  // El dibujo en el mapa actualiza el campo desde listeners de Google Maps: necesita la unidad vigente
+  const manualRadiusUnitRef = useRef<RadiusUnit>('km');
+  const changeManualRadiusUnit = useCallback((unit: RadiusUnit) => {
+    setManualRadius((prev) => convertRadiusText(prev, manualRadiusUnitRef.current, unit));
+    manualRadiusUnitRef.current = unit;
+    setManualRadiusUnit(unit);
+  }, []);
   const [circleCenter, setCircleCenter] = useState<LatLng | null>(null);
   const [circleRadius, setCircleRadius] = useState<number>(0);
   const applyCircleToMapRef = useRef<(center: LatLng, radius: number) => void>(() => {});
@@ -1175,54 +1289,23 @@ export default function GeocercasPage() {
   const polygonStats = useMemo(() => {
     const pts = drawVertices;
     if (pts.length < 2) return null;
-    const R = 6378137;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const closed = pts.length >= 3;
-    let area = 0;
-    let perimeter = 0;
-    const edges = closed ? pts.length : pts.length - 1;
-    for (let i = 0; i < edges; i++) {
-      const p1 = pts[i];
-      const p2 = pts[(i + 1) % pts.length];
-      perimeter += distanceMeters(p1, p2);
-      if (closed) {
-        area += toRad(p2.lng - p1.lng) * (2 + Math.sin(toRad(p1.lat)) + Math.sin(toRad(p2.lat)));
-      }
-    }
-    area = Math.abs((area * R * R) / 2);
-    const areaText = !closed
-      ? null
-      : area >= 100000
-        ? `${(area / 1_000_000).toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} km²`
-        : `${Math.round(area).toLocaleString('es-PE')} m²`;
-    const perimeterText =
-      perimeter >= 1000
-        ? `${(perimeter / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
-        : `${perimeter.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
-    return { areaText, perimeterText, vertices: pts.length };
+    const { area, perimeter } = computePolygonMetrics(pts);
+    return {
+      areaText: area == null ? null : formatAreaText(area),
+      perimeterText: formatLengthText(perimeter),
+      vertices: pts.length,
+    };
   }, [drawVertices]);
 
   // Métricas en vivo del círculo en dibujo: radio, área y perímetro
   const circleStats = useMemo(() => {
     if (drawMode !== 'circle' || !circleCenter || circleRadius < MIN_RADIUS_M) return null;
     const r = circleRadius;
-    const area = Math.PI * r * r;
-    const perimeter = 2 * Math.PI * r;
-
-    const radioText =
-      r >= 1000
-        ? `${(r / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
-        : `${Math.round(r).toLocaleString('es-PE')} m`;
-    const areaText =
-      area >= 100000
-        ? `${(area / 1_000_000).toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 })} km²`
-        : `${Math.round(area).toLocaleString('es-PE')} m²`;
-    const perimeterText =
-      perimeter >= 1000
-        ? `${(perimeter / 1000).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} km`
-        : `${perimeter.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m`;
-
-    return { radioText, areaText, perimeterText };
+    return {
+      radioText: formatRadiusText(r),
+      areaText: formatAreaText(Math.PI * r * r),
+      perimeterText: formatLengthText(2 * Math.PI * r),
+    };
   }, [drawMode, circleCenter, circleRadius]);
 
   const handleLatChange = useCallback((val: string) => {
@@ -1282,18 +1365,19 @@ export default function GeocercasPage() {
       return;
     }
 
-    let radiusKm = parseFloat(manualRadiusKm.trim().replace(',', '.'));
-    if (isNaN(radiusKm) || radiusKm <= 0) {
+    let radiusMeters = parseRadiusMeters(manualRadius, manualRadiusUnit);
+    if (isNaN(radiusMeters)) {
       if (circleRadius >= MIN_RADIUS_M) {
-        radiusKm = circleRadius / 1000;
+        radiusMeters = circleRadius;
       } else {
-        toast.error('Ingresa un radio válido en km (ej. 0.77)');
+        toast.error(
+          manualRadiusUnit === 'km'
+            ? 'Ingresa un radio válido en km (ej. 0.77)'
+            : 'Ingresa un radio válido en metros (ej. 770)',
+        );
         return;
       }
     }
-
-    // Si el usuario ingresó más de 50, se asume metros (ej. 500 ó 750); si es menor, km (ej. 0.77)
-    const radiusMeters = radiusKm > 50 ? radiusKm : radiusKm * 1000;
 
     if (radiusMeters < MIN_RADIUS_M) {
       toast.error(`El radio mínimo es de ${MIN_RADIUS_M} metros`);
@@ -1306,8 +1390,8 @@ export default function GeocercasPage() {
     setDrawInfo({ points: 1, radius: radiusMeters });
 
     applyCircleToMapRef.current(centerPoint, radiusMeters);
-    toast.success(`Círculo fijado: radio de ${(radiusMeters / 1000).toFixed(2)} km`);
-  }, [manualLat, manualLng, manualRadiusKm, circleCenter, circleRadius, cursorCoord]);
+    toast.success(`Círculo fijado: radio de ${formatRadiusText(radiusMeters)}`);
+  }, [manualLat, manualLng, manualRadius, manualRadiusUnit, circleCenter, circleRadius, cursorCoord]);
 
   /* ------------------------------------------------------------------ */
   /* Carga de Vehículos en Vivo (desde la API real)                     */
@@ -1965,7 +2049,7 @@ export default function GeocercasPage() {
       updateCircleRadius(radius, perimeterPoint);
       setManualLat(draft.center!.lat.toFixed(5));
       setManualLng(draft.center!.lng.toFixed(5));
-      setManualRadiusKm((radius / 1000).toFixed(2));
+      setManualRadius(radiusToText(radius, manualRadiusUnitRef.current));
       setCursorCoord(null);
       map.setOptions({ draggableCursor: null });
 
@@ -1990,7 +2074,7 @@ export default function GeocercasPage() {
       (draft.preview as google.maps.Circle).setRadius(radius);
       setCircleRadius(radius);
       setDrawInfo({ points: 1, radius });
-      setManualRadiusKm((radius / 1000).toFixed(2));
+      setManualRadius(radiusToText(radius, manualRadiusUnitRef.current));
 
       if (draft.radiusLine) {
         draft.radiusLine.setPath([draft.center, perimeterPoint]);
@@ -2493,7 +2577,8 @@ export default function GeocercasPage() {
     setCircleRadius(0);
     setManualLat('');
     setManualLng('');
-    setManualRadiusKm('');
+    setManualRadius('');
+    setManualInputOpen(false);
     setDrawMode(type);
   }, []);
 
@@ -2504,6 +2589,9 @@ export default function GeocercasPage() {
       geofence.type === 'circle'
         ? { center: geofence.center, radius: geofence.radius }
         : { path: geofence.path };
+    const unit: RadiusUnit = (geofence.radius ?? 0) >= 1000 ? 'km' : 'm';
+    editRadiusUnitRef.current = unit;
+    setEditRadiusUnit(unit);
     setDrawMode(null);
     setSelectedId(geofence.id);
     setEditingShapeId(geofence.id);
@@ -2625,6 +2713,224 @@ export default function GeocercasPage() {
     setEditingShapeId(null);
     originalShapeRef.current = null;
   }, [editingShapeId]);
+
+  /* ------------------------------------------------------------------ */
+  /* Panel de edición de forma: medidas en vivo + edición por valores    */
+  /* ------------------------------------------------------------------ */
+  // Copia en vivo de la figura que se está ajustando (se lee del mapa en cada cambio)
+  const [shapeDraft, setShapeDraft] = useState<{
+    center?: LatLng;
+    radius?: number;
+    path?: LatLng[];
+  } | null>(null);
+  const [editLat, setEditLat] = useState('');
+  const [editLng, setEditLng] = useState('');
+  const [editRadius, setEditRadius] = useState('');
+  const [editRadiusUnit, setEditRadiusUnit] = useState<RadiusUnit>('km');
+  const editRadiusUnitRef = useRef<RadiusUnit>('km');
+  const changeEditRadiusUnit = useCallback((unit: RadiusUnit) => {
+    setEditRadius((prev) => convertRadiusText(prev, editRadiusUnitRef.current, unit));
+    editRadiusUnitRef.current = unit;
+    setEditRadiusUnit(unit);
+  }, []);
+
+  useEffect(() => {
+    const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
+    if (!entry || !mapReady) {
+      setShapeDraft(null);
+      return;
+    }
+
+    // Arrastrar dispara decenas de eventos por segundo: se agrupan en un frame.
+    let frame = 0;
+    const schedule = (read: () => void) => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(read);
+    };
+    const listeners: google.maps.MapsEventListener[] = [];
+    let pathListeners: google.maps.MapsEventListener[] = [];
+
+    if (entry.type === 'circle') {
+      const circle = entry.overlay as google.maps.Circle;
+      const read = () => {
+        const c = circle.getCenter();
+        setShapeDraft({
+          center: c ? { lat: c.lat(), lng: c.lng() } : undefined,
+          radius: circle.getRadius(),
+        });
+      };
+      read();
+      listeners.push(
+        circle.addListener('center_changed', () => schedule(read)),
+        circle.addListener('radius_changed', () => schedule(read)),
+      );
+    } else {
+      const polygon = entry.overlay as google.maps.Polygon;
+      const read = () =>
+        setShapeDraft({
+          path: polygon.getPath().getArray().map((p) => ({ lat: p.lat(), lng: p.lng() })),
+        });
+      // Al arrastrar el polígono entero Google puede reemplazar el path: se vuelve a escuchar.
+      const bindPath = () => {
+        pathListeners.forEach((l) => l.remove());
+        const path = polygon.getPath();
+        pathListeners = ['set_at', 'insert_at', 'remove_at'].map((evt) =>
+          path.addListener(evt, () => schedule(read)),
+        );
+      };
+      bindPath();
+      read();
+      listeners.push(
+        polygon.addListener('dragend', () => {
+          bindPath();
+          read();
+        }),
+      );
+    }
+
+    return () => {
+      cancelAnimationFrame(frame);
+      listeners.forEach((l) => l.remove());
+      pathListeners.forEach((l) => l.remove());
+    };
+  }, [editingShapeId, mapReady]);
+
+  // Los campos del círculo siguen al mapa cuando se arrastra
+  useEffect(() => {
+    if (!shapeDraft?.center || shapeDraft.radius == null) return;
+    setEditLat(shapeDraft.center.lat.toFixed(6));
+    setEditLng(shapeDraft.center.lng.toFixed(6));
+    setEditRadius(radiusToText(shapeDraft.radius, editRadiusUnitRef.current));
+  }, [shapeDraft]);
+
+  const handleEditLatChange = useCallback((val: string) => {
+    // Permite pegar "lat, lng" en el primer campo
+    const parts = val.includes(',') ? val.split(',') : val.trim().split(/\s+/);
+    if (parts.length >= 2 && parts[1].trim()) {
+      setEditLat(parts[0].trim());
+      setEditLng(parts.slice(1).join(' ').trim());
+      return;
+    }
+    setEditLat(val);
+  }, []);
+
+  const applyEditCircle = useCallback(() => {
+    const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
+    if (!entry || entry.type !== 'circle') return;
+    const lat = parseFloat(editLat.trim());
+    const lng = parseFloat(editLng.trim());
+    let radius = parseRadiusMeters(editRadius, editRadiusUnit);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      toast.error('Ingresa una latitud y longitud válidas para el centro');
+      return;
+    }
+    if (isNaN(radius) || radius < MIN_RADIUS_M) {
+      toast.error(`El radio mínimo es de ${MIN_RADIUS_M} metros`);
+      return;
+    }
+    const circle = entry.overlay as google.maps.Circle;
+    // El campo en km redondea al metro: si no se tocó el radio, conservar el exacto
+    if (Math.abs(radius - circle.getRadius()) < 1) radius = circle.getRadius();
+    circle.setCenter({ lat, lng });
+    circle.setRadius(radius);
+    const bounds = circle.getBounds();
+    if (bounds) mapRef.current?.fitBounds(bounds, 80);
+  }, [editingShapeId, editLat, editLng, editRadius, editRadiusUnit]);
+
+  const applyEditVertex = useCallback(
+    (index: number, latText: string, lngText: string) => {
+      const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
+      if (!entry || entry.type !== 'polygon') return;
+      const lat = parseFloat(latText.trim());
+      const lng = parseFloat(lngText.trim());
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        toast.error('Coordenada fuera de rango válido (-90 a 90, -180 a 180)');
+        return;
+      }
+      const path = (entry.overlay as google.maps.Polygon).getPath();
+      const current = path.getAt(index);
+      // Los campos muestran 6 decimales: si no se tocaron, no mover el vértice
+      if (current && current.lat().toFixed(6) === lat.toFixed(6) && current.lng().toFixed(6) === lng.toFixed(6)) {
+        return;
+      }
+      path.setAt(index, new google.maps.LatLng(lat, lng));
+    },
+    [editingShapeId],
+  );
+
+  const removeEditVertex = useCallback(
+    (index: number) => {
+      const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
+      if (!entry || entry.type !== 'polygon') return;
+      const path = (entry.overlay as google.maps.Polygon).getPath();
+      if (path.getLength() <= 3) {
+        toast.error('Un polígono necesita al menos 3 vértices');
+        return;
+      }
+      path.removeAt(index);
+    },
+    [editingShapeId],
+  );
+
+  // Vuelve la figura a como estaba al empezar a ajustarla, sin salir del modo edición
+  const resetShapeEdit = useCallback(() => {
+    const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
+    const original = originalShapeRef.current;
+    if (!entry || !original) return;
+    if (entry.type === 'circle' && original.center && original.radius != null) {
+      const circle = entry.overlay as google.maps.Circle;
+      circle.setCenter(original.center);
+      circle.setRadius(original.radius);
+    } else if (entry.type === 'polygon' && original.path) {
+      const path = (entry.overlay as google.maps.Polygon).getPath();
+      path.clear();
+      original.path.forEach((p) => path.push(new google.maps.LatLng(p.lat, p.lng)));
+    }
+  }, [editingShapeId]);
+
+  const shapeEditStats = useMemo(() => {
+    const original = originalShapeRef.current;
+    if (!shapeDraft || !original) return null;
+    if (shapeDraft.radius != null && original.radius != null) {
+      const r = shapeDraft.radius;
+      const delta = r - original.radius;
+      const moved =
+        !!shapeDraft.center &&
+        !!original.center &&
+        distanceMeters(shapeDraft.center, original.center) >= 1;
+      return {
+        kind: 'circle' as const,
+        badge: formatRadiusText(r),
+        mainText: formatRadiusText(r),
+        originalText: formatRadiusText(original.radius),
+        delta,
+        deltaText: Math.abs(delta) < 1 ? 'sin cambios' : formatSignedDelta(delta, formatRadiusText),
+        changed: moved || Math.abs(delta) >= 1,
+        areaText: formatAreaText(Math.PI * r * r),
+        perimeterText: formatLengthText(2 * Math.PI * r),
+      };
+    }
+    if (shapeDraft.path && original.path) {
+      const now = computePolygonMetrics(shapeDraft.path);
+      const before = computePolygonMetrics(original.path);
+      const delta = (now.area ?? 0) - (before.area ?? 0);
+      const changed =
+        shapeDraft.path.length !== original.path.length ||
+        shapeDraft.path.some((p, i) => distanceMeters(p, original.path![i]) >= 1);
+      return {
+        kind: 'polygon' as const,
+        badge: `${shapeDraft.path.length} vértices`,
+        mainText: now.area == null ? '-' : formatAreaText(now.area),
+        originalText: before.area == null ? '-' : formatAreaText(before.area),
+        delta,
+        deltaText: Math.abs(delta) < 1 ? 'sin cambios' : formatSignedDelta(delta, formatAreaText),
+        changed,
+        areaText: null,
+        perimeterText: formatLengthText(now.perimeter),
+      };
+    }
+    return null;
+  }, [shapeDraft]);
 
   const closeModal = useCallback(() => {
     setPendingShape(null);
@@ -3162,10 +3468,11 @@ export default function GeocercasPage() {
   useEffect(() => {
     if (!drawMode && !editingShapeId) return;
     const onKey = (event: KeyboardEvent) => {
+      const typing = (event.target as HTMLElement | null)?.tagName === 'INPUT';
       if (event.key === 'Escape') {
         if (drawMode) cancelDrawing();
         else cancelShapeEdit();
-      } else if (event.key === 'Enter') {
+      } else if (event.key === 'Enter' && !typing) {
         if (drawMode === 'polygon') {
           event.preventDefault();
           finishPolygonRef.current();
@@ -3416,8 +3723,6 @@ export default function GeocercasPage() {
                 onEditDetails={handleEditDetails}
                 onConfigureWhatsApp={handleConfigureWhatsApp}
                 onEditShape={startEditShape}
-                onSaveShape={saveShapeEdit}
-                onCancelShape={cancelShapeEdit}
                 onDelete={setPendingDelete}
               />
             ))
@@ -4021,18 +4326,12 @@ export default function GeocercasPage() {
                         placeholder="Longitud"
                         className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
                       />
-                      <input
-                        type="text"
-                        value={manualRadiusKm}
-                        onChange={(e) => setManualRadiusKm(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleApplyManualCircle();
-                          }
-                        }}
-                        placeholder="Radio km"
-                        className="w-[85px] shrink-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                      <RadiusInput
+                        value={manualRadius}
+                        unit={manualRadiusUnit}
+                        onChange={setManualRadius}
+                        onUnitChange={changeManualRadiusUnit}
+                        onEnter={handleApplyManualCircle}
                       />
                       <button
                         type="button"
@@ -4174,28 +4473,203 @@ export default function GeocercasPage() {
           </div>
         )}
 
-        {/* Barra de edición de forma */}
+        {/* Panel de edición de forma: medidas en vivo y edición por coordenadas */}
         {editingGeofence && (
-          <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-gray-200/80 bg-white/95 py-2 pl-4 pr-2 text-[12px] font-medium text-gray-700 shadow-lg backdrop-blur-md">
-            <Move size={14} className="text-[#113EB9]" />
-            <span>
-              Ajustando <strong className="font-bold">{editingGeofence.name}</strong> · arrastra los
-              puntos en el mapa
-            </span>
-            <button
-              type="button"
-              onClick={saveShapeEdit}
-              className="rounded-full bg-green-600 px-3 py-1 text-[11px] font-bold text-white transition hover:bg-green-700"
-            >
-              Guardar
-            </button>
-            <button
-              type="button"
-              onClick={cancelShapeEdit}
-              className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-semibold text-gray-500 transition hover:bg-gray-200"
-            >
-              Cancelar
-            </button>
+          <div
+            style={{ fontFamily: "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+            className="absolute bottom-6 right-6 z-30 w-[360px] sm:w-[380px] rounded-2xl bg-white shadow-2xl border border-slate-200/80 overflow-hidden animate-fadeIn"
+          >
+            <div className="bg-[#1447C0] px-4 py-3 flex items-center justify-between gap-3 text-white">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-[34px] h-[34px] rounded-xl bg-gradient-to-br from-[#FB7B0F] to-[#E26500] flex items-center justify-center shrink-0 shadow-sm">
+                  <Move size={17} className="text-white" strokeWidth={2.3} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-[14px] font-bold leading-tight truncate">
+                    Ajustar {editingGeofence.name}
+                  </h4>
+                  <p className="text-[11.5px] text-blue-100/90 leading-tight mt-0.5 truncate">
+                    Arrastra en el mapa o escribe los valores
+                  </p>
+                </div>
+              </div>
+              {shapeEditStats && (
+                <div className="px-3 py-1 rounded-full bg-[#FB7B0F] text-white text-[12px] font-bold shrink-0 tabular-nums shadow-xs">
+                  {shapeEditStats.badge}
+                </div>
+              )}
+            </div>
+
+            <div className="p-3.5 flex flex-col gap-2.5">
+              {shapeEditStats && (
+                <div className="rounded-lg border border-slate-200/90 bg-slate-50/70 px-3 py-2 space-y-1 text-[12px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">
+                      {shapeEditStats.kind === 'circle' ? 'Radio' : 'Área'}
+                    </span>
+                    <span className="font-bold text-slate-900 tabular-nums">{shapeEditStats.mainText}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Antes</span>
+                    <span className="tabular-nums text-slate-600">
+                      {shapeEditStats.originalText}
+                      <span
+                        className={`ml-1.5 font-semibold ${
+                          Math.abs(shapeEditStats.delta) < 1
+                            ? 'text-slate-400'
+                            : shapeEditStats.delta > 0
+                            ? 'text-emerald-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        ({shapeEditStats.deltaText})
+                      </span>
+                    </span>
+                  </div>
+                  {shapeEditStats.areaText && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Área</span>
+                      <span className="font-semibold text-slate-800 tabular-nums">{shapeEditStats.areaText}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Perímetro</span>
+                    <span className="font-semibold text-slate-800 tabular-nums">{shapeEditStats.perimeterText}</span>
+                  </div>
+                </div>
+              )}
+
+              {editingGeofence.type === 'circle' ? (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">
+                    Centro y radio
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={editLat}
+                      onChange={(e) => handleEditLatChange(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && applyEditCircle()}
+                      placeholder="Latitud"
+                      title="Latitud del centro"
+                      className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                    />
+                    <input
+                      type="text"
+                      value={editLng}
+                      onChange={(e) => setEditLng(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && applyEditCircle()}
+                      placeholder="Longitud"
+                      title="Longitud del centro"
+                      className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                    />
+                    <RadiusInput
+                      value={editRadius}
+                      unit={editRadiusUnit}
+                      onChange={setEditRadius}
+                      onUnitChange={changeEditRadiusUnit}
+                      onEnter={applyEditCircle}
+                    />
+                    <button
+                      type="button"
+                      onClick={applyEditCircle}
+                      title="Aplicar centro y radio"
+                      className="h-9 px-3 shrink-0 rounded-lg bg-[#1447C0] hover:bg-[#113EB9] text-white font-bold text-[12px] shadow-xs transition"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400 italic">
+                    También puedes pegar &quot;lat, lng&quot; en el primer campo
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">
+                    Vértices
+                  </span>
+                  <div className="max-h-[190px] overflow-y-auto space-y-1 pr-0.5" style={{ scrollbarWidth: 'thin' }}>
+                    {(shapeDraft?.path ?? []).map((v, i) => {
+                      const latId = `edit-vertex-lat-${i}`;
+                      const lngId = `edit-vertex-lng-${i}`;
+                      const apply = () => {
+                        const latEl = document.getElementById(latId) as HTMLInputElement | null;
+                        const lngEl = document.getElementById(lngId) as HTMLInputElement | null;
+                        if (latEl && lngEl) applyEditVertex(i, latEl.value, lngEl.value);
+                      };
+                      return (
+                        // La key incluye la coordenada: si el vértice se mueve en el mapa, el campo se rehace
+                        <div key={`${i}-${v.lat}-${v.lng}`} className="flex items-center gap-1.5">
+                          <span className="w-5 shrink-0 text-right text-[11px] font-bold text-slate-400 tabular-nums">
+                            {i + 1}
+                          </span>
+                          <input
+                            id={latId}
+                            type="text"
+                            defaultValue={v.lat.toFixed(6)}
+                            onBlur={apply}
+                            onKeyDown={(e) => e.key === 'Enter' && apply()}
+                            title="Latitud"
+                            className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                          />
+                          <input
+                            id={lngId}
+                            type="text"
+                            defaultValue={v.lng.toFixed(6)}
+                            onBlur={apply}
+                            onKeyDown={(e) => e.key === 'Enter' && apply()}
+                            title="Longitud"
+                            className="flex-1 min-w-0 h-9 px-2.5 rounded-lg border border-slate-200 bg-slate-50 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#1447C0] focus:ring-1 focus:ring-[#1447C0] outline-none font-medium tabular-nums transition"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeEditVertex(i)}
+                            disabled={(shapeDraft?.path?.length ?? 0) <= 3}
+                            title="Quitar vértice"
+                            className="h-9 w-8 shrink-0 rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center justify-center"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-slate-400 italic">
+                    Arrastra el punto medio de un lado para agregar un vértice
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={resetShapeEdit}
+                    disabled={!shapeEditStats?.changed}
+                    title="Volver a la forma original"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-[12px] transition disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                  >
+                    <Undo2 size={13} className="text-slate-600 stroke-[2.2]" />
+                    <span>Restablecer</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelShapeEdit}
+                    className="px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold text-[12px] transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={saveShapeEdit}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold text-[12px] shadow-sm transition"
+                >
+                  <Check size={14} className="stroke-[2.5]" />
+                  <span>Guardar</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

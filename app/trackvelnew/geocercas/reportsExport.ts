@@ -3,7 +3,7 @@
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { VisitaItem, ResumenItem } from './reportsApi';
+import { VisitaItem, ResumenItem, parseApiDate } from './reportsApi';
 
 const BRAND_BLUE = '113EB9';
 const BRAND_ORANGE = 'FB7B0F';
@@ -100,7 +100,7 @@ async function getSquareOrangeLogoBase64(): Promise<string | null> {
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return '-';
   try {
-    const d = new Date(dateStr);
+    const d = parseApiDate(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleString('es-PE', {
       day: '2-digit',

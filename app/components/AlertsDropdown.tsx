@@ -11,10 +11,8 @@ import {
   X,
   Check,
   RefreshCw,
-  Trash2,
   ArrowRight,
   ArrowLeft,
-  ExternalLink,
 } from 'lucide-react';
 import {
   useGeofenceSignalR,
@@ -61,11 +59,6 @@ export default function AlertsDropdown() {
   const [filterType, setFilterType] = useState<'all' | 'geofenceEnter' | 'geofenceExit'>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
-  // Modal completo "Ver todas"
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalSearch, setModalSearch] = useState('');
-  const [modalFilterType, setModalFilterType] = useState<'all' | 'geofenceEnter' | 'geofenceExit'>('all');
-
   const [mounted, setMounted] = useState(false);
   const [effectiveUsername, setEffectiveUsername] = useState<string>('movilbus');
 
@@ -98,7 +91,6 @@ export default function AlertsDropdown() {
     markAllAsRead: markSignalRAsRead,
     loadingAlerts,
     refreshAlerts,
-    clearAlerts,
   } = useGeofenceSignalR({
     accountID: effectiveUsername,
     enabled: Boolean(effectiveUsername),
@@ -168,7 +160,7 @@ export default function AlertsDropdown() {
       map.setZoom(17);
 
       const isEnter = alert.eventType === 'geofenceEnter';
-      const deviceID = alert.deviceID || 'Vehículo';
+      const deviceID = (alert.deviceID || 'Vehículo').toUpperCase();
       const geofenceName = alert.geofenceName || 'Geocerca';
       const speed = alert.speed != null ? Math.round(alert.speed) : 0;
 
@@ -314,7 +306,6 @@ export default function AlertsDropdown() {
   // Cerrar panel al hacer clic fuera (si el modal no está abierto)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (isModalOpen) return;
       const target = event.target as Node;
       if (
         panelRef.current &&
@@ -332,7 +323,7 @@ export default function AlertsDropdown() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, isModalOpen]);
+  }, [isOpen]);
 
   // Cerrar menú de filtros al hacer clic fuera
   useEffect(() => {
@@ -357,22 +348,20 @@ export default function AlertsDropdown() {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (isModalOpen) {
-          setIsModalOpen(false);
-        } else if (isFilterMenuOpen) {
+        if (isFilterMenuOpen) {
           setIsFilterMenuOpen(false);
         } else {
           setIsOpen(false);
         }
       }
     }
-    if (isOpen || isModalOpen) {
+    if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, isModalOpen, isFilterMenuOpen]);
+  }, [isOpen, isFilterMenuOpen]);
 
   // Limpiar marcadores al desmontar
   useEffect(() => {
@@ -393,19 +382,6 @@ export default function AlertsDropdown() {
       return dev.includes(q) || geo.includes(q) || typeStr.includes(q);
     });
   }, [rawAlerts, searchQuery, filterType]);
-
-  // Filtrado de alertas en el modal completo
-  const modalFilteredAlerts = useMemo(() => {
-    return rawAlerts.filter((a) => {
-      if (modalFilterType !== 'all' && a.eventType !== modalFilterType) return false;
-      if (!modalSearch.trim()) return true;
-      const q = modalSearch.toLowerCase();
-      const dev = (a.deviceID || '').toLowerCase();
-      const geo = (a.geofenceName || '').toLowerCase();
-      const typeStr = a.eventType === 'geofenceEnter' ? 'entrada' : 'salida';
-      return dev.includes(q) || geo.includes(q) || typeStr.includes(q);
-    });
-  }, [rawAlerts, modalSearch, modalFilterType]);
 
   const enterCount = useMemo(
     () => rawAlerts.filter((a) => a.eventType === 'geofenceEnter').length,
@@ -479,34 +455,7 @@ export default function AlertsDropdown() {
               </div>
 
               <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <button
-                  type="button"
-                  onClick={() => refreshAlerts()}
-                  disabled={loadingAlerts}
-                  title="Actualizar alertas"
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
-                >
-                  <RefreshCw
-                    size={13}
-                    className={loadingAlerts ? 'animate-spin text-[#113EB9]' : ''}
-                  />
-                </button>
-
-                {rawAlerts.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleClearAlertMarker();
-                      clearAlerts();
-                    }}
-                    title="Limpiar todas las alertas"
-                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                )}
-
-                <span className="ml-1 text-xs font-semibold text-slate-400">
+                <span className="text-xs font-semibold text-slate-400">
                   {rawAlerts.length} hoy
                 </span>
               </div>
@@ -524,7 +473,7 @@ export default function AlertsDropdown() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar por placa o geocerca"
-                  className="w-full rounded-full border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-700 placeholder-gray-400 transition focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+                  className="w-full rounded-md border border-gray-200 bg-gray-100 py-1.5 pl-8 pr-3 text-xs text-slate-700 placeholder-gray-400 transition focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
                 />
               </div>
 
@@ -682,7 +631,7 @@ export default function AlertsDropdown() {
                     <div
                       key={alert.id}
                       onClick={() => handleToggleAlertLocation(alert)}
-                      className={`group relative flex cursor-pointer items-start gap-3 px-4 py-3 transition hover:bg-slate-50 ${
+                      className={`group relative flex cursor-pointer items-center gap-2.5 px-3.5 py-2 transition hover:bg-slate-50 ${
                         isSelected ? 'bg-blue-50/60' : 'bg-white'
                       }`}
                     >
@@ -693,23 +642,23 @@ export default function AlertsDropdown() {
 
                       {/* Icono circular con Entrada o Salida */}
                       <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-xs transition-transform group-hover:scale-105 ${
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-xs transition-transform group-hover:scale-105 ${
                           isEnter
                             ? 'bg-emerald-50 text-emerald-600'
                             : 'bg-red-50 text-red-600'
                         }`}
                       >
                         {isEnter ? (
-                          <ArrowRight size={17} strokeWidth={2.3} />
+                          <ArrowRight size={14} strokeWidth={2.4} />
                         ) : (
-                          <ArrowLeft size={17} strokeWidth={2.3} />
+                          <ArrowLeft size={14} strokeWidth={2.4} />
                         )}
                       </div>
 
                       {/* Contenido de la alerta */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-[12.5px] font-bold leading-snug text-slate-900">
+                          <p className="text-[10.5px] font-bold uppercase leading-tight text-slate-900">
                             {alert.deviceID}
                           </p>
                           <span
@@ -723,7 +672,7 @@ export default function AlertsDropdown() {
                           </span>
                         </div>
 
-                        <p className="mt-0.5 text-[11.5px] font-medium leading-tight text-slate-700">
+                        <p className="text-[11.5px] font-medium leading-tight text-slate-700">
                           {alert.geofenceName || 'Geocerca'}
                           {alert.speed != null && (
                             <span className="font-normal text-slate-500">
@@ -733,7 +682,7 @@ export default function AlertsDropdown() {
                           )}
                         </p>
 
-                        <p className="mt-1 text-[10.5px] font-normal text-gray-400">
+                        <p className="mt-0.5 text-[10.5px] font-normal leading-tight text-gray-400">
                           {formatDateTime(alert.serverTime)}
                         </p>
                       </div>
@@ -758,218 +707,6 @@ export default function AlertsDropdown() {
                   );
                 })
               )}
-            </div>
-
-            {/* Footer con Acciones */}
-            <div className="flex items-center gap-2 border-t border-gray-200 bg-white p-3">
-              <button
-                type="button"
-                onClick={markSignalRAsRead}
-                className="flex-1 rounded-lg bg-[#FB7B0F] px-4 py-2.5 text-center text-xs font-bold text-white shadow-sm transition hover:bg-[#ea6f08] active:scale-[0.99]"
-              >
-                Marcar todas como leídas
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-center text-xs font-semibold text-slate-700 transition hover:bg-gray-50 active:scale-[0.99]"
-              >
-                Ver todas
-              </button>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {/* Modal Completo: "Ver todas las alertas" */}
-      {isModalOpen &&
-        mounted &&
-        createPortal(
-          <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-            <div
-              className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl animate-in zoom-in-95"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-[#FB7B0F]">
-                    <Bell size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">
-                      Registro de Alertas de Geocercas
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Eventos de entrada y salida registrados en tiempo real hoy
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Filtros dentro del modal */}
-              <div className="border-b border-gray-100 bg-gray-50/70 px-6 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  {/* Pestañas de categorías: Todas, Entradas, Salidas */}
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {[
-                      { id: 'all', label: `Todas (${rawAlerts.length})` },
-                      { id: 'geofenceEnter', label: `Entradas (${enterCount})` },
-                      { id: 'geofenceExit', label: `Salidas (${exitCount})` },
-                    ].map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() =>
-                          setModalFilterType(
-                            cat.id as 'all' | 'geofenceEnter' | 'geofenceExit',
-                          )
-                        }
-                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                          modalFilterType === cat.id
-                            ? 'bg-[#FB7B0F] text-white shadow-xs'
-                            : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Input de búsqueda */}
-                  <div className="relative w-64 max-w-full">
-                    <Search
-                      size={14}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    />
-                    <input
-                      type="text"
-                      value={modalSearch}
-                      onChange={(e) => setModalSearch(e.target.value)}
-                      placeholder="Buscar por placa, geocerca..."
-                      className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs text-slate-700 placeholder-gray-400 focus:border-[#FB7B0F] focus:outline-none focus:ring-1 focus:ring-[#FB7B0F]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Lista de alertas del modal */}
-              <div className="flex-1 divide-y divide-gray-100 overflow-y-auto px-6 py-2">
-                {modalFilteredAlerts.length === 0 ? (
-                  <div className="flex h-48 flex-col items-center justify-center text-center text-gray-400">
-                    <Bell size={32} className="mb-2 text-gray-300" />
-                    <p className="text-sm font-medium">
-                      No se encontraron alertas con estos criterios
-                    </p>
-                  </div>
-                ) : (
-                  modalFilteredAlerts.map((alert) => {
-                    const isEnter = alert.eventType === 'geofenceEnter';
-                    const isSelected = selectedAlertId === alert.id;
-
-                    return (
-                      <div
-                        key={alert.id}
-                        className="flex items-center justify-between py-3 transition hover:bg-slate-50/80"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                              isEnter
-                                ? 'bg-emerald-50 text-emerald-600'
-                                : 'bg-red-50 text-red-600'
-                            }`}
-                          >
-                            {isEnter ? (
-                              <ArrowRight size={18} strokeWidth={2.3} />
-                            ) : (
-                              <ArrowLeft size={18} strokeWidth={2.3} />
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-slate-900">
-                                {alert.deviceID}
-                              </p>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                  isEnter
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
-                              >
-                                {isEnter ? 'Entrada' : 'Salida'}
-                              </span>
-                            </div>
-                            <p className="text-[12px] font-medium text-slate-600">
-                              {alert.geofenceName || 'Geocerca'}
-                              {alert.speed != null && (
-                                <span className="font-semibold text-slate-800">
-                                  {' '}
-                                  · {Math.round(alert.speed)} km/h
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-[11px] text-gray-400">
-                              {formatDateTime(alert.serverTime)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleToggleAlertLocation(alert);
-                              setIsModalOpen(false);
-                            }}
-                            className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                              isSelected
-                                ? 'bg-[#113EB9] text-white shadow-xs'
-                                : 'border border-gray-200 text-slate-700 hover:border-[#113EB9] hover:text-[#113EB9]'
-                            }`}
-                          >
-                            <MapPin size={13} />
-                            <span>{isSelected ? 'Ubicado' : 'Ubicar en mapa'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3.5 bg-gray-50">
-                <span className="text-xs text-gray-500">
-                  Total: <strong>{modalFilteredAlerts.length}</strong> alertas
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={markSignalRAsRead}
-                    className="rounded-lg bg-[#FB7B0F] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#ea6f08]"
-                  >
-                    Marcar todas como leídas
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100"
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
             </div>
           </div>,
           document.body,

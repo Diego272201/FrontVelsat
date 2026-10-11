@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft,
   BarChart2,
@@ -28,6 +28,7 @@ import {
   getVisitasReport,
   getResumenReport,
   getVisitaById,
+  parseApiDate,
 } from './reportsApi';
 import {
   exportVisitasToExcel,
@@ -58,22 +59,8 @@ const formatDateTimeLocal = (d: Date) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-const getDefaultDates = () => {
-  const now = new Date();
-  now.setHours(23, 59, 0, 0);
-
-  const past = new Date();
-  past.setDate(now.getDate() - 7);
-  past.setHours(0, 0, 0, 0);
-
-  return {
-    desde: formatDateTimeLocal(past),
-    hasta: formatDateTimeLocal(now),
-  };
-};
-
-// Rango para la pestaña Resumen: desde las 00:00 de hoy hasta la hora actual
-const getTodayResumenDates = () => {
+// Rango por defecto de ambas pestañas: desde las 00:00 de hoy hasta la hora actual
+const getTodayDates = () => {
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
@@ -144,7 +131,7 @@ function renderKpiDuration(totalMinutes: number) {
 function formatTableDate(dateStr?: string | null): string {
   if (!dateStr) return '-';
   try {
-    const d = new Date(dateStr);
+    const d = parseApiDate(dateStr);
     if (isNaN(d.getTime())) return dateStr;
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -162,7 +149,7 @@ function renderTableDateTime(dateStr?: string | null) {
     return <span className="text-gray-400 font-medium">—</span>;
   }
   try {
-    const d = new Date(dateStr);
+    const d = parseApiDate(dateStr);
     if (isNaN(d.getTime())) {
       return <span className="text-gray-700 font-medium text-[11.5px]">{dateStr}</span>;
     }
@@ -225,8 +212,8 @@ function formatDuration(
 
   // 2. Si tenemos fechas válidas de entrada y salida, calculamos segundos exactos
   if (fechaEntrada && fechaSalida) {
-    const tEntrada = new Date(fechaEntrada).getTime();
-    const tSalida = new Date(fechaSalida).getTime();
+    const tEntrada = parseApiDate(fechaEntrada).getTime();
+    const tSalida = parseApiDate(fechaSalida).getTime();
     if (!isNaN(tEntrada) && !isNaN(tSalida) && tSalida >= tEntrada) {
       const diffSec = Math.floor((tSalida - tEntrada) / 1000);
 
@@ -283,20 +270,22 @@ export default function GeocercasReportsModal({
 }: GeocercasReportsModalProps) {
   const [activeTab, setActiveTab] = useState<'visitas' | 'resumen'>('visitas');
 
-  const defaultDates = useMemo(() => getDefaultDates(), []);
   const currentAccountID = accountID || 'movilbus';
 
   /* ------------------------------------------------------------------ */
   /* Estado: Reporte de Visitas                                         */
   /* ------------------------------------------------------------------ */
-  const [visitasFilters, setVisitasFilters] = useState<VisitasFilterParams>({
-    accountID: currentAccountID,
-    deviceID: '',
-    geofenceID: '',
-    fechaDesde: defaultDates.desde,
-    fechaHasta: defaultDates.hasta,
-    page: 1,
-    pageSize: 25,
+  const [visitasFilters, setVisitasFilters] = useState<VisitasFilterParams>(() => {
+    const today = getTodayDates();
+    return {
+      accountID: currentAccountID,
+      deviceID: '',
+      geofenceID: '',
+      fechaDesde: today.desde,
+      fechaHasta: today.hasta,
+      page: 1,
+      pageSize: 25,
+    };
   });
 
   const [visitasList, setVisitasList] = useState<VisitaItem[]>([]);
@@ -308,7 +297,7 @@ export default function GeocercasReportsModal({
   /* Estado: Resumen de Visitas                                         */
   /* ------------------------------------------------------------------ */
   const [resumenFilters, setResumenFilters] = useState<ResumenFilterParams>(() => {
-    const today = getTodayResumenDates();
+    const today = getTodayDates();
     return {
       accountID: currentAccountID,
       fechaDesde: today.desde,
@@ -378,8 +367,12 @@ export default function GeocercasReportsModal({
   /* ------------------------------------------------------------------ */
   /* Carga de Resumen (GET /resumen)                                    */
   /* ------------------------------------------------------------------ */
+  // Solo la última búsqueda puede escribir resultados: si se lanzan dos seguidas,
+  // la respuesta vieja no pisa a la nueva ni deja el "Calculando..." colgado.
+  const resumenRequestRef = useRef(0);
   const fetchResumen = useCallback(
     async (paramsToUse?: ResumenFilterParams) => {
+      const requestId = ++resumenRequestRef.current;
       setLoadingResumen(true);
       try {
         const query: ResumenFilterParams = {
@@ -387,32 +380,38 @@ export default function GeocercasReportsModal({
           ...(paramsToUse || resumenFilters),
         };
         const data = await getResumenReport(token, query);
-        setResumenList(data || []);
+        if (requestId === resumenRequestRef.current) setResumenList(data || []);
       } catch (err: any) {
-        handleApiError(err, 'No se pudo obtener el resumen de geocercas');
+        if (requestId === resumenRequestRef.current) {
+          handleApiError(err, 'No se pudo obtener el resumen de geocercas');
+        }
       } finally {
-        setLoadingResumen(false);
+        if (requestId === resumenRequestRef.current) setLoadingResumen(false);
       }
     },
     [token, currentAccountID, resumenFilters, handleApiError],
   );
 
+  // Recarga el resumen con el rango "hoy 00:00 → ahora".
+  // Fuera del setState: los updaters de React deben ser puros (en desarrollo se ejecutan 2 veces).
+  const loadTodayResumen = useCallback(() => {
+    const today = getTodayDates();
+    const next = { ...resumenFilters, fechaDesde: today.desde, fechaHasta: today.hasta };
+    setResumenFilters(next);
+    fetchResumen(next);
+  }, [resumenFilters, fetchResumen]);
+
   // Ejecutar carga inicial al abrir el drawer o cambiar de pestaña
   useEffect(() => {
     if (open) {
       if (activeTab === 'visitas') {
-        fetchVisitas();
+        // Al abrir, el rango vuelve a "hoy 00:00 → ahora" (igual que en Resumen)
+        const today = getTodayDates();
+        const next = { ...visitasFilters, fechaDesde: today.desde, fechaHasta: today.hasta, page: 1 };
+        setVisitasFilters(next);
+        fetchVisitas(next);
       } else {
-        const today = getTodayResumenDates();
-        setResumenFilters((prev) => {
-          const next = {
-            ...prev,
-            fechaDesde: today.desde,
-            fechaHasta: today.hasta,
-          };
-          fetchResumen(next);
-          return next;
-        });
+        loadTodayResumen();
       }
     }
   }, [open, activeTab]);
@@ -716,16 +715,7 @@ export default function GeocercasReportsModal({
                     type="button"
                     onClick={() => {
                       if (activeTab === 'resumen') {
-                        const today = getTodayResumenDates();
-                        setResumenFilters((prev) => {
-                          const next = {
-                            ...prev,
-                            fechaDesde: today.desde,
-                            fechaHasta: today.hasta,
-                          };
-                          fetchResumen(next);
-                          return next;
-                        });
+                        loadTodayResumen();
                       } else {
                         setActiveTab('resumen');
                       }
@@ -1530,7 +1520,7 @@ export default function GeocercasReportsModal({
                     <span className="text-gray-600 font-medium">Entrada:</span>
                     <span className="font-semibold text-emerald-700">
                       {visitDetail.fechaEntrada
-                        ? new Date(visitDetail.fechaEntrada).toLocaleString('es-PE')
+                        ? parseApiDate(visitDetail.fechaEntrada).toLocaleString('es-PE')
                         : '-'}
                     </span>
                   </div>
@@ -1539,7 +1529,7 @@ export default function GeocercasReportsModal({
                     <span className="text-gray-600 font-medium">Salida:</span>
                     <span className="font-semibold text-rose-700">
                       {visitDetail.fechaSalida
-                        ? new Date(visitDetail.fechaSalida).toLocaleString('es-PE')
+                        ? parseApiDate(visitDetail.fechaSalida).toLocaleString('es-PE')
                         : 'Dentro de geocerca'}
                     </span>
                   </div>

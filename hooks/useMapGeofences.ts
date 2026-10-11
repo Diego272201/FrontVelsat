@@ -101,7 +101,6 @@ interface RegisteredGeofence {
   overlay: google.maps.Circle | google.maps.Polygon;
   labelMarker: google.maps.Marker | null;
   bounds: google.maps.LatLngBounds | null;
-  showInfo: (latLng?: google.maps.LatLng | null) => void;
   highlight: () => void;
 }
 
@@ -116,7 +115,6 @@ export function useMapGeofences(
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   const registeredMapRef = useRef<Map<number, RegisteredGeofence>>(new Map());
-  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
   const clearOverlays = useCallback(() => {
     registeredMapRef.current.forEach((reg) => {
@@ -126,10 +124,6 @@ export function useMapGeofences(
       }
     });
     registeredMapRef.current.clear();
-    if (infoWindowRef.current) {
-      infoWindowRef.current.close();
-      infoWindowRef.current = null;
-    }
     setGeofenceCount(0);
     setGeofencesList([]);
     setSelectedGeofenceId(null);
@@ -161,7 +155,6 @@ export function useMapGeofences(
       }
 
       reg.highlight();
-      reg.showInfo();
     },
     [map],
   );
@@ -280,56 +273,6 @@ export function useMapGeofences(
               });
             }
 
-            const showInfo = (customPos?: google.maps.LatLng | null) => {
-              if (!map) return;
-              if (!infoWindowRef.current) {
-                infoWindowRef.current = new google.maps.InfoWindow({
-                  zIndex: 999999,
-                });
-              }
-              const pos =
-                customPos ||
-                (center ? new google.maps.LatLng(center.lat, center.lng) : null);
-              if (pos) {
-                infoWindowRef.current.setPosition(pos);
-                infoWindowRef.current.setContent(`
-                  <div style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 6px 8px; min-width: 160px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <span style="display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: ${color}; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.25);"></span>
-                      <strong style="font-size: 13px; font-weight: 700; color: #0F172A;">${escapeXml(geo.nombre)}</strong>
-                    </div>
-                    <div style="font-size: 11px; color: #64748B; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
-                      <span style="display: inline-block; padding: 1px 5px; border-radius: 4px; background: #F1F5F9; color: #334155; font-weight: 600; font-size: 10px;">
-                        ${geo.tipo === 'circle' ? 'Círculo' : 'Polígono'}
-                      </span>
-                      ${
-                        geo.tipo === 'circle' && radius
-                          ? `<span>Radio: ${
-                              radius >= 1000
-                                ? (radius / 1000).toFixed(1) + ' km'
-                                : Math.round(radius) + ' m'
-                            }</span>`
-                          : ''
-                      }
-                      ${
-                        geo.tipo === 'polygon' && pointCount
-                          ? `<span>${pointCount} vértices</span>`
-                          : ''
-                      }
-                    </div>
-                    ${
-                      geo.descripcion
-                        ? `<div style="font-size: 11px; color: #475569; margin-top: 5px; line-height: 1.35;">${escapeXml(
-                            geo.descripcion,
-                          )}</div>`
-                        : ''
-                    }
-                  </div>
-                `);
-                infoWindowRef.current.open(map);
-              }
-            };
-
             const highlight = () => {
               const originalStrokeWeight = 2;
               const originalFillOpacity = 0.18;
@@ -345,15 +288,13 @@ export function useMapGeofences(
               }, 1800);
             };
 
-            overlay.addListener('click', (e: google.maps.MapMouseEvent) => {
+            overlay.addListener('click', () => {
               setSelectedGeofenceId(geo.id);
-              showInfo(e.latLng);
             });
 
             if (labelMarker) {
               labelMarker.addListener('click', () => {
                 setSelectedGeofenceId(geo.id);
-                showInfo();
               });
             }
 
@@ -373,7 +314,6 @@ export function useMapGeofences(
               overlay,
               labelMarker,
               bounds,
-              showInfo,
               highlight,
             });
 
