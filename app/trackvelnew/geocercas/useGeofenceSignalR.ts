@@ -361,9 +361,10 @@ export function useGeofenceSignalR({
         newAlert.speed !== undefined && newAlert.speed > 0
           ? ` · ${newAlert.speed} km/h`
           : '';
+      const plate = (newAlert.deviceID || '').toUpperCase();
 
       if (eventType === 'geofenceEnter') {
-        toast.success(`🟢 ${newAlert.deviceID} entró a ${newAlert.geofenceName}`, {
+        toast.success(`${plate} entró a ${newAlert.geofenceName}`, {
           description: `Hora: ${new Date(newAlert.serverTime).toLocaleTimeString('es-PE')}${speedText}`,
           duration: 6000,
         });
@@ -373,7 +374,7 @@ export function useGeofenceSignalR({
             ? ` — permanencia ${newAlert.durationMinutes} min`
             : '';
         toast.warning(
-          `🔴 ${newAlert.deviceID} salió de ${newAlert.geofenceName}${durText}`,
+          `${plate} salió de ${newAlert.geofenceName}${durText}`,
           {
             description: `Hora: ${new Date(newAlert.serverTime).toLocaleTimeString('es-PE')}${speedText}`,
             duration: 7000,

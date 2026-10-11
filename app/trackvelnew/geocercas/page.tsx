@@ -180,6 +180,20 @@ export default function GeocercasPage() {
   const visitMarkersRef = useRef<google.maps.Marker[]>([]);
   const visitOverlaysRef = useRef<google.maps.OverlayView[]>([]);
   const visitPolylineRef = useRef<google.maps.Polyline | null>(null);
+  const [visitOnMap, setVisitOnMap] = useState(false);
+
+  // Quitar del mapa la visita dibujada desde Reportes (autos, tarjetas, línea y cápsula)
+  const clearVisitFromMap = useCallback(() => {
+    visitMarkersRef.current.forEach((m) => m.setMap(null));
+    visitMarkersRef.current = [];
+    visitOverlaysRef.current.forEach((o) => o.setMap(null));
+    visitOverlaysRef.current = [];
+    if (visitPolylineRef.current) {
+      visitPolylineRef.current.setMap(null);
+      visitPolylineRef.current = null;
+    }
+    setVisitOnMap(false);
+  }, []);
 
   // Limpiar marcador de auto y popup de alerta del mapa
   const handleClearAlertMarker = useCallback(() => {
@@ -212,14 +226,7 @@ export default function GeocercasPage() {
       handleClearAlertMarker();
 
       // Limpiar marcas previas de visitas si las hubiera
-      visitMarkersRef.current.forEach((m) => m.setMap(null));
-      visitMarkersRef.current = [];
-      visitOverlaysRef.current.forEach((o) => o.setMap(null));
-      visitOverlaysRef.current = [];
-      if (visitPolylineRef.current) {
-        visitPolylineRef.current.setMap(null);
-        visitPolylineRef.current = null;
-      }
+      clearVisitFromMap();
 
       let lat = 0;
       let lng = 0;
@@ -396,7 +403,7 @@ export default function GeocercasPage() {
         handleClearAlertMarker();
       }, 60000);
     },
-    [handleClearAlertMarker, effectiveUsername],
+    [handleClearAlertMarker, clearVisitFromMap, effectiveUsername],
   );
 
   function makeDistanceBadgeIcon(text: string): google.maps.Icon {
@@ -475,6 +482,7 @@ export default function GeocercasPage() {
         htmlContent: string,
         offset: { x: number; y: number } = { x: 0, y: 0 },
         alignCenter: boolean = false,
+        onClose?: () => void,
       ) {
         super();
         this.position = new google.maps.LatLng(position.lat, position.lng);
@@ -489,6 +497,14 @@ export default function GeocercasPage() {
           : 'translate(-50%, -100%)';
         this.containerDiv.style.pointerEvents = 'auto';
         this.containerDiv.innerHTML = htmlContent;
+        if (onClose) {
+          this.containerDiv.querySelectorAll('[data-visit-close]').forEach((btn) =>
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              onClose();
+            }),
+          );
+        }
 
         if ((google.maps.OverlayView as any).preventMapHitsAndGesturesFrom) {
           (google.maps.OverlayView as any).preventMapHitsAndGesturesFrom(this.containerDiv);
@@ -606,14 +622,7 @@ export default function GeocercasPage() {
 
     // 1. Limpiar marcas previas
     handleClearAlertMarker();
-    visitMarkersRef.current.forEach((m) => m.setMap(null));
-    visitMarkersRef.current = [];
-    visitOverlaysRef.current.forEach((o) => o.setMap(null));
-    visitOverlaysRef.current = [];
-    if (visitPolylineRef.current) {
-      visitPolylineRef.current.setMap(null);
-      visitPolylineRef.current = null;
-    }
+    clearVisitFromMap();
 
     const bounds = new google.maps.LatLngBounds();
     let posEntrada: google.maps.LatLngLiteral | null = null;
@@ -655,6 +664,7 @@ export default function GeocercasPage() {
           anchor: new google.maps.Point(28, 16),
         },
       });
+      entryMarker.addListener('rightclick', clearVisitFromMap);
       visitMarkersRef.current.push(entryMarker);
 
       // Tarjeta detallada de Entrada (exacta a la referencia)
@@ -698,9 +708,30 @@ export default function GeocercasPage() {
                 </div>
                 <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: #15803D;">ENTRADA</span>
               </div>
-              <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
-                ${visit.deviceID}
-              </span>
+              <div style="display: flex; align-items: center;">
+                <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
+                  ${visit.deviceID}
+                </span>
+                <button type="button" data-visit-close title="Quitar del mapa" style="
+                  margin-left: 8px;
+                  width: 20px;
+                  height: 20px;
+                  border: none;
+                  border-radius: 4px;
+                  background: transparent;
+                  color: #64748B;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  flex-shrink: 0;
+                " onmouseover="this.style.background='rgba(15,23,42,0.08)'" onmouseout="this.style.background='transparent'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
@@ -731,7 +762,7 @@ export default function GeocercasPage() {
             "></div>
           </div>
         `;
-        const entryOverlay = new OverlayClass(posEntrada, entryCardHtml, { x: 0, y: -24 }, false);
+        const entryOverlay = new OverlayClass(posEntrada, entryCardHtml, { x: 0, y: -24 }, false, clearVisitFromMap);
         entryOverlay.setMap(map);
         visitOverlaysRef.current.push(entryOverlay);
       }
@@ -773,6 +804,7 @@ export default function GeocercasPage() {
           anchor: new google.maps.Point(28, 16),
         },
       });
+      exitMarker.addListener('rightclick', clearVisitFromMap);
       visitMarkersRef.current.push(exitMarker);
 
       // Tarjeta detallada de Salida (exacta a la referencia)
@@ -816,9 +848,30 @@ export default function GeocercasPage() {
                 </div>
                 <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: #B91C1C;">SALIDA</span>
               </div>
-              <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
-                ${visit.deviceID}
-              </span>
+              <div style="display: flex; align-items: center;">
+                <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
+                  ${visit.deviceID}
+                </span>
+                <button type="button" data-visit-close title="Quitar del mapa" style="
+                  margin-left: 8px;
+                  width: 20px;
+                  height: 20px;
+                  border: none;
+                  border-radius: 4px;
+                  background: transparent;
+                  color: #64748B;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                  flex-shrink: 0;
+                " onmouseover="this.style.background='rgba(15,23,42,0.08)'" onmouseout="this.style.background='transparent'">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div style="padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
@@ -849,7 +902,7 @@ export default function GeocercasPage() {
             "></div>
           </div>
         `;
-        const exitOverlay = new OverlayClass(posSalida, exitCardHtml, { x: 0, y: -24 }, false);
+        const exitOverlay = new OverlayClass(posSalida, exitCardHtml, { x: 0, y: -24 }, false, clearVisitFromMap);
         exitOverlay.setMap(map);
         visitOverlaysRef.current.push(exitOverlay);
       }
@@ -952,7 +1005,18 @@ export default function GeocercasPage() {
     } else {
       toast.warning('Esta visita no contiene coordenadas registradas de entrada o salida');
     }
-  }, [getCustomVisitOverlayClass, handleClearAlertMarker]);
+    setVisitOnMap(true);
+  }, [getCustomVisitOverlayClass, handleClearAlertMarker, clearVisitFromMap]);
+
+  // Escape quita la visita dibujada en el mapa
+  useEffect(() => {
+    if (!visitOnMap) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearVisitFromMap();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [visitOnMap, clearVisitFromMap]);
 
   // Limpiar marcadores, overlays de visita y alertas al desmontar el componente
   useEffect(() => {
@@ -3550,6 +3614,18 @@ export default function GeocercasPage() {
             </button>
             */}
           </div>
+
+          {visitOnMap && (
+            <button
+              type="button"
+              onClick={clearVisitFromMap}
+              title="Quitar del mapa la visita mostrada (Esc)"
+              className="flex h-[40px] items-center gap-1.5 rounded-[10px] bg-white px-3 text-[11.5px] font-semibold text-slate-700 shadow-md transition-all hover:bg-red-50 hover:text-red-600"
+            >
+              <X size={14} />
+              <span>Quitar visita</span>
+            </button>
+          )}
         </div>
 
         {!mapReady && (
