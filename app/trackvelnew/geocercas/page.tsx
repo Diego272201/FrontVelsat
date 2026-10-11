@@ -89,8 +89,11 @@ import {
   unlinkDeviceFromGeofenceTraccar,
   getTraccarGeofences,
   getTraccarGeofenceDevices,
-  isDeviceLinkedToGeofenceInTraccar,
   findDevicesLinkedToTraccarGeofence,
+  fetchDeviceGeofenceIdsStrict,
+  buildTraccarDeviceIndex,
+  resolveTraccarDeviceOnServer,
+  cleanTraccarUrl,
   clearDeviceGeofencesCache,
   ServerDevicesResult,
 } from './traccarApi';
@@ -1023,23 +1026,23 @@ export default function GeocercasPage() {
   const testTraccarConnection = useCallback(async () => {
     setTestingTraccar(true);
     const targetTraccarUrl = getTraccarServerForUrl(effectiveBaseUrl);
-    const toastId = toast.loading(`Probando conexión con Traccar (${targetTraccarUrl})...`);
+    const toastId = toast.loading('Probando conexión con el servidor de alertas...');
     try {
       const auth = getTraccarAuthHeader();
       if (!auth) {
-        toast.error('No se encontró NEXT_PUBLIC_TRACCAR_EMAIL / PASSWORD en .env.local', { id: toastId });
+        toast.error('Credenciales del servidor de alertas no configuradas', { id: toastId });
         return;
       }
       const result = await testTraccarAuth(targetTraccarUrl, auth);
       if (result.ok) {
         console.log(`✅ Conexión con Traccar (${targetTraccarUrl}) exitosa:`, result);
-        toast.success(`Traccar (${targetTraccarUrl}): ${result.message}`, {
+        toast.success(`Servidor de alertas: ${result.message}`, {
           id: toastId,
           duration: 5000,
         });
       } else {
         console.error(`❌ Error de conexión con Traccar (${targetTraccarUrl}):`, result.message);
-        toast.error(`Traccar (${targetTraccarUrl}): ${result.message}`, {
+        toast.error(`Servidor de alertas: ${result.message}`, {
           id: toastId,
           duration: 6000,
         });
@@ -1047,7 +1050,7 @@ export default function GeocercasPage() {
     } catch (error: any) {
       console.error('❌ Error al consultar Traccar:', error);
       const msg = error?.response?.data?.message || error?.message || 'Error de conexión';
-      toast.error(`Error Traccar: ${msg}`, {
+      toast.error(`Error del servidor de alertas: ${msg}`, {
         id: toastId,
         duration: 6000,
       });
@@ -1294,10 +1297,22 @@ export default function GeocercasPage() {
       const isStale = () => generation !== syncGenerationRef.current;
 
       try {
-        const allTraccarDevices = serverDevices[0]?.devices || [];
-        if (allTraccarDevices.length === 0) return;
+        // El servidor de alertas es la FUENTE DE VERDAD: si una unidad no está vinculada ahí,
+        // nunca va a generar alertas. La reconciliación es silenciosa (sin avisos al usuario).
+        // Solo se compara contra el servidor de la cuenta: los IDs de dispositivo y de geocerca
+        // son propios de cada servidor y mezclarlos daba unidades "fantasma".
+        const alertServer = cleanTraccarUrl(getTraccarServerForUrl(effectiveBaseUrl));
+        const serverResult = serverDevices.find((s) => cleanTraccarUrl(s.serverUrl) === alertServer);
+        // Sin lista de dispositivos confiable no se puede decidir nada: no tocar la BD.
+        if (!serverResult || serverResult.error || serverResult.devices.length === 0) return;
+        const findDevice = buildTraccarDeviceIndex(serverResult.devices);
 
-        // Dispositivos de la flota del cliente para priorizar
+        // getTraccarGeofences devuelve [] si falla: en ese caso tampoco se decide nada.
+        const remoteGeos = await getTraccarGeofences(alertServer, authHeader);
+        if (remoteGeos.length === 0) return;
+        const remoteById = new Map(remoteGeos.map((g) => [g.id, g]));
+
+        // Flota del cliente: solo estas unidades pueden importarse a sus geocercas
         let fleetPlates = vehiclesRef.current.map((v) => v.id);
         if (fleetPlates.length === 0 && effectiveBaseUrl && effectiveUsername) {
           try {
@@ -1308,110 +1323,97 @@ export default function GeocercasPage() {
             }
           } catch {}
         }
-
-        const fleetPlateSet = new Set(fleetPlates.map((p) => p.trim().toLowerCase()));
-        const candidateDevices = allTraccarDevices.filter((d) => {
-          const name = (d.name || '').trim().toLowerCase();
-          const uniqueId = (d.uniqueId || '').trim().toLowerCase();
-          return fleetPlateSet.size === 0 || fleetPlateSet.has(name) || fleetPlateSet.has(uniqueId);
-        });
-
-        const effectiveTraccarUrl = getTraccarServerForUrl(effectiveBaseUrl);
+        const plateByDeviceId = new Map<number, string>();
+        for (const plate of fleetPlates) {
+          const dev = findDevice(plate);
+          if (dev && !plateByDeviceId.has(dev.id)) plateByDeviceId.set(dev.id, plate);
+        }
+        const fleetDevices = serverResult.devices.filter((d) => plateByDeviceId.has(d.id));
 
         for (const geo of currentGeofences) {
-          if (!geo.geofenceID) continue;
+          if (!geo.geofenceID || !geo.numericId) continue;
+          // Reconciliar solo si la geocerca existe en el servidor de alertas con el mismo nombre
+          // (evita actuar sobre una geocerca ajena que casualmente comparte el ID).
+          const remote = remoteById.get(geo.geofenceID);
+          if (!remote || remote.name.trim().toLowerCase() !== geo.name.trim().toLowerCase()) continue;
+          const geofenceID = geo.geofenceID;
 
-          // 1. Dirección 1: En BD interna pero no confirmado en Traccar
-          const unconfirmedVehicleIds: string[] = [];
-          if (geo.vehicleIds.length > 0) {
-            await Promise.all(
-              geo.vehicleIds.map(async (plate) => {
-                const dev = resolveTraccarDevice(serverDevices, plate, effectiveTraccarUrl);
-                if (!dev) {
-                  unconfirmedVehicleIds.push(plate);
-                  return;
-                }
-                try {
-                  const isLinked = await isDeviceLinkedToGeofenceInTraccar(
-                    dev.serverUrl,
-                    dev.deviceId,
-                    geo.geofenceID!,
-                    authHeader,
-                  );
-                  if (!isLinked) {
-                    unconfirmedVehicleIds.push(plate);
-                  }
-                } catch {
-                  unconfirmedVehicleIds.push(plate);
-                }
-              }),
-            );
-
-            if (unconfirmedVehicleIds.length > 0) {
-              console.warn(
-                `⚠️ [Auto-Sync Advertencia] Geocerca "${geo.name}" (ID Traccar: ${geo.geofenceID}) tiene ${unconfirmedVehicleIds.length} vehículo(s) en BD interna que NO están confirmados en Traccar:`,
-                unconfirmedVehicleIds,
-              );
-            }
-          }
-
-          // 2. Dirección 2: En Traccar pero no en BD interna
-          const traccarOnlyVehicleIds: string[] = [];
-          try {
-            const traccarMatched = await findDevicesLinkedToTraccarGeofence(
-              effectiveTraccarUrl,
-              geo.geofenceID,
-              candidateDevices.length > 0 ? candidateDevices : allTraccarDevices,
-              authHeader,
-            );
-
-            const currentDbPlates = new Set(geo.vehicleIds.map((v) => v.trim().toLowerCase()));
-            for (const matchedDev of traccarMatched) {
-              const plateOrName = matchedDev.name || matchedDev.uniqueId;
-              const clean = plateOrName.trim().toLowerCase();
-              const cleanUnique = (matchedDev.uniqueId || '').trim().toLowerCase();
-              if (!currentDbPlates.has(clean) && !currentDbPlates.has(cleanUnique)) {
-                traccarOnlyVehicleIds.push(plateOrName);
+          // 1. Asignada en BD pero no vinculada en el servidor de alertas → quitar de BD
+          const toRemove: string[] = [];
+          await Promise.all(
+            geo.vehicleIds.map(async (plate) => {
+              const dev = findDevice(plate);
+              if (!dev) {
+                toRemove.push(plate);
+                return;
               }
-            }
+              try {
+                const ids = await fetchDeviceGeofenceIdsStrict(alertServer, dev.id, authHeader);
+                if (!ids.includes(geofenceID)) toRemove.push(plate);
+              } catch {
+                // Sin respuesta: no se puede afirmar que no esté vinculada, se deja como está.
+              }
+            }),
+          );
 
-            if (traccarOnlyVehicleIds.length > 0) {
-              console.warn(
-                `⚠️ [Auto-Sync Bidireccional] Geocerca "${geo.name}" (ID Traccar: ${geo.geofenceID}) tiene ${traccarOnlyVehicleIds.length} vehículo(s) en Traccar pero NO en BD interna:`,
-                traccarOnlyVehicleIds,
+          // 2. Vinculada en el servidor de alertas pero no en BD → importar a BD
+          const toImport: string[] = [];
+          if (fleetDevices.length > 0) {
+            try {
+              const linked = await findDevicesLinkedToTraccarGeofence(
+                alertServer,
+                geofenceID,
+                fleetDevices,
+                authHeader,
               );
+              const dbDeviceIds = new Set(
+                geo.vehicleIds.map((p) => findDevice(p)?.id).filter((id): id is number => id != null),
+              );
+              for (const dev of linked) {
+                const plate = plateByDeviceId.get(dev.id);
+                if (plate && !dbDeviceIds.has(dev.id) && !geo.vehicleIds.includes(plate)) {
+                  toImport.push(plate);
+                }
+              }
+            } catch (e) {
+              console.warn('[Auto-Sync] Error al consultar unidades vinculadas:', e);
             }
-          } catch (e) {
-            console.warn('[Auto-Sync Bidireccional] Error al escanear dispositivos de Traccar:', e);
           }
 
-          // Si ya hay una verificación más reciente en curso, descartar este resultado viejo.
+          if (toRemove.length === 0 && toImport.length === 0) continue;
+          // Si ya hay una verificación más reciente (p. ej. tras guardar), no escribir nada.
           if (isStale()) return;
 
-          // Actualizar estado de la geocerca para reflejar con precisión el estado actual,
-          // asegurando que se limpien advertencias y listas de huérfanos cuando ya no apliquen.
+          console.info(
+            `[Auto-Sync] Geocerca "${geo.name}" (ID ${geofenceID}): quitar de BD`,
+            toRemove,
+            '· importar a BD',
+            toImport,
+          );
+
+          for (const plate of toRemove) {
+            try {
+              await removeVehiculoFromGeocercaApi(effectiveBaseUrl, geo.numericId, plate);
+            } catch (e) {
+              console.warn(`[Auto-Sync] No se pudo quitar ${plate} de la BD:`, e);
+            }
+          }
+          if (toImport.length > 0) {
+            try {
+              await assignVehiculosToGeocercaApi(effectiveBaseUrl, geo.numericId, toImport);
+            } catch (e) {
+              console.warn('[Auto-Sync] No se pudieron importar unidades a la BD:', e);
+            }
+          }
+
+          if (isStale()) return;
+          // La vista refleja siempre el servidor de alertas, aunque la escritura en BD falle
+          // (se reintenta en la próxima carga).
           setGeofences((prev) =>
             prev.map((g) => {
               if (g.id !== geo.id) return g;
-              // Solo advertir sobre unidades que SIGUEN asignadas en este momento en BD
-              const currentAssigned = new Set(g.vehicleIds);
-              const nextUnc = unconfirmedVehicleIds.filter((v) => currentAssigned.has(v));
-              const nextTrac = traccarOnlyVehicleIds.filter((v) => !currentAssigned.has(v));
-              const prevUnc = g.unconfirmedVehicleIds || [];
-              const prevTrac = g.traccarOnlyVehicleIds || [];
-              if (
-                prevUnc.length === nextUnc.length &&
-                prevTrac.length === nextTrac.length &&
-                prevUnc.every((v) => nextUnc.includes(v)) &&
-                prevTrac.every((v) => nextTrac.includes(v))
-              ) {
-                return g;
-              }
-              return {
-                ...g,
-                unconfirmedVehicleIds: nextUnc,
-                traccarOnlyVehicleIds: nextTrac,
-              };
+              const kept = g.vehicleIds.filter((v) => !toRemove.includes(v));
+              return { ...g, vehicleIds: [...kept, ...toImport.filter((v) => !kept.includes(v))] };
             }),
           );
         }
@@ -1574,12 +1576,7 @@ export default function GeocercasPage() {
           return parsedList.map((g) => {
             const prev = prevById.get(g.id);
             return prev
-              ? {
-                  ...g,
-                  vehicleIds: prev.vehicleIds,
-                  unconfirmedVehicleIds: prev.unconfirmedVehicleIds,
-                  traccarOnlyVehicleIds: prev.traccarOnlyVehicleIds,
-                }
+              ? { ...g, vehicleIds: prev.vehicleIds }
               : g;
           });
         };
@@ -1614,14 +1611,7 @@ export default function GeocercasPage() {
             prev.map((g) => {
               const match = rawResults.find((r) => `gf-${r.geoId}` === g.id);
               if (!match || match.vehicleIds === null) return g;
-              const assigned = new Set(match.vehicleIds);
-              return {
-                ...g,
-                vehicleIds: match.vehicleIds,
-                // Quitar advertencias de unidades que ya no están asignadas
-                unconfirmedVehicleIds: (g.unconfirmedVehicleIds || []).filter((v) => assigned.has(v)),
-                traccarOnlyVehicleIds: (g.traccarOnlyVehicleIds || []).filter((v) => !assigned.has(v)),
-              };
+              return { ...g, vehicleIds: match.vehicleIds };
             }),
           );
 
@@ -2591,7 +2581,7 @@ export default function GeocercasPage() {
   const saveGeofence = useCallback(
     async (data: GeofenceFormData) => {
       // Invalidar cualquier verificación en segundo plano en curso: su resultado sería anterior
-      // a este guardado y podría mostrar advertencias falsas ("sin confirmar en Traccar").
+      // a este guardado y podría quitar/importar unidades con datos desactualizados.
       syncGenerationRef.current++;
       const toastId = toast.loading(
         editingDetails ? 'Actualizando geocerca...' : 'Creando geocerca...',
@@ -2648,12 +2638,7 @@ export default function GeocercasPage() {
           }
 
           // 2. Traccar Core: Sincronizar permisos de vehículos
-          const allPrevVehicles = Array.from(
-            new Set([
-              ...(editingDetails.vehicleIds || []),
-              ...(editingDetails.traccarOnlyVehicleIds || []),
-            ]),
-          );
+          const allPrevVehicles = editingDetails.vehicleIds || [];
           const newVehicles = data.vehicleIds || [];
           const toAdd = newVehicles.filter((v) => !allPrevVehicles.includes(v));
           const toRemove = allPrevVehicles.filter((v) => !newVehicles.includes(v));
@@ -2665,7 +2650,7 @@ export default function GeocercasPage() {
           if (editingDetails.geofenceID && authHeader) {
             // Desvincular removidos en Traccar
             for (const vehiclePlate of toRemove) {
-              const resolved = resolveTraccarDevice(serverDevices, vehiclePlate, targetServer);
+              const resolved = resolveTraccarDeviceOnServer(serverDevices, vehiclePlate, targetServer);
               if (resolved) {
                 try {
                   await unlinkDeviceFromGeofenceTraccar(
@@ -2686,10 +2671,10 @@ export default function GeocercasPage() {
 
             // Vincular agregados en Traccar
             for (const vehiclePlate of toAdd) {
-              const resolved = resolveTraccarDevice(serverDevices, vehiclePlate, targetServer);
+              const resolved = resolveTraccarDeviceOnServer(serverDevices, vehiclePlate, targetServer);
               if (!resolved) {
-                console.warn(`[Traccar] Vehículo "${vehiclePlate}" no hallado en ningún servidor Traccar`);
-                failedToAdd.push({ plate: vehiclePlate, reason: 'No encontrado en Traccar' });
+                console.warn(`[Traccar] Vehículo "${vehiclePlate}" no hallado en ${targetServer}`);
+                failedToAdd.push({ plate: vehiclePlate, reason: 'unidad no disponible para alertas' });
                 continue;
               }
 
@@ -2706,7 +2691,7 @@ export default function GeocercasPage() {
                 );
               } catch (e: any) {
                 console.warn(`Error al vincular ${vehiclePlate} en Traccar:`, e);
-                failedToAdd.push({ plate: vehiclePlate, reason: e.message || 'Error en Traccar' });
+                failedToAdd.push({ plate: vehiclePlate, reason: e.message || 'error al vincular' });
               }
             }
           }
@@ -2736,13 +2721,6 @@ export default function GeocercasPage() {
             .filter((v) => !successfulToRemove.includes(v))
             .concat(successfulToAdd);
 
-          const finalTraccarOnly = (editingDetails.traccarOnlyVehicleIds || [])
-            .filter((v) => !successfulToRemove.includes(v) && !successfulToAdd.includes(v));
-
-          const finalUnconfirmed = (editingDetails.unconfirmedVehicleIds || []).filter(
-            (v) => finalVehicleIds.includes(v) && !successfulToAdd.includes(v),
-          );
-
           setGeofences((prev) =>
             prev.map((geofence) =>
               geofence.id === editingDetails.id
@@ -2750,8 +2728,6 @@ export default function GeocercasPage() {
                     ...geofence,
                     ...data,
                     vehicleIds: finalVehicleIds,
-                    traccarOnlyVehicleIds: finalTraccarOnly,
-                    unconfirmedVehicleIds: finalUnconfirmed,
                   }
                 : geofence,
             ),
@@ -2766,7 +2742,7 @@ export default function GeocercasPage() {
           } else if (failedToAdd.length > 0 && successfulToAdd.length === 0) {
             const failedMsg = failedToAdd.map((f) => `${f.plate} (${f.reason})`).join(', ');
             toast.error(
-              `Geocerca actualizada, pero no se pudo vincular los vehículos en Traccar: ${failedMsg}`,
+              `Geocerca actualizada, pero no se pudo vincular los vehículos: ${failedMsg}`,
               { id: toastId, duration: 8000 },
             );
           } else {
@@ -2823,8 +2799,8 @@ export default function GeocercasPage() {
               console.log(`[Traccar] Geocerca creada en ${targetServer} con ID:`, traccarGeofenceId);
             } catch (traccarErr: any) {
               console.warn('No se pudo crear en Traccar:', traccarErr);
-              const msg = traccarErr.response?.data?.message || traccarErr.message || 'Error en Traccar';
-              toast.error(`Aviso Traccar: ${msg}`);
+              const msg = traccarErr.response?.data?.message || traccarErr.message || 'error desconocido';
+              toast.error(`No se pudo activar las alertas de la geocerca: ${msg}`);
             }
           }
 
@@ -2837,10 +2813,10 @@ export default function GeocercasPage() {
 
           if (traccarGeofenceId && data.vehicleIds && data.vehicleIds.length > 0 && authHeader) {
             for (const vehiclePlate of data.vehicleIds) {
-              const resolved = resolveTraccarDevice(serverDevices, vehiclePlate, targetServer);
+              const resolved = resolveTraccarDeviceOnServer(serverDevices, vehiclePlate, targetServer);
               if (!resolved) {
-                console.warn(`[Traccar] Dispositivo "${vehiclePlate}" no hallado en Traccar /api/devices`);
-                failedPlates.push({ plate: vehiclePlate, reason: 'No encontrado en Traccar' });
+                console.warn(`[Traccar] Dispositivo "${vehiclePlate}" no hallado en ${targetServer}`);
+                failedPlates.push({ plate: vehiclePlate, reason: 'unidad no disponible para alertas' });
                 continue;
               }
 
@@ -2919,11 +2895,11 @@ export default function GeocercasPage() {
           ) {
             const failedSummary = failedPlates.map((f) => `${f.plate} (${f.reason})`).join(', ');
             toast.error(
-              `Geocerca creada, pero ningún vehículo pudo vincularse en Traccar: ${failedSummary}`,
+              `Geocerca creada, pero ningún vehículo pudo vincularse: ${failedSummary}`,
               { id: toastId, duration: 8000 },
             );
           } else {
-            toast.success('Geocerca creada y sincronizada exitosamente con Traccar', { id: toastId });
+            toast.success('Geocerca creada exitosamente', { id: toastId });
           }
 
           clearDeviceGeofencesCache();
@@ -3006,102 +2982,6 @@ export default function GeocercasPage() {
     effectiveUsername,
     getCachedOrFreshTraccarDevices,
   ]);
-
-  const handleSyncVehiclesToTraccar = useCallback(
-    async (geofence: Geofence) => {
-      if (!geofence.geofenceID || !geofence.unconfirmedVehicleIds || geofence.unconfirmedVehicleIds.length === 0) {
-        return;
-      }
-
-      const count = geofence.unconfirmedVehicleIds.length;
-      const toastId = toast.loading(`Sincronizando ${count} vehículo(s) con Traccar...`);
-
-      try {
-        const authHeader = getTraccarAuthHeader();
-        if (!authHeader) {
-          toast.error('No se configuraron credenciales de Traccar', { id: toastId });
-          return;
-        }
-
-        const serverDevices = await getCachedOrFreshTraccarDevices(authHeader, true);
-        const targetServer = resolveAccountTraccarServer(
-          effectiveUsername,
-          serverDevices,
-          effectiveBaseUrl,
-        );
-
-        let successCount = 0;
-        const failed: string[] = [];
-
-        for (const plate of geofence.unconfirmedVehicleIds) {
-          const resolved = resolveTraccarDevice(serverDevices, plate, targetServer);
-          if (!resolved) {
-            failed.push(`${plate} (No encontrado en Traccar)`);
-            continue;
-          }
-
-          try {
-            await linkDeviceToGeofenceTraccar(
-              resolved.serverUrl,
-              resolved.deviceId,
-              geofence.geofenceID,
-              authHeader,
-            );
-            successCount++;
-          } catch (e: any) {
-            failed.push(`${plate} (${e.message || 'Error'})`);
-          }
-        }
-
-        if (successCount > 0) {
-          clearDeviceGeofencesCache();
-          toast.success(`Se sincronizaron ${successCount} de ${count} vehículo(s) en Traccar exitosamente`, {
-            id: toastId,
-            duration: 6000,
-          });
-          await fetchGeocercas();
-        } else {
-          toast.error(`No se pudo sincronizar en Traccar: ${failed.join(', ')}`, {
-            id: toastId,
-            duration: 8000,
-          });
-        }
-      } catch (err: any) {
-        console.error('Error al sincronizar vehículos con Traccar:', err);
-        toast.error('Error inesperado al sincronizar con Traccar', { id: toastId });
-      }
-    },
-    [effectiveUsername, effectiveBaseUrl, getCachedOrFreshTraccarDevices, fetchGeocercas],
-  );
-
-  const handleImportTraccarVehicles = useCallback(
-    async (geofence: Geofence) => {
-      if (!geofence.numericId || !geofence.traccarOnlyVehicleIds || geofence.traccarOnlyVehicleIds.length === 0) {
-        return;
-      }
-
-      const count = geofence.traccarOnlyVehicleIds.length;
-      const toastId = toast.loading(`Importando ${count} vehículo(s) desde Traccar a la base de datos...`);
-
-      try {
-        // Directamente a la BD interna. NO llamar a Traccar permissions porque ya están vinculados en Traccar.
-        await assignVehiculosToGeocercaApi(effectiveBaseUrl, geofence.numericId, geofence.traccarOnlyVehicleIds);
-
-        clearDeviceGeofencesCache();
-        toast.success(`Se importaron ${count} vehículo(s) a la BD interna exitosamente`, {
-          id: toastId,
-          duration: 6000,
-        });
-
-        await fetchGeocercas();
-      } catch (err: any) {
-        console.error('Error al importar vehículos desde Traccar:', err);
-        const msg = err?.response?.data?.message || err?.message || 'Error al importar';
-        toast.error(`Error al importar: ${msg}`, { id: toastId });
-      }
-    },
-    [effectiveBaseUrl, fetchGeocercas],
-  );
 
   const centerOnGeofence = useCallback((geofence: Geofence) => {
     const map = mapRef.current;
@@ -3270,12 +3150,7 @@ export default function GeocercasPage() {
             name: editingDetails.name,
             description: editingDetails.description || '',
             color: editingDetails.color,
-            vehicleIds: Array.from(
-              new Set([
-                ...(editingDetails.vehicleIds || []),
-                ...(editingDetails.traccarOnlyVehicleIds || []),
-              ]),
-            ),
+            vehicleIds: editingDetails.vehicleIds || [],
             active: editingDetails.active,
           }
         : {
@@ -3480,8 +3355,6 @@ export default function GeocercasPage() {
                 onSaveShape={saveShapeEdit}
                 onCancelShape={cancelShapeEdit}
                 onDelete={setPendingDelete}
-                onSyncVehiclesToTraccar={handleSyncVehiclesToTraccar}
-                onImportTraccarVehicles={handleImportTraccarVehicles}
               />
             ))
           )}
@@ -3669,11 +3542,11 @@ export default function GeocercasPage() {
               type="button"
               onClick={testTraccarConnection}
               disabled={testingTraccar}
-              title="Probar conexión con servidores Traccar"
+              title="Probar conexión con el servidor de alertas"
               className="flex h-full items-center gap-1.5 rounded-lg px-2.5 text-[11.5px] font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all disabled:opacity-50"
             >
               <Radio size={13} className={testingTraccar ? 'animate-spin text-[#FB7B0F]' : 'text-slate-600'} />
-              <span>Traccar</span>
+              <span>Alertas</span>
             </button>
             */}
           </div>

@@ -1,15 +1,6 @@
 'use client';
 import React from 'react';
-import {
-  AlertTriangle,
-  Check,
-  Crosshair,
-  Move,
-  Pencil,
-  Radio,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Check, Crosshair, Move, Pencil, Trash2, X } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Geofence, Vehicle, formatDistance } from './types';
 
@@ -26,8 +17,6 @@ interface GeofenceCardProps {
   onSaveShape: () => void;
   onCancelShape: () => void;
   onDelete: (geofence: Geofence) => void;
-  onSyncVehiclesToTraccar?: (geofence: Geofence) => void;
-  onImportTraccarVehicles?: (geofence: Geofence) => void;
 }
 
 const actionBtn =
@@ -46,17 +35,11 @@ export default function GeofenceCard({
   onSaveShape,
   onCancelShape,
   onDelete,
-  onSyncVehiclesToTraccar,
-  onImportTraccarVehicles,
 }: GeofenceCardProps) {
   const assigned = geofence.vehicleIds.map(
     (id) => vehicles.find((v) => v.id === id) || { id, label: id, position: { lat: 0, lng: 0 } },
   );
-  const traccarOnly = geofence.traccarOnlyVehicleIds ?? [];
-  const unconfirmed = (geofence.unconfirmedVehicleIds ?? []).filter((id) =>
-    geofence.vehicleIds.includes(id),
-  );
-  const totalUnits = assigned.length + traccarOnly.length;
+  const totalUnits = assigned.length;
 
   const shapeLabel =
     geofence.type === 'circle'
@@ -137,83 +120,18 @@ export default function GeofenceCard({
           <span className="text-[11.5px] italic text-slate-400">Sin unidades asignadas</span>
         ) : (
           <div className="grid grid-cols-3 gap-1">
-            {assigned.map((v) => {
-              const isUnconfirmed = geofence.unconfirmedVehicleIds?.includes(v.id);
-              return (
-                <span
-                  key={v.id}
-                  title={
-                    isUnconfirmed
-                      ? `${v.id}: Registrado en BD interna pero NO confirmado en Traccar`
-                      : `${v.id}: Confirmado en Traccar`
-                  }
-                  className={`flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] px-1.5 text-[12px] font-semibold ${
-                    isUnconfirmed
-                      ? 'bg-amber-100 text-amber-900 ring-1 ring-inset ring-amber-300'
-                      : 'bg-white text-[#1e3a8a]'
-                  }`}
-                >
-                  {isUnconfirmed && (
-                    <AlertTriangle size={11} className="shrink-0 animate-pulse text-amber-700" />
-                  )}
-                  <span className="truncate">{v.id}</span>
-                </span>
-              );
-            })}
-
-            {traccarOnly.map((plate) => (
+            {assigned.map((v) => (
               <span
-                key={`traccar-${plate}`}
-                title={`${plate}: Vinculado en Traccar pero no registrado en BD interna (Haz clic en Importar)`}
-                className="flex h-[26px] min-w-0 items-center gap-1 rounded-[4px] border border-dashed border-blue-400 bg-blue-50 px-1.5 text-[12px] font-semibold text-blue-800"
+                key={v.id}
+                title={v.id}
+                className="flex h-[26px] min-w-0 items-center rounded-[4px] bg-white px-1.5 text-[12px] font-semibold text-[#1e3a8a]"
               >
-                <Radio size={11} className="shrink-0 animate-pulse text-[#113EB9]" />
-                <span className="truncate">{plate}</span>
+                <span className="truncate">{v.id}</span>
               </span>
             ))}
           </div>
         )}
       </div>
-
-      {unconfirmed.length > 0 && (
-        <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[5px] border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <AlertTriangle size={12} className="shrink-0 text-amber-600" />
-            <span className="truncate">
-              {unconfirmed.length} vehículo(s) sin confirmar en Traccar
-            </span>
-          </div>
-          {onSyncVehiclesToTraccar && (
-            <button
-              type="button"
-              onClick={stop(() => onSyncVehiclesToTraccar(geofence))}
-              title="Vincular permisos en Traccar ahora"
-              className="shrink-0 rounded bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white transition hover:bg-amber-700"
-            >
-              Sincronizar
-            </button>
-          )}
-        </div>
-      )}
-
-      {traccarOnly.length > 0 && (
-        <div className="mt-2 flex items-center justify-between gap-1.5 rounded-[5px] border border-blue-200 bg-blue-50/90 px-2 py-1 text-[11px] text-blue-900">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <Radio size={12} className="shrink-0 animate-pulse text-[#113EB9]" />
-            <span className="truncate">{traccarOnly.length} vehículo(s) en Traccar pero no en BD</span>
-          </div>
-          {onImportTraccarVehicles && (
-            <button
-              type="button"
-              onClick={stop(() => onImportTraccarVehicles(geofence))}
-              title="Importar a BD interna con un clic (sin llamar a Traccar)"
-              className="shrink-0 rounded bg-[#113EB9] px-2 py-0.5 text-[10px] font-bold text-white transition hover:bg-blue-800"
-            >
-              Importar
-            </button>
-          )}
-        </div>
-      )}
 
       {editingShape && (
         <div className="mt-2.5 flex items-center gap-1.5">

@@ -150,7 +150,7 @@ export async function getTraccarDevices(
 ): Promise<TraccarDevice[]> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas en el entorno');
+    throw new Error('Credenciales no configuradas en el entorno');
   }
 
   const response = await axios.get<TraccarDevice[]>(`${cleanTraccarUrl(baseUrl)}/devices`, {
@@ -171,7 +171,7 @@ export async function getDevicesFromAllTraccarServers(
 ): Promise<ServerDevicesResult[]> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const promises = TRACCAR_SERVERS.map(async (serverUrl) => {
@@ -198,7 +198,7 @@ export async function testTraccarAuthMultiServer(
     return TRACCAR_SERVERS.map((serverUrl) => ({
       serverUrl,
       ok: false,
-      message: 'No hay credenciales de Traccar configuradas',
+      message: 'No hay credenciales configuradas',
     }));
   }
 
@@ -219,7 +219,7 @@ export async function testTraccarAuthMultiServer(
       const status = error.response?.status;
       const msg =
         status === 401
-          ? 'Error 401: Usuario o contraseña incorrectos en Traccar'
+          ? 'Error 401: Usuario o contraseña incorrectos'
           : error?.response?.data?.message || error.message || 'Error de conexión';
       return {
         serverUrl,
@@ -241,7 +241,7 @@ export async function testTraccarAuth(
 ): Promise<{ ok: boolean; message: string; deviceCount?: number }> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    return { ok: false, message: 'No hay credenciales de Traccar configuradas' };
+    return { ok: false, message: 'No hay credenciales configuradas' };
   }
 
   try {
@@ -256,11 +256,11 @@ export async function testTraccarAuth(
     return { ok: true, message: `Conectado exitosamente (${count} dispositivos encontrados)`, deviceCount: count };
   } catch (error: any) {
     if (error.response?.status === 401) {
-      return { ok: false, message: 'Error 401: Usuario o contraseña incorrectos en Traccar' };
+      return { ok: false, message: 'Error 401: Usuario o contraseña incorrectos' };
     }
     return {
       ok: false,
-      message: error?.response?.data?.message || error.message || 'Error al conectar con Traccar',
+      message: error?.response?.data?.message || error.message || 'Error al conectar con el servidor',
     };
   }
 }
@@ -327,6 +327,48 @@ export function findTraccarDeviceId(
 }
 
 /**
+ * Índice de búsqueda con la misma prioridad que findTraccarDeviceId, pero O(1) por consulta.
+ * Útil cuando hay que resolver muchas placas contra una lista grande de dispositivos.
+ */
+export function buildTraccarDeviceIndex(
+  devices: TraccarDevice[],
+): (plateOrDeviceId: string) => TraccarDevice | null {
+  const attrExact = new Map<string, TraccarDevice>();
+  const attrNorm = new Map<string, TraccarDevice>();
+  const nameExact = new Map<string, TraccarDevice>();
+  const nameNorm = new Map<string, TraccarDevice>();
+  const put = (map: Map<string, TraccarDevice>, key: string, d: TraccarDevice) => {
+    if (key && !map.has(key)) map.set(key, d);
+  };
+
+  for (const d of devices) {
+    const devId = d.attributes?.deviceID;
+    if (devId != null) {
+      put(attrExact, String(devId).trim().toLowerCase(), d);
+      put(attrNorm, normalizeIdentifier(devId), d);
+    }
+    for (const v of [d.name, d.uniqueId]) {
+      if (!v) continue;
+      put(nameExact, v.trim().toLowerCase(), d);
+      put(nameNorm, normalizeIdentifier(v), d);
+    }
+  }
+
+  return (plateOrDeviceId: string) => {
+    if (!plateOrDeviceId) return null;
+    const exact = plateOrDeviceId.trim().toLowerCase();
+    const norm = normalizeIdentifier(plateOrDeviceId);
+    return (
+      attrExact.get(exact) ||
+      (norm && attrNorm.get(norm)) ||
+      nameExact.get(exact) ||
+      (norm && nameNorm.get(norm)) ||
+      null
+    );
+  };
+}
+
+/**
  * Resuelve un dispositivo buscando en los resultados de todos los servidores Traccar
  */
 export function resolveTraccarDevice(
@@ -377,6 +419,29 @@ export function resolveTraccarDevice(
 }
 
 /**
+ * Resuelve un dispositivo SOLO dentro del servidor indicado. Los IDs de dispositivo y de geocerca
+ * son propios de cada servidor: vincular un deviceId de un servidor con una geocerca de otro
+ * deja permisos cruzados (o apunta a un vehículo equivocado).
+ */
+export function resolveTraccarDeviceOnServer(
+  serverDevicesList: ServerDevicesResult[],
+  plateOrDeviceId: string,
+  serverUrl: string,
+): ResolvedTraccarDevice | null {
+  const target = cleanTraccarUrl(serverUrl);
+  const s = serverDevicesList.find((r) => cleanTraccarUrl(r.serverUrl) === target);
+  if (!s || !plateOrDeviceId) return null;
+  const deviceId = findTraccarDeviceId(s.devices, plateOrDeviceId);
+  if (deviceId == null) return null;
+  return {
+    serverUrl: s.serverUrl,
+    deviceId,
+    plate: plateOrDeviceId,
+    device: s.devices.find((d) => d.id === deviceId)!,
+  };
+}
+
+/**
  * Determina el servidor Traccar dinámico para la cuenta según su URL base / servidorUrl
  */
 export function resolveAccountTraccarServer(
@@ -420,43 +485,71 @@ interface DeviceGeofencesCacheEntry {
   timestamp: number;
 }
 
-const deviceGeofencesCache = new Map<number, DeviceGeofencesCacheEntry>();
+// Los IDs de dispositivo NO son únicos entre servidores (DO y SR tienen su propia numeración),
+// por eso la clave de caché incluye el servidor.
+const deviceGeofencesCache = new Map<string, DeviceGeofencesCacheEntry>();
 const GEOFENCE_CACHE_TTL_MS = 30000; // 30 segundos de vigencia en memoria
 
-export function clearDeviceGeofencesCache(deviceId?: number): void {
-  if (deviceId !== undefined) {
-    deviceGeofencesCache.delete(deviceId);
-  } else {
-    deviceGeofencesCache.clear();
-  }
+const cacheKey = (baseUrl: string, deviceId: number) => `${cleanTraccarUrl(baseUrl)}|${deviceId}`;
+
+export function clearDeviceGeofencesCache(): void {
+  deviceGeofencesCache.clear();
 }
 
-export function updateDeviceGeofencesCache(deviceId: number, geofenceIds: number[]): void {
-  deviceGeofencesCache.set(deviceId, {
+export function updateDeviceGeofencesCache(baseUrl: string, deviceId: number, geofenceIds: number[]): void {
+  deviceGeofencesCache.set(cacheKey(baseUrl, deviceId), {
     geofenceIds,
     timestamp: Date.now(),
   });
 }
 
-export function removeDeviceGeofenceFromCache(deviceId: number, geofenceId: number): void {
-  const existing = deviceGeofencesCache.get(deviceId);
+export function removeDeviceGeofenceFromCache(baseUrl: string, deviceId: number, geofenceId: number): void {
+  const key = cacheKey(baseUrl, deviceId);
+  const existing = deviceGeofencesCache.get(key);
   if (existing) {
-    deviceGeofencesCache.set(deviceId, {
+    deviceGeofencesCache.set(key, {
       geofenceIds: existing.geofenceIds.filter((id) => id !== geofenceId),
       timestamp: Date.now(),
     });
   }
 }
 
-export function addDeviceGeofenceToCache(deviceId: number, geofenceId: number): void {
-  const existing = deviceGeofencesCache.get(deviceId);
+export function addDeviceGeofenceToCache(baseUrl: string, deviceId: number, geofenceId: number): void {
+  const key = cacheKey(baseUrl, deviceId);
+  const existing = deviceGeofencesCache.get(key);
   const current = existing ? existing.geofenceIds : [];
   if (!current.includes(geofenceId)) {
-    deviceGeofencesCache.set(deviceId, {
+    deviceGeofencesCache.set(key, {
       geofenceIds: [...current, geofenceId],
       timestamp: Date.now(),
     });
   }
+}
+
+/**
+ * Igual que getTraccarDeviceGeofences pero LANZA error si la consulta falla.
+ * Usar cuando la respuesta decide borrar datos: un fallo de red nunca debe
+ * interpretarse como "el dispositivo no está vinculado".
+ */
+export async function fetchDeviceGeofenceIdsStrict(
+  baseUrl: string,
+  deviceId: number,
+  authHeader?: string,
+): Promise<number[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) {
+    throw new Error('Credenciales no configuradas');
+  }
+  const response = await axios.get<TraccarGeofence[]>(
+    `${cleanTraccarUrl(baseUrl)}/geofences?deviceId=${deviceId}`,
+    { headers: { Authorization: auth }, timeout: 10000 },
+  );
+  if (!Array.isArray(response.data)) {
+    throw new Error('Respuesta inesperada del servidor');
+  }
+  const ids = response.data.map((g) => g.id);
+  updateDeviceGeofencesCache(baseUrl, deviceId, ids);
+  return ids;
 }
 
 /**
@@ -482,7 +575,7 @@ export async function getTraccarDeviceGeofences(
       timeout: 10000,
     });
     const result = Array.isArray(response.data) ? response.data : [];
-    updateDeviceGeofencesCache(deviceId, result.map((g) => g.id));
+    updateDeviceGeofencesCache(baseUrl, deviceId, result.map((g) => g.id));
     return result;
   } catch (err: any) {
     console.warn(`[Traccar] Error al consultar geocercas del dispositivo ${deviceId}:`, err?.message || err);
@@ -546,7 +639,7 @@ export async function createTraccarGeofence(
 ): Promise<TraccarGeofence> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const payload: any = {
@@ -585,7 +678,7 @@ export async function updateTraccarGeofence(
 ): Promise<TraccarGeofence> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const payload: any = {
@@ -622,7 +715,7 @@ export async function deleteTraccarGeofence(
 ): Promise<void> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const targetUrl = `${cleanTraccarUrl(baseUrl)}/geofences/${id}`;
@@ -650,7 +743,7 @@ export async function linkDeviceToGeofenceTraccar(
 ): Promise<void> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const targetUrl = `${cleanTraccarUrl(baseUrl)}/permissions`;
@@ -670,7 +763,7 @@ export async function linkDeviceToGeofenceTraccar(
     console.log(
       `[Traccar] ✅ Permiso otorgado exitosamente en ${baseUrl} (HTTP ${response.status}) para deviceId: ${deviceId} y geofenceId: ${geofenceId}`,
     );
-    addDeviceGeofenceToCache(deviceId, geofenceId);
+    addDeviceGeofenceToCache(baseUrl, deviceId, geofenceId);
   } catch (error: any) {
     const status = error.response?.status;
     const errorDetails =
@@ -685,7 +778,7 @@ export async function linkDeviceToGeofenceTraccar(
     );
 
     throw new Error(
-      `Traccar (${status || 'sin respuesta'}): ${errorDetails.slice(0, 150)}`,
+      `Error del servidor de alertas (${status || 'sin respuesta'}): ${errorDetails.slice(0, 150)}`,
     );
   }
 }
@@ -703,7 +796,7 @@ export async function unlinkDeviceFromGeofenceTraccar(
 ): Promise<void> {
   const auth = authHeader || getTraccarAuthHeader();
   if (!auth) {
-    throw new Error('Credenciales de Traccar no configuradas');
+    throw new Error('Credenciales no configuradas');
   }
 
   const targetUrl = `${cleanTraccarUrl(baseUrl)}/permissions`;
@@ -725,12 +818,12 @@ export async function unlinkDeviceFromGeofenceTraccar(
     console.log(
       `[Traccar] ✅ Desvinculación exitosa en ${baseUrl} (HTTP ${response.status}) deviceId: ${deviceId}, geofenceId: ${geofenceId}`,
     );
-    removeDeviceGeofenceFromCache(deviceId, geofenceId);
+    removeDeviceGeofenceFromCache(baseUrl, deviceId, geofenceId);
   } catch (error: any) {
     // Si ya no existía el permiso o el recurso fue eliminado (404/204), no considerarlo fallo bloqueante
     if (error.response?.status === 404) {
       console.warn(`[Traccar] Permiso ya no existía en ${baseUrl}, continuando.`);
-      removeDeviceGeofenceFromCache(deviceId, geofenceId);
+      removeDeviceGeofenceFromCache(baseUrl, deviceId, geofenceId);
       return;
     }
 
@@ -741,7 +834,7 @@ export async function unlinkDeviceFromGeofenceTraccar(
       error.message;
 
     console.error(`[Traccar] ❌ Error al desvincular en ${baseUrl} (HTTP ${status}):`, errorDetails);
-    throw new Error(`Traccar desvinculación (${status || 'error'}): ${errorDetails}`);
+    throw new Error(`Error al desvincular (${status || 'error'}): ${errorDetails}`);
   }
 }
 
@@ -765,7 +858,7 @@ export async function findDevicesLinkedToTraccarGeofence(
   const now = Date.now();
 
   for (const d of devicesToCheck) {
-    const cached = deviceGeofencesCache.get(d.id);
+    const cached = deviceGeofencesCache.get(cacheKey(baseUrl, d.id));
     if (!forceRefresh && cached && now - cached.timestamp < GEOFENCE_CACHE_TTL_MS) {
       if (cached.geofenceIds.includes(geofenceId)) {
         matched.push(d);
