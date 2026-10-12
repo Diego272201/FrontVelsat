@@ -7,6 +7,7 @@ import ModalCargaExcelTurismo from './ModalCargaExcelTurismo';
 import ModalAgregarServicioTurismo from './ModalAgregarServicioTurismo';
 import ModalConfirmarCancelarServicio from './ModalConfirmarCancelarServicio';
 import ModalConfirmarEliminarCarga from './ModalConfirmarEliminarCarga';
+import ModalConfirmarNotificarRevision from './ModalConfirmarNotificarRevision';
 import NotificacionesFlotantes from './NotificacionesFlotantes';
 import BarraFiltros from './BarraFiltros';
 import TablaServicios from './TablaServicios';
@@ -80,6 +81,12 @@ const ServiciosTurismoPage: React.FC = () => {
     reanudarServicio,
     notificandoConductorId,
     notificarConductor,
+    conductoresRevision,
+    mostrarModalNotificarRevision,
+    notificandoRevisionTodos,
+    solicitarNotificarRevisionTodos,
+    cancelarNotificarRevisionTodos,
+    confirmarNotificarRevisionTodos,
     notificaciones,
     auditoriaPorServicio,
     cargandoAuditoriaId,
@@ -210,6 +217,9 @@ const ServiciosTurismoPage: React.FC = () => {
         onReporteKilometraje={() =>
           window.open(`/trackvelnew/serviciosturismo/reportekilometraje?fecha=${fecha}`, '_blank')
         }
+        onNotificarRevisionTodos={solicitarNotificarRevisionTodos}
+        conductoresParaRevision={conductoresRevision.length}
+        notificandoRevisionTodos={notificandoRevisionTodos}
         onAgregarServicio={() => setShowModalAgregar(true)}
         onCargarExcel={() => setShowModalCarga(true)}
         claveOpcionesAvanzadas={claveOpcionesAvanzadas}
@@ -295,6 +305,15 @@ const ServiciosTurismoPage: React.FC = () => {
         eliminando={eliminandoCarga}
         onCancelar={cancelarEliminarCarga}
         onConfirmar={confirmarEliminarCarga}
+      />
+
+      <ModalConfirmarNotificarRevision
+        abierto={mostrarModalNotificarRevision}
+        fecha={isoToDdMmYyyy(fecha)}
+        conductores={conductoresRevision}
+        notificando={notificandoRevisionTodos}
+        onCancelar={cancelarNotificarRevisionTodos}
+        onConfirmar={confirmarNotificarRevisionTodos}
       />
     </div>
   );

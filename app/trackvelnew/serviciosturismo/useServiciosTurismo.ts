@@ -5,6 +5,7 @@ import { Conductor } from './SelectBuscable';
 import {
   AuditoriaCampo,
   ColumnaFiltrable,
+  ConductorRevision,
   EditFormServicio,
   Notificacion,
   ServicioTurismo,
@@ -130,6 +131,9 @@ export function useServiciosTurismo() {
   const [notificandoConductorId, setNotificandoConductorId] = useState<
     number | null
   >(null);
+  const [mostrarModalNotificarRevision, setMostrarModalNotificarRevision] =
+    useState(false);
+  const [notificandoRevisionTodos, setNotificandoRevisionTodos] = useState(false);
 
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
 
@@ -494,6 +498,42 @@ export function useServiciosTurismo() {
     });
     return pilotos.size;
   }, [serviciosVisibles]);
+
+  // Mismo criterio que POST /notificar-revision en el backend: conductores (brevete y cobrevete)
+  // con al menos un servicio de la fecha que no esté cancelado ni en stand by. El teléfono es solo
+  // informativo (el backend lo vuelve a resolver en la tabla taxi al enviar).
+  const conductoresRevision = useMemo<ConductorRevision[]>(() => {
+    const telefonoPorBrevete = new Map<string, string | null>();
+    conductores.forEach((c) => {
+      if (c.brevete && c.brevete.trim()) {
+        telefonoPorBrevete.set(c.brevete.trim().toUpperCase(), c.telefono);
+      }
+    });
+
+    const porBrevete = new Map<string, ConductorRevision>();
+    serviciosVisibles.forEach((servicio) => {
+      if (servicio.cancelado === 1 || servicio.standby === 1) return;
+      [
+        { brevete: servicio.brevete, nombre: servicio.piloto },
+        { brevete: servicio.cobrevete, nombre: servicio.copiloto },
+      ].forEach(({ brevete, nombre }) => {
+        if (!brevete || !brevete.trim()) return;
+        const clave = brevete.trim().toUpperCase();
+        const fila = porBrevete.get(clave) ?? {
+          brevete: brevete.trim(),
+          nombre: nombre?.trim() || brevete.trim(),
+          telefono: telefonoPorBrevete.get(clave) ?? null,
+          servicios: 0,
+          pendientes: 0,
+        };
+        fila.servicios++;
+        if (servicio.finalizado !== 1) fila.pendientes++;
+        porBrevete.set(clave, fila);
+      });
+    });
+
+    return Array.from(porBrevete.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [serviciosVisibles, conductores]);
 
   const serviciosFiltrados = useMemo(() => {
     const texto = busquedaTexto.trim().toLowerCase();
@@ -927,6 +967,44 @@ export function useServiciosTurismo() {
     [mostrarNotificacion],
   );
 
+  // Notificación masiva: solo la plantilla "revision" (cambio/cancelación siguen siendo por
+  // servicio). El backend arma la lista de conductores de la fecha, manda un mensaje por
+  // conductor (WhatsApp + push) y devuelve el resumen ya redactado en `mensaje`.
+  const solicitarNotificarRevisionTodos = useCallback(() => {
+    setMostrarModalNotificarRevision(true);
+  }, []);
+
+  const cancelarNotificarRevisionTodos = useCallback(() => {
+    setMostrarModalNotificarRevision(false);
+  }, []);
+
+  const confirmarNotificarRevisionTodos = useCallback(async (brevetes: string[]) => {
+    setNotificandoRevisionTodos(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/notificar-revision?fecha=${encodeURIComponent(isoToDdMmYyyy(fecha))}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brevetes }),
+        },
+      );
+      const data = await res.json().catch(() => null);
+
+      mostrarNotificacion(
+        res.ok ? 'success' : 'error',
+        res.ok
+          ? data?.mensaje || 'Revisión notificada a los conductores'
+          : data?.error || data?.mensaje || 'No se pudo notificar la revisión',
+      );
+      setMostrarModalNotificarRevision(false);
+    } catch {
+      mostrarNotificacion('error', 'Error de conexión al notificar la revisión');
+    } finally {
+      setNotificandoRevisionTodos(false);
+    }
+  }, [fecha, mostrarNotificacion]);
+
   const solicitarEliminarCarga = useCallback(() => {
     if (!opcionesAvanzadasDesbloqueado) return;
     setMostrarModalEliminarCarga(true);
@@ -1172,6 +1250,12 @@ export function useServiciosTurismo() {
     reanudarServicio,
     notificandoConductorId,
     notificarConductor,
+    conductoresRevision,
+    mostrarModalNotificarRevision,
+    notificandoRevisionTodos,
+    solicitarNotificarRevisionTodos,
+    cancelarNotificarRevisionTodos,
+    confirmarNotificarRevisionTodos,
     notificaciones,
     claveOpcionesAvanzadas,
     setClaveOpcionesAvanzadas,

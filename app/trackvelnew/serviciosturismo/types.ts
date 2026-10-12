@@ -131,6 +131,17 @@ export interface MensajeTurismo {
   celular: string | null;
 }
 
+// Fila del modal "Notificar revisión a todos": un conductor (piloto o copiloto) con al menos un
+// servicio de la fecha que no esté cancelado ni en stand by.
+export interface ConductorRevision {
+  brevete: string;
+  nombre: string;
+  telefono: string | null;
+  servicios: number;
+  // Servicios aún no finalizados; si es 0, el conductor ya terminó todo lo del día.
+  pendientes: number;
+}
+
 export interface Notificacion {
   id: string;
   tipo: 'success' | 'error';

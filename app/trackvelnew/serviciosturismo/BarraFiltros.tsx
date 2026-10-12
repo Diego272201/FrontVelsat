@@ -7,6 +7,8 @@ import {
   FileSpreadsheet,
   Gauge,
   ListFilter,
+  Loader2,
+  MessageCircle,
   Plus,
   RefreshCw,
   Search,
@@ -43,6 +45,9 @@ interface BarraFiltrosProps {
   onConsultar: () => void;
   onDescargarResumen: () => void;
   onReporteKilometraje: () => void;
+  onNotificarRevisionTodos: () => void;
+  conductoresParaRevision: number;
+  notificandoRevisionTodos: boolean;
   onAgregarServicio: () => void;
   onCargarExcel: () => void;
   claveOpcionesAvanzadas: string;
@@ -75,6 +80,9 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
   onConsultar,
   onDescargarResumen,
   onReporteKilometraje,
+  onNotificarRevisionTodos,
+  conductoresParaRevision,
+  notificandoRevisionTodos,
   onAgregarServicio,
   onCargarExcel,
   claveOpcionesAvanzadas,
@@ -279,6 +287,24 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 >
                   <Gauge className="h-3.5 w-3.5 text-[#113EB9]" />
                   <span>Reporte Kilometraje</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onNotificarRevisionTodos}
+                  disabled={deshabilitado || notificandoRevisionTodos || conductoresParaRevision === 0}
+                  title="Envía la plantilla “Notificar revisión” a todos los conductores con servicios activos en la fecha (WhatsApp + app)"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {notificandoRevisionTodos ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  )}
+                  <span>Notificar revisión a todos</span>
+                  <span className="rounded-full bg-white/80 px-1.5 text-[10px] font-bold">
+                    {conductoresParaRevision}
+                  </span>
                 </button>
               </div>
             ) : (
