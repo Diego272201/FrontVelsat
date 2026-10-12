@@ -879,8 +879,13 @@ export default function GeocercasPage() {
     // 3. Punto de Salida
     if (visit.latitudSalida != null && visit.longitudSalida != null) {
       posSalida = { lat: Number(visit.latitudSalida), lng: Number(visit.longitudSalida) };
+      // Si se desvinculó estando adentro, el punto no es una salida: se muestra en gris
+      const unlinked = Boolean(visit.salidaPorDesvinculacion);
+      const exitTheme = unlinked
+        ? { label: 'QUITADA', fill: '#94A3B8', stroke: '#64748B', headerBg: '#F1F5F9', headerBorder: '#E2E8F0', text: '#475569' }
+        : { label: 'SALIDA', fill: '#EF4444', stroke: '#DC2626', headerBg: '#FEF2F2', headerBorder: '#FEE2E2', text: '#B91C1C' };
 
-      // Halo rojo detrás del auto
+      // Halo detrás del auto (rojo = salida, gris = quitada de la geocerca)
       const exitHalo = new google.maps.Marker({
         position: posSalida,
         map,
@@ -888,9 +893,9 @@ export default function GeocercasPage() {
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 18,
-          fillColor: '#EF4444',
+          fillColor: exitTheme.fill,
           fillOpacity: 0.25,
-          strokeColor: '#DC2626',
+          strokeColor: exitTheme.stroke,
           strokeOpacity: 0.65,
           strokeWeight: 2,
         },
@@ -902,7 +907,9 @@ export default function GeocercasPage() {
         position: posSalida,
         map,
         zIndex: 20,
-        title: `Salida: ${visit.deviceID} de ${visit.geofenceName || 'Geocerca'}`,
+        title: unlinked
+          ? `${visit.deviceID} quitada de ${visit.geofenceName || 'Geocerca'} (no salió, estaba adentro)`
+          : `Salida: ${visit.deviceID} de ${visit.geofenceName || 'Geocerca'}`,
         animation: google.maps.Animation.DROP,
         icon: {
           url: '/UnidadK.webp',
@@ -931,17 +938,17 @@ export default function GeocercasPage() {
               align-items: center;
               justify-content: space-between;
               padding: 8px 12px;
-              background: #FEF2F2;
+              background: ${exitTheme.headerBg};
               border-top-left-radius: 11px;
               border-top-right-radius: 11px;
-              border-bottom: 1px solid #FEE2E2;
+              border-bottom: 1px solid ${exitTheme.headerBorder};
             ">
               <div style="display: flex; align-items: center; gap: 6px;">
                 <div style="
                   width: 18px;
                   height: 18px;
                   border-radius: 4px;
-                  background: #DC2626;
+                  background: ${exitTheme.stroke};
                   display: flex;
                   align-items: center;
                   justify-content: center;
@@ -952,7 +959,7 @@ export default function GeocercasPage() {
                     <line x1="21" y1="12" x2="9" y2="12"/>
                   </svg>
                 </div>
-                <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: #B91C1C;">SALIDA</span>
+                <span style="font-size: 11px; font-weight: 800; letter-spacing: 0.05em; color: ${exitTheme.text};">${exitTheme.label}</span>
               </div>
               <div style="display: flex; align-items: center;">
                 <span style="font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 700; color: #0F172A; letter-spacing: 0.01em;">
@@ -993,6 +1000,13 @@ export default function GeocercasPage() {
                   ${formatVisitCardDate(visit.fechaSalida)}
                 </span>
               </div>
+              ${
+                unlinked
+                  ? `<div style="font-size: 10.5px; line-height: 1.35; color: #475569; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 5px 7px;">
+                      No salió: a esta hora se quitó la unidad de la geocerca.
+                    </div>`
+                  : ''
+              }
             </div>
             <div style="
               position: absolute;

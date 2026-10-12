@@ -24,6 +24,8 @@ export interface VisitaItem {
   eventoEntradaId?: number;
   eventoSalidaId?: number;
   entradaIncompleta?: boolean;
+  /** La visita terminó porque se quitó el vehículo de la geocerca estando adentro (no salió). */
+  salidaPorDesvinculacion?: boolean;
   fechaRegistro?: string;
   [key: string]: any;
 }

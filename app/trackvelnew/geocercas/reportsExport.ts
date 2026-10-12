@@ -263,7 +263,9 @@ export async function exportVisitasToExcel(
       v.fechaSalida,
     );
 
-    const salidaText = isInside ? 'Dentro de geocerca' : formatDate(v.fechaSalida);
+    const salidaText = isInside
+      ? 'Dentro de geocerca'
+      : `${formatDate(v.fechaSalida)}${v.salidaPorDesvinculacion ? ' (quitada de la geocerca)' : ''}`;
 
     row.values = [
       index + 1,
@@ -423,7 +425,9 @@ export async function exportVisitasToPdf(
       v.fechaEntrada,
       v.fechaSalida,
     );
-    const salida = isInside ? 'Dentro' : formatDate(v.fechaSalida);
+    const salida = isInside
+      ? 'Dentro'
+      : `${formatDate(v.fechaSalida)}${v.salidaPorDesvinculacion ? ' (quitada de la geocerca)' : ''}`;
 
     return [
       String(i + 1),

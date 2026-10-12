@@ -979,7 +979,17 @@ export default function GeocercasReportsModal({
                               Dentro
                             </span>
                           ) : (
-                            renderTableDateTime(item.fechaSalida)
+                            <div className="flex flex-col items-start gap-0.5">
+                              {renderTableDateTime(item.fechaSalida)}
+                              {item.salidaPorDesvinculacion && (
+                                <span
+                                  title="La unidad no salió: a esta hora se la quitó de la geocerca y desde entonces ya no se controla. La duración es el tiempo que estuvo adentro hasta ese momento."
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-100 text-slate-600 border border-slate-200 cursor-help"
+                                >
+                                  Quitada de la geocerca
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 
