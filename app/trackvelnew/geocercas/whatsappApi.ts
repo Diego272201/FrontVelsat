@@ -122,17 +122,14 @@ export async function addDestinoWhatsApp(
 /**
  * D. Editar un número de destino existente
  * PUT /api/geocercas/{geofenceID}/whatsapp/destinos/{destinoId}
+ * Responde solo { success, message }, NO el contacto actualizado.
  */
 export async function updateDestinoWhatsApp(
   geofenceID: number,
   destinoId: number,
   payload: UpdateDestinoDto,
-): Promise<DestinoWhatsAppDto> {
-  const res = await apiClient.put<DestinoWhatsAppDto>(
-    `/api/geocercas/${geofenceID}/whatsapp/destinos/${destinoId}`,
-    payload,
-  );
-  return res.data;
+): Promise<void> {
+  await apiClient.put(`/api/geocercas/${geofenceID}/whatsapp/destinos/${destinoId}`, payload);
 }
 
 /**

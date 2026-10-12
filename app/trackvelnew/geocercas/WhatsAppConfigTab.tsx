@@ -272,13 +272,22 @@ export default function WhatsAppConfigTab({
 
     try {
       if (editingDestino) {
-        const updated = await updateDestinoWhatsApp(geofenceID, editingDestino.id, {
+        await updateDestinoWhatsApp(geofenceID, editingDestino.id, {
           nombre: destinoNombre.trim() || undefined,
           phone: phoneToSend,
           activo: destinoActivo,
           eventos: destinoEventos,
           vehiculos: vehiculosPayload,
         });
+        // El backend responde solo { success, message }: la fila se arma con lo que se guardó
+        const updated: DestinoWhatsAppDto = {
+          ...editingDestino,
+          nombre: destinoNombre.trim() || null,
+          phone: phoneToSend,
+          activo: destinoActivo,
+          eventos: destinoEventos,
+          vehiculosAsignados: vehiculosPayload,
+        };
         setDestinos((prev) =>
           prev.map((d) => (d.id === editingDestino.id ? updated : d)),
         );
