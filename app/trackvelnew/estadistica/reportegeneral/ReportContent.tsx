@@ -73,6 +73,7 @@ export default function ReportContent() {
         namedesc="general"
         username={username || ''}
         nameurl="reportegeneral"
+        maxDays={3}
       />
       <Table
         url={tableUrl}

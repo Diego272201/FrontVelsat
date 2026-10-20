@@ -1,9 +1,9 @@
 import axios from 'axios';
+import { getNotificationsBaseUrl } from './notificationsConfig';
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
-  'https://do.velsat.pe:8443/notificaciones-trackbell';
-export const REPORTS_API_BASE = `${BASE_URL.replace(/\/+$/, '')}/api/reportes/geocercas`;
+/** Base de reportes resuelta en cada llamada (DO o SR según el servidor de la sesión). */
+export const getReportsApiBase = (baseUrl?: string | null) =>
+  `${getNotificationsBaseUrl(baseUrl)}/api/reportes/geocercas`;
 
 export const STATIC_TOKEN =
   process.env.NEXT_PUBLIC_TRACKVEL_STATIC_TOKEN || 'trackvel-static-token-2026';
@@ -121,7 +121,7 @@ export async function getVisitasReport(
   token?: string,
   params?: VisitasFilterParams,
 ): Promise<VisitasReportResponse> {
-  const url = `${REPORTS_API_BASE}/visitas`;
+  const url = `${getReportsApiBase()}/visitas`;
   const cleanParams: Record<string, any> = {
     accountID: params?.accountID || 'movilbus',
   };
@@ -169,7 +169,7 @@ export async function getResumenReport(
   token: string | undefined,
   params: ResumenFilterParams,
 ): Promise<ResumenItem[]> {
-  const url = `${REPORTS_API_BASE}/resumen`;
+  const url = `${getReportsApiBase()}/resumen`;
   const cleanParams: Record<string, any> = {
     accountID: params.accountID || 'movilbus',
     fechaDesde: toIsoDate(params.fechaDesde, false) || params.fechaDesde,
@@ -200,7 +200,7 @@ export async function getVisitaById(
   id: number | string,
   accountID: string = 'movilbus',
 ): Promise<VisitaItem> {
-  const url = `${REPORTS_API_BASE}/visitas/${id}`;
+  const url = `${getReportsApiBase()}/visitas/${id}`;
   const response = await axios.get<VisitaItem>(url, {
     params: { accountID: accountID || 'movilbus' },
     headers: getAuthHeaders(token),
@@ -230,6 +230,7 @@ export interface AlertasFilterParams {
   limit?: number;
   deviceID?: string;
   geofenceID?: number | string;
+  baseUrl?: string | null;
 }
 
 /**
@@ -241,7 +242,7 @@ export async function getAlertasReport(
   token?: string,
   params?: AlertasFilterParams,
 ): Promise<AlertaItem[]> {
-  const url = `${REPORTS_API_BASE}/alertas`;
+  const url = `${getReportsApiBase(params?.baseUrl)}/alertas`;
   const cleanParams: Record<string, any> = {
     accountID: params?.accountID || 'movilbus',
     limit: params?.limit || 50,

@@ -42,6 +42,9 @@ export default function App({
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // El backend devuelve listaTablas vacía con un `mensaje` cuando rechaza la consulta
+  // (p. ej. rango mayor a 3 días); se muestra en lugar de "No hay datos".
+  const [backendMessage, setBackendMessage] = useState<string | null>(null);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
@@ -59,6 +62,7 @@ export default function App({
         if (data && Array.isArray(data.result.listaTablas)) {
           const fetchedRows: Row[] = data.result.listaTablas;
           setRows(fetchedRows);
+          setBackendMessage(fetchedRows.length === 0 ? data.result.mensaje || null : null);
           if (onDataStats) {
             const moving = fetchedRows.filter((r) => r.speedKPH > 0).length;
             const stopped = fetchedRows.filter((r) => r.speedKPH <= 0).length;
@@ -75,6 +79,7 @@ export default function App({
         } else {
           console.error('Error: Data is not in expected format', data);
           setRows([]);
+          setBackendMessage(null);
           if (onDataStats) {
             onDataStats({ total: 0, moving: 0, stopped: 0, maxSpeed: 0, lastAddress: '' });
           }
@@ -82,6 +87,7 @@ export default function App({
       } catch (error) {
         console.error('Error fetching data:', error);
         setRows([]);
+        setBackendMessage(null);
         if (onDataStats) {
           onDataStats({ total: 0, moving: 0, stopped: 0, maxSpeed: 0, lastAddress: '' });
         }
@@ -213,7 +219,9 @@ export default function App({
                   colSpan={8}
                   className="py-8 text-center text-sm text-gray-500"
                 >
-                  No hay datos para las fechas ingresadas
+                  {backendMessage && rows.length === 0
+                    ? backendMessage
+                    : 'No hay datos para las fechas ingresadas'}
                 </td>
               </tr>
             ) : (

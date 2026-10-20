@@ -1,8 +1,7 @@
 import axios from 'axios';
+import { NOTIFICATIONS_DO_URL, getNotificationsBaseUrl } from './notificationsConfig';
 
-export const WHATSAPP_API_BASE =
-  process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
-  'https://do.velsat.pe:8443/notificaciones-trackbell';
+export const WHATSAPP_API_BASE = NOTIFICATIONS_DO_URL;
 export const WHATSAPP_STATIC_TOKEN =
   process.env.NEXT_PUBLIC_TRACKVEL_STATIC_TOKEN || 'trackvel-static-token-2026';
 
@@ -78,6 +77,12 @@ const apiClient = axios.create({
     'X-API-KEY': WHATSAPP_STATIC_TOKEN,
   },
   timeout: 15000,
+});
+
+// Microservicio DO o SR según el servidor de la sesión (se resuelve en cada petición)
+apiClient.interceptors.request.use((config) => {
+  config.baseURL = getNotificationsBaseUrl();
+  return config;
 });
 
 /**

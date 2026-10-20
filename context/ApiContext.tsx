@@ -19,9 +19,30 @@ if (typeof window !== 'undefined') {
   });
 }
 
+export function isDoServer(url?: string): boolean {
+  const target = (url || '').toLowerCase().trim();
+  if (target) {
+    return target.includes('do.velsat.pe') || target.includes('2083');
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = (localStorage.getItem('servidorUrl') || '').toLowerCase().trim();
+      if (stored) {
+        return stored.includes('do.velsat.pe') || stored.includes('2083');
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+export const checkIsDoServer = isDoServer;
+
 type ApiContextType = {
   baseUrl: string;
   setBaseUrl: (url: string) => void;
+  isDoServer: boolean;
 };
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
@@ -46,8 +67,14 @@ export const ApiProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session]);
 
+  // Solo desde baseUrl: leer localStorage en el render da distinto en el
+  // servidor que en el navegador y rompe la hidratación (la campana de
+  // alertas del Tollbar aparecía solo en el cliente). baseUrl se carga desde
+  // localStorage en el efecto de arriba, así que se actualiza enseguida.
+  const isDo = baseUrl ? isDoServer(baseUrl) : false;
+
   return (
-    <ApiContext.Provider value={{ baseUrl, setBaseUrl }}>
+    <ApiContext.Provider value={{ baseUrl, setBaseUrl, isDoServer: isDo }}>
       {children}
     </ApiContext.Provider>
   );

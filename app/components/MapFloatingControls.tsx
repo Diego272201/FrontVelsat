@@ -1,8 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  Map,
-  Layers,
   Plus,
   Minus,
   LocateFixed,
@@ -22,6 +20,11 @@ import { FaTrafficLight } from 'react-icons/fa';
 import { useMapRuler } from '@/hooks/useMapRuler';
 import { useMapGeofences } from '@/hooks/useMapGeofences';
 import RulerPanel from './RulerPanel';
+import MapTypeSelector, {
+  readDefaultMapType,
+  toMapTypeId,
+  type MapTypeId,
+} from './MapTypeSelector';
 
 interface MapFloatingControlsProps {
   map: google.maps.Map | null;
@@ -41,7 +44,7 @@ export default function MapFloatingControls({
   positionClassName = 'top-16 right-4',
   fullscreenTargetRef,
 }: MapFloatingControlsProps) {
-  const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>('roadmap');
+  const [mapType, setMapType] = useState<MapTypeId>('roadmap');
   const [trafficActive, setTrafficActive] = useState(true);
   const [isStreetViewActive, setIsStreetViewActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -84,26 +87,30 @@ export default function MapFloatingControls({
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pegmanSlotRef = useRef<HTMLDivElement>(null);
 
-  // Sincronizar estado inicial del tipo de mapa y escuchar cambios
+  // Tipo de mapa: arranca con el de Configuración > Preferencias y los
+  // botones reflejan siempre el tipo real del mapa
   useEffect(() => {
     if (!map) return;
 
-    const currentType = map.getMapTypeId() || 'roadmap';
-    setMapType(
-      currentType === 'satellite' || currentType === 'hybrid'
-        ? 'hybrid'
-        : 'roadmap',
-    );
+    map.setMapTypeId(readDefaultMapType());
+    setMapType(toMapTypeId(map.getMapTypeId()));
 
     const typeListener = map.addListener('maptypeid_changed', () => {
-      const updated = map.getMapTypeId() || 'roadmap';
-      setMapType(
-        updated === 'satellite' || updated === 'hybrid' ? 'hybrid' : 'roadmap',
-      );
+      setMapType(toMapTypeId(map.getMapTypeId()));
     });
+
+    // Al guardar Preferencias se aplica el nuevo tipo sin recargar
+    const handleSettingsUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.key === 'preferences' && detail.value?.mapType) {
+        map.setMapTypeId(toMapTypeId(detail.value.mapType));
+      }
+    };
+    window.addEventListener('trackvel:settings-updated', handleSettingsUpdate);
 
     return () => {
       google.maps.event.removeListener(typeListener);
+      window.removeEventListener('trackvel:settings-updated', handleSettingsUpdate);
     };
   }, [map]);
 
@@ -259,7 +266,7 @@ export default function MapFloatingControls({
   }, []);
 
   const handleSetMapType = useCallback(
-    (type: 'roadmap' | 'hybrid') => {
+    (type: MapTypeId) => {
       if (!map) return;
       map.setMapTypeId(type);
       setMapType(type);
@@ -423,34 +430,7 @@ export default function MapFloatingControls({
       className={`absolute ${positionClassName} pointer-events-auto z-20 flex select-none flex-col items-end gap-1.5`}
     >
       {/* Selector de Tipo de Mapa */}
-      <div className="flex items-center overflow-hidden rounded-lg border border-slate-200/90 bg-white/95 p-0.5 shadow-sm backdrop-blur-md">
-        <button
-          type="button"
-          onClick={() => handleSetMapType('roadmap')}
-          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
-            mapType === 'roadmap'
-              ? 'bg-[#113EB9] text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-          title="Mapa vectorial con calles y carreteras"
-        >
-          <Map size={13} strokeWidth={2.5} />
-          <span>Mapa</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => handleSetMapType('hybrid')}
-          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all ${
-            mapType === 'hybrid'
-              ? 'bg-[#113EB9] text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-          title="Imagen satelital con relieve y nombres de vías"
-        >
-          <Layers size={13} strokeWidth={2.5} />
-          <span>Satélite</span>
-        </button>
-      </div>
+      <MapTypeSelector value={mapType} onChange={handleSetMapType} />
 
       {/* Botonera de Herramientas */}
       <div className="flex flex-col rounded-lg border border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">

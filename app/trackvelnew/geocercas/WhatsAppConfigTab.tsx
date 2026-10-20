@@ -32,6 +32,7 @@ import {
   updateGeocercaWhatsAppConfig,
 } from './whatsappApi';
 import { Vehicle } from './types';
+import { getNotificationsBaseUrl } from './notificationsConfig';
 
 interface WhatsAppConfigTabProps {
   geofenceID?: number;
@@ -119,7 +120,7 @@ export default function WhatsAppConfigTab({
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        'No se pudo conectar con el servicio de WhatsApp en https://do.velsat.pe:8443/notificaciones-trackbell';
+        `No se pudo conectar con el servicio de WhatsApp en ${getNotificationsBaseUrl()}`;
       setError(msg);
     } finally {
       setLoading(false);

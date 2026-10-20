@@ -4,11 +4,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { getAlertasReport, AlertaItem } from './reportsApi';
+import { getNotificationsBaseUrl } from './notificationsConfig';
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_TRACKVEL_API_URL ||
-  'https://do.velsat.pe:8443/notificaciones-trackbell';
-export const SIGNALR_HUB_URL = `${BASE_URL.replace(/\/+$/, '')}/notificationsHub`;
+/** Hub SignalR resuelto según el servidor de la sesión (DO o SR). */
+export const getSignalRHubUrl = (baseUrl?: string | null) =>
+  `${getNotificationsBaseUrl(baseUrl)}/notificationsHub`;
 
 export interface RealtimeGeofenceAlert {
   id: string;
@@ -36,6 +36,7 @@ export type SignalRConnectionStatus =
 
 interface UseGeofenceSignalROptions {
   accountID?: string | null;
+  baseUrl?: string | null;
   enabled?: boolean;
   isDrawerOpen?: boolean;
 }
@@ -110,9 +111,15 @@ export function mapAlertaItemToAlert(
 
 export function useGeofenceSignalR({
   accountID,
+  baseUrl,
   enabled = true,
   isDrawerOpen = false,
 }: UseGeofenceSignalROptions) {
+  // Activo tanto para DO como para SUB; el microservicio se resuelve dinámicamente
+  const effectiveEnabled = Boolean(enabled);
+  const notificationsBaseUrl = getNotificationsBaseUrl(baseUrl);
+  const hubUrl = getSignalRHubUrl(baseUrl);
+
   const [status, setStatus] = useState<SignalRConnectionStatus>('disconnected');
   const [alerts, setAlerts] = useState<RealtimeGeofenceAlert[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -128,7 +135,8 @@ export function useGeofenceSignalR({
 
   const markAllAsRead = useCallback(() => {
     setUnreadCount(0);
-    const targetAccount = accountIdRef.current || accountID || 'movilbus';
+    const targetAccount = (accountIdRef.current || accountID || '').trim();
+    if (!targetAccount) return;
     setAlerts((currAlerts) => {
       const maxAlertTime = currAlerts.reduce(
         (max, a) => Math.max(max, new Date(a.serverTime).getTime()),
@@ -152,7 +160,7 @@ export function useGeofenceSignalR({
    * y las alertas no se pierden nunca al refrescar el navegador.
    */
   const refreshAlerts = useCallback(async () => {
-    const targetAccount = accountIdRef.current || accountID || 'movilbus';
+    const targetAccount = (accountIdRef.current || accountID || '').trim();
     if (!targetAccount) return;
 
     setLoadingAlerts(true);
@@ -160,6 +168,7 @@ export function useGeofenceSignalR({
       const rawAlerts = await getAlertasReport(undefined, {
         accountID: targetAccount,
         limit: 50,
+        baseUrl,
       });
 
       if (Array.isArray(rawAlerts)) {
@@ -202,20 +211,22 @@ export function useGeofenceSignalR({
     } finally {
       setLoadingAlerts(false);
     }
-  }, [accountID]);
+  }, [accountID, notificationsBaseUrl]);
 
-  // Precargar alertas individuales al montar el componente (F5) o cambiar de cuenta
+  // Precargar alertas individuales al montar el componente (F5) o cambiar de cuenta/servidor
   useEffect(() => {
-    if (enabled && accountID) {
+    if (effectiveEnabled && accountID) {
       refreshAlerts();
     }
-  }, [enabled, accountID, refreshAlerts]);
+  }, [effectiveEnabled, accountID, refreshAlerts]);
 
   const clearAlerts = useCallback(() => {
     setAlerts([]);
     setUnreadCount(0);
-    const targetAccount = accountIdRef.current || accountID || 'movilbus';
-    setLastReadTime(targetAccount, Date.now());
+    const targetAccount = (accountIdRef.current || accountID || '').trim();
+    if (targetAccount) {
+      setLastReadTime(targetAccount, Date.now());
+    }
   }, [accountID]);
 
   const removeAlert = useCallback((id: string) => {
@@ -229,8 +240,8 @@ export function useGeofenceSignalR({
    * Si 3 carros generan alertas al mismo segundo, los 3 eventos se procesan y apilan juntos.
    */
   useEffect(() => {
-    const targetAccount = accountID || 'movilbus';
-    if (!enabled || !targetAccount) {
+    const targetAccount = (accountID || '').trim();
+    if (!effectiveEnabled || !targetAccount) {
       if (connectionRef.current) {
         if (connectionRef.current.state === signalR.HubConnectionState.Connected) {
           connectionRef.current.stop().catch(() => {});
@@ -244,7 +255,7 @@ export function useGeofenceSignalR({
     let isCancelled = false;
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(SIGNALR_HUB_URL)
+      .withUrl(hubUrl)
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build();
@@ -419,7 +430,7 @@ export function useGeofenceSignalR({
       }
       setStatus('disconnected');
     };
-  }, [accountID, enabled]);
+  }, [accountID, enabled, hubUrl]);
 
   return {
     status,

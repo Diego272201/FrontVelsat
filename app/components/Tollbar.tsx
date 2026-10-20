@@ -561,6 +561,9 @@ const Tollbar: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [activeLink, setActiveLink] = useState<number | null>(null);
   const { baseUrl } = useApi();
+  // Geocercas + alertas en tiempo real habilitadas para DO y SUB
+  // (cada uno usa su propio backend base, microservicio y Traccar)
+  const showGeofences = true;
   const pathname = usePathname();
 
   const { openMenus, toggleMenu, closeAllMenus } = useMenuState();
@@ -1033,8 +1036,12 @@ const Tollbar: React.FC = () => {
           <nav className="navigation">
             <ul className="mr-[-25px] flex h-[36px] items-center gap-1">
               <div className="ml-auto flex items-center">
-                <AlertsDropdown />
-                <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                {showGeofences && (
+                  <>
+                    <AlertsDropdown />
+                    <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  </>
+                )}
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1070,8 +1077,12 @@ const Tollbar: React.FC = () => {
           </button>
 
           <div className="exitToolbarM flex items-center gap-1">
-            <AlertsDropdown />
-            <div className="mx-0.5 h-4 w-[1px] bg-white/25" />
+            {showGeofences && (
+              <>
+                <AlertsDropdown />
+                <div className="mx-0.5 h-4 w-[1px] bg-white/25" />
+              </>
+            )}
             <Profile toggleFullScreen={toggleFullScreen} />
           </div>
         </div>
@@ -1145,23 +1156,29 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
 
-              <li className="group relative">
-                <Link
-                  href="/trackvelnew/geocercas"
-                  title="Geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                >
-                  <span>Geocercas</span>
-                </Link>
-              </li>
+              {showGeofences && (
+                <li className="group relative">
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    title="Geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  >
+                    <span>Geocercas</span>
+                  </Link>
+                </li>
+              )}
 
 
               <div className="exitToolbar bg-[#edf2f4] bg-opacity-10">
                 <div className="flex items-center justify-center p-0">
-                  <AlertsDropdown />
-                  <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  {showGeofences && (
+                    <>
+                      <AlertsDropdown />
+                      <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                    </>
+                  )}
                   <Profile toggleFullScreen={toggleFullScreen} />
                 </div>
               </div>
@@ -1208,17 +1225,19 @@ const Tollbar: React.FC = () => {
                 </Link>
               </li>
 
-              <li className="group relative">
-                <Link
-                  href="/trackvelnew/geocercas"
-                  title="Geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                >
-                  <span>Geocercas</span>
-                </Link>
-              </li>
+              {showGeofences && (
+                <li className="group relative">
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    title="Geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  >
+                    <span>Geocercas</span>
+                  </Link>
+                </li>
+              )}
 
               {/* ← NUEVO: Rastreo Móvil para movilbus */}
               {renderDropdownMenu(
@@ -1235,8 +1254,12 @@ const Tollbar: React.FC = () => {
 
 
               <div className="ml-auto flex items-center">
-                <AlertsDropdown />
-                <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                {showGeofences && (
+                  <>
+                    <AlertsDropdown />
+                    <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  </>
+                )}
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1248,21 +1271,27 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
               {renderDropdownMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
-              <li className="group relative">
-                <Link
-                  href="/subtrackvelnew/geocercas"
-                  title="Geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center bg-black/10 px-1.5 py-[8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                >
-                  <span>Geocercas</span>
-                </Link>
-              </li>
+              {showGeofences && (
+                <li className="group relative">
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    title="Geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center bg-black/10 px-1.5 py-[8px] text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  >
+                    <span>Geocercas</span>
+                  </Link>
+                </li>
+              )}
 
               <div className="ml-auto flex items-center">
-                <AlertsDropdown />
-                <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                {showGeofences && (
+                  <>
+                    <AlertsDropdown />
+                    <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  </>
+                )}
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1283,22 +1312,28 @@ const Tollbar: React.FC = () => {
                 () => toggleMenu('reportes'),
               )}
 
-              <li className="group relative">
-                <Link
-                  href="/trackvelnew/geocercas"
-                  title="Geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                >
-                  <span>Geocercas</span>
-                </Link>
-              </li>
+              {showGeofences && (
+                <li className="group relative">
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    title="Geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                  >
+                    <span>Geocercas</span>
+                  </Link>
+                </li>
+              )}
 
 
               <div className="ml-auto flex items-center">
-                <AlertsDropdown />
-                <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                {showGeofences && (
+                  <>
+                    <AlertsDropdown />
+                    <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  </>
+                )}
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1312,17 +1347,19 @@ const Tollbar: React.FC = () => {
                     () => toggleMenu('reportes'),
                   )}
                   {renderDropdownMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
-                  <li className="group relative">
-                    <Link
-                      href="/trackvelnew/geocercas"
-                      title="Geocercas"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                    >
-                      <span>Geocercas</span>
-                    </Link>
-                  </li>
+                  {showGeofences && (
+                    <li className="group relative">
+                      <Link
+                        href="/trackvelnew/geocercas"
+                        title="Geocercas"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                      >
+                        <span>Geocercas</span>
+                      </Link>
+                    </li>
+                  )}
 
                 </>
               ) : (
@@ -1363,24 +1400,30 @@ const Tollbar: React.FC = () => {
                     () => toggleMenu('reportes'),
                   )}
 
-                  <li className="group relative">
-                    <Link
-                      href="/trackvelnew/geocercas"
-                      title="Geocercas"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
-                    >
-                      <span>Geocercas</span>
-                    </Link>
-                  </li>
+                  {showGeofences && (
+                    <li className="group relative">
+                      <Link
+                        href="/trackvelnew/geocercas"
+                        title="Geocercas"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-[36px] items-center bg-black/10 px-1.5 text-[12.3px] font-medium text-white transition-all duration-200 hover:bg-[#ebf2fa] hover:text-slate-900 hover:shadow-md"
+                      >
+                        <span>Geocercas</span>
+                      </Link>
+                    </li>
+                  )}
 
                 </>
               )}
 
               <div className="ml-auto flex items-center">
-                <AlertsDropdown />
-                <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                {showGeofences && (
+                  <>
+                    <AlertsDropdown />
+                    <div className="mx-1 h-5 w-[1px] bg-white/25" />
+                  </>
+                )}
                 <Profile toggleFullScreen={toggleFullScreen} />
               </div>
             </ul>
@@ -1399,6 +1442,7 @@ const Tollbar: React.FC = () => {
           namedesc="general"
           showDownloadButton={true}
           icono={<SiGoogledocs size={25} />}
+          maxDays={3}
         />
       )}
 
@@ -1599,41 +1643,43 @@ const Tollbar: React.FC = () => {
               </div>
             </div>
 
-            <Link
-              href="/trackvelnew/geocercas"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => toggleMenu('sidebar')}
-            >
-              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                  <MdDisplaySettings className="text-lg text-white" />
+            {showGeofences && (
+              <Link
+                href="/trackvelnew/geocercas"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => toggleMenu('sidebar')}
+              >
+                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                    <MdDisplaySettings className="text-lg text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                      Geocercas
+                    </span>
+                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                      Abrir en nueva pestaña
+                    </span>
+                  </div>
+                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                    <svg
+                      className="h-4 w-4 text-orange-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-                    Geocercas
-                  </span>
-                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                    Abrir en nueva pestaña
-                  </span>
-                </div>
-                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                  <svg
-                    className="h-4 w-4 text-orange-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            )}
 
             {/* Agregar menú de Reportes en sidebar */}
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
@@ -1705,41 +1751,43 @@ const Tollbar: React.FC = () => {
               </div>
             </Link>
 
-            <Link
-              href="/trackvelnew/geocercas"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => toggleMenu('sidebar')}
-            >
-              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                  <MdDisplaySettings className="text-lg text-white" />
+            {showGeofences && (
+              <Link
+                href="/trackvelnew/geocercas"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => toggleMenu('sidebar')}
+              >
+                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                    <MdDisplaySettings className="text-lg text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                      Geocercas
+                    </span>
+                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                      Abrir en nueva pestaña
+                    </span>
+                  </div>
+                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                    <svg
+                      className="h-4 w-4 text-orange-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-                    Geocercas
-                  </span>
-                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                    Abrir en nueva pestaña
-                  </span>
-                </div>
-                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                  <svg
-                    className="h-4 w-4 text-orange-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            )}
 
             {/* ← NUEVO: Rastreo Móvil para movilbus */}
             {renderSidebarMenu(MENU_CONFIG.RASTREO_MOVILBUS, false, () => {})}
@@ -1754,41 +1802,43 @@ const Tollbar: React.FC = () => {
               toggleMenu('reportes'),
             )}
             {renderSidebarMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
-            <Link
-              href="/subtrackvelnew/geocercas"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => toggleMenu('sidebar')}
-            >
-              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                  <MdDisplaySettings className="text-lg text-white" />
+            {showGeofences && (
+              <Link
+                href="/trackvelnew/geocercas"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => toggleMenu('sidebar')}
+              >
+                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                    <MdDisplaySettings className="text-lg text-white" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                      Geocercas
+                    </span>
+                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                      Abrir en nueva pestaña
+                    </span>
+                  </div>
+                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                    <svg
+                      className="h-4 w-4 text-orange-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-                    Geocercas
-                  </span>
-                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                    Abrir en nueva pestaña
-                  </span>
-                </div>
-                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                  <svg
-                    className="h-4 w-4 text-orange-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </Link>
+              </Link>
+            )}
           </div>
         ) : isView ? (
           // SIDEBAR PARA VIEWERS
@@ -1811,41 +1861,43 @@ const Tollbar: React.FC = () => {
                   () => toggleMenu('reportes'),
                 )}
                 {renderSidebarMenu(MENU_CONFIG.DOCUMENTOS, false, () => {})}
-                <Link
-                  href="/trackvelnew/geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => toggleMenu('sidebar')}
-                >
-                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                      <MdDisplaySettings className="text-lg text-white" />
+                {showGeofences && (
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => toggleMenu('sidebar')}
+                  >
+                    <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                        <MdDisplaySettings className="text-lg text-white" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                          Geocercas
+                        </span>
+                        <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                          Abrir en nueva pestaña
+                        </span>
+                      </div>
+                      <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                        <svg
+                          className="h-4 w-4 text-orange-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-                        Geocercas
-                      </span>
-                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                        Abrir en nueva pestaña
-                      </span>
-                    </div>
-                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                      <svg
-                        className="h-4 w-4 text-orange-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+                )}
               </>
             ) : (
               <>
@@ -1896,41 +1948,43 @@ const Tollbar: React.FC = () => {
                   </div>
                 </Link>
 
-                <Link
-                  href="/trackvelnew/geocercas"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => toggleMenu('sidebar')}
-                >
-                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                      <MdDisplaySettings className="text-lg text-white" />
+                {showGeofences && (
+                  <Link
+                    href="/trackvelnew/geocercas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => toggleMenu('sidebar')}
+                  >
+                    <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+                        <MdDisplaySettings className="text-lg text-white" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                          Geocercas
+                        </span>
+                        <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
+                          Abrir en nueva pestaña
+                        </span>
+                      </div>
+                      <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                        <svg
+                          className="h-4 w-4 text-orange-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
-                        Geocercas
-                      </span>
-                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                        Abrir en nueva pestaña
-                      </span>
-                    </div>
-                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                      <svg
-                        className="h-4 w-4 text-orange-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </Link>
+                  </Link>
+                )}
 
                 <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:shadow-purple-100/50">
                   <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">

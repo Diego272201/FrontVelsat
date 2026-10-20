@@ -16,6 +16,7 @@ interface DownloadParameterProps {
   nameurl: string;
   speedCar?: string; // solo para velocidad
   isKilometrajeAll?: boolean; // solo para kilometraje "all"
+  maxDays?: number;
 }
 
 export default function ButtonDownload({
@@ -28,6 +29,7 @@ export default function ButtonDownload({
   nameurl,
   speedCar,
   isKilometrajeAll = false,
+  maxDays = 11,
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -52,8 +54,8 @@ export default function ButtonDownload({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 11) {
-      toast.error('El límite de fechas es de 11 días', {
+    if (diffDays > maxDays) {
+      toast.error(`El límite de fechas es de ${maxDays} días`, {
         id: toastId,
         className: 'toast-slide-in',
         richColors: true,

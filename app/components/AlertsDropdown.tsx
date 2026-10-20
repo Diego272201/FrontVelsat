@@ -18,6 +18,8 @@ import {
   useGeofenceSignalR,
   RealtimeGeofenceAlert,
 } from '@/app/trackvelnew/geocercas/useGeofenceSignalR';
+import { useSession } from 'next-auth/react';
+import { useApi } from '@/context/ApiContext';
 
 function formatDateTime(dateStr: string): string {
   try {
@@ -53,6 +55,9 @@ function formatShortTime(dateStr: string): string {
 }
 
 export default function AlertsDropdown() {
+  const { data: session } = useSession();
+  const { baseUrl } = useApi();
+
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [onlyUnread, setOnlyUnread] = useState(false);
@@ -60,11 +65,13 @@ export default function AlertsDropdown() {
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
-  const [effectiveUsername, setEffectiveUsername] = useState<string>('movilbus');
+  const [storedUsername, setStoredUsername] = useState<string>('');
+  const [storedBaseUrl, setStoredBaseUrl] = useState<string>('');
 
-  // Marcador y popup de alerta en el mapa de Trackvel
+  // Marcador y popup de alerta en el mapa de Trackvel (Google Maps o Leaflet)
   const alertMarkerRef = useRef<google.maps.Marker | null>(null);
   const alertInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const leafletAlertMarkerRef = useRef<any>(null);
   const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
@@ -72,18 +79,35 @@ export default function AlertsDropdown() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const filterMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Resolver usuario desde localStorage
+  // Resolver usuario y servidorUrl desde localStorage y sesión
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('currentUser');
-      if (stored && stored.trim()) {
-        setEffectiveUsername(stored.trim());
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser && storedUser.trim()) {
+        setStoredUsername(storedUser.trim());
+      }
+      const storedUrl = localStorage.getItem('servidorUrl');
+      if (storedUrl && storedUrl.trim()) {
+        setStoredBaseUrl(storedUrl.trim());
       }
     }
-  }, []);
+  }, [session?.user?.username, baseUrl]);
 
-  // Hook SignalR para Alertas en Tiempo Real de Geocercas
+  const effectiveUsername = (
+    session?.user?.username ||
+    storedUsername ||
+    ''
+  ).trim();
+
+  const effectiveBaseUrl = (
+    baseUrl ||
+    (session?.user as any)?.servidorUrl ||
+    storedBaseUrl ||
+    ''
+  ).trim();
+
+  // Hook SignalR para Alertas en Tiempo Real de Geocercas (DO y SUB)
   const {
     status: signalRStatus,
     alerts: rawAlerts,
@@ -93,6 +117,7 @@ export default function AlertsDropdown() {
     refreshAlerts,
   } = useGeofenceSignalR({
     accountID: effectiveUsername,
+    baseUrl: effectiveBaseUrl,
     enabled: Boolean(effectiveUsername),
     isDrawerOpen: isOpen,
   });
@@ -122,7 +147,7 @@ export default function AlertsDropdown() {
     };
   }, []);
 
-  // Limpiar marcador y popup de alerta del mapa
+  // Limpiar marcador y popup de alerta del mapa (Google Maps y Leaflet)
   const handleClearAlertMarker = useCallback(() => {
     if (alertTimeoutRef.current) {
       clearTimeout(alertTimeoutRef.current);
@@ -136,28 +161,26 @@ export default function AlertsDropdown() {
       alertInfoWindowRef.current.close();
       alertInfoWindowRef.current = null;
     }
+    if (leafletAlertMarkerRef.current) {
+      try {
+        leafletAlertMarkerRef.current.remove();
+      } catch {}
+      leafletAlertMarkerRef.current = null;
+    }
     setSelectedAlertId(null);
   }, []);
 
-  // Centrar mapa de Trackvel en alerta en tiempo real con icono /UnidadK.webp y popup detallado
+  // Centrar mapa de Trackvel (/trackvelnew o /subtrackvelnew) en alerta en tiempo real con icono /UnidadK.webp y popup detallado
   const handleLocateAlert = useCallback(
     (alert: RealtimeGeofenceAlert) => {
       if (typeof window === 'undefined') return;
-      const map = (window as any).__trackvelMap as google.maps.Map | undefined;
-
-      if (!map || typeof google === 'undefined' || !google.maps) {
-        console.warn('[Alerts] El mapa de Trackvel aún no está listo');
-        return;
-      }
-
-      handleClearAlertMarker();
+      const gMap = (window as any).__trackvelMap as google.maps.Map | undefined;
+      const lMap = (window as any).__leafletMap as any;
+      const LRef = (window as any).__leafletL as any;
 
       const lat = Number(alert.latitude);
       const lng = Number(alert.longitude);
       if (!lat || !lng) return;
-
-      map.setCenter({ lat, lng });
-      map.setZoom(17);
 
       const isEnter = alert.eventType === 'geofenceEnter';
       const deviceID = (alert.deviceID || 'Vehículo').toUpperCase();
@@ -185,21 +208,6 @@ export default function AlertsDropdown() {
       } catch {
         formattedTime = alert.serverTime;
       }
-
-      const marker = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: `${deviceID} (${isEnter ? 'Entrada' : 'Salida'})`,
-        animation: google.maps.Animation.DROP,
-        zIndex: 9999999,
-        icon: {
-          url: '/UnidadK.webp',
-          scaledSize: new google.maps.Size(60, 34),
-          anchor: new google.maps.Point(30, 17),
-        },
-      });
-
-      alertMarkerRef.current = marker;
 
       const enterSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>`;
       const exitSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
@@ -250,47 +258,118 @@ export default function AlertsDropdown() {
         </div>
       `;
 
-      const info = new google.maps.InfoWindow({
-        content: infoWindowContent,
-        pixelOffset: new google.maps.Size(0, -18),
-        zIndex: 99999999,
-      });
-
-      info.open(map, marker);
-      alertInfoWindowRef.current = info;
-      setSelectedAlertId(alert.id);
-
-      marker.addListener('click', () => {
-        info.open(map, marker);
-      });
-
-      marker.addListener('rightclick', () => {
+      // Caso 1: Google Maps (/trackvelnew)
+      if (gMap && typeof google !== 'undefined' && google.maps) {
         handleClearAlertMarker();
-      });
 
-      info.addListener('closeclick', () => {
-        handleClearAlertMarker();
-      });
+        gMap.setCenter({ lat, lng });
+        gMap.setZoom(17);
 
-      google.maps.event.addListenerOnce(info, 'domready', () => {
-        const btnQuitar = document.getElementById('btn-quitar-alerta-popup');
-        if (btnQuitar) {
-          btnQuitar.onclick = () => {
-            handleClearAlertMarker();
-          };
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map: gMap,
+          title: `${deviceID} (${isEnter ? 'Entrada' : 'Salida'})`,
+          animation: google.maps.Animation.DROP,
+          zIndex: 9999999,
+          icon: {
+            url: '/UnidadK.webp',
+            scaledSize: new google.maps.Size(60, 34),
+            anchor: new google.maps.Point(30, 17),
+          },
+        });
 
-          // Elevar el contenedor de la InfoWindow y todos sus contenedores padres en floatPane
-          let el: HTMLElement | null = btnQuitar;
-          while (el && !el.classList.contains('gm-style')) {
-            el.style.setProperty('z-index', '99999999', 'important');
-            el = el.parentElement;
+        alertMarkerRef.current = marker;
+
+        const info = new google.maps.InfoWindow({
+          content: infoWindowContent,
+          pixelOffset: new google.maps.Size(0, -18),
+          zIndex: 99999999,
+        });
+
+        info.open(gMap, marker);
+        alertInfoWindowRef.current = info;
+        setSelectedAlertId(alert.id);
+
+        marker.addListener('click', () => {
+          info.open(gMap, marker);
+        });
+
+        marker.addListener('rightclick', () => {
+          handleClearAlertMarker();
+        });
+
+        info.addListener('closeclick', () => {
+          handleClearAlertMarker();
+        });
+
+        google.maps.event.addListenerOnce(info, 'domready', () => {
+          const btnQuitar = document.getElementById('btn-quitar-alerta-popup');
+          if (btnQuitar) {
+            btnQuitar.onclick = () => {
+              handleClearAlertMarker();
+            };
+
+            let el: HTMLElement | null = btnQuitar;
+            while (el && !el.classList.contains('gm-style')) {
+              el.style.setProperty('z-index', '99999999', 'important');
+              el = el.parentElement;
+            }
           }
-        }
-      });
+        });
 
-      alertTimeoutRef.current = setTimeout(() => {
+        alertTimeoutRef.current = setTimeout(() => {
+          handleClearAlertMarker();
+        }, 60000);
+        return;
+      }
+
+      // Caso 2: Leaflet (/subtrackvelnew)
+      if (lMap && LRef) {
         handleClearAlertMarker();
-      }, 60000);
+
+        lMap.setView([lat, lng], 17);
+
+        const icon = LRef.icon({
+          iconUrl: '/UnidadK.webp',
+          iconSize: [60, 34],
+          iconAnchor: [30, 17],
+          popupAnchor: [0, -18],
+        });
+
+        const lMarker = LRef.marker([lat, lng], {
+          icon,
+          zIndexOffset: 99999,
+        }).addTo(lMap);
+
+        lMarker.bindPopup(infoWindowContent, {
+          minWidth: 220,
+          closeButton: true,
+        });
+        lMarker.openPopup();
+
+        lMarker.on('popupopen', () => {
+          const btnQuitar = document.getElementById('btn-quitar-alerta-popup');
+          if (btnQuitar) {
+            btnQuitar.onclick = () => {
+              handleClearAlertMarker();
+            };
+          }
+        });
+
+        lMarker.on('popupclose', () => {
+          handleClearAlertMarker();
+        });
+
+        leafletAlertMarkerRef.current = lMarker;
+        setSelectedAlertId(alert.id);
+
+        alertTimeoutRef.current = setTimeout(() => {
+          handleClearAlertMarker();
+        }, 60000);
+        return;
+      }
+
+      console.warn('[Alerts] El mapa aún no está listo');
     },
     [handleClearAlertMarker],
   );

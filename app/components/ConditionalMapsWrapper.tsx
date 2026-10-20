@@ -15,8 +15,12 @@ export default function ConditionalMapsWrapper({ children }: ConditionalMapsWrap
   // No cargar MapsWrapper en páginas de autenticación
   const isAuthPage = pathname === '/' || pathname === '/login' || pathname === '/auth';
 
-  // En la página de geocercas, la propia vista gestiona el script de Google Maps con librerías completas
+  // Geocercas usa Leaflet con tiles públicos: tampoco carga la Maps JavaScript API
   const isGeocercasPage = pathname?.includes('/geocercas');
+
+  // /subtrackvelnew usa Leaflet con tiles públicos: no se carga la Maps
+  // JavaScript API (de pago) para que esas páginas no generen costos.
+  const isSubtrackPage = pathname?.startsWith('/subtrackvelnew');
 
   // No cargar hasta que haya sesión autenticada
   const shouldLoadMaps = status === 'authenticated' && session?.user && !isAuthPage;
@@ -24,7 +28,7 @@ export default function ConditionalMapsWrapper({ children }: ConditionalMapsWrap
   // Obtener serverUrl de la sesión (puede estar vacío)
   const servidorUrl = session?.user?.serverUrl || '';
 
-  if (isGeocercasPage || !shouldLoadMaps) {
+  if (isGeocercasPage || isSubtrackPage || !shouldLoadMaps) {
     // Proporcionar GoogleMapsProvider pero deshabilitado para evitar conflictos de doble script
     return (
       <MapsWrapper servidorUrl="" disableGoogleMaps={true}>

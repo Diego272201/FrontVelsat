@@ -14,6 +14,7 @@ interface DownloadParameterProps {
   nameurl: string;
   speedCar?: string;
   isKilometrajeAll?: boolean;
+  maxDays?: number;
 }
 
 export default function ButtonDownloadFloat({
@@ -26,6 +27,7 @@ export default function ButtonDownloadFloat({
   nameurl,
   speedCar,
   isKilometrajeAll = false,
+  maxDays,
 }: DownloadParameterProps) {
   const { baseUrl } = useApi();
 
@@ -36,7 +38,7 @@ export default function ButtonDownloadFloat({
     });
 
     if (nameurl !== 'reporteeventos') {
-      const errorMsg = validateDateRange(startDate, endDate);
+      const errorMsg = validateDateRange(startDate, endDate, maxDays);
       if (errorMsg) {
         toast.error(errorMsg, {
           id: toastId,

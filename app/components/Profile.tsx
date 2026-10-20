@@ -4,7 +4,13 @@ import { useRouter } from 'next/navigation';
 import { ImExit } from 'react-icons/im';
 import { BiFullscreen } from 'react-icons/bi';
 import { FaUserTie } from 'react-icons/fa';
+import { FiSettings } from 'react-icons/fi';
 import Image from 'next/image';
+import SettingsModal from './settings/SettingsModal';
+
+// Opción "Configuración" oculta temporalmente para producción.
+// Para volver a mostrarla, cambiar a true (el modal y su código siguen intactos).
+const SHOW_SETTINGS_OPTION = false;
 
 interface Props {
   toggleFullScreen?: () => void;
@@ -12,6 +18,7 @@ interface Props {
 
 export default function ProfileDropdown({ toggleFullScreen }: Props) {
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
@@ -80,6 +87,39 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
 
           {/* Opciones del menú */}
           <div className="py-2">
+            {SHOW_SETTINGS_OPTION && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                setSettingsOpen(true);
+              }}
+              className="group flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 text-left transition-all duration-200 hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-700"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 transition-colors duration-200 group-hover:bg-blue-100">
+                <FiSettings
+                  className="text-slate-600 transition-colors duration-200 group-hover:text-blue-600"
+                  size={17}
+                />
+              </div>
+              <div className="flex-1">
+                <p className="text-[12px] font-medium text-slate-700 group-hover:text-blue-700">
+                  Configuración
+                </p>
+                <p className="text-xs text-slate-500 group-hover:text-blue-600">
+                  Cuenta, unidades y alertas
+                </p>
+              </div>
+              <svg
+                className="h-4 w-4 text-slate-400 transition-colors duration-200 group-hover:text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            )}
+
             <button
               onClick={() => {
                 setOpen(false);
@@ -159,6 +199,8 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
           </div>
         </div>
       )}
+
+      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

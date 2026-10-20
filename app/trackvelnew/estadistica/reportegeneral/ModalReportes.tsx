@@ -27,6 +27,8 @@ interface AppModalProps {
   showDownloadButton: boolean;
   useSelectAll?: boolean;
   icono?: React.ReactNode;
+  // Límite de días que acepta el backend para este reporte
+  maxDays?: number;
 }
 
 const AppModalReportes: React.FC<AppModalProps> = ({
@@ -39,6 +41,7 @@ const AppModalReportes: React.FC<AppModalProps> = ({
   showDownloadButton,
   useSelectAll = false,
   icono,
+  maxDays = 11,
 }) => {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
@@ -81,8 +84,8 @@ const AppModalReportes: React.FC<AppModalProps> = ({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 11) {
-      toast.error('El límite de fechas es de 11 días', {
+    if (diffDays > maxDays) {
+      toast.error(`El límite de fechas es de ${maxDays} días`, {
         className: 'toast-slide-in',
         richColors: true,
       });
@@ -170,6 +173,7 @@ const AppModalReportes: React.FC<AppModalProps> = ({
                       nameurl={nameurl}
                       username={username || ''}
                       isKilometrajeAll={isAllUnitsSelected}
+                      maxDays={maxDays}
                     />
                   </div>
                 )}

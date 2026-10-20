@@ -33,6 +33,14 @@ interface FollowUnitCameraProps {
   onClose: () => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  /** Ruta de seguimiento a abrir en nueva pestaña (subtrackvelnew usa la suya). */
+  followPath?: string;
+  /**
+   * Usa el embed público de Google ("Compartir > Insertar mapa"), que no
+   * lleva API key ni está ligado a ninguna cuenta de facturación.
+   * subtrackvelnew lo exige: ahí no debe usarse ninguna API key de Google.
+   */
+  keyless?: boolean;
 }
 
 const GOOGLE_MAPS_API_KEY =
@@ -45,6 +53,8 @@ export default function FollowUnitCamera({
   onClose,
   isMinimized: controlledMinimized,
   onToggleMinimize,
+  followPath = '/trackvelnew/seguirUnidad',
+  keyless = false,
 }: FollowUnitCameraProps) {
   const [internalMinimized, setInternalMinimized] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -70,11 +80,17 @@ export default function FollowUnitCamera({
   const headingSector = Math.floor((device.lastValidHeading || 0) / 45) * 45;
 
   const embedUrl = useMemo(() => {
-    if (!GOOGLE_MAPS_API_KEY || roundedLat == null || roundedLng == null) {
+    if (roundedLat == null || roundedLng == null) {
+      return '';
+    }
+    if (keyless) {
+      return `https://www.google.com/maps/embed?pb=!6m7!1m6!2m2!1d${roundedLat}!2d${roundedLng}!3f${headingSector}!4f0!5f0.7820865974627469`;
+    }
+    if (!GOOGLE_MAPS_API_KEY) {
       return '';
     }
     return `https://www.google.com/maps/embed/v1/streetview?location=${roundedLat},${roundedLng}&heading=${headingSector}&pitch=0&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
-  }, [roundedLat, roundedLng, headingSector]);
+  }, [roundedLat, roundedLng, headingSector, keyless]);
 
   // Doble buffer de iframes para eliminar el parpadeo negro durante las transiciones de posición
   const [currentUrl, setCurrentUrl] = useState<string>(embedUrl);
@@ -143,7 +159,7 @@ export default function FollowUnitCamera({
   const speed = Math.round(device.lastValidSpeed || 0);
 
   const handleOpenFullFollow = () => {
-    const url = `/trackvelnew/seguirUnidad?deviceId=${device.deviceId}`;
+    const url = `${followPath}?deviceId=${device.deviceId}`;
     window.open(url, '_blank');
   };
 

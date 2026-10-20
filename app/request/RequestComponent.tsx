@@ -12,11 +12,28 @@ import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import ExpiryAlerts from '../components/ExpiryAlerts';
 import FollowUnitCamera from '../components/FollowUnitCamera';
 import ShareUnitDrawer from '../components/ShareUnitDrawer';
+import { startSound, SoundHandle } from '@/app/components/settings/soundPlayer';
+import {
+  getCurrentUser,
+  loadSettings,
+  getAlertSoundConfig,
+  getSpeedLimitForUnit,
+} from '@/app/components/settings/useUserSettings';
+import { isCurrentlyQuietHours } from '@/app/components/settings/mockData';
+import { useMarkerClustering } from '@/app/components/settings/useMarkerClustering';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
   el.textContent = value;
   return el.innerHTML;
+}
+
+function readFollowPreference(): boolean {
+  try {
+    return loadSettings(getCurrentUser()).preferences?.followSelectedUnit !== false;
+  } catch {
+    return true;
+  }
 }
 
 const COLOR_MAP: Record<string, string> = {
@@ -200,30 +217,88 @@ export default function RequestPage() {
     onLoad: mapOnLoad,
     onUnmount: mapOnUnmount,
   } = useMapInstance();
+  // Agrupar unidades cercanas (Configuración > Preferencias)
+  const clustering = useMarkerClustering(mapRef, markersDataRef, mapLoaded);
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [followedDeviceId, setFollowedDeviceId] = useState<string | null>(null);
   const [isCameraMinimized, setIsCameraMinimized] = useState(false);
   const followedDeviceIdRef = useRef<string | null>(null);
   followedDeviceIdRef.current = followedDeviceId;
+  const followPreferenceRef = useRef<boolean>(true);
+  useEffect(() => {
+    followPreferenceRef.current = readFollowPreference();
+  }, []);
+  const updateCameraButtonStates = useCallback((activeId: string | null) => {
+    document.querySelectorAll('.camera-track-btn').forEach((btn) => {
+      const btnDeviceId = btn.getAttribute('data-device-id');
+      const isFollowed = btnDeviceId === activeId;
+      const btnEl = btn as HTMLElement;
+      btnEl.classList.toggle('pv2-cam-btn-active', isFollowed);
+      btnEl.title = isFollowed
+        ? 'Desactivar cámara fija'
+        : 'Fijar cámara en este vehículo';
+      btnEl.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+          <circle cx="12" cy="13" r="3"/>
+        </svg>
+      `;
+    });
+  }, []);
+
   const clickListenerAttached = useRef<boolean>(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const soundHandleRef = useRef<SoundHandle | null>(null);
   const alertTimeouts = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      audioRef.current = new Audio('/alert.mp3');
-      audioRef.current.preload = 'auto';
-      audioRef.current.volume = 0.4;
+  const stopSpeedAlert = useCallback(() => {
+    if (soundHandleRef.current) {
+      soundHandleRef.current.stop();
+      soundHandleRef.current = null;
     }
   }, []);
 
   const playSpeedAlert = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.loop = true;
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(console.error);
+    stopSpeedAlert();
+    try {
+      const cfg = getAlertSoundConfig('overspeed');
+      if (!cfg.enabled || cfg.muteAll || cfg.sound === 'none') return;
+      soundHandleRef.current = startSound(
+        cfg.sound,
+        cfg.volume,
+        cfg.masterVolume,
+        cfg.loop,
+      );
+    } catch (e) {
+      console.error('Error al reproducir alerta de velocidad:', e);
     }
-  }, []);
+  }, [stopSpeedAlert]);
+
+  useEffect(() => {
+    const handleSettingsUpdate = (e: any) => {
+      const detail = e.detail;
+      if (detail?.key === 'alerts') {
+        const alerts = detail.value;
+        const isQuiet = alerts?.quietHours && isCurrentlyQuietHours(alerts.quietHours);
+        if (alerts?.muteAll || isQuiet) {
+          stopSpeedAlert();
+        }
+      } else if (detail?.key === 'preferences') {
+        const prefs = detail.value;
+        // El tipo de mapa lo aplica MapFloatingControls
+        if (typeof prefs?.followSelectedUnit === 'boolean') {
+          followPreferenceRef.current = prefs.followSelectedUnit;
+          if (!prefs.followSelectedUnit) {
+            followedDeviceIdRef.current = null;
+            setFollowedDeviceId(null);
+            updateCameraButtonStates(null);
+          }
+        }
+      }
+    };
+    window.addEventListener('trackvel:settings-updated', handleSettingsUpdate);
+    return () =>
+      window.removeEventListener('trackvel:settings-updated', handleSettingsUpdate);
+  }, [stopSpeedAlert, mapRef, updateCameraButtonStates]);
 
   const { baseUrl } = useApi();
 
@@ -361,8 +436,12 @@ export default function RequestPage() {
         setMarkersLoaded(true);
         setDeviceList(datos);
 
-        // Centrado suave en la unidad seguida (cámara fija) cada 8 segundos
-        if (followedDeviceIdRef.current && mapRef.current) {
+        // Centrado suave en la unidad seguida (cámara fija) solo si la preferencia está activa
+        if (
+          followPreferenceRef.current &&
+          followedDeviceIdRef.current &&
+          mapRef.current
+        ) {
           const followed = datos.find(
             (d: DeviceList) => d.deviceId === followedDeviceIdRef.current,
           );
@@ -376,8 +455,10 @@ export default function RequestPage() {
 
         for (const device of datos) {
           const deviceKey = device.deviceId;
+          const speedLimit = getSpeedLimitForUnit(device.deviceId);
 
-          if (device.lastValidSpeed >= 91) {
+          // 1. Alerta de exceso de velocidad según límite configurado (general o por tipo)
+          if (device.lastValidSpeed >= speedLimit) {
             if (
               !activeAlerts.current[deviceKey] &&
               !alertTimeouts.current[deviceKey]
@@ -392,49 +473,52 @@ export default function RequestPage() {
                 );
               }
 
-              playSpeedAlert();
+              const alertCfg = getAlertSoundConfig('overspeed');
+              if (alertCfg.enabled && !alertCfg.muteAll) {
+                playSpeedAlert();
+              }
 
-              const peruTime = new Date(
-                device.lastGPSTimestamp * 1000,
-              ).toLocaleString('es-PE', {
-                timeZone: 'America/Lima',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-              });
+              if (alertCfg.popup) {
+                const peruTime = new Date(
+                  device.lastGPSTimestamp * 1000,
+                ).toLocaleString('es-PE', {
+                  timeZone: 'America/Lima',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false,
+                });
 
-              toast.error(
-                `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (${peruTime})`,
-                {
-                  duration: Infinity,
-                  action: {
-                    label: 'OK',
-                    onClick: () => {
-                      activeAlerts.current[deviceKey] = false;
-                      if (audioRef.current) {
-                        audioRef.current.pause();
-                        audioRef.current.currentTime = 0;
-                      }
+                toast.error(
+                  `Alerta de velocidad: Unidad ${device.deviceId.toUpperCase()} - ${Math.round(device.lastValidSpeed)} km/h (Límite: ${speedLimit} km/h) · ${peruTime}`,
+                  {
+                    duration: alertCfg.loop ? Infinity : 8000,
+                    action: {
+                      label: 'OK',
+                      onClick: () => {
+                        activeAlerts.current[deviceKey] = false;
+                        stopSpeedAlert();
 
-                      alertTimeouts.current[deviceKey] = setTimeout(() => {
-                        delete alertTimeouts.current[deviceKey];
-                      }, 300000);
+                        alertTimeouts.current[deviceKey] = setTimeout(() => {
+                          delete alertTimeouts.current[deviceKey];
+                        }, 300000);
+                      },
                     },
                   },
-                },
-              );
+                );
+              } else {
+                alertTimeouts.current[deviceKey] = setTimeout(() => {
+                  delete alertTimeouts.current[deviceKey];
+                }, 300000);
+              }
             }
           } else {
             if (activeAlerts.current[deviceKey]) {
               activeAlerts.current[deviceKey] = false;
-              if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-              }
+              stopSpeedAlert();
             }
 
             if (alertTimeouts.current[deviceKey]) {
@@ -442,6 +526,8 @@ export default function RequestPage() {
               delete alertTimeouts.current[deviceKey];
             }
           }
+
+
         }
       } catch (error) {
         console.error('Error obteniendo datos de devices:', error);
@@ -488,13 +574,9 @@ export default function RequestPage() {
         clearTimeout(timeout);
       });
       alertTimeouts.current = {};
-
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      stopSpeedAlert();
     };
-  }, [session?.user?.username, baseUrl]);
+  }, [session?.user?.username, baseUrl, stopSpeedAlert]);
 
   const getDireccion = useCallback((heading: number): string => {
     const directions = [
@@ -734,6 +816,7 @@ export default function RequestPage() {
         Object.keys(markersDataRef.current).forEach((deviceId) => {
           if (!filteredIdsFromSidebar.includes(deviceId)) {
             const markerData = markersDataRef.current[deviceId];
+            clustering.removeMarker(markerData.marker);
             markerData.marker.setMap(null);
             markerData.popup1.setMap(null);
             markerData.popup2.setMap(null);
@@ -777,6 +860,9 @@ export default function RequestPage() {
           createNewMarker(device, position, map);
         }
       });
+
+      // Reagrupar con las posiciones nuevas (solo si el agrupamiento está activo)
+      clustering.refresh();
     },
     [
       deviceList,
@@ -784,6 +870,7 @@ export default function RequestPage() {
       getMarkerIcon,
       getEstado,
       getDireccion,
+      clustering,
     ],
   );
 
@@ -919,23 +1006,7 @@ export default function RequestPage() {
     [getEstado, getDireccion, getColorScheme],
   );
 
-  const updateCameraButtonStates = useCallback((activeId: string | null) => {
-    document.querySelectorAll('.camera-track-btn').forEach((btn) => {
-      const btnDeviceId = btn.getAttribute('data-device-id');
-      const isFollowed = btnDeviceId === activeId;
-      const btnEl = btn as HTMLElement;
-      btnEl.classList.toggle('pv2-cam-btn-active', isFollowed);
-      btnEl.title = isFollowed
-        ? 'Desactivar cámara fija'
-        : 'Fijar cámara en este vehículo';
-      btnEl.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-          <circle cx="12" cy="13" r="3"/>
-        </svg>
-      `;
-    });
-  }, []);
+
 
   const createNewMarker = useCallback(
     (
@@ -978,8 +1049,17 @@ export default function RequestPage() {
       const Popup = getPopupClass();
       const popup1 = new Popup(position, content1);
       const popup2 = new Popup(position, content2);
+      const showPlates = (() => {
+        try {
+          return loadSettings(getCurrentUser()).preferences?.showPlateLabels !== false;
+        } catch {
+          return true;
+        }
+      })();
 
-      popup1.setMap(map);
+      if (showPlates) {
+        popup1.setMap(map);
+      }
       popup2.setMap(null);
 
       const icon = getMarkerIcon(device.lastValidHeading);
@@ -990,13 +1070,21 @@ export default function RequestPage() {
       });
 
       marker.addListener('click', () => {
-        popup1.setMap(map);
+        if (showPlates) {
+          popup1.setMap(map);
+        }
         const willOpen = !popup2.getMap();
         if (willOpen) {
           popup2.setMap(map);
-          followedDeviceIdRef.current = device.deviceId;
-          setFollowedDeviceId(device.deviceId);
-          updateCameraButtonStates(device.deviceId);
+          if (followPreferenceRef.current) {
+            followedDeviceIdRef.current = device.deviceId;
+            setFollowedDeviceId(device.deviceId);
+            updateCameraButtonStates(device.deviceId);
+          } else {
+            followedDeviceIdRef.current = null;
+            setFollowedDeviceId(null);
+            updateCameraButtonStates(null);
+          }
         } else {
           popup2.setMap(null);
         }
@@ -1016,6 +1104,9 @@ export default function RequestPage() {
         popup1,
         popup2,
       };
+
+      // Si "Agrupar unidades cercanas" está activo, el agrupador decide su visibilidad
+      clustering.addMarker(marker);
     },
     [
       getMarkerIcon,
@@ -1024,6 +1115,7 @@ export default function RequestPage() {
       getColorScheme,
       getOptimizedPopupContent,
       updateCameraButtonStates,
+      clustering,
     ],
   );
 
@@ -1271,6 +1363,13 @@ export default function RequestPage() {
         setFollowedDeviceId(null);
         updateCameraButtonStates(null);
       } else {
+        if (!followPreferenceRef.current) {
+          toast.info(
+            'Para fijar la cámara, activa "Seguir unidad seleccionada" en Configuración > Preferencias.',
+          );
+          return;
+        }
+
         followedDeviceIdRef.current = deviceId;
         setFollowedDeviceId(deviceId);
         updateCameraButtonStates(deviceId);
@@ -1397,10 +1496,15 @@ export default function RequestPage() {
             markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
           }
 
-          // Automatically set fixed camera on this unit immediately
-          followedDeviceIdRef.current = deviceID;
-          setFollowedDeviceId(deviceID);
-          updateCameraButtonStates(deviceID);
+          if (followPreferenceRef.current) {
+            followedDeviceIdRef.current = deviceID;
+            setFollowedDeviceId(deviceID);
+            updateCameraButtonStates(deviceID);
+          } else {
+            followedDeviceIdRef.current = null;
+            setFollowedDeviceId(null);
+            updateCameraButtonStates(null);
+          }
         }
       }
     },
@@ -1474,6 +1578,7 @@ export default function RequestPage() {
   }, []);
 
   const handleMapUnmount = useCallback(() => {
+    clustering.destroy();
     Object.values(markersDataRef.current).forEach((markerData) => {
       markerData.marker.setMap(null);
       markerData.popup1.setMap(null);
@@ -1483,7 +1588,7 @@ export default function RequestPage() {
     iconCache.current = {};
 
     mapOnUnmount();
-  }, [mapOnUnmount]);
+  }, [mapOnUnmount, clustering]);
 
   const sidebarDeviceList = useMemo(() =>
     deviceList.map((d) => ({

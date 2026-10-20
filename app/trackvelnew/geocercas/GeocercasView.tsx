@@ -14,8 +14,6 @@ import {
   Crosshair,
   FileSpreadsheet,
   Hexagon,
-  Layers,
-  Map as MapIcon,
   MapPin,
   Menu,
   Minus,
@@ -37,7 +35,23 @@ import RealtimeAlertsDrawer from './RealtimeAlertsDrawer';
 import GeocercasReportsModal from './GeocercasReportsModal';
 import { useGeofenceSignalR, RealtimeGeofenceAlert } from './useGeofenceSignalR';
 import { VisitaItem, parseApiDate } from './reportsApi';
-import { useMapsReady } from './useMapsReady';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import {
+  GeoShape,
+  circleBounds,
+  dashedLine,
+  dotIcon,
+  eastPoint,
+  htmlOverlay,
+  imageIcon,
+  setMapCursor,
+  setMarkerClickable,
+  svgIcon,
+  toLatLng,
+} from './leafletGeo';
+import MapTypeSelector, { readDefaultMapType, toMapTypeId, type MapTypeId } from '@/app/components/MapTypeSelector';
+import { googleTileLayer } from '@/lib/googleTiles';
 import TrackvelLoader from '@/components/TrackvelLoader';
 import { useApi } from '@/context/ApiContext';
 import { useUsername } from '@/hooks/useUsername';
@@ -215,23 +229,22 @@ interface PendingShape {
 
 interface ShapeEntry {
   type: ShapeType;
-  overlay: google.maps.Circle | google.maps.Polygon;
-  labelMarker?: google.maps.Marker | null;
+  overlay: GeoShape;
+  labelMarker?: L.Marker | null;
 }
 
 interface DrawDraft {
   center: LatLng | null;
   points: LatLng[];
-  preview: google.maps.Circle | google.maps.Polygon | null;
-  vertexMarkers: google.maps.Marker[];
-  radiusLine?: google.maps.Polyline | null;
-  radiusHandle?: google.maps.Marker | null;
-  distanceMarker?: google.maps.Marker | null;
+  preview: L.Circle | L.Polygon | null;
+  vertexMarkers: L.Marker[];
+  radiusLine?: L.Polyline | null;
+  radiusHandle?: L.Marker | null;
+  distanceMarker?: L.Marker | null;
   isRadiusFixed?: boolean;
 }
 
 export default function GeocercasPage() {
-  const mapsReady = useMapsReady();
   const { baseUrl } = useApi();
   const { username } = useUsername();
   const { data: session } = useSession();
@@ -276,26 +289,27 @@ export default function GeocercasPage() {
   } = useGeofenceSignalR({
     accountID: effectiveUsername,
     enabled: Boolean(effectiveUsername),
+    baseUrl: effectiveBaseUrl,
     isDrawerOpen: alertsDrawerOpen,
   });
 
-  const alertMarkerRef = useRef<google.maps.Marker | null>(null);
-  const alertInfoWindowRef = useRef<google.maps.InfoWindow | null>(null);
+  const alertMarkerRef = useRef<L.Marker | null>(null);
+  const alertInfoWindowRef = useRef<L.Popup | null>(null);
   const alertTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [activeAlertOnMap, setActiveAlertOnMap] = useState<RealtimeGeofenceAlert | null>(null);
-  const visitMarkersRef = useRef<google.maps.Marker[]>([]);
-  const visitOverlaysRef = useRef<google.maps.OverlayView[]>([]);
-  const visitPolylineRef = useRef<google.maps.Polyline | null>(null);
+  const visitMarkersRef = useRef<L.Layer[]>([]);
+  const visitOverlaysRef = useRef<L.Marker[]>([]);
+  const visitPolylineRef = useRef<L.Polyline | null>(null);
   const [visitOnMap, setVisitOnMap] = useState(false);
 
   // Quitar del mapa la visita dibujada desde Reportes (autos, tarjetas, línea y cápsula)
   const clearVisitFromMap = useCallback(() => {
-    visitMarkersRef.current.forEach((m) => m.setMap(null));
+    visitMarkersRef.current.forEach((m) => m.remove());
     visitMarkersRef.current = [];
-    visitOverlaysRef.current.forEach((o) => o.setMap(null));
+    visitOverlaysRef.current.forEach((o) => o.remove());
     visitOverlaysRef.current = [];
     if (visitPolylineRef.current) {
-      visitPolylineRef.current.setMap(null);
+      visitPolylineRef.current.remove();
       visitPolylineRef.current = null;
     }
     setVisitOnMap(false);
@@ -307,14 +321,14 @@ export default function GeocercasPage() {
       clearTimeout(alertTimeoutRef.current);
       alertTimeoutRef.current = null;
     }
-    if (alertMarkerRef.current) {
-      alertMarkerRef.current.setMap(null);
-      alertMarkerRef.current = null;
-    }
-    if (alertInfoWindowRef.current) {
-      alertInfoWindowRef.current.close();
-      alertInfoWindowRef.current = null;
-    }
+    // Se sueltan las referencias antes de quitar: cerrar el popup dispara su
+    // evento 'remove', que también llama a esta función
+    const marker = alertMarkerRef.current;
+    const popup = alertInfoWindowRef.current;
+    alertMarkerRef.current = null;
+    alertInfoWindowRef.current = null;
+    popup?.remove();
+    marker?.remove();
     setActiveAlertOnMap(null);
   }, []);
 
@@ -326,7 +340,7 @@ export default function GeocercasPage() {
       maybeTitle?: string,
     ) => {
       const map = mapRef.current;
-      if (!map || typeof google === 'undefined' || !google.maps) return;
+      if (!map) return;
 
       // Limpiar marcas previas de alerta
       handleClearAlertMarker();
@@ -360,8 +374,7 @@ export default function GeocercasPage() {
 
       if (!lat || !lng) return;
 
-      map.setCenter({ lat, lng });
-      map.setZoom(17);
+      map.setView([lat, lng], 17);
 
       const isEnter = eventType === 'geofenceEnter';
       let formattedTime = '00:00';
@@ -386,17 +399,10 @@ export default function GeocercasPage() {
         formattedTime = serverTimeStr;
       }
 
-      const marker = new google.maps.Marker({
-        position: { lat, lng },
-        map,
+      const marker = L.marker([lat, lng], {
         title: `${deviceID} (${isEnter ? 'Entrada' : 'Salida'})`,
-        animation: google.maps.Animation.DROP,
-        icon: {
-          url: '/UnidadK.webp',
-          scaledSize: new google.maps.Size(60, 34),
-          anchor: new google.maps.Point(30, 17),
-        },
-      });
+        icon: imageIcon('/UnidadK.webp', 60, 34),
+      }).addTo(map);
 
       alertMarkerRef.current = marker;
 
@@ -452,12 +458,14 @@ export default function GeocercasPage() {
         </div>
       `;
 
-      const info = new google.maps.InfoWindow({
-        content: infoWindowContent,
-        pixelOffset: new google.maps.Size(0, -18),
-      });
+      const info = L.popup({
+        offset: [0, -14],
+        autoClose: false,
+        closeOnClick: false,
+        minWidth: 220,
+      }).setContent(infoWindowContent);
 
-      info.open(map, marker);
+      info.setLatLng([lat, lng]).addTo(map);
       alertInfoWindowRef.current = info;
 
       if (alertObj) {
@@ -479,30 +487,28 @@ export default function GeocercasPage() {
         });
       }
 
-      // Reabrir popup al hacer clic en el auto
-      marker.addListener('click', () => {
-        info.open(map, marker);
+      // Reabrir popup al hacer clic en el auto (sin cerrarlo si ya está abierto)
+      marker.on('click', () => {
+        if (!map.hasLayer(info)) info.addTo(map);
       });
 
       // Clic derecho en el auto para quitarlo inmediatamente
-      marker.addListener('rightclick', () => {
+      marker.on('contextmenu', () => {
         handleClearAlertMarker();
       });
 
-      // ¡IMPORTANTE! Al cerrar la InfoWindow (X), quitar también el auto del mapa
-      info.addListener('closeclick', () => {
-        handleClearAlertMarker();
+      // ¡IMPORTANTE! Al cerrar el popup (X), quitar también el auto del mapa
+      info.on('remove', () => {
+        if (alertInfoWindowRef.current === info) handleClearAlertMarker();
       });
 
-      // Escuchar clic en botón dentro del contenido HTML
-      google.maps.event.addListenerOnce(info, 'domready', () => {
-        const btnQuitar = document.getElementById('btn-quitar-alerta-popup');
-        if (btnQuitar) {
-          btnQuitar.onclick = () => {
-            handleClearAlertMarker();
-          };
-        }
-      });
+      // Botón "Quitar del mapa" dentro del contenido HTML
+      const btnQuitar = info.getElement()?.querySelector<HTMLButtonElement>('#btn-quitar-alerta-popup');
+      if (btnQuitar) {
+        btnQuitar.onclick = () => {
+          handleClearAlertMarker();
+        };
+      }
 
       // Auto-limpieza tras 60s
       alertTimeoutRef.current = setTimeout(() => {
@@ -512,18 +518,14 @@ export default function GeocercasPage() {
     [handleClearAlertMarker, clearVisitFromMap, effectiveUsername],
   );
 
-  function makeDistanceBadgeIcon(text: string): google.maps.Icon {
+  function makeDistanceBadgeIcon(text: string): L.Icon {
     const width = Math.max(72, text.length * 9 + 24);
     const height = 26;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
       <rect x="1" y="1" width="${width - 2}" height="${height - 2}" rx="13" fill="#ffffff" stroke="#93c5fd" stroke-width="1.3" />
       <text x="${width / 2}" y="17" font-family="'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-size="11.5" font-weight="700" fill="#1447C0" text-anchor="middle">${text}</text>
     </svg>`;
-    return {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-      scaledSize: new google.maps.Size(width, height),
-      anchor: new google.maps.Point(width / 2, height / 2),
-    };
+    return svgIcon(svg, width, height);
   }
 
   function escapeXml(str: string): string {
@@ -539,7 +541,7 @@ export default function GeocercasPage() {
     });
   }
 
-  const makeGeofenceLabelIcon = useCallback((name: string, color?: string): google.maps.Icon => {
+  const makeGeofenceLabelIcon = useCallback((name: string, color?: string): L.Icon => {
     const text = escapeXml(name.trim().toUpperCase());
     const width = Math.max(70, text.length * 9.5 + 24);
     const height = 26;
@@ -560,89 +562,24 @@ export default function GeocercasPage() {
       </style>
       <text x="${width / 2}" y="17" class="geo-lbl" fill="${textColor}" text-anchor="middle">${text}</text>
     </svg>`;
-    return {
-      url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-      scaledSize: new google.maps.Size(width, height),
-      anchor: new google.maps.Point(width / 2, height / 2),
-    };
+    return svgIcon(svg, width, height);
   }, []);
 
   // =========================================================================
   // Helpers para Visualización de Visita en Mapa (Entrada/Salida/Distancia)
   // =========================================================================
 
-  // Cache de clase OverlayView para tarjetas y cápsula de visita
-  const customVisitOverlayClassRef = useRef<any>(null);
-
-  const getCustomVisitOverlayClass = useCallback(() => {
-    if (customVisitOverlayClassRef.current) return customVisitOverlayClassRef.current;
-    if (typeof google === 'undefined' || !google.maps || !google.maps.OverlayView) return null;
-
-    customVisitOverlayClassRef.current = class CustomVisitOverlay extends google.maps.OverlayView {
-      private position: google.maps.LatLng;
-      private containerDiv: HTMLDivElement;
-      private offset: { x: number; y: number };
-
-      constructor(
-        position: google.maps.LatLngLiteral,
-        htmlContent: string,
-        offset: { x: number; y: number } = { x: 0, y: 0 },
-        alignCenter: boolean = false,
-        onClose?: () => void,
-      ) {
-        super();
-        this.position = new google.maps.LatLng(position.lat, position.lng);
-        this.offset = offset;
-
-        this.containerDiv = document.createElement('div');
-        this.containerDiv.style.position = 'absolute';
-        this.containerDiv.style.cursor = 'default';
-        this.containerDiv.style.zIndex = alignCenter ? '90' : '100';
-        this.containerDiv.style.transform = alignCenter
-          ? 'translate(-50%, -50%)'
-          : 'translate(-50%, -100%)';
-        this.containerDiv.style.pointerEvents = 'auto';
-        this.containerDiv.innerHTML = htmlContent;
-        if (onClose) {
-          this.containerDiv.querySelectorAll('[data-visit-close]').forEach((btn) =>
-            btn.addEventListener('click', (e) => {
-              e.stopPropagation();
-              onClose();
-            }),
-          );
-        }
-
-        if ((google.maps.OverlayView as any).preventMapHitsAndGesturesFrom) {
-          (google.maps.OverlayView as any).preventMapHitsAndGesturesFrom(this.containerDiv);
-        }
-      }
-
-      onAdd() {
-        const panes = this.getPanes();
-        if (panes) {
-          panes.floatPane.appendChild(this.containerDiv);
-        }
-      }
-
-      onRemove() {
-        if (this.containerDiv.parentElement) {
-          this.containerDiv.parentElement.removeChild(this.containerDiv);
-        }
-      }
-
-      draw() {
-        const projection = this.getProjection();
-        if (!projection || !this.position || !this.containerDiv) return;
-        const pixel = projection.fromLatLngToDivPixel(this.position);
-        if (pixel) {
-          this.containerDiv.style.left = `${pixel.x + this.offset.x}px`;
-          this.containerDiv.style.top = `${pixel.y + this.offset.y}px`;
-        }
-      }
-    };
-
-    return customVisitOverlayClassRef.current;
-  }, []);
+  // Halo circular detrás del auto (equivale al SymbolPath.CIRCLE de scale 18)
+  const visitHalo = (map: L.Map, position: LatLng, fill: string, stroke: string) =>
+    L.circleMarker(position, {
+      radius: 18,
+      fillColor: fill,
+      fillOpacity: 0.25,
+      color: stroke,
+      opacity: 0.65,
+      weight: 2,
+      interactive: false,
+    }).addTo(map);
 
   // Calcular distancia Haversine en kilómetros entre dos coordenadas
   function calculateDistanceBetweenKm(
@@ -724,57 +661,33 @@ export default function GeocercasPage() {
   const handleViewVisitOnMap = useCallback((visit: VisitaItem) => {
     setReportsModalOpen(false);
     const map = mapRef.current;
-    if (!map || typeof google === 'undefined' || !google.maps) return;
+    if (!map) return;
 
     // 1. Limpiar marcas previas
     handleClearAlertMarker();
     clearVisitFromMap();
 
-    const bounds = new google.maps.LatLngBounds();
-    let posEntrada: google.maps.LatLngLiteral | null = null;
-    let posSalida: google.maps.LatLngLiteral | null = null;
-
-    const OverlayClass = getCustomVisitOverlayClass();
+    const bounds = L.latLngBounds([]);
+    let posEntrada: LatLng | null = null;
+    let posSalida: LatLng | null = null;
 
     // 2. Punto de Entrada
     if (visit.latitudEntrada != null && visit.longitudEntrada != null) {
       posEntrada = { lat: Number(visit.latitudEntrada), lng: Number(visit.longitudEntrada) };
 
       // Halo verde detrás del auto
-      const entryHalo = new google.maps.Marker({
-        position: posEntrada,
-        map,
-        zIndex: 10,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 18,
-          fillColor: '#10B981',
-          fillOpacity: 0.25,
-          strokeColor: '#059669',
-          strokeOpacity: 0.65,
-          strokeWeight: 2,
-        },
-      });
-      visitMarkersRef.current.push(entryHalo);
+      visitMarkersRef.current.push(visitHalo(map, posEntrada, '#10B981', '#059669'));
 
       // Icono del auto (/UnidadK.webp) igual que en alertas
-      const entryMarker = new google.maps.Marker({
-        position: posEntrada,
-        map,
-        zIndex: 20,
+      const entryMarker = L.marker(posEntrada, {
         title: `Entrada: ${visit.deviceID} en ${visit.geofenceName || 'Geocerca'}`,
-        animation: google.maps.Animation.DROP,
-        icon: {
-          url: '/UnidadK.webp',
-          scaledSize: new google.maps.Size(56, 32),
-          anchor: new google.maps.Point(28, 16),
-        },
-      });
-      entryMarker.addListener('rightclick', clearVisitFromMap);
+        icon: imageIcon('/UnidadK.webp', 56, 32),
+      }).addTo(map);
+      entryMarker.on('contextmenu', clearVisitFromMap);
       visitMarkersRef.current.push(entryMarker);
 
       // Tarjeta detallada de Entrada (exacta a la referencia)
-      if (OverlayClass) {
+      {
         const entryCardHtml = `
           <div style="
             position: relative;
@@ -868,8 +781,10 @@ export default function GeocercasPage() {
             "></div>
           </div>
         `;
-        const entryOverlay = new OverlayClass(posEntrada, entryCardHtml, { x: 0, y: -24 }, false, clearVisitFromMap);
-        entryOverlay.setMap(map);
+        const entryOverlay = htmlOverlay(map, posEntrada, entryCardHtml, {
+          offsetY: -24,
+          onClose: clearVisitFromMap,
+        });
         visitOverlaysRef.current.push(entryOverlay);
       }
 
@@ -886,42 +801,20 @@ export default function GeocercasPage() {
         : { label: 'SALIDA', fill: '#EF4444', stroke: '#DC2626', headerBg: '#FEF2F2', headerBorder: '#FEE2E2', text: '#B91C1C' };
 
       // Halo detrás del auto (rojo = salida, gris = quitada de la geocerca)
-      const exitHalo = new google.maps.Marker({
-        position: posSalida,
-        map,
-        zIndex: 10,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 18,
-          fillColor: exitTheme.fill,
-          fillOpacity: 0.25,
-          strokeColor: exitTheme.stroke,
-          strokeOpacity: 0.65,
-          strokeWeight: 2,
-        },
-      });
-      visitMarkersRef.current.push(exitHalo);
+      visitMarkersRef.current.push(visitHalo(map, posSalida, exitTheme.fill, exitTheme.stroke));
 
       // Icono del auto (/UnidadK.webp) igual que en alertas
-      const exitMarker = new google.maps.Marker({
-        position: posSalida,
-        map,
-        zIndex: 20,
+      const exitMarker = L.marker(posSalida, {
         title: unlinked
           ? `${visit.deviceID} quitada de ${visit.geofenceName || 'Geocerca'} (no salió, estaba adentro)`
           : `Salida: ${visit.deviceID} de ${visit.geofenceName || 'Geocerca'}`,
-        animation: google.maps.Animation.DROP,
-        icon: {
-          url: '/UnidadK.webp',
-          scaledSize: new google.maps.Size(56, 32),
-          anchor: new google.maps.Point(28, 16),
-        },
-      });
-      exitMarker.addListener('rightclick', clearVisitFromMap);
+        icon: imageIcon('/UnidadK.webp', 56, 32),
+      }).addTo(map);
+      exitMarker.on('contextmenu', clearVisitFromMap);
       visitMarkersRef.current.push(exitMarker);
 
       // Tarjeta detallada de Salida (exacta a la referencia)
-      if (OverlayClass) {
+      {
         const exitCardHtml = `
           <div style="
             position: relative;
@@ -1022,8 +915,10 @@ export default function GeocercasPage() {
             "></div>
           </div>
         `;
-        const exitOverlay = new OverlayClass(posSalida, exitCardHtml, { x: 0, y: -24 }, false, clearVisitFromMap);
-        exitOverlay.setMap(map);
+        const exitOverlay = htmlOverlay(map, posSalida, exitCardHtml, {
+          offsetY: -24,
+          onClose: clearVisitFromMap,
+        });
         visitOverlaysRef.current.push(exitOverlay);
       }
 
@@ -1033,24 +928,7 @@ export default function GeocercasPage() {
     // 4. Si existen ambos puntos: Línea discontinua y Cápsula de Distancia/Duración
     if (posEntrada && posSalida) {
       // Línea punteada/discontinua entre Entrada y Salida
-      const lineSymbol = {
-        path: 'M 0,-1 0,1',
-        strokeOpacity: 1,
-        scale: 2.5,
-        strokeColor: '#334155',
-      };
-      const polyline = new google.maps.Polyline({
-        path: [posEntrada, posSalida],
-        strokeOpacity: 0,
-        icons: [
-          {
-            icon: lineSymbol,
-            offset: '0',
-            repeat: '12px',
-          },
-        ],
-        map,
-      });
+      const polyline = dashedLine([posEntrada, posSalida], '#334155', 2.5).addTo(map);
       visitPolylineRef.current = polyline;
 
       // Calcular distancia y duración
@@ -1073,7 +951,7 @@ export default function GeocercasPage() {
         lng: (posEntrada.lng + posSalida.lng) / 2,
       };
 
-      if (OverlayClass) {
+      {
         const pillHtml = `
           <div style="
             display: inline-flex;
@@ -1103,30 +981,23 @@ export default function GeocercasPage() {
           </div>
         `;
 
-        const pillOverlay = new OverlayClass(midPos, pillHtml, { x: 0, y: 0 }, true);
-        pillOverlay.setMap(map);
+        const pillOverlay = htmlOverlay(map, midPos, pillHtml, { alignCenter: true });
         visitOverlaysRef.current.push(pillOverlay);
       }
 
-      try {
-        map.fitBounds(bounds, 120);
-      } catch {
-        map.fitBounds(bounds);
-      }
+      map.fitBounds(bounds, { padding: [120, 120] });
       toast.info(`Visita de ${visit.deviceID}: ${durationText} · ${distanceText}`);
     } else if (posEntrada) {
-      map.setCenter(posEntrada);
-      map.setZoom(16);
+      map.setView(posEntrada, 16);
       toast.info(`Punto de entrada de ${visit.deviceID} marcado en el mapa`);
     } else if (posSalida) {
-      map.setCenter(posSalida);
-      map.setZoom(16);
+      map.setView(posSalida, 16);
       toast.info(`Punto de salida de ${visit.deviceID} marcado en el mapa`);
     } else {
       toast.warning('Esta visita no contiene coordenadas registradas de entrada o salida');
     }
     setVisitOnMap(true);
-  }, [getCustomVisitOverlayClass, handleClearAlertMarker, clearVisitFromMap]);
+  }, [handleClearAlertMarker, clearVisitFromMap]);
 
   // Escape quita la visita dibujada en el mapa
   useEffect(() => {
@@ -1144,27 +1015,21 @@ export default function GeocercasPage() {
       if (alertTimeoutRef.current) {
         clearTimeout(alertTimeoutRef.current);
       }
-      if (alertMarkerRef.current) {
-        alertMarkerRef.current.setMap(null);
-      }
-      if (alertInfoWindowRef.current) {
-        alertInfoWindowRef.current.close();
-      }
-      visitMarkersRef.current.forEach((m) => m.setMap(null));
+      // Las capas se van con el mapa (map.remove); solo se sueltan las referencias
+      alertMarkerRef.current = null;
+      alertInfoWindowRef.current = null;
       visitMarkersRef.current = [];
-      visitOverlaysRef.current.forEach((o) => o.setMap(null));
       visitOverlaysRef.current = [];
-      if (visitPolylineRef.current) {
-        visitPolylineRef.current.setMap(null);
-        visitPolylineRef.current = null;
-      }
+      visitPolylineRef.current = null;
     };
   }, []);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [mapType, setMapType] = useState<'roadmap' | 'hybrid'>('roadmap');
+  // Arranca con el tipo de Configuración > Preferencias
+  const [mapType, setMapType] = useState<MapTypeId>(readDefaultMapType);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
 
   const [geofences, setGeofences] = useState<Geofence[]>([]);
   const geofencesRef = useRef<Geofence[]>([]);
@@ -1847,44 +1712,72 @@ export default function GeocercasPage() {
   /* ------------------------------------------------------------------ */
   /* Mapa                                                                */
   /* ------------------------------------------------------------------ */
+  // Leaflet + tiles públicos de Google: sin la Maps JavaScript API (de pago)
   useEffect(() => {
-    if (!mapsReady || mapRef.current || !mapDivRef.current) return;
+    if (mapRef.current || !mapDivRef.current) return;
 
-    const map = new google.maps.Map(mapDivRef.current, {
+    const map = L.map(mapDivRef.current, {
       center: LIMA_CENTER,
       zoom: 13,
-      mapTypeId: 'roadmap',
-      disableDefaultUI: true,
-      clickableIcons: false,
-      gestureHandling: 'greedy',
+      minZoom: 3,
+      maxZoom: 21,
+      zoomControl: false,
+      attributionControl: false,
     });
     mapRef.current = map;
     setMapReady(true);
 
-    setTimeout(() => {
-      google.maps.event.trigger(map, 'resize');
-    }, 150);
-  }, [mapsReady]);
+    const timer = setTimeout(() => map.invalidateSize(), 150);
+
+    return () => {
+      clearTimeout(timer);
+      Object.values(shapesRef.current).forEach((entry) => entry.overlay.remove());
+      shapesRef.current = {};
+      tileLayerRef.current = null;
+      map.remove();
+      mapRef.current = null;
+      setMapReady(false);
+    };
+  }, []);
+
+  // Capa base según el tipo de mapa elegido
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const next = googleTileLayer(mapType).addTo(map);
+    next.bringToBack();
+    const previous = tileLayerRef.current;
+    tileLayerRef.current = next;
+    // La anterior se retira cuando la nueva cargó, para no ver el mapa en blanco
+    if (previous) {
+      const removePrevious = () => previous.remove();
+      next.once('load', removePrevious);
+      const fallback = window.setTimeout(removePrevious, 3000);
+      return () => window.clearTimeout(fallback);
+    }
+  }, [mapType, mapReady]);
+
+  // Al guardar Configuración > Preferencias se aplica el nuevo tipo sin recargar
+  useEffect(() => {
+    const handleSettingsUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.key === 'preferences' && detail.value?.mapType) {
+        setMapType(toMapTypeId(detail.value.mapType));
+      }
+    };
+    window.addEventListener('trackvel:settings-updated', handleSettingsUpdate);
+    return () => window.removeEventListener('trackvel:settings-updated', handleSettingsUpdate);
+  }, []);
 
   // Reajustar viewport del mapa cuando se abre/cierra el sidebar
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const timer = setTimeout(() => {
-      google.maps.event.trigger(map, 'resize');
+      map.invalidateSize();
     }, 310);
     return () => clearTimeout(timer);
   }, [sidebarOpen]);
-
-  useEffect(() => {
-    const shapes = shapesRef.current;
-    return () => {
-      Object.values(shapes).forEach((entry) => {
-        entry.overlay.setMap(null);
-        entry.labelMarker?.setMap(null);
-      });
-    };
-  }, []);
 
   /* ------------------------------------------------------------------ */
   /* Dibujo de geocercas (clic a clic, sin DrawingManager)               */
@@ -1894,45 +1787,38 @@ export default function GeocercasPage() {
     if (!map || !mapReady) return;
 
     if (!drawMode) {
-      map.setOptions({ draggableCursor: null, disableDoubleClickZoom: false });
+      setMapCursor(map, null);
+      map.doubleClickZoom.enable();
       return;
     }
 
-    map.setOptions({ draggableCursor: 'crosshair', disableDoubleClickZoom: true });
+    setMapCursor(map, 'crosshair');
+    map.doubleClickZoom.disable();
 
     const draft = drawRef.current;
     draft.center = null;
     draft.points = [];
     setDrawInfo({ points: 0, radius: 0 });
 
-    const previewStyle = {
+    const previewStyle: L.PathOptions = {
+      color: '#113EB9',
       fillColor: '#113EB9',
       fillOpacity: 0.15,
-      strokeColor: '#113EB9',
-      strokeWeight: 2,
-      clickable: false,
-      zIndex: 50,
-    };
-
-    const vertexIcon: google.maps.Symbol = {
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 4.5,
-      fillColor: '#ffffff',
-      fillOpacity: 1,
-      strokeColor: '#113EB9',
-      strokeWeight: 2,
+      weight: 2,
+      opacity: 1,
+      interactive: false,
     };
 
     const clearDraft = () => {
-      draft.preview?.setMap(null);
+      draft.preview?.remove();
       draft.preview = null;
-      draft.vertexMarkers.forEach((marker) => marker.setMap(null));
+      draft.vertexMarkers.forEach((marker) => marker.remove());
       draft.vertexMarkers = [];
-      draft.radiusLine?.setMap(null);
+      draft.radiusLine?.remove();
       draft.radiusLine = null;
-      draft.radiusHandle?.setMap(null);
+      draft.radiusHandle?.remove();
       draft.radiusHandle = null;
-      draft.distanceMarker?.setMap(null);
+      draft.distanceMarker?.remove();
       draft.distanceMarker = null;
       draft.center = null;
       draft.points = [];
@@ -1968,89 +1854,62 @@ export default function GeocercasPage() {
       const pts = draft.points;
       if (pts.length === 2) {
         if (!draft.radiusLine) {
-          draft.radiusLine = new google.maps.Polyline({
-            map,
-            path: pts,
-            strokeOpacity: 0,
-            clickable: false,
-            icons: [
-              {
-                icon: {
-                  path: 'M 0,-1 0,1',
-                  strokeOpacity: 1,
-                  scale: 2.5,
-                  strokeColor: '#1447C0',
-                },
-                offset: '0',
-                repeat: '10px',
-              },
-            ],
-            zIndex: 55,
-          });
+          draft.radiusLine = dashedLine(pts, '#1447C0', 2.5).addTo(map);
         } else {
-          draft.radiusLine.setPath(pts);
+          draft.radiusLine.setLatLngs(pts);
         }
       } else if (draft.radiusLine) {
-        draft.radiusLine.setMap(null);
+        draft.radiusLine.remove();
         draft.radiusLine = null;
       }
 
       if (pts.length >= 3) {
         if (!draft.preview) {
-          draft.preview = new google.maps.Polygon({ ...previewStyle, map, paths: pts });
+          draft.preview = L.polygon(pts, previewStyle).addTo(map);
         } else {
-          (draft.preview as google.maps.Polygon).setPath(pts);
+          (draft.preview as L.Polygon).setLatLngs(pts);
         }
       } else if (draft.preview) {
-        draft.preview.setMap(null);
+        draft.preview.remove();
         draft.preview = null;
       }
     };
 
     const refreshVertexMarkers = () => {
-      draft.vertexMarkers.forEach((m) => m.setMap(null));
+      draft.vertexMarkers.forEach((m) => m.remove());
       draft.vertexMarkers = [];
       draft.points.forEach((pt, index) => {
         const isLast = index === draft.points.length - 1;
-        const marker = new google.maps.Marker({
-          map,
-          position: pt,
-          clickable: true,
+        const closes = index === 0 && draft.points.length >= 3;
+        const marker = L.marker(pt, {
           draggable: true,
-          cursor: index === 0 && draft.points.length >= 3 ? 'pointer' : 'move',
-          title:
-            index === 0 && draft.points.length >= 3
-              ? 'Clic para cerrar la geocerca · Arrastra para mover'
-              : 'Arrastra para mover el vértice',
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: isLast ? '#FB7B0F' : '#ffffff',
-            fillOpacity: 1,
-            strokeColor: isLast ? '#FB7B0F' : '#1447C0',
-            strokeWeight: 2,
-          },
-          label: {
-            text: String(index + 1),
-            color: isLast ? '#ffffff' : '#1447C0',
-            fontSize: '11px',
-            fontWeight: 'bold',
-          },
-          zIndex: 60 + index,
-        });
+          keyboard: false,
+          title: closes
+            ? 'Clic para cerrar la geocerca · Arrastra para mover'
+            : 'Arrastra para mover el vértice',
+          icon: dotIcon({
+            radius: 10,
+            fill: isLast ? '#FB7B0F' : '#ffffff',
+            stroke: isLast ? '#FB7B0F' : '#1447C0',
+            strokeWidth: 2,
+            label: String(index + 1),
+            labelColor: isLast ? '#ffffff' : '#1447C0',
+            cursor: closes ? 'pointer' : 'move',
+          }),
+          zIndexOffset: 600 + index,
+        }).addTo(map);
 
         // Arrastrar un vértice para ajustar la forma
-        marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
-          if (!e.latLng) return;
-          draft.points[index] = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        marker.on('drag', () => {
+          draft.points[index] = toLatLng(marker.getLatLng());
           renderPolygonPreview();
         });
-        marker.addListener('dragend', () => {
+        marker.on('dragend', () => {
           setDrawVertices([...draft.points]);
         });
 
         // Clic sobre el vértice 1 (con 3+ vértices) cierra la geocerca
-        marker.addListener('click', () => {
+        marker.on('click', () => {
           if (index === 0 && draft.points.length >= 3) finishPolygon();
         });
 
@@ -2065,44 +1924,33 @@ export default function GeocercasPage() {
       setManualLng(draft.center!.lng.toFixed(5));
       setManualRadius(radiusToText(radius, manualRadiusUnitRef.current));
       setCursorCoord(null);
-      map.setOptions({ draggableCursor: null });
+      setMapCursor(map, null);
 
-      if (draft.radiusHandle) {
-        draft.radiusHandle.setOptions({
-          clickable: true,
-          draggable: true,
-          cursor: 'ew-resize',
-        });
-      }
-      if (draft.vertexMarkers[0]) {
-        draft.vertexMarkers[0].setOptions({
-          clickable: true,
-          draggable: true,
-          cursor: 'move',
-        });
-      }
+      // Desde aquí el asa del radio y el centro se pueden arrastrar
+      draft.radiusHandle?.dragging?.enable();
+      draft.vertexMarkers[0]?.dragging?.enable();
     };
 
     const updateCircleRadius = (radius: number, perimeterPoint: LatLng) => {
       if (!draft.center || !draft.preview) return;
-      (draft.preview as google.maps.Circle).setRadius(radius);
+      (draft.preview as L.Circle).setRadius(radius);
       setCircleRadius(radius);
       setDrawInfo({ points: 1, radius });
       setManualRadius(radiusToText(radius, manualRadiusUnitRef.current));
 
       if (draft.radiusLine) {
-        draft.radiusLine.setPath([draft.center, perimeterPoint]);
+        draft.radiusLine.setLatLngs([draft.center, perimeterPoint]);
       }
       const midpoint = {
         lat: (draft.center.lat + perimeterPoint.lat) / 2,
         lng: (draft.center.lng + perimeterPoint.lng) / 2,
       };
       if (draft.distanceMarker) {
-        draft.distanceMarker.setPosition(midpoint);
+        draft.distanceMarker.setLatLng(midpoint);
         draft.distanceMarker.setIcon(makeDistanceBadgeIcon(formatDistance(radius)));
       }
       if (draft.radiusHandle) {
-        draft.radiusHandle.setPosition(perimeterPoint);
+        draft.radiusHandle.setLatLng(perimeterPoint);
       }
     };
 
@@ -2113,72 +1961,57 @@ export default function GeocercasPage() {
       setManualLng(newCenter.lng.toFixed(5));
 
       if (draft.preview) {
-        (draft.preview as google.maps.Circle).setCenter(newCenter);
-        const radius = (draft.preview as google.maps.Circle).getRadius();
-        const lngOffset = radius / (111320 * Math.cos((newCenter.lat * Math.PI) / 180));
-        const perimeterPoint = { lat: newCenter.lat, lng: newCenter.lng + lngOffset };
+        (draft.preview as L.Circle).setLatLng(newCenter);
+        const radius = (draft.preview as L.Circle).getRadius();
+        const perimeterPoint = eastPoint(newCenter, radius);
 
         if (draft.radiusLine) {
-          draft.radiusLine.setPath([newCenter, perimeterPoint]);
+          draft.radiusLine.setLatLngs([newCenter, perimeterPoint]);
         }
         const midpoint = {
           lat: (newCenter.lat + perimeterPoint.lat) / 2,
           lng: (newCenter.lng + perimeterPoint.lng) / 2,
         };
         if (draft.distanceMarker) {
-          draft.distanceMarker.setPosition(midpoint);
+          draft.distanceMarker.setLatLng(midpoint);
         }
         if (draft.radiusHandle) {
-          draft.radiusHandle.setPosition(perimeterPoint);
+          draft.radiusHandle.setLatLng(perimeterPoint);
         }
       }
       if (draft.vertexMarkers[0]) {
-        draft.vertexMarkers[0].setPosition(newCenter);
+        draft.vertexMarkers[0].setLatLng(newCenter);
       }
     };
 
     const createRadiusHandle = (pos: LatLng) => {
-      const handle = new google.maps.Marker({
-        map,
-        position: pos,
-        clickable: true,
+      const handle = L.marker(pos, {
         draggable: true,
-        cursor: 'ew-resize',
+        keyboard: false,
         title: 'Arrastra para cambiar el radio del círculo · Clic para finalizar',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: '#ffffff',
-          fillOpacity: 1,
-          strokeColor: '#1447C0',
-          strokeWeight: 2.5,
-        },
-        zIndex: 75,
-      });
+        icon: dotIcon({ radius: 7, fill: '#ffffff', stroke: '#1447C0', strokeWidth: 2.5, cursor: 'ew-resize' }),
+        zIndexOffset: 750,
+      }).addTo(map);
 
-      handle.addListener('drag', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng || !draft.center) return;
-        const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      handle.on('drag', () => {
+        if (!draft.center) return;
+        const pt = toLatLng(handle.getLatLng());
         const newRadius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
         updateCircleRadius(newRadius, pt);
       });
-      handle.addListener('dragend', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng || !draft.center) return;
-        const pt = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+      handle.on('dragend', () => {
+        if (!draft.center) return;
+        const pt = toLatLng(handle.getLatLng());
         const newRadius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
         updateCircleRadius(newRadius, pt);
         draft.isRadiusFixed = true;
       });
-      handle.addListener('click', (e: google.maps.MapMouseEvent) => {
+      handle.on('click', () => {
         if (!draft.isRadiusFixed && draft.center) {
-          const pt = e.latLng
-            ? { lat: e.latLng.lat(), lng: e.latLng.lng() }
-            : (handle.getPosition()?.toJSON() || null);
-          if (pt) {
-            const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
-            fixCircleRadius(radius, pt);
-          }
-        } else if (draft.isRadiusFixed && (draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+          const pt = toLatLng(handle.getLatLng());
+          const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, pt)));
+          fixCircleRadius(radius, pt);
+        } else if (draft.isRadiusFixed && (draft.preview as L.Circle)?.getRadius() >= MIN_RADIUS_M) {
           finishCircle();
         }
       });
@@ -2186,26 +2019,15 @@ export default function GeocercasPage() {
     };
 
     const createCenterMarker = (pos: LatLng) => {
-      const marker = new google.maps.Marker({
-        map,
-        position: pos,
-        clickable: true,
+      const marker = L.marker(pos, {
         draggable: true,
-        cursor: 'move',
+        keyboard: false,
         title: 'Arrastra para mover el centro del círculo',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 6.5,
-          fillColor: '#FB7B0F',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2.5,
-        },
-        zIndex: 70,
-      });
-      marker.addListener('drag', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return;
-        updateCircleCenter({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        icon: dotIcon({ radius: 6.5, fill: '#FB7B0F', stroke: '#ffffff', strokeWidth: 2.5, cursor: 'move' }),
+        zIndexOffset: 700,
+      }).addTo(map);
+      marker.on('drag', () => {
+        updateCircleCenter(toLatLng(marker.getLatLng()));
       });
       return marker;
     };
@@ -2215,15 +2037,10 @@ export default function GeocercasPage() {
       draft.isRadiusFixed = true;
 
       if (!draft.preview) {
-        draft.preview = new google.maps.Circle({
-          ...previewStyle,
-          map,
-          center,
-          radius,
-        });
+        draft.preview = L.circle(center, { ...previewStyle, radius }).addTo(map);
       } else {
-        const circle = draft.preview as google.maps.Circle;
-        circle.setCenter(center);
+        const circle = draft.preview as L.Circle;
+        circle.setLatLng(center);
         circle.setRadius(radius);
       }
 
@@ -2231,36 +2048,18 @@ export default function GeocercasPage() {
       if (!draft.vertexMarkers.length) {
         draft.vertexMarkers.push(createCenterMarker(center));
       } else {
-        draft.vertexMarkers[0].setPosition(center);
-        draft.vertexMarkers[0].setDraggable(true);
+        draft.vertexMarkers[0].setLatLng(center);
+        draft.vertexMarkers[0].dragging?.enable();
       }
 
       // Punto del perímetro (hacia el Este)
-      const lngOffset = radius / (111320 * Math.cos((center.lat * Math.PI) / 180));
-      const perimeterPoint = { lat: center.lat, lng: center.lng + lngOffset };
+      const perimeterPoint = eastPoint(center, radius);
 
       // Línea segmentada de radio
       if (!draft.radiusLine) {
-        draft.radiusLine = new google.maps.Polyline({
-          map,
-          path: [center, perimeterPoint],
-          strokeOpacity: 0,
-          icons: [
-            {
-              icon: {
-                path: 'M 0,-1 0,1',
-                strokeOpacity: 1,
-                scale: 2,
-                strokeColor: '#1447C0',
-              },
-              offset: '0',
-              repeat: '10px',
-            },
-          ],
-          zIndex: 55,
-        });
+        draft.radiusLine = dashedLine([center, perimeterPoint], '#1447C0', 2).addTo(map);
       } else {
-        draft.radiusLine.setPath([center, perimeterPoint]);
+        draft.radiusLine.setLatLngs([center, perimeterPoint]);
       }
 
       // Badge con distancia en el punto medio
@@ -2270,15 +2069,14 @@ export default function GeocercasPage() {
       };
       const distText = formatDistance(radius);
       if (!draft.distanceMarker) {
-        draft.distanceMarker = new google.maps.Marker({
-          map,
-          position: midpoint,
-          clickable: false,
+        draft.distanceMarker = L.marker(midpoint, {
+          interactive: false,
+          keyboard: false,
           icon: makeDistanceBadgeIcon(distText),
-          zIndex: 70,
-        });
+          zIndexOffset: 700,
+        }).addTo(map);
       } else {
-        draft.distanceMarker.setPosition(midpoint);
+        draft.distanceMarker.setLatLng(midpoint);
         draft.distanceMarker.setIcon(makeDistanceBadgeIcon(distText));
       }
 
@@ -2286,8 +2084,8 @@ export default function GeocercasPage() {
       if (!draft.radiusHandle) {
         draft.radiusHandle = createRadiusHandle(perimeterPoint);
       } else {
-        draft.radiusHandle.setPosition(perimeterPoint);
-        draft.radiusHandle.setDraggable(true);
+        draft.radiusHandle.setLatLng(perimeterPoint);
+        draft.radiusHandle.dragging?.enable();
       }
     };
     applyCircleToMapRef.current = applyCircleToMap;
@@ -2300,44 +2098,21 @@ export default function GeocercasPage() {
           setCircleCenter(point);
           setManualLat(point.lat.toFixed(5));
           setManualLng(point.lng.toFixed(5));
-          draft.preview = new google.maps.Circle({
-            ...previewStyle,
-            map,
-            center: point,
-            radius: 1,
-          });
+          draft.preview = L.circle(point, { ...previewStyle, radius: 1 }).addTo(map);
 
           // Marcador del centro (arrastrable)
           draft.vertexMarkers.push(createCenterMarker(point));
 
           // Línea segmentada de radio
-          draft.radiusLine = new google.maps.Polyline({
-            map,
-            path: [point, point],
-            strokeOpacity: 0,
-            icons: [
-              {
-                icon: {
-                  path: 'M 0,-1 0,1',
-                  strokeOpacity: 1,
-                  scale: 2,
-                  strokeColor: '#1447C0',
-                },
-                offset: '0',
-                repeat: '10px',
-              },
-            ],
-            zIndex: 55,
-          });
+          draft.radiusLine = dashedLine([point, point], '#1447C0', 2).addTo(map);
 
           // Badge de distancia
-          draft.distanceMarker = new google.maps.Marker({
-            map,
-            position: point,
-            clickable: false,
+          draft.distanceMarker = L.marker(point, {
+            interactive: false,
+            keyboard: false,
             icon: makeDistanceBadgeIcon('0 m'),
-            zIndex: 70,
-          });
+            zIndexOffset: 700,
+          }).addTo(map);
 
           // Asa en el perímetro (arrastrable)
           draft.radiusHandle = createRadiusHandle(point);
@@ -2359,7 +2134,7 @@ export default function GeocercasPage() {
       if (drawMode === 'circle') {
         if (draft.center) {
           clearDraft();
-          map.setOptions({ draggableCursor: 'crosshair' });
+          setMapCursor(map, 'crosshair');
           setDrawInfo({ points: 0, radius: 0 });
         }
         return;
@@ -2374,7 +2149,7 @@ export default function GeocercasPage() {
 
     const finishCircle = () => {
       if (drawMode !== 'circle' || !draft.center || !draft.preview) return;
-      const radius = (draft.preview as google.maps.Circle).getRadius();
+      const radius = (draft.preview as L.Circle).getRadius();
       if (radius < MIN_RADIUS_M) return;
       const center = draft.center;
       clearDraft();
@@ -2387,9 +2162,8 @@ export default function GeocercasPage() {
     finishCircleRef.current = finishCircle;
     undoPointRef.current = undoPoint;
 
-    const clickListener = map.addListener('click', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-      const point = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+    const onClick = (event: L.LeafletMouseEvent) => {
+      const point = toLatLng(event.latlng);
 
       if (drawMode === 'circle') {
         if (!draft.center) {
@@ -2405,7 +2179,7 @@ export default function GeocercasPage() {
         }
 
         // Si ya estaba fijo y vuelve a hacer clic en el mapa, finaliza el dibujo
-        if ((draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+        if ((draft.preview as L.Circle)?.getRadius() >= MIN_RADIUS_M) {
           finishCircle();
         }
         return;
@@ -2421,11 +2195,10 @@ export default function GeocercasPage() {
       }
 
       addPoint(point);
-    });
+    };
 
-    const moveListener = map.addListener('mousemove', (event: google.maps.MapMouseEvent) => {
-      if (!event.latLng) return;
-      const point = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+    const onMouseMove = (event: L.LeafletMouseEvent) => {
+      const point = toLatLng(event.latlng);
 
       // Si el círculo ya está fijado, el mouse se mueve libremente sin alterar el radio ni mostrar tooltip
       if (drawMode === 'circle' && draft.isRadiusFixed) {
@@ -2433,16 +2206,12 @@ export default function GeocercasPage() {
         return;
       }
 
-      const domEvent = event.domEvent as MouseEvent | undefined;
-      if (domEvent && mapDivRef.current) {
-        const rect = mapDivRef.current.getBoundingClientRect();
-        setCursorCoord({
-          lat: point.lat,
-          lng: point.lng,
-          x: domEvent.clientX - rect.left,
-          y: domEvent.clientY - rect.top,
-        });
-      }
+      setCursorCoord({
+        lat: point.lat,
+        lng: point.lng,
+        x: event.containerPoint.x,
+        y: event.containerPoint.y,
+      });
 
       if (drawMode === 'circle' && draft.center && draft.preview && !draft.isRadiusFixed) {
         const radius = Math.max(MIN_RADIUS_M, Math.round(distanceMeters(draft.center, point)));
@@ -2451,26 +2220,32 @@ export default function GeocercasPage() {
       }
 
       // Polígono: la vista previa es estática (no sigue al cursor) para que la forma no "se deforme"
-    });
+    };
 
-    const mouseOutListener = map.addListener('mouseout', () => {
+    const onMouseOut = () => {
       setCursorCoord(null);
-    });
+    };
 
-    const dblClickListener = map.addListener('dblclick', () => {
+    const onDblClick = () => {
       if (drawMode === 'polygon') finishPolygon();
-      if (drawMode === 'circle' && draft.center && (draft.preview as google.maps.Circle)?.getRadius() >= MIN_RADIUS_M) {
+      if (drawMode === 'circle' && draft.center && (draft.preview as L.Circle)?.getRadius() >= MIN_RADIUS_M) {
         finishCircle();
       }
-    });
+    };
+
+    map.on('click', onClick);
+    map.on('mousemove', onMouseMove);
+    map.on('mouseout', onMouseOut);
+    map.on('dblclick', onDblClick);
 
     return () => {
-      google.maps.event.removeListener(clickListener);
-      google.maps.event.removeListener(moveListener);
-      google.maps.event.removeListener(mouseOutListener);
-      google.maps.event.removeListener(dblClickListener);
+      map.off('click', onClick);
+      map.off('mousemove', onMouseMove);
+      map.off('mouseout', onMouseOut);
+      map.off('dblclick', onDblClick);
       clearDraft();
-      map.setOptions({ draggableCursor: null, disableDoubleClickZoom: false });
+      setMapCursor(map, null);
+      map.doubleClickZoom.enable();
     };
   }, [drawMode, mapReady]);
 
@@ -2486,8 +2261,8 @@ export default function GeocercasPage() {
     Object.keys(store).forEach((id) => {
       const geofence = geofences.find((g) => g.id === id);
       if (!geofence || geofence.type !== store[id].type) {
-        store[id].overlay.setMap(null);
-        store[id].labelMarker?.setMap(null);
+        store[id].overlay.remove();
+        store[id].labelMarker?.remove();
         delete store[id];
       }
     });
@@ -2496,85 +2271,70 @@ export default function GeocercasPage() {
       const isEditing = editingShapeId === geofence.id;
       const isSelected = selectedId === geofence.id;
       const style = {
-        fillColor: geofence.color,
+        color: geofence.color,
         fillOpacity: isSelected ? 0.3 : 0.15,
-        strokeColor: geofence.color,
-        strokeOpacity: 1,
-        strokeWeight: isSelected || isEditing ? 3 : 2,
-        editable: isEditing,
-        draggable: isEditing,
+        weight: isSelected || isEditing ? 3 : 2,
         clickable: !drawMode,
-        zIndex: isEditing ? 30 : isSelected ? 20 : 10,
       };
 
       const entry = store[geofence.id];
       const center = geofenceCenter(geofence);
       const labelIcon = geofence.name ? makeGeofenceLabelIcon(geofence.name, geofence.color) : null;
 
+      const createLabel = (position: LatLng, icon: L.Icon) => {
+        const label = L.marker(position, {
+          icon,
+          keyboard: false,
+          zIndexOffset: isSelected ? 260 : 160,
+        }).addTo(map);
+        label.on('click', () => setSelectedId(geofence.id));
+        setMarkerClickable(label, !drawMode);
+        return label;
+      };
+
       if (!entry) {
-        let overlay: google.maps.Circle | google.maps.Polygon | null = null;
+        let overlay: GeoShape | null = null;
         if (geofence.type === 'circle' && geofence.center && geofence.radius != null) {
-          overlay = new google.maps.Circle({
-            ...style,
-            map,
-            center: geofence.center,
-            radius: geofence.radius,
-          });
-          overlay.addListener('click', () => setSelectedId(geofence.id));
+          overlay = new GeoShape(map, 'circle', { center: geofence.center, radius: geofence.radius }, style);
         } else if (geofence.type === 'polygon' && geofence.path && geofence.path.length >= 3) {
-          overlay = new google.maps.Polygon({ ...style, map, paths: geofence.path });
-          overlay.addListener('click', () => setSelectedId(geofence.id));
+          overlay = new GeoShape(map, 'polygon', { path: geofence.path }, style);
         }
 
         if (overlay) {
-          let labelMarker: google.maps.Marker | null = null;
-          if (center && labelIcon) {
-            labelMarker = new google.maps.Marker({
-              map,
-              position: center,
-              clickable: !drawMode,
-              icon: labelIcon,
-              zIndex: isSelected ? 26 : 16,
-            });
-            labelMarker.addListener('click', () => setSelectedId(geofence.id));
-          }
+          overlay.onClick(() => setSelectedId(geofence.id));
+          overlay.setEditable(isEditing);
+          const labelMarker = center && labelIcon ? createLabel(center, labelIcon) : null;
           store[geofence.id] = { type: geofence.type, overlay, labelMarker };
         }
         return;
       }
 
-      entry.overlay.setOptions(style);
+      entry.overlay.setStyle(style);
+      entry.overlay.setEditable(isEditing);
+      if (isEditing || isSelected) entry.overlay.layer.bringToFront();
 
       // Sincronizar etiqueta del nombre en el centro de la geocerca
       if (center && labelIcon) {
         if (!entry.labelMarker) {
-          entry.labelMarker = new google.maps.Marker({
-            map,
-            position: center,
-            clickable: !drawMode,
-            icon: labelIcon,
-            zIndex: isSelected ? 26 : 16,
-          });
-          entry.labelMarker.addListener('click', () => setSelectedId(geofence.id));
+          entry.labelMarker = createLabel(center, labelIcon);
         } else {
-          entry.labelMarker.setPosition(center);
+          entry.labelMarker.setLatLng(center);
           entry.labelMarker.setIcon(labelIcon);
-          entry.labelMarker.setZIndex(isSelected ? 26 : 16);
-          entry.labelMarker.setOptions({ clickable: !drawMode });
+          entry.labelMarker.setZIndexOffset(isSelected ? 260 : 160);
+          setMarkerClickable(entry.labelMarker, !drawMode);
         }
       } else if (entry.labelMarker) {
-        entry.labelMarker.setMap(null);
+        entry.labelMarker.remove();
         entry.labelMarker = null;
       }
 
       if (isEditing) return;
 
       if (geofence.type === 'circle' && geofence.center && geofence.radius != null) {
-        const circle = entry.overlay as google.maps.Circle;
-        circle.setCenter(geofence.center);
-        circle.setRadius(geofence.radius);
+        entry.overlay.setCenter(geofence.center);
+        entry.overlay.setRadius(geofence.radius);
       } else if (geofence.type === 'polygon' && geofence.path) {
-        (entry.overlay as google.maps.Polygon).setPath(geofence.path);
+        entry.overlay.setPath(geofence.path);
       }
     });
   }, [geofences, selectedId, editingShapeId, drawMode, mapReady, makeGeofenceLabelIcon]);
@@ -2622,17 +2382,10 @@ export default function GeocercasPage() {
     let newPath: LatLng[] | undefined;
 
     if (entry.type === 'circle') {
-      const circle = entry.overlay as google.maps.Circle;
-      const center = circle.getCenter();
-      if (!center) return;
-      newCenter = { lat: center.lat(), lng: center.lng() };
-      newRadius = circle.getRadius();
+      newCenter = entry.overlay.getCenter();
+      newRadius = entry.overlay.getRadius();
     } else {
-      const polygon = entry.overlay as google.maps.Polygon;
-      newPath = polygon
-        .getPath()
-        .getArray()
-        .map((point) => ({ lat: point.lat(), lng: point.lng() }));
+      newPath = entry.overlay.getPath();
     }
 
     const areaWkt =
@@ -2716,11 +2469,10 @@ export default function GeocercasPage() {
 
     if (entry && original) {
       if (entry.type === 'circle' && original.center && original.radius != null) {
-        const circle = entry.overlay as google.maps.Circle;
-        circle.setCenter(original.center);
-        circle.setRadius(original.radius);
+        entry.overlay.setCenter(original.center);
+        entry.overlay.setRadius(original.radius);
       } else if (entry.type === 'polygon' && original.path) {
-        (entry.overlay as google.maps.Polygon).setPath(original.path);
+        entry.overlay.setPath(original.path);
       }
     }
 
@@ -2761,51 +2513,19 @@ export default function GeocercasPage() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(read);
     };
-    const listeners: google.maps.MapsEventListener[] = [];
-    let pathListeners: google.maps.MapsEventListener[] = [];
-
-    if (entry.type === 'circle') {
-      const circle = entry.overlay as google.maps.Circle;
-      const read = () => {
-        const c = circle.getCenter();
-        setShapeDraft({
-          center: c ? { lat: c.lat(), lng: c.lng() } : undefined,
-          radius: circle.getRadius(),
-        });
-      };
-      read();
-      listeners.push(
-        circle.addListener('center_changed', () => schedule(read)),
-        circle.addListener('radius_changed', () => schedule(read)),
+    const shape = entry.overlay;
+    const read = () =>
+      setShapeDraft(
+        entry.type === 'circle'
+          ? { center: shape.getCenter(), radius: shape.getRadius() }
+          : { path: shape.getPath() },
       );
-    } else {
-      const polygon = entry.overlay as google.maps.Polygon;
-      const read = () =>
-        setShapeDraft({
-          path: polygon.getPath().getArray().map((p) => ({ lat: p.lat(), lng: p.lng() })),
-        });
-      // Al arrastrar el polígono entero Google puede reemplazar el path: se vuelve a escuchar.
-      const bindPath = () => {
-        pathListeners.forEach((l) => l.remove());
-        const path = polygon.getPath();
-        pathListeners = ['set_at', 'insert_at', 'remove_at'].map((evt) =>
-          path.addListener(evt, () => schedule(read)),
-        );
-      };
-      bindPath();
-      read();
-      listeners.push(
-        polygon.addListener('dragend', () => {
-          bindPath();
-          read();
-        }),
-      );
-    }
+    read();
+    const unsubscribe = shape.onChange(() => schedule(read));
 
     return () => {
       cancelAnimationFrame(frame);
-      listeners.forEach((l) => l.remove());
-      pathListeners.forEach((l) => l.remove());
+      unsubscribe();
     };
   }, [editingShapeId, mapReady]);
 
@@ -2842,13 +2562,12 @@ export default function GeocercasPage() {
       toast.error(`El radio mínimo es de ${MIN_RADIUS_M} metros`);
       return;
     }
-    const circle = entry.overlay as google.maps.Circle;
+    const circle = entry.overlay;
     // El campo en km redondea al metro: si no se tocó el radio, conservar el exacto
     if (Math.abs(radius - circle.getRadius()) < 1) radius = circle.getRadius();
     circle.setCenter({ lat, lng });
     circle.setRadius(radius);
-    const bounds = circle.getBounds();
-    if (bounds) mapRef.current?.fitBounds(bounds, 80);
+    mapRef.current?.fitBounds(circle.getBounds(), { padding: [80, 80] });
   }, [editingShapeId, editLat, editLng, editRadius, editRadiusUnit]);
 
   const applyEditVertex = useCallback(
@@ -2861,13 +2580,12 @@ export default function GeocercasPage() {
         toast.error('Coordenada fuera de rango válido (-90 a 90, -180 a 180)');
         return;
       }
-      const path = (entry.overlay as google.maps.Polygon).getPath();
-      const current = path.getAt(index);
+      const current = entry.overlay.getPath()[index];
       // Los campos muestran 6 decimales: si no se tocaron, no mover el vértice
-      if (current && current.lat().toFixed(6) === lat.toFixed(6) && current.lng().toFixed(6) === lng.toFixed(6)) {
+      if (current && current.lat.toFixed(6) === lat.toFixed(6) && current.lng.toFixed(6) === lng.toFixed(6)) {
         return;
       }
-      path.setAt(index, new google.maps.LatLng(lat, lng));
+      entry.overlay.setVertex(index, { lat, lng });
     },
     [editingShapeId],
   );
@@ -2876,12 +2594,11 @@ export default function GeocercasPage() {
     (index: number) => {
       const entry = editingShapeId ? shapesRef.current[editingShapeId] : null;
       if (!entry || entry.type !== 'polygon') return;
-      const path = (entry.overlay as google.maps.Polygon).getPath();
-      if (path.getLength() <= 3) {
+      if (entry.overlay.getPath().length <= 3) {
         toast.error('Un polígono necesita al menos 3 vértices');
         return;
       }
-      path.removeAt(index);
+      entry.overlay.removeVertex(index);
     },
     [editingShapeId],
   );
@@ -2892,13 +2609,10 @@ export default function GeocercasPage() {
     const original = originalShapeRef.current;
     if (!entry || !original) return;
     if (entry.type === 'circle' && original.center && original.radius != null) {
-      const circle = entry.overlay as google.maps.Circle;
-      circle.setCenter(original.center);
-      circle.setRadius(original.radius);
+      entry.overlay.setCenter(original.center);
+      entry.overlay.setRadius(original.radius);
     } else if (entry.type === 'polygon' && original.path) {
-      const path = (entry.overlay as google.maps.Polygon).getPath();
-      path.clear();
-      original.path.forEach((p) => path.push(new google.maps.LatLng(p.lat, p.lng)));
+      entry.overlay.setPath(original.path);
     }
   }, [editingShapeId]);
 
@@ -3344,8 +3058,8 @@ export default function GeocercasPage() {
 
       const entry = shapesRef.current[id];
       if (entry) {
-        entry.overlay.setMap(null);
-        entry.labelMarker?.setMap(null);
+        entry.overlay.remove();
+        entry.labelMarker?.remove();
         delete shapesRef.current[id];
       }
 
@@ -3373,24 +3087,20 @@ export default function GeocercasPage() {
     if (!map) return;
 
     if (geofence.type === 'circle') {
-      const circle = shapesRef.current[geofence.id]?.overlay as google.maps.Circle | undefined;
-      const bounds = circle?.getBounds();
-      if (bounds) {
-        map.fitBounds(bounds, 80);
+      const shape = shapesRef.current[geofence.id]?.overlay;
+      if (shape) {
+        map.fitBounds(shape.getBounds(), { padding: [80, 80] });
         return;
       }
       const center = geofenceCenter(geofence);
       if (center) {
-        map.panTo(center);
-        map.setZoom(15);
+        map.setView(center, 15);
       }
       return;
     }
 
     if (geofence.path?.length) {
-      const bounds = new google.maps.LatLngBounds();
-      geofence.path.forEach((point) => bounds.extend(point));
-      map.fitBounds(bounds, 80);
+      map.fitBounds(L.latLngBounds(geofence.path), { padding: [80, 80] });
     }
   }, []);
 
@@ -3406,37 +3116,23 @@ export default function GeocercasPage() {
       if (!map || !list.length) return;
 
       // Asegurar dimensiones actualizadas del mapa
-      google.maps.event.trigger(map, 'resize');
+      map.invalidateSize();
 
-      const bounds = new google.maps.LatLngBounds();
+      const bounds = L.latLngBounds([]);
       list.forEach((geofence) => {
         if (geofence.type === 'circle') {
-          const circle = shapesRef.current[geofence.id]?.overlay as google.maps.Circle | undefined;
-          const circleBounds = circle?.getBounds();
-          if (circleBounds) {
-            bounds.union(circleBounds);
-          } else if (geofence.center) {
-            if (geofence.radius != null) {
-              const latOffset = geofence.radius / 111320;
-              const lngOffset = geofence.radius / (111320 * Math.cos((geofence.center.lat * Math.PI) / 180));
-              bounds.extend({ lat: geofence.center.lat + latOffset, lng: geofence.center.lng + lngOffset });
-              bounds.extend({ lat: geofence.center.lat - latOffset, lng: geofence.center.lng - lngOffset });
-            } else {
-              bounds.extend(geofence.center);
-            }
+          if (geofence.center) {
+            bounds.extend(
+              geofence.radius != null ? circleBounds(geofence.center, geofence.radius) : L.latLng(geofence.center),
+            );
           }
         } else {
           geofence.path?.forEach((point) => bounds.extend(point));
         }
       });
 
-      if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, 90);
-        google.maps.event.addListenerOnce(map, 'idle', () => {
-          if ((map.getZoom() || 13) > 16) {
-            map.setZoom(16);
-          }
-        });
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [90, 90], maxZoom: 16 });
       }
     },
     [geofences],
@@ -3473,8 +3169,7 @@ export default function GeocercasPage() {
     map.setZoom(Math.max(3, Math.min(21, (map.getZoom() || 13) + delta)));
   }, []);
 
-  const changeMapType = useCallback((type: 'roadmap' | 'hybrid') => {
-    mapRef.current?.setMapTypeId(type);
+  const changeMapType = useCallback((type: MapTypeId) => {
     setMapType(type);
   }, []);
 
@@ -3746,7 +3441,8 @@ export default function GeocercasPage() {
 
       {/* Contenedor del Mapa */}
       <div className="relative h-full min-w-0 flex-1">
-        <div ref={mapDivRef} className="absolute inset-0 w-full h-full" style={{ width: '100%', height: '100%' }} />
+        {/* z-0 encierra los paneles de Leaflet (z-index 400+) para que no tapen los controles */}
+        <div ref={mapDivRef} className="absolute inset-0 z-0 w-full h-full" style={{ width: '100%', height: '100%' }} />
 
         {/* Coordenadas en tiempo real junto al cursor del mouse al dibujar */}
         {drawMode && cursorCoord && (
@@ -3959,30 +3655,7 @@ export default function GeocercasPage() {
         {/* Controles del mapa */}
         {mapReady && (
           <div className="absolute right-4 top-4 z-20 flex flex-col items-end gap-2">
-            <div className="flex overflow-hidden rounded-lg border border-gray-200/80 bg-white/95 p-0.5 shadow-md backdrop-blur-md">
-              <button
-                type="button"
-                onClick={() => changeMapType('roadmap')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-semibold transition ${
-                  mapType === 'roadmap'
-                    ? 'bg-[#113EB9] text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <MapIcon size={13} /> Mapa
-              </button>
-              <button
-                type="button"
-                onClick={() => changeMapType('hybrid')}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-semibold transition ${
-                  mapType === 'hybrid'
-                    ? 'bg-[#113EB9] text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Layers size={13} /> Satélite
-              </button>
-            </div>
+            <MapTypeSelector value={mapType} onChange={changeMapType} />
 
             <div className="flex flex-col rounded-lg border border-gray-200/80 bg-white/95 p-1 shadow-md backdrop-blur-md">
               <button
