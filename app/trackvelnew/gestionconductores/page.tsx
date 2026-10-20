@@ -7,6 +7,11 @@ import {
   Users,
   Search,
   Download,
+  User,
+  Eye,
+  ImagePlus,
+  ImageOff,
+  X,
 } from 'lucide-react';
 import ConductorDialog from '@/app/components/modal/addConductor';
 import ConductorDialogModificar from '@/app/components/modal/editConductor';
@@ -33,6 +38,7 @@ interface Conductor {
   telefono: string;
   correo: string;
   tipo: string | null;
+  imagen: string | null;
 }
 
 interface ConductorAPI {
@@ -61,28 +67,29 @@ interface ConductorAPI {
 }
 
 const TODOS_KEY = '__todos__';
-const SIN_TIPO_KEY = '__sin_tipo__';
 const PAGE_SIZE = 24;
 
-const AVATAR_PALETTE = [
-  { bg: 'bg-blue-100', text: 'text-blue-700' },
-  { bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  { bg: 'bg-purple-100', text: 'text-purple-700' },
-  { bg: 'bg-orange-100', text: 'text-orange-700' },
-  { bg: 'bg-pink-100', text: 'text-pink-700' },
-  { bg: 'bg-teal-100', text: 'text-teal-700' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-700' },
-];
+const DriverAvatar = ({ src, alt }: { src: string | null; alt: string }) => {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
 
-const getAvatarColor = (name: string) => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
-};
-
-const getInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase();
+  if (src && !failed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="h-20 w-20 rounded-full border border-gray-200 object-cover"
+      />
+    );
+  }
+  return (
+    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+      <User size={40} />
+    </div>
+  );
 };
 
 const BRAND_BLUE = 'FF113EB9';
@@ -183,6 +190,25 @@ const exportarExcel = async (data: ConductorAPI[], filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+const DELIVERY_URL = process.env.NEXT_PUBLIC_CLOUDFLARE_DELIVERY_URL || '';
+const IMAGE_FOLDER = 'conductores/';
+
+// Devuelve el ID de Cloudflare solo si la imagen está en la carpeta de conductores.
+const getCloudflareId = (url: string | null): string | null => {
+  if (!url || !DELIVERY_URL || !url.startsWith(`${DELIVERY_URL}/`)) return null;
+  const id = url.slice(DELIVERY_URL.length + 1).replace(/\/[^/]+$/, '');
+  return id.startsWith(IMAGE_FOLDER) ? id : null;
+};
+
+const deleteCloudflareImage = async (imageId: string) => {
+  const res = await fetch('/trackvelnew/gestionconductores/api/imagen', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageId }),
+  });
+  return res.ok;
+};
+
 const getPageNumbers = (current: number, total: number): (number | 'ellipsis')[] => {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages: (number | 'ellipsis')[] = [1];
@@ -200,6 +226,8 @@ export default function Page() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [eliminandoLoading, setEliminandoLoading] = useState<number | null>(null);
+  const [imageBusyId, setImageBusyId] = useState<number | null>(null);
+  const [viewer, setViewer] = useState<{ src: string; nombre: string } | null>(null);
   const [selectedTab, setSelectedTab] = useState<string>(TODOS_KEY);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -229,6 +257,7 @@ export default function Page() {
         telefono: conductor.telefono || '',
         correo: conductor.email || '',
         tipo: conductor.tipo || null,
+        imagen: conductor.imagen?.trim() || null,
       }));
 
       setConductores(transformedData);
@@ -312,6 +341,7 @@ export default function Page() {
               telefono: modifiedConductor.telefono || '',
               correo: modifiedConductor.email || '',
               tipo: modifiedConductor.tipo || '',
+              imagen: modifiedConductor.imagen?.trim() || null,
             }
           : conductor,
       ),
@@ -320,6 +350,71 @@ export default function Page() {
 
   const getConductorData = (conductorId: number): ConductorAPI | null => {
     return conductoresAPI.find((conductor) => conductor.codigo === conductorId) || null;
+  };
+
+  const guardarImagen = async (data: ConductorAPI, imagen: string) => {
+    const response = await fetch(
+      `https://do.velsat.pe:2083/api/Preplan/ActualizarImagenConductor/${data.codigo}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagen }),
+      },
+    );
+    if (!response.ok) throw new Error(`Error ${response.status} al guardar la imagen`);
+    handleConductorModified({ ...data, imagen: imagen || null });
+  };
+
+  const reemplazarImagen = async (conductorId: number, file: File) => {
+    const data = getConductorData(conductorId);
+    if (!data) return;
+    if (!file.type.startsWith('image/')) return toast.error('El archivo debe ser una imagen');
+    if (file.size > 5 * 1024 * 1024) return toast.error('La imagen no puede superar los 5 MB');
+
+    setImageBusyId(conductorId);
+    const loadingToast = toast.loading('Subiendo imagen...');
+    let nuevoId: string | null = null;
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('codigo', String(conductorId));
+      const res = await fetch('/trackvelnew/gestionconductores/api/imagen', {
+        method: 'POST',
+        body: form,
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(typeof result.error === 'string' ? result.error : 'Error al subir la imagen');
+      nuevoId = result.imageId;
+
+      await guardarImagen(data, result.imageUrl);
+
+      const anteriorId = getCloudflareId(data.imagen);
+      if (anteriorId) deleteCloudflareImage(anteriorId).catch(() => undefined);
+      toast.success('Imagen actualizada');
+    } catch (err: unknown) {
+      if (nuevoId) deleteCloudflareImage(nuevoId).catch(() => undefined);
+      toast.error(err instanceof Error ? err.message : 'Error al reemplazar la imagen');
+    } finally {
+      toast.dismiss(loadingToast);
+      setImageBusyId(null);
+    }
+  };
+
+  const eliminarImagen = async (conductorId: number) => {
+    const data = getConductorData(conductorId);
+    if (!data?.imagen) return;
+
+    setImageBusyId(conductorId);
+    try {
+      await guardarImagen(data, '');
+      const id = getCloudflareId(data.imagen);
+      if (id) await deleteCloudflareImage(id);
+      toast.success('Imagen eliminada');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al eliminar la imagen');
+    } finally {
+      setImageBusyId(null);
+    }
   };
 
   const buildExportRows = (list: Conductor[]): ConductorAPI[] =>
@@ -333,10 +428,8 @@ export default function Page() {
 
   const tabs = useMemo(() => {
     const map = new Map<string, number>();
-    let sinTipo = 0;
     conductores.forEach((c) => {
       if (c.tipo) map.set(c.tipo, (map.get(c.tipo) || 0) + 1);
-      else sinTipo++;
     });
     const tipoTabs = Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
@@ -345,7 +438,6 @@ export default function Page() {
     return [
       { key: TODOS_KEY, label: 'Todos', count: conductores.length },
       ...tipoTabs,
-      ...(sinTipo > 0 ? [{ key: SIN_TIPO_KEY, label: 'Sin tipo', count: sinTipo }] : []),
     ];
   }, [conductores]);
 
@@ -353,9 +445,7 @@ export default function Page() {
     const byTab =
       selectedTab === TODOS_KEY
         ? conductores
-        : selectedTab === SIN_TIPO_KEY
-          ? conductores.filter((c) => !c.tipo)
-          : conductores.filter((c) => c.tipo === selectedTab);
+        : conductores.filter((c) => c.tipo === selectedTab);
 
     const term = searchTerm.toLowerCase();
     if (!term) return byTab;
@@ -404,6 +494,29 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-gray-100">
       <Toaster richColors />
+      {viewer && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setViewer(null)}
+        >
+          <div className="relative max-h-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setViewer(null)}
+              title="Cerrar"
+              className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700 shadow"
+            >
+              <X size={14} />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={viewer.src}
+              alt={viewer.nombre}
+              className="max-h-[85vh] rounded-lg bg-white object-contain"
+            />
+            <p className="mt-2 text-center text-[12px] font-medium text-white">{viewer.nombre}</p>
+          </div>
+        </div>
+      )}
       <div className="bg-[#113EB9]">
         <div className="flex h-12 items-stretch justify-between">
           <div className="flex items-center gap-3">
@@ -532,83 +645,52 @@ export default function Page() {
                 </div>
               </div>
             )}
-            <div className="min-h-0 flex-1 overflow-auto">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10 bg-gray-200">
-                  <tr className="border-b border-gray-200">
-                    <th className="w-10 px-4 py-2">
+            <div className="flex shrink-0 items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-1.5">
+              <input
+                type="checkbox"
+                checked={allOnPageSelected}
+                onChange={toggleSelectAllOnPage}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-[#113EB9] focus:ring-[#113EB9]"
+              />
+              <span className="text-[11px] font-medium text-gray-500">Seleccionar todos en esta página</span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-gray-50 p-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                {paginatedConductores.map((conductor) => {
+                  const selected = selectedIds.includes(conductor.id);
+                  return (
+                    <div
+                      key={conductor.id}
+                      className={`relative flex flex-col items-center rounded-lg border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
+                        selected ? 'border-[#113EB9] ring-1 ring-[#113EB9]' : 'border-gray-200'
+                      }`}
+                    >
                       <input
                         type="checkbox"
-                        checked={allOnPageSelected}
-                        onChange={toggleSelectAllOnPage}
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-[#113EB9] focus:ring-[#113EB9]"
+                        checked={selected}
+                        onChange={() => toggleSelectOne(conductor.id)}
+                        className="absolute left-3 top-3 h-3.5 w-3.5 rounded border-gray-300 text-[#113EB9] focus:ring-[#113EB9]"
                       />
-                    </th>
-                    <th className="px-2 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      #
-                    </th>
-                    <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      Nombre
-                    </th>
-                    <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      Teléfono
-                    </th>
-                    <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      Correo
-                    </th>
-                    <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      Tipo
-                    </th>
-                    <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {paginatedConductores.map((conductor, index) => {
-                    const avatarColor = getAvatarColor(conductor.nombre);
-                    return (
-                      <tr key={conductor.id} className="transition-colors hover:bg-gray-50">
-                        <td className="px-4 py-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(conductor.id)}
-                            onChange={() => toggleSelectOne(conductor.id)}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-[#113EB9] focus:ring-[#113EB9]"
-                          />
-                        </td>
-                        <td className="whitespace-nowrap px-2 py-2 text-[12px] font-medium text-gray-400">
-                          {(currentPage - 1) * PAGE_SIZE + index + 1}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${avatarColor.bg} ${avatarColor.text}`}
-                            >
-                              {getInitials(conductor.nombre)}
-                            </div>
-                            <span className="text-[12px] font-semibold text-gray-900">
-                              {conductor.nombre}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2 text-[12px] text-gray-600">
-                          {conductor.telefono || <span className="text-gray-300">—</span>}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2 text-[12px] text-gray-600">
-                          {conductor.correo || <span className="text-gray-300">—</span>}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2 text-[12px] text-gray-600">
-                          {conductor.tipo ? (
-                            <span className="text-[12px] font-medium text-[#113EB9]">
-                              {conductor.tipo}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-2">
-                          <div className="flex gap-1.5">
+                      <DriverAvatar src={conductor.imagen} alt={conductor.nombre} />
+                      <span
+                        className="mt-2 w-full truncate text-center text-[12px] font-semibold text-gray-900"
+                        title={conductor.nombre}
+                      >
+                        {conductor.nombre}
+                      </span>
+                      {conductor.tipo && (
+                        <span className="text-[11px] font-medium text-[#113EB9]">{conductor.tipo}</span>
+                      )}
+                      <span className="mt-1 w-full truncate text-center text-[11px] text-gray-600">
+                        {conductor.telefono || <span className="text-gray-300">—</span>}
+                      </span>
+                      <span
+                        className="w-full truncate text-center text-[11px] text-gray-600"
+                        title={conductor.correo}
+                      >
+                        {conductor.correo || <span className="text-gray-300">—</span>}
+                      </span>
+                      <div className="mt-3 flex gap-1.5">
                             <ConductorDialogModificar
                               conductorData={getConductorData(conductor.id)}
                               onConductorModified={handleConductorModified}
@@ -660,13 +742,78 @@ export default function Page() {
                             >
                               <FileCheck size={13} />
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      </div>
+                      <div className="mt-1.5 flex gap-1.5">
+                        <button
+                          title={conductor.imagen ? 'Ver imagen' : 'Sin imagen'}
+                          disabled={!conductor.imagen}
+                          onClick={() =>
+                            conductor.imagen &&
+                            setViewer({ src: conductor.imagen, nombre: conductor.nombre })
+                          }
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+                        >
+                          <Eye size={13} />
+                        </button>
+
+                        <label
+                          title={conductor.imagen ? 'Reemplazar imagen' : 'Subir imagen'}
+                          className={`flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-[#113EB9] transition-colors hover:bg-blue-50 ${
+                            imageBusyId === conductor.id ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                          }`}
+                        >
+                          {imageBusyId === conductor.id ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <ImagePlus size={13} />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={imageBusyId === conductor.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (file) reemplazarImagen(conductor.id, file);
+                            }}
+                          />
+                        </label>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              title="Eliminar imagen"
+                              disabled={!conductor.imagen || imageBusyId === conductor.id}
+                              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                            >
+                              <ImageOff size={13} />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar imagen?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Se eliminará la foto de &quot;{conductor.nombre}&quot;. El conductor se mantiene y
+                                volverá a mostrarse el ícono por defecto.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => eliminarImagen(conductor.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex shrink-0 items-center justify-between border-t border-gray-200 px-4 py-3">
               <span className="text-[11px] text-gray-500">
