@@ -242,7 +242,7 @@ export default function AlertsSoundSection({ value, onSave }: Props) {
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-[12.5px] font-bold text-slate-800">
-                    Modo "No molestar" (Horario de silencio)
+                    Modo &ldquo;No molestar&rdquo; (Horario de silencio)
                   </p>
                   {draft.quietHours.enabled && (
                     <span
@@ -414,7 +414,7 @@ export default function AlertsSoundSection({ value, onSave }: Props) {
           /* Vista: Modo por Tipo de Vehículo */
           <div className="mt-3.5 space-y-2">
             <p className="text-[11px] text-slate-500">
-              Define umbrales diferenciados según el tipo de unidad configurado en la pestaña "Íconos":
+              Define umbrales diferenciados según el tipo de unidad configurado en la pestaña &ldquo;Íconos&rdquo;:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               {(Object.keys(VEHICLE_ICONS) as VehicleIconId[]).map((typeId) => {
