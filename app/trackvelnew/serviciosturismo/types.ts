@@ -129,6 +129,16 @@ export interface MensajeTurismo {
   placa: string | null;
   piloto: string | null;
   celular: string | null;
+  brevetePiloto?: string | null;
+  copiloto?: string | null;
+  cobrevete?: string | null;
+  cocelular?: string | null;
+  enviadoPorRol?: 'Piloto' | 'Copiloto' | null;
+  enviadoPorNombre?: string | null;
+  horaretorno?: string | null;
+  tipounidad?: string | null;
+  grupo?: string | null;
+  numpax?: string | null;
 }
 
 // Fila del modal "Notificar revisión a todos": un conductor (piloto o copiloto) con al menos un

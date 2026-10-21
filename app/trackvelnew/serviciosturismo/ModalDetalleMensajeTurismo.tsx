@@ -60,17 +60,41 @@ const ModalDetalleMensajeTurismo: React.FC<{
             </div>
           )}
 
+          <div className="rounded-lg border-2 border-[#113EB9] bg-blue-50 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#113EB9]">
+              Enviado por
+            </p>
+            <p className="text-[14px] font-bold text-slate-800">
+              {mensaje.enviadoPorNombre || mensaje.piloto || '—'}{' '}
+              <span className="text-[12px] font-semibold text-[#113EB9]">
+                ({mensaje.enviadoPorRol || 'Piloto'})
+              </span>
+            </p>
+          </div>
+
           <div className="rounded-lg border border-slate-200 p-3">
             <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
-              <User className="h-3.5 w-3.5" /> Conductor
+              <User className="h-3.5 w-3.5" /> Piloto
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <DetalleCampo label="Piloto" value={mensaje.piloto} />
-              <DetalleCampo label="Brevete" value={mensaje.brevete} />
+              <DetalleCampo label="Nombre" value={mensaje.piloto} />
+              <DetalleCampo label="Brevete" value={mensaje.brevetePiloto ?? mensaje.brevete} />
               <DetalleCampo label="Celular" value={mensaje.celular} />
-              <DetalleCampo label="Placa" value={placaCombinada || null} />
             </div>
           </div>
+
+          {mensaje.copiloto && (
+            <div className="rounded-lg border border-slate-200 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
+                <User className="h-3.5 w-3.5" /> Copiloto
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <DetalleCampo label="Nombre" value={mensaje.copiloto} />
+                <DetalleCampo label="Brevete" value={mensaje.cobrevete ?? null} />
+                <DetalleCampo label="Celular" value={mensaje.cocelular ?? null} />
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border border-slate-200 p-3">
             <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[#113EB9]">
@@ -79,7 +103,12 @@ const ModalDetalleMensajeTurismo: React.FC<{
             <div className="grid grid-cols-2 gap-2">
               <DetalleCampo label="Fecha" value={mensaje.fechainicio} />
               <DetalleCampo label="Hora" value={mensaje.horainicio} />
+              <DetalleCampo label="Retorno" value={mensaje.horaretorno ?? null} />
+              <DetalleCampo label="Placa" value={placaCombinada || null} />
+              <DetalleCampo label="Tipo de unidad" value={mensaje.tipounidad ?? null} />
               <DetalleCampo label="Cliente" value={mensaje.cliente} />
+              <DetalleCampo label="Grupo" value={mensaje.grupo ?? null} />
+              <DetalleCampo label="N° pax" value={mensaje.numpax ?? null} />
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-[12px] text-slate-600">
               <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
