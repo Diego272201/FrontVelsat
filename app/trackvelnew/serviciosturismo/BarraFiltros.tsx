@@ -9,6 +9,7 @@ import {
   ListFilter,
   Loader2,
   MessageCircle,
+  MessageSquareText,
   Plus,
   RefreshCw,
   Search,
@@ -16,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { getIsoToday } from './utils';
+import ModalReporteObservaciones from './ModalReporteObservaciones';
 
 interface BarraFiltrosProps {
   totalServicios: number;
@@ -93,9 +95,22 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
   eliminandoCarga,
 }) => {
   const [tabActivo, setTabActivo] = useState<'consulta' | 'avanzadas'>('consulta');
+  const [modalObservacionesAbierto, setModalObservacionesAbierto] = useState(false);
 
   return (
     <div className="w-full">
+      <ModalReporteObservaciones
+        abierto={modalObservacionesAbierto}
+        fechaInicial={fecha}
+        onCancelar={() => setModalObservacionesAbierto(false)}
+        onConfirmar={(fechaElegida) => {
+          setModalObservacionesAbierto(false);
+          window.open(
+            `/trackvelnew/serviciosturismo/reporteobservaciones?fecha=${fechaElegida}`,
+            '_blank',
+          );
+        }}
+      />
       <div className="sticky top-0 z-50 bg-[#113EB9]">
         <div className="flex h-12 items-stretch justify-between">
           <div className="flex items-center gap-3">
@@ -277,6 +292,15 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 >
                   <FileSpreadsheet className="h-3.5 w-3.5 text-[#113EB9]" />
                   <span>Resumen del día</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalObservacionesAbierto(true)}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-[11px] font-semibold text-[#113EB9] transition-colors hover:bg-blue-100"
+                >
+                  <MessageSquareText className="h-3.5 w-3.5 text-[#113EB9]" />
+                  <span>Reporte Observaciones</span>
                 </button>
 
                 <button
