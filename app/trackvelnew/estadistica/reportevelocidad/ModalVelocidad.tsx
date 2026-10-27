@@ -8,7 +8,7 @@ import {
   Button,
   Link,
 } from '@nextui-org/react';
-import Select from '@/app/components/selectUI/Select';
+import Selectall from '@/app/components/selectUI/Selectall';
 import App from '@/app/components/TimePicker';
 import { toast, Toaster } from 'sonner';
 import Image from 'next/image';
@@ -43,10 +43,12 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [speedCar, setSpeedCar] = useState<string>('');
+  const [isAllUnitsSelected, setIsAllUnitsSelected] = useState<boolean>(false);
   const username = session?.user.username;
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
+    setIsAllUnitsSelected(deviceId === 'Todas las unidades');
   };
 
   const handleStartDateSelect = (date: string) => {
@@ -107,7 +109,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
             </ModalHeader>
             <ModalBody>
               <div className="selectunitRange">
-                <Select onSelect={handleSelect}></Select>
+                <Selectall onSelect={handleSelect}></Selectall>
               </div>
 
               <div className="selectdates">
@@ -157,6 +159,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                       nameurl="reportevelocidad"
                       username={username || ''}
                       speedCar={speedCar}
+                      isAllUnitsSelected={isAllUnitsSelected}
                     />
                   </div>
                 )}

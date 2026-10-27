@@ -18,7 +18,12 @@ const PageContent = () => {
   const speedCar = searchParams.get('speedCar');
 
   const username = session?.user.username;
-  const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
+  const isAllUnitsSelected = deviceId === 'Todas las unidades';
+  const tableUrl = !username
+    ? ''
+    : isAllUnitsSelected
+      ? `/api/Reporting/speedall/${startDate}/${endDate}/${speedCar}/${username}`
+      : `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dataStats, setDataStats] = useState<DataStatsSpeed | null>(null);
@@ -94,6 +99,7 @@ const PageContent = () => {
         namedesc="velocidad"
         username={username || ''}
         nameurl="reportevelocidad"
+        isAllUnitsSelected={isAllUnitsSelected}
       />
 
       <TableSpeed

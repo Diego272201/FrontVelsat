@@ -14,6 +14,7 @@ interface DownloadParameterProps {
   nameurl: string;
   speedCar?: string;
   isKilometrajeAll?: boolean;
+  isAllUnitsSelected?: boolean;
   maxDays?: number;
 }
 
@@ -27,6 +28,7 @@ export default function ButtonDownloadFloat({
   nameurl,
   speedCar,
   isKilometrajeAll = false,
+  isAllUnitsSelected = false,
   maxDays,
 }: DownloadParameterProps) {
   const { baseUrl } = useApi();
@@ -57,7 +59,9 @@ export default function ButtonDownloadFloat({
           ? `/Kilometer/downloadExcelKall/${startDate}/${endDate}/${username}`
           : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else if (nameurl === 'reportevelocidad') {
-        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+        url += isAllUnitsSelected
+          ? `/Reporting/downloadExcelVall/${startDate}/${endDate}/${speedCar}/${username}`
+          : `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
       } else if (nameurl === 'alertasvelocidad') {
         url += `/Preplan/AlertasVelocidadExcel?usuario=${encodeURIComponent(username)}&fechaini=${encodeURIComponent(startDate)}&fechafin=${encodeURIComponent(endDate)}`;
       } else if (nameurl === 'reporteeventos') {
@@ -75,7 +79,7 @@ export default function ButtonDownloadFloat({
       });
 
       const downloadUrl = window.URL.createObjectURL(blob);
-      const fileName = `reporte_${namedesc}_${devideId || 'todos'}.xlsx`;
+      const fileName = `reporte_${namedesc}_${isKilometrajeAll || isAllUnitsSelected ? 'todas_las_unidades' : devideId || 'todos'}.xlsx`;
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.setAttribute('download', fileName);

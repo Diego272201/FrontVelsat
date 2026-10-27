@@ -7,6 +7,7 @@ import { Spinner } from '@nextui-org/react';
 
 interface Row {
   item: number;
+  deviceId?: string;
   speedKPH: number;
   date: string;
   time: string;
@@ -41,6 +42,8 @@ export default function App({
   speedFilterRange = 'all',
   onDataStats,
 }: AppProps) {
+  const showUnitColumn = deviceId === 'Todas las unidades';
+  const columnCount = showUnitColumn ? 9 : 8;
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,14 +55,16 @@ export default function App({
   }, [baseUrl]);
 
   useEffect(() => {
-    if (!isBaseUrlReady) return;
+    if (!isBaseUrlReady || !url) return;
 
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         const response = await axios.get(`${baseUrl}${url}`);
         const data = response.data;
-        if (data && Array.isArray(data.result)) {
-          const fetchedRows: Row[] = data.result;
+        const resultArray = Array.isArray(data) ? data : data?.result;
+        if (Array.isArray(resultArray)) {
+          const fetchedRows: Row[] = resultArray;
           setRows(fetchedRows);
           if (onDataStats) {
             const maxSpeed = fetchedRows.length > 0 ? Math.max(...fetchedRows.map((r) => r.speedKPH)) : 0;
@@ -138,7 +143,8 @@ export default function App({
           const matchAddress = item.address?.toLowerCase().includes(term);
           const matchSpeed = `${item.speedKPH}`.includes(term);
           const matchItem = `${item.item}`.includes(term);
-          if (!matchTime && !matchDate && !matchAddress && !matchSpeed && !matchItem) {
+          const matchDevice = item.deviceId?.toLowerCase().includes(term);
+          if (!matchTime && !matchDate && !matchAddress && !matchSpeed && !matchItem && !matchDevice) {
             return false;
           }
         }
@@ -216,6 +222,7 @@ export default function App({
           >
             <tr>
               <th className="p-2 text-center">ITEM</th>
+              {showUnitColumn && <th className="p-2 text-center">UNIDAD</th>}
               <th className="p-2 text-center">VELOCIDAD</th>
               <th className="p-2 text-center">FECHA</th>
               <th className="p-2 text-center">HORA</th>
@@ -228,13 +235,13 @@ export default function App({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td colSpan={columnCount} className="py-8 text-center text-sm text-gray-500">
                   <Spinner size="sm" color="warning" />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td colSpan={columnCount} className="py-8 text-center text-sm text-gray-500">
                   No hay datos para las fechas ingresadas
                 </td>
               </tr>
@@ -245,6 +252,9 @@ export default function App({
                   className="border-t border-gray-200 bg-gray-100 hover:bg-white"
                 >
                   <td className="p-2 text-center">{item.item}</td>
+                  {showUnitColumn && (
+                    <td className="p-2 text-center">{item.deviceId}</td>
+                  )}
                   <td className="p-2 text-center">{item.speedKPH.toFixed(2)} Km/h</td>
                   <td className="p-2 text-center">{item.date}</td>
                   <td className="p-2 text-center">{item.time}</td>
@@ -253,7 +263,7 @@ export default function App({
                   <td className="p-2 text-center">{item.address}</td>
                   <td className="p-2 text-center">
                     <a
-                      href={`/VerMapa?lat=${item.latitude}&lng=${item.longitude}&deviceId=${deviceId}&dir=${item.address}`}
+                      href={`/VerMapa?lat=${item.latitude}&lng=${item.longitude}&deviceId=${showUnitColumn ? item.deviceId : deviceId}&dir=${item.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block"

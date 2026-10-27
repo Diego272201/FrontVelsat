@@ -16,6 +16,7 @@ interface DownloadParameterProps {
   nameurl: string;
   speedCar?: string; // solo para velocidad
   isKilometrajeAll?: boolean; // solo para kilometraje "all"
+  isAllUnitsSelected?: boolean; // solo para velocidad "todas las unidades"
   maxDays?: number;
 }
 
@@ -29,6 +30,7 @@ export default function ButtonDownload({
   nameurl,
   speedCar,
   isKilometrajeAll = false,
+  isAllUnitsSelected = false,
   maxDays = 11,
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +83,9 @@ export default function ButtonDownload({
           ? `/Kilometer/downloadExcelKall/${startDate}/${endDate}/${username}`
           : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else if (nameurl === 'reportevelocidad') {
-        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+        url += isAllUnitsSelected
+          ? `/Reporting/downloadExcelVall/${startDate}/${endDate}/${speedCar}/${username}`
+          : `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
       } else if (nameurl === 'reporteeventos') {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else {
@@ -109,7 +113,7 @@ export default function ButtonDownload({
       link.href = downloadUrl;
       link.setAttribute(
         'download',
-        `reporte_${namedesc}_gps_${devideId || 'todos'}.xlsx`,
+        `reporte_${namedesc}_gps_${isKilometrajeAll || isAllUnitsSelected ? 'todas_las_unidades' : devideId || 'todos'}.xlsx`,
       );
       document.body.appendChild(link);
       link.click();
