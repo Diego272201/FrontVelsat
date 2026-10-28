@@ -791,7 +791,7 @@ const ServicesSearchSystem: React.FC = () => {
         </div>
       </div>
 
-      <div className="mx-auto space-y-0">
+      <div className="w-full space-y-0">
         {/* Búsqueda de Servicios */}
         <div className="border-b border-gray-200 bg-white px-3 py-1.5">
           <div className="flex items-center gap-2">
