@@ -1442,7 +1442,7 @@ const Tollbar: React.FC = () => {
           namedesc="general"
           showDownloadButton={true}
           icono={<SiGoogledocs size={25} />}
-          maxDays={31}
+          maxDays={15}
         />
       )}
 
@@ -1495,7 +1495,7 @@ const Tollbar: React.FC = () => {
           namedesc="kilometraje"
           showDownloadButton={true}
           useSelectAll={true}
-          maxDays={31}
+          maxDays={15}
         />
       )}
 

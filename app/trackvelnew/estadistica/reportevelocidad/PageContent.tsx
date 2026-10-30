@@ -115,7 +115,7 @@ const PageContent = () => {
         username={username || ''}
         nameurl="reportevelocidad"
         isAllUnitsSelected={isAllUnitsSelected}
-        maxDays={isAllUnitsSelected ? 7 : 31}
+        maxDays={isAllUnitsSelected ? 7 : 15}
       />
 
       <TableSpeed

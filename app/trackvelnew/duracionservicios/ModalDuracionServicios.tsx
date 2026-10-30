@@ -66,8 +66,8 @@ const AppModalDuracionServicios: React.FC<AppModalProps> = ({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 31) {
-      toast.error('El límite de fechas es de 31 días', {
+    if (diffDays > 15) {
+      toast.error('El límite de fechas es de 15 días', {
         className: 'toast-slide-in',
         richColors: true,
       });
