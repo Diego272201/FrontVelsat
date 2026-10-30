@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
+import { buildSpeedChunkUrls, downloadSpeedExcelChunked } from './speedChunks';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -92,20 +93,37 @@ export default function ButtonDownload({
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       }
 
-      console.log('AScacac' + url);
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        onDownloadProgress: (e) => {
-          if (e.total) {
-            const percent = Math.round((e.loaded * 100) / e.total);
-            setProgress(percent);
-          }
-        },
-      });
+      const speedParams = {
+        startDate,
+        endDate,
+        deviceId: devideId ?? '',
+        speedCar: speedCar ?? '',
+        username,
+        isAllUnits: isAllUnitsSelected,
+      };
+      const speedChunkUrls =
+        nameurl === 'reportevelocidad' ? buildSpeedChunkUrls(speedParams) : undefined;
+
+      let fileData: ArrayBuffer;
+      if (speedChunkUrls) {
+        clearInterval(interval);
+        fileData = await downloadSpeedExcelChunked(baseUrl, speedChunkUrls, speedParams, setProgress);
+      } else {
+        const response = await axios.get(url, {
+          responseType: 'arraybuffer',
+          onDownloadProgress: (e) => {
+            if (e.total) {
+              const percent = Math.round((e.loaded * 100) / e.total);
+              setProgress(percent);
+            }
+          },
+        });
+        fileData = response.data;
+      }
 
       clearInterval(interval);
 
-      const blob = new Blob([response.data], {
+      const blob = new Blob([fileData], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       const downloadUrl = window.URL.createObjectURL(blob);

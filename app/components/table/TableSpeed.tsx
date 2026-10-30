@@ -29,6 +29,8 @@ export interface DataStatsSpeed {
 
 interface AppProps {
   url: string;
+  // Si se envía, se consultan en orden (por bloques de fechas) en lugar de `url`
+  urls?: string[];
   deviceId: string;
   searchTerm?: string;
   speedFilterRange?: 'all' | 'hasta25' | 'entre26y40' | 'masDe40';
@@ -37,6 +39,7 @@ interface AppProps {
 
 export default function App({
   url,
+  urls,
   deviceId,
   searchTerm = '',
   speedFilterRange = 'all',
@@ -47,6 +50,7 @@ export default function App({
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
@@ -55,14 +59,42 @@ export default function App({
   }, [baseUrl]);
 
   useEffect(() => {
-    if (!isBaseUrlReady || !url) return;
+    const endpoints = urls && urls.length > 0 ? urls : url ? [url] : [];
+    if (!isBaseUrlReady || endpoints.length === 0) return;
+
+    let cancelled = false;
+
+    const rowKey = (r: Row) =>
+      `${r.deviceId ?? ''}|${r.date}|${r.time}|${r.latitude}|${r.longitude}|${r.speedKPH}`;
 
     const fetchData = async () => {
       setIsLoading(true);
+      setProgress(0);
       try {
-        const response = await axios.get(`${baseUrl}${url}`);
-        const data = response.data;
-        const resultArray = Array.isArray(data) ? data : data?.result;
+        const accumulated: Row[] = [];
+        let previousKeys = new Set<string>();
+        let lastData: any = null;
+        let valid = true;
+
+        for (let i = 0; i < endpoints.length; i++) {
+          const response = await axios.get(`${baseUrl}${endpoints[i]}`);
+          if (cancelled) return;
+          const data = response.data;
+          lastData = data;
+          const chunk = Array.isArray(data) ? data : data?.result;
+          if (!Array.isArray(chunk)) {
+            valid = false;
+            break;
+          }
+          // Los bloques comparten el instante de corte: se descartan repetidos
+          const fresh = (chunk as Row[]).filter((r) => !previousKeys.has(rowKey(r)));
+          previousKeys = new Set((chunk as Row[]).map(rowKey));
+          accumulated.push(...fresh);
+          setProgress(Math.round(((i + 1) / endpoints.length) * 100));
+        }
+
+        const data = lastData;
+        const resultArray = valid ? accumulated.map((r, idx) => ({ ...r, item: idx + 1 })) : null;
         if (Array.isArray(resultArray)) {
           const fetchedRows: Row[] = resultArray;
           setRows(fetchedRows);
@@ -123,7 +155,10 @@ export default function App({
     };
 
     fetchData();
-  }, [isBaseUrlReady, baseUrl, url]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isBaseUrlReady, baseUrl, url, urls]);
 
   useEffect(() => {
     setPage(1);
@@ -237,6 +272,9 @@ export default function App({
               <tr>
                 <td colSpan={columnCount} className="py-8 text-center text-sm text-gray-500">
                   <Spinner size="sm" color="warning" />
+                  {urls && urls.length > 1 && (
+                    <p className="mt-2">Cargando datos... {progress}%</p>
+                  )}
                 </td>
               </tr>
             ) : items.length === 0 ? (

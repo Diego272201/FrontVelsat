@@ -193,6 +193,7 @@ export default function PageContent() {
         username={username || ''}
         nameurl="reportekilometraje"
         isKilometrajeAll={isAllUnitsSelected}
+        maxDays={isAllUnitsSelected ? 7 : 31}
       />
 
       <div className="flex flex-shrink-0 border-b border-gray-200 bg-white px-6">

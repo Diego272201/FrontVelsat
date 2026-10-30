@@ -77,8 +77,10 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 3) {
-      toast.error('El límite de fechas es de 3 días', {
+    const maxDays = isAllUnitsSelected ? 7 : 31;
+
+    if (diffDays > maxDays) {
+      toast.error(`El límite de fechas es de ${maxDays} días`, {
         className: 'toast-slide-in',
         richColors: true,
       });
@@ -160,6 +162,7 @@ const AppModalVelocidad: React.FC<AppModalProps> = ({
                       username={username || ''}
                       speedCar={speedCar}
                       isAllUnitsSelected={isAllUnitsSelected}
+                      maxDays={isAllUnitsSelected ? 7 : 31}
                     />
                   </div>
                 )}
