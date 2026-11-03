@@ -115,6 +115,7 @@ export default function AlertasVelocidadReportContent() {
         namedesc="alertas_velocidad"
         username={username || ''}
         nameurl="alertasvelocidad"
+        maxDays={31}
       />
 
       <AlertasVelocidadTable
