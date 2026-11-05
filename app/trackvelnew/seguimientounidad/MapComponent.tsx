@@ -269,45 +269,45 @@ const SeguimientoUnidadContent = () => {
 
   const getMarkerIcon = useCallback((heading: number) => {
     const directions = [
-      { range: [0, 22.5], url: '/up.webp', size: [25, 35] as [number, number] },
+      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] as [number, number] },
       {
         range: [22.51, 67.5],
-        url: '/topright.webp',
+        url: '/auto/topright.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [67.51, 112.5],
-        url: '/right.webp',
+        url: '/auto/right.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [112.51, 157.5],
-        url: '/downright.webp',
+        url: '/auto/downright.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [157.51, 202.5],
-        url: '/down.webp',
+        url: '/auto/down.webp',
         size: [25, 35] as [number, number],
       },
       {
         range: [202.51, 247.5],
-        url: '/downleft.webp',
+        url: '/auto/downleft.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [247.51, 292.5],
-        url: '/left.webp',
+        url: '/auto/left.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [292.51, 337.5],
-        url: '/topleft.webp',
+        url: '/auto/topleft.webp',
         size: [42, 25] as [number, number],
       },
       {
         range: [337.51, 360.0],
-        url: '/up.webp',
+        url: '/auto/up.webp',
         size: [25, 35] as [number, number],
       },
     ];
