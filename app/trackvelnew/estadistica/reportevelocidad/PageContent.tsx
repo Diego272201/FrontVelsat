@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import TableSpeed, { DataStatsSpeed } from '@/app/components/table/TableSpeed';
 import ButtonDownloadFloat from '@/app/components/ui/ButtonDownloadFloat';
 import ReporteHeader from '@/app/components/ReporteHeader';
+import { buildSpeedChunkUrls } from '@/app/components/ui/speedChunks';
 import '@/app/styles/table.css';
 
 const PageContent = () => {
@@ -18,7 +19,26 @@ const PageContent = () => {
   const speedCar = searchParams.get('speedCar');
 
   const username = session?.user.username;
-  const tableUrl = `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
+  const isAllUnitsSelected = deviceId === 'Todas las unidades';
+  const tableUrl = !username
+    ? ''
+    : isAllUnitsSelected
+      ? `/api/Reporting/speedall/${startDate}/${endDate}/${speedCar}/${username}`
+      : `/api/Reporting/speed/${startDate}/${endDate}/${deviceId}/${speedCar}/${username}`;
+
+  // Se parte el rango en bloques para evitar timeouts en rangos largos
+  const tableUrls = useMemo(
+    () =>
+      buildSpeedChunkUrls({
+        startDate: startDate ?? '',
+        endDate: endDate ?? '',
+        deviceId: deviceId ?? '',
+        speedCar: speedCar ?? '',
+        username: username ?? '',
+        isAllUnits: isAllUnitsSelected,
+      }),
+    [username, startDate, endDate, isAllUnitsSelected, speedCar, deviceId],
+  );
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dataStats, setDataStats] = useState<DataStatsSpeed | null>(null);
@@ -94,10 +114,13 @@ const PageContent = () => {
         namedesc="velocidad"
         username={username || ''}
         nameurl="reportevelocidad"
+        isAllUnitsSelected={isAllUnitsSelected}
+        maxDays={isAllUnitsSelected ? 7 : 15}
       />
 
       <TableSpeed
         url={tableUrl}
+        urls={tableUrls}
         deviceId={deviceId ?? ''}
         searchTerm={searchTerm}
         onDataStats={handleDataStats}

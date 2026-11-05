@@ -21,9 +21,9 @@ export const formatDate = (dateString: any) => {
 export function validateDateRange(startDate: string, endDate: string, maxDays: number = 11): string | null {
   if (!startDate || !endDate) return 'Fechas incompletas';
 
-  // startDate/endDate ya llegan en formato ISO "yyyy-MM-ddTHH:mm" (desde TimePicker)
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  // startDate/endDate llegan en ISO "yyyy-MM-ddTHH:mm" (TimePicker) o "dd/MM/yyyy HH:mm"
+  const start = new Date(formatDateToISO(startDate) || startDate);
+  const end = new Date(formatDateToISO(endDate) || endDate);
 
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Fechas inválidas';
 

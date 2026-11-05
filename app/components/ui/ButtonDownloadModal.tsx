@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import '@/app/styles/sonner.css';
 import { useApi } from '@/context/ApiContext';
+import { buildSpeedChunkUrls, downloadSpeedExcelChunked } from './speedChunks';
 
 interface DownloadParameterProps {
   startDate: string;
@@ -16,6 +17,7 @@ interface DownloadParameterProps {
   nameurl: string;
   speedCar?: string; // solo para velocidad
   isKilometrajeAll?: boolean; // solo para kilometraje "all"
+  isAllUnitsSelected?: boolean; // solo para velocidad "todas las unidades"
   maxDays?: number;
 }
 
@@ -29,6 +31,7 @@ export default function ButtonDownload({
   nameurl,
   speedCar,
   isKilometrajeAll = false,
+  isAllUnitsSelected = false,
   maxDays = 11,
 }: DownloadParameterProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -81,27 +84,46 @@ export default function ButtonDownload({
           ? `/Kilometer/downloadExcelKall/${startDate}/${endDate}/${username}`
           : `/Kilometer/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else if (nameurl === 'reportevelocidad') {
-        url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
+        url += isAllUnitsSelected
+          ? `/Reporting/downloadExcelVall/${startDate}/${endDate}/${speedCar}/${username}`
+          : `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${speedCar}/${username}`;
       } else if (nameurl === 'reporteeventos') {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       } else {
         url += `/Reporting/${namedown}/${startDate}/${endDate}/${devideId}/${username}`;
       }
 
-      console.log('AScacac' + url);
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer',
-        onDownloadProgress: (e) => {
-          if (e.total) {
-            const percent = Math.round((e.loaded * 100) / e.total);
-            setProgress(percent);
-          }
-        },
-      });
+      const speedParams = {
+        startDate,
+        endDate,
+        deviceId: devideId ?? '',
+        speedCar: speedCar ?? '',
+        username,
+        isAllUnits: isAllUnitsSelected,
+      };
+      const speedChunkUrls =
+        nameurl === 'reportevelocidad' ? buildSpeedChunkUrls(speedParams) : undefined;
+
+      let fileData: ArrayBuffer;
+      if (speedChunkUrls) {
+        clearInterval(interval);
+        fileData = await downloadSpeedExcelChunked(baseUrl, speedChunkUrls, speedParams, setProgress);
+      } else {
+        const response = await axios.get(url, {
+          responseType: 'arraybuffer',
+          onDownloadProgress: (e) => {
+            if (e.total) {
+              const percent = Math.round((e.loaded * 100) / e.total);
+              setProgress(percent);
+            }
+          },
+        });
+        fileData = response.data;
+      }
 
       clearInterval(interval);
 
-      const blob = new Blob([response.data], {
+      const blob = new Blob([fileData], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -109,7 +131,7 @@ export default function ButtonDownload({
       link.href = downloadUrl;
       link.setAttribute(
         'download',
-        `reporte_${namedesc}_gps_${devideId || 'todos'}.xlsx`,
+        `reporte_${namedesc}_gps_${isKilometrajeAll || isAllUnitsSelected ? 'todas_las_unidades' : devideId || 'todos'}.xlsx`,
       );
       document.body.appendChild(link);
       link.click();

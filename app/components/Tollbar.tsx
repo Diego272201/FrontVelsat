@@ -247,6 +247,13 @@ const MENU_CONFIG: Record<string, MenuConfig> = {
         icon: 'document',
       },
       {
+        id: 'servicios-rutas',
+        title: 'Servicios Rutas',
+        href: '/trackvelnew/serviciosrutas',
+        icon: 'location',
+        allowedUsers: ['movilbus'],
+      },
+      {
         id: 'servicios-turismo',
         title: 'Servicios Turismo',
         href: '/trackvelnew/serviciosturismo',
@@ -1200,6 +1207,7 @@ const Tollbar: React.FC = () => {
                       'control',
                       'carga-latam',
                       'servicios-turismo',
+                      'servicios-rutas',
                     ].includes(item.id),
                   ),
                 },
@@ -1447,7 +1455,7 @@ const Tollbar: React.FC = () => {
           namedesc="general"
           showDownloadButton={true}
           icono={<SiGoogledocs size={25} />}
-          maxDays={3}
+          maxDays={15}
         />
       )}
 
@@ -1500,6 +1508,7 @@ const Tollbar: React.FC = () => {
           namedesc="kilometraje"
           showDownloadButton={true}
           useSelectAll={true}
+          maxDays={15}
         />
       )}
 
@@ -1661,6 +1670,7 @@ const Tollbar: React.FC = () => {
                     'control',
                     'carga-latam',
                     'servicios-turismo',
+                    'servicios-rutas',
                   ].includes(item.id),
                 ),
               },

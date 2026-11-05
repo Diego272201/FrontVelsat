@@ -53,6 +53,9 @@ const AppModalReportes: React.FC<AppModalProps> = ({
   const pathname = usePathname();
 
   const username = session?.user.username;
+  // Kilometraje de todas las unidades es más pesado: máximo una semana
+  const effectiveMaxDays =
+    isAllUnitsSelected && nameurl === 'reportekilometraje' ? 7 : maxDays;
 
   const handleSelect = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
@@ -84,8 +87,8 @@ const AppModalReportes: React.FC<AppModalProps> = ({
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays > maxDays) {
-      toast.error(`El límite de fechas es de ${maxDays} días`, {
+    if (diffDays > effectiveMaxDays) {
+      toast.error(`El límite de fechas es de ${effectiveMaxDays} días`, {
         className: 'toast-slide-in',
         richColors: true,
       });
@@ -173,7 +176,7 @@ const AppModalReportes: React.FC<AppModalProps> = ({
                       nameurl={nameurl}
                       username={username || ''}
                       isKilometrajeAll={isAllUnitsSelected}
-                      maxDays={maxDays}
+                      maxDays={effectiveMaxDays}
                     />
                   </div>
                 )}

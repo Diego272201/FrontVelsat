@@ -45,6 +45,15 @@ const AlertasMensajesTurismo: React.FC<{
                 <p className="truncate text-[11px] text-slate-500">
                   {placaCombinada || mensaje.brevete || 'Servicio'} · {mensaje.cliente || 'Sin cliente'}
                 </p>
+                {(mensaje.enviadoPorNombre || mensaje.piloto) && (
+                  <p className="truncate text-[11px] text-slate-600">
+                    Enviado por:{' '}
+                    <span className="font-semibold">
+                      {mensaje.enviadoPorNombre || mensaje.piloto}
+                    </span>{' '}
+                    ({mensaje.enviadoPorRol || 'Piloto'})
+                  </p>
+                )}
                 {esAmpliacion && mensaje.horas != null && (
                   <p className="text-[11px] font-semibold text-orange-600">
                     {mensaje.horas} hora{mensaje.horas === 1 ? '' : 's'}

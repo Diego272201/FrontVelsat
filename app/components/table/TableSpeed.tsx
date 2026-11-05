@@ -7,6 +7,7 @@ import { Spinner } from '@nextui-org/react';
 
 interface Row {
   item: number;
+  deviceId?: string;
   speedKPH: number;
   date: string;
   time: string;
@@ -28,6 +29,8 @@ export interface DataStatsSpeed {
 
 interface AppProps {
   url: string;
+  // Si se envía, se consultan en orden (por bloques de fechas) en lugar de `url`
+  urls?: string[];
   deviceId: string;
   searchTerm?: string;
   speedFilterRange?: 'all' | 'hasta25' | 'entre26y40' | 'masDe40';
@@ -36,14 +39,18 @@ interface AppProps {
 
 export default function App({
   url,
+  urls,
   deviceId,
   searchTerm = '',
   speedFilterRange = 'all',
   onDataStats,
 }: AppProps) {
+  const showUnitColumn = deviceId === 'Todas las unidades';
+  const columnCount = showUnitColumn ? 9 : 8;
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<Row[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const { baseUrl } = useApi();
   const [isBaseUrlReady, setIsBaseUrlReady] = useState(false);
 
@@ -52,14 +59,44 @@ export default function App({
   }, [baseUrl]);
 
   useEffect(() => {
-    if (!isBaseUrlReady) return;
+    const endpoints = urls && urls.length > 0 ? urls : url ? [url] : [];
+    if (!isBaseUrlReady || endpoints.length === 0) return;
+
+    let cancelled = false;
+
+    const rowKey = (r: Row) =>
+      `${r.deviceId ?? ''}|${r.date}|${r.time}|${r.latitude}|${r.longitude}|${r.speedKPH}`;
 
     const fetchData = async () => {
+      setIsLoading(true);
+      setProgress(0);
       try {
-        const response = await axios.get(`${baseUrl}${url}`);
-        const data = response.data;
-        if (data && Array.isArray(data.result)) {
-          const fetchedRows: Row[] = data.result;
+        const accumulated: Row[] = [];
+        let previousKeys = new Set<string>();
+        let lastData: any = null;
+        let valid = true;
+
+        for (let i = 0; i < endpoints.length; i++) {
+          const response = await axios.get(`${baseUrl}${endpoints[i]}`);
+          if (cancelled) return;
+          const data = response.data;
+          lastData = data;
+          const chunk = Array.isArray(data) ? data : data?.result;
+          if (!Array.isArray(chunk)) {
+            valid = false;
+            break;
+          }
+          // Los bloques comparten el instante de corte: se descartan repetidos
+          const fresh = (chunk as Row[]).filter((r) => !previousKeys.has(rowKey(r)));
+          previousKeys = new Set((chunk as Row[]).map(rowKey));
+          accumulated.push(...fresh);
+          setProgress(Math.round(((i + 1) / endpoints.length) * 100));
+        }
+
+        const data = lastData;
+        const resultArray = valid ? accumulated.map((r, idx) => ({ ...r, item: idx + 1 })) : null;
+        if (Array.isArray(resultArray)) {
+          const fetchedRows: Row[] = resultArray;
           setRows(fetchedRows);
           if (onDataStats) {
             const maxSpeed = fetchedRows.length > 0 ? Math.max(...fetchedRows.map((r) => r.speedKPH)) : 0;
@@ -118,7 +155,10 @@ export default function App({
     };
 
     fetchData();
-  }, [isBaseUrlReady, baseUrl, url]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isBaseUrlReady, baseUrl, url, urls]);
 
   useEffect(() => {
     setPage(1);
@@ -138,7 +178,8 @@ export default function App({
           const matchAddress = item.address?.toLowerCase().includes(term);
           const matchSpeed = `${item.speedKPH}`.includes(term);
           const matchItem = `${item.item}`.includes(term);
-          if (!matchTime && !matchDate && !matchAddress && !matchSpeed && !matchItem) {
+          const matchDevice = item.deviceId?.toLowerCase().includes(term);
+          if (!matchTime && !matchDate && !matchAddress && !matchSpeed && !matchItem && !matchDevice) {
             return false;
           }
         }
@@ -216,6 +257,7 @@ export default function App({
           >
             <tr>
               <th className="p-2 text-center">ITEM</th>
+              {showUnitColumn && <th className="p-2 text-center">UNIDAD</th>}
               <th className="p-2 text-center">VELOCIDAD</th>
               <th className="p-2 text-center">FECHA</th>
               <th className="p-2 text-center">HORA</th>
@@ -228,13 +270,16 @@ export default function App({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td colSpan={columnCount} className="py-8 text-center text-sm text-gray-500">
                   <Spinner size="sm" color="warning" />
+                  {urls && urls.length > 1 && (
+                    <p className="mt-2">Cargando datos... {progress}%</p>
+                  )}
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-sm text-gray-500">
+                <td colSpan={columnCount} className="py-8 text-center text-sm text-gray-500">
                   No hay datos para las fechas ingresadas
                 </td>
               </tr>
@@ -245,6 +290,9 @@ export default function App({
                   className="border-t border-gray-200 bg-gray-100 hover:bg-white"
                 >
                   <td className="p-2 text-center">{item.item}</td>
+                  {showUnitColumn && (
+                    <td className="p-2 text-center">{item.deviceId}</td>
+                  )}
                   <td className="p-2 text-center">{item.speedKPH.toFixed(2)} Km/h</td>
                   <td className="p-2 text-center">{item.date}</td>
                   <td className="p-2 text-center">{item.time}</td>
@@ -253,7 +301,7 @@ export default function App({
                   <td className="p-2 text-center">{item.address}</td>
                   <td className="p-2 text-center">
                     <a
-                      href={`/VerMapa?lat=${item.latitude}&lng=${item.longitude}&deviceId=${deviceId}&dir=${item.address}`}
+                      href={`/VerMapa?lat=${item.latitude}&lng=${item.longitude}&deviceId=${showUnitColumn ? item.deviceId : deviceId}&dir=${item.address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block"
