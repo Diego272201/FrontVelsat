@@ -30,7 +30,21 @@ import { FaRoad } from 'react-icons/fa';
 
 import Profile from './Profile';
 import AlertsDropdown from './AlertsDropdown';
-import { SquareCheck } from 'lucide-react';
+import {
+  SquareCheck,
+  Briefcase,
+  Calendar,
+  Users,
+  MapPin,
+  Radio,
+  BarChart2,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  FileText,
+  Settings,
+  Route,
+} from 'lucide-react';
 import AppModalDetalleServicios from '../trackvelnew/detalleservicios/ModalGeneralDetalle';
 import AppModalDuracionServicios from '../trackvelnew/duracionservicios/ModalDuracionServicios';
 import AppModalUnidadesCercanas from '../trackvelnew/unidadescercanas/ModalUnidadesCercanas';
@@ -889,11 +903,38 @@ const Tollbar: React.FC = () => {
     );
   };
 
+  const getSidebarIcon = (
+    id: string,
+    FallbackIcon: React.ComponentType<{ className?: string }>,
+  ) => {
+    switch (id) {
+      case 'servicios':
+        return Briefcase;
+      case 'planificacion':
+        return Calendar;
+      case 'reportes':
+        return BarChart2;
+      case 'rastreo':
+      case 'rastreo-movilbus':
+        return Radio;
+      case 'documentos':
+        return FileText;
+      case 'geocercas':
+        return MapPin;
+      case 'operaciones':
+        return Settings;
+      default:
+        return FallbackIcon;
+    }
+  };
+
   const renderSidebarMenu = (
     config: MenuConfig,
     isOpen: boolean,
     onToggle: () => void,
   ) => {
+    const SidebarIcon = getSidebarIcon(config.id, config.icon);
+
     if (config.href) {
       return (
         <Link
@@ -902,78 +943,52 @@ const Tollbar: React.FC = () => {
           rel="noopener noreferrer"
           onClick={() => toggleMenu('sidebar')}
         >
-          <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-              <config.icon className="text-lg text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+          <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+            <div className="flex items-center gap-3.5">
+              <SidebarIcon className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+              <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                 {config.title}
               </span>
-              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                Abrir en nueva pestaña
-              </span>
             </div>
-            <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-              <svg
-                className="h-4 w-4 text-orange-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </div>
+            <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
           </div>
         </Link>
       );
     }
 
     return (
-      <div className="">
+      <div>
         <div
-          className="group flex cursor-pointer items-center justify-between border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 hover:shadow-lg hover:shadow-blue-100/50"
+          className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50"
           onClick={onToggle}
         >
-          <div className="flex items-center gap-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-              <config.icon className="text-lg text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
-                {config.title}
-              </span>
-              <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
-                {isOpen ? 'Contraer menú' : 'Expandir menú'}
-              </span>
-            </div>
-          </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100/80 transition-all duration-300 group-hover:bg-blue-100">
-            <svg
-              className={`h-3 w-3 transform text-gray-500 transition-all duration-300 group-hover:text-blue-600 ${
-                isOpen ? 'rotate-90' : ''
+          <div className="flex items-center gap-3.5">
+            <SidebarIcon
+              className={`h-[18px] w-[18px] stroke-[1.8] transition-colors ${
+                isOpen
+                  ? 'text-[#1447C0]'
+                  : 'text-[#475569] group-hover:text-[#1447C0]'
               }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            />
+            <span
+              className={`text-[13.5px] font-semibold transition-colors ${
+                isOpen
+                  ? 'text-[#1447C0]'
+                  : 'text-[#0F172A] group-hover:text-[#1447C0]'
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+              {config.title}
+            </span>
           </div>
+          <ChevronDown
+            className={`h-4 w-4 text-[#475569] transition-transform duration-200 ${
+              isOpen ? 'rotate-180' : ''
+            }`}
+          />
         </div>
 
         {isOpen && config.items && (
-          <div className="animate-in slide-in-from-top-2 mb-4 ml-2 mt-4 space-y-1 duration-300">
+          <div className="my-1 ml-6 border-l-2 border-[#E2E8F0]">
             {config.items
               .filter((item) => {
                 if (item.allowedUsers) {
@@ -984,40 +999,30 @@ const Tollbar: React.FC = () => {
                 }
                 return true;
               })
-              .map((item, index) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.href) {
-                      window.open(item.href, '_blank', 'noopener,noreferrer');
-                    } else if (item.modalType) {
-                      handleModalAction(item.modalType);
-                    }
-                  }}
-                  className={`group/item animate-in slide-in-from-left-2 flex w-full items-center gap-3 border border-gray-200/30  bg-white/60 px-2 py-0.5 text-left backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-blue-200/40 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50/50 hover:shadow-md hover:shadow-blue-100/30 `}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <SquareCheck color="#003049" />{' '}
-                  <span className="text-[12px] font-medium text-gray-700 transition-colors duration-300 group-hover/item:text-blue-700">
-                    {item.title}
-                  </span>
-                  <div className="ml-auto translate-x-1 transform opacity-0 transition-all duration-300 group-hover/item:translate-x-0 group-hover/item:opacity-100">
-                    <svg
-                      className="h-3 w-3 text-blue-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              ))}
+              .map((item) => {
+                const isItemActive = Boolean(
+                  item.href && pathname === item.href,
+                );
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      if (item.href) {
+                        window.open(item.href, '_blank', 'noopener,noreferrer');
+                      } else if (item.modalType) {
+                        handleModalAction(item.modalType);
+                      }
+                    }}
+                    className={`-ml-[2px] flex w-[calc(100%+2px)] items-center border-l-2 py-2.5 pl-5 pr-4 text-left text-[13px] transition-colors duration-150 ${
+                      isItemActive
+                        ? 'border-[#1447C0] bg-[#EEF3FD] font-semibold text-[#1447C0]'
+                        : 'border-transparent font-normal text-[#1E293B] hover:border-[#1447C0] hover:bg-[#EEF3FD] hover:font-semibold hover:text-[#1447C0]'
+                    }`}
+                  >
+                    <span>{item.title}</span>
+                  </button>
+                );
+              })}
           </div>
         )}
       </div>
@@ -1078,7 +1083,7 @@ const Tollbar: React.FC = () => {
         <div className="mobile-only-button ">
           <button
             onClick={() => toggleMenu('sidebar')}
-            className="mt-[-5px] h-[36px] bg-[#FB7B0F] bg-opacity-90 px-2 py-1"
+            className="flex h-[36px] items-center justify-center bg-[#FB7B0F] bg-opacity-90 px-2"
           >
             <SlMenu size={20} />
           </button>
@@ -1584,23 +1589,20 @@ const Tollbar: React.FC = () => {
 
       {/* Sidebar */}
       <div className={`sidebar ${openMenus.sidebar ? 'open' : ''}`}>
-        <button className="close-sidebar" onClick={() => toggleMenu('sidebar')}>
-          <MdChevronRight />
-        </button>
-
         <div className="menu_sidebar">
-          <div className="flex items-center gap-2">
-            <span
-              className="font-bold text-[#154666]"
-              style={{ fontSize: '14px' }}
-            >
-              MENÚ
-            </span>
-          </div>
+          <span className="text-[13px] font-bold tracking-wider text-white">
+            MENÚ
+          </span>
+          <button
+            className="close-sidebar"
+            onClick={() => toggleMenu('sidebar')}
+          >
+            <ChevronRight className="h-5 w-5 stroke-[2.2] text-white" />
+          </button>
         </div>
 
         {isTalmav ? (
-          <div className="mb-0 space-y-0">
+          <div className="mb-0 space-y-0 py-3">
             {/* Agregar menú de Gestión de Servicios en sidebar con opciones limitadas */}
             {renderSidebarMenu(
               {
@@ -1621,34 +1623,14 @@ const Tollbar: React.FC = () => {
             )}
 
             <div
-              className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80  p-2 backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50  hover:shadow-lg"
+              className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50"
               onClick={() => openModal('servicios')}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                <MdOutlineMiscellaneousServices className="text-lg text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-blue-700">
+              <div className="flex items-center gap-3.5">
+                <Route className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                   Recorrido Servicios
                 </span>
-                <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-blue-500">
-                  Explora nuestros servicios
-                </span>
-              </div>
-              <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                <svg
-                  className="h-4 w-4 text-blue-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
               </div>
             </div>
 
@@ -1659,33 +1641,14 @@ const Tollbar: React.FC = () => {
                 rel="noopener noreferrer"
                 onClick={() => toggleMenu('sidebar')}
               >
-                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <MdDisplaySettings className="text-lg text-white" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                  <div className="flex items-center gap-3.5">
+                    <MapPin className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                    <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                       Geocercas
                     </span>
-                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                      Abrir en nueva pestaña
-                    </span>
                   </div>
-                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                    <svg
-                      className="h-4 w-4 text-orange-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  </div>
+                  <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
                 </div>
               </Link>
             )}
@@ -1696,7 +1659,7 @@ const Tollbar: React.FC = () => {
             )}
           </div>
         ) : isMovilbus ? (
-          <div className="mb-0 space-y-0">
+          <div className="mb-0 space-y-0 py-3">
             {renderSidebarMenu(
               {
                 ...MENU_CONFIG.SERVICIOS,
@@ -1731,32 +1694,12 @@ const Tollbar: React.FC = () => {
               rel="noopener noreferrer"
               onClick={() => toggleMenu('sidebar')}
             >
-              <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 px-2 py-0.5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
-                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                  <RiGpsFill className="text-lg text-white" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-green-700">
+              <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                <div className="flex items-center gap-3.5">
+                  <Users className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                  <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                     Gestión de Pasajeros
                   </span>
-                  <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-green-500">
-                    Administra pasajeros
-                  </span>
-                </div>
-                <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                  <svg
-                    className="h-4 w-4 text-green-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
                 </div>
               </div>
             </Link>
@@ -1768,33 +1711,14 @@ const Tollbar: React.FC = () => {
                 rel="noopener noreferrer"
                 onClick={() => toggleMenu('sidebar')}
               >
-                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <MdDisplaySettings className="text-lg text-white" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                  <div className="flex items-center gap-3.5">
+                    <MapPin className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                    <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                       Geocercas
                     </span>
-                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                      Abrir en nueva pestaña
-                    </span>
                   </div>
-                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                    <svg
-                      className="h-4 w-4 text-orange-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  </div>
+                  <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
                 </div>
               </Link>
             )}
@@ -1807,7 +1731,7 @@ const Tollbar: React.FC = () => {
             )}
           </div>
         ) : isPakatnamu ? (
-          <div className="mb-0 space-y-0">
+          <div className="mb-0 space-y-0 py-3">
             {renderSidebarMenu(MENU_CONFIG.REPORTES, openMenus.reportes, () =>
               toggleMenu('reportes'),
             )}
@@ -1819,40 +1743,21 @@ const Tollbar: React.FC = () => {
                 rel="noopener noreferrer"
                 onClick={() => toggleMenu('sidebar')}
               >
-                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <MdDisplaySettings className="text-lg text-white" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                  <div className="flex items-center gap-3.5">
+                    <MapPin className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                    <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                       Geocercas
                     </span>
-                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                      Abrir en nueva pestaña
-                    </span>
                   </div>
-                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                    <svg
-                      className="h-4 w-4 text-orange-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
-                  </div>
+                  <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
                 </div>
               </Link>
             )}
           </div>
         ) : isView ? (
           // SIDEBAR PARA VIEWERS
-          <div className="mb-0 space-y-0">
+          <div className="mb-0 space-y-0 py-3">
             {/* Agregar Rastreo Móvil solo para mitsubishi */}
             {username === 'mitsubishi' &&
               renderSidebarMenu(MENU_CONFIG.RASTREO, false, () => {})}
@@ -1862,7 +1767,7 @@ const Tollbar: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="mb-0 space-y-0">
+          <div className="mb-0 space-y-0 py-3">
             {isSedapal ? (
               <>
                 {renderSidebarMenu(
@@ -1878,33 +1783,14 @@ const Tollbar: React.FC = () => {
                     rel="noopener noreferrer"
                     onClick={() => toggleMenu('sidebar')}
                   >
-                    <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                        <MdDisplaySettings className="text-lg text-white" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                    <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                      <div className="flex items-center gap-3.5">
+                        <MapPin className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                        <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                           Geocercas
                         </span>
-                        <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                          Abrir en nueva pestaña
-                        </span>
                       </div>
-                      <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                        <svg
-                          className="h-4 w-4 text-orange-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </div>
+                      <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
                     </div>
                   </Link>
                 )}
@@ -1928,32 +1814,12 @@ const Tollbar: React.FC = () => {
                   rel="noopener noreferrer"
                   onClick={() => toggleMenu('sidebar')}
                 >
-                  <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 px-2 py-0.5 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-green-200/60 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:shadow-lg hover:shadow-green-100/50">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                      <RiGpsFill className="text-lg text-white" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-green-700">
+                  <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                    <div className="flex items-center gap-3.5">
+                      <Users className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                      <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                         Gestión de Pasajeros
                       </span>
-                      <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-green-500">
-                        Administra pasajeros
-                      </span>
-                    </div>
-                    <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                      <svg
-                        className="h-4 w-4 text-green-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
                     </div>
                   </div>
                 </Link>
@@ -1965,64 +1831,26 @@ const Tollbar: React.FC = () => {
                     rel="noopener noreferrer"
                     onClick={() => toggleMenu('sidebar')}
                   >
-                    <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-orange-200/60 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100 hover:shadow-lg hover:shadow-orange-100/50">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                        <MdDisplaySettings className="text-lg text-white" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-orange-700">
+                    <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                      <div className="flex items-center gap-3.5">
+                        <MapPin className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                        <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                           Geocercas
                         </span>
-                        <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-orange-500">
-                          Abrir en nueva pestaña
-                        </span>
                       </div>
-                      <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                        <svg
-                          className="h-4 w-4 text-orange-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </div>
+                      <ExternalLink className="h-[15px] w-[15px] text-[#64748B] transition-colors group-hover:text-[#1447C0]" />
                     </div>
                   </Link>
                 )}
 
-                <div className="group flex cursor-pointer items-center gap-4 border border-gray-200/50 bg-white/80 p-2 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-purple-200/60 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 hover:shadow-lg hover:shadow-purple-100/50">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 shadow-md transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                    <MdDisplaySettings className="text-lg text-white" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-800 transition-colors duration-300 group-hover:text-purple-700">
+                <div className="group flex cursor-pointer items-center justify-between px-4 py-3.5 transition-colors duration-200 hover:bg-slate-50">
+                  <div className="flex items-center gap-3.5">
+                    <Settings className="h-[18px] w-[18px] stroke-[1.8] text-[#475569] transition-colors group-hover:text-[#1447C0]" />
+                    <span className="text-[13.5px] font-semibold text-[#0F172A] transition-colors group-hover:text-[#1447C0]">
                       Operaciones
                     </span>
-                    <span className="text-xs text-gray-500 transition-colors duration-300 group-hover:text-purple-500">
-                      Panel de control
-                    </span>
                   </div>
-                  <div className="ml-auto translate-x-2 transform opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
-                    <svg
-                      className="h-4 w-4 text-purple-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
+                  <ChevronDown className="h-4 w-4 text-[#475569]" />
                 </div>
 
                 {renderSidebarMenu(

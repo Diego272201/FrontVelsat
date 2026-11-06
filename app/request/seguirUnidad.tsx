@@ -353,15 +353,15 @@ useEffect(() => {
     }
 
     const directions = [
-      { range: [0, 22.5], url: '/up.webp', size: [25, 35] },
-      { range: [22.51, 67.5], url: '/topright.webp', size: [42, 25] },
-      { range: [67.51, 112.5], url: '/right.webp', size: [42, 25] },
-      { range: [112.51, 157.5], url: '/downright.webp', size: [42, 25] },
-      { range: [157.51, 202.5], url: '/down.webp', size: [25, 35] },
-      { range: [202.51, 247.5], url: '/downleft.webp', size: [42, 25] },
-      { range: [247.51, 292.5], url: '/left.webp', size: [42, 25] },
-      { range: [292.51, 337.5], url: '/topleft.webp', size: [42, 25] },
-      { range: [337.51, 360.0], url: '/up.webp', size: [25, 35] },
+      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] },
+      { range: [22.51, 67.5], url: '/auto/topright.webp', size: [42, 25] },
+      { range: [67.51, 112.5], url: '/auto/right.webp', size: [42, 25] },
+      { range: [112.51, 157.5], url: '/auto/downright.webp', size: [42, 25] },
+      { range: [157.51, 202.5], url: '/auto/down.webp', size: [25, 35] },
+      { range: [202.51, 247.5], url: '/auto/downleft.webp', size: [42, 25] },
+      { range: [247.51, 292.5], url: '/auto/left.webp', size: [42, 25] },
+      { range: [292.51, 337.5], url: '/auto/topleft.webp', size: [42, 25] },
+      { range: [337.51, 360.0], url: '/auto/up.webp', size: [25, 35] },
     ];
 
     const direction = directions.find(
