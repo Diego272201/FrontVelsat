@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Route as RouteIcon, Trash2, Plus } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { Ruta } from '../types';
+import type { RutaGuardar } from '../api';
 
 export interface ParaderoForm {
   id?: number;
@@ -32,6 +33,23 @@ interface ModalRutaProps {
   guardando?: boolean;
   onGuardar: (form: RutaForm) => void;
 }
+
+/** Pasa el formulario (todo texto) al cuerpo que espera la API. */
+export const rutaFormAGuardar = (form: RutaForm): RutaGuardar => ({
+  codigo: form.codigo.trim(),
+  nombre: form.nombre.trim(),
+  grupo: form.grupo.trim(),
+  descripcion: form.descripcion.trim() || null,
+  distanciaKm: form.distanciaKm.trim() === '' ? null : Number(form.distanciaKm),
+  paraderos: form.paraderos.map((p, i) => ({
+    id: p.id,
+    nombre: p.nombre.trim(),
+    latitud: Number(p.latitud),
+    longitud: Number(p.longitud),
+    radioMetros: Number(p.radioMetros),
+    minutosDesdeAnterior: i === 0 ? 0 : Number(p.minutosDesdeAnterior),
+  })),
+});
 
 const paraderoVacio = (): ParaderoForm => ({
   nombre: '',

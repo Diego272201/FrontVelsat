@@ -24,6 +24,8 @@ interface ModalNuevoServicioProps {
   unidades: string[];
   /** Servicio a editar; null/undefined = servicio nuevo. */
   servicio?: Servicio | null;
+  /** Ruta ya elegida al crear un servicio desde el detalle de una ruta. */
+  rutaInicial?: number | null;
   guardando?: boolean;
   onGuardar: (form: NuevoServicioForm) => void;
 }
@@ -49,14 +51,15 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
   grupos,
   unidades,
   servicio = null,
+  rutaInicial = null,
   guardando = false,
   onGuardar,
 }) => {
   const [form, setForm] = useState<NuevoServicioForm>(formVacio);
 
   useEffect(() => {
-    if (isOpen) setForm(servicio ? formDesdeServicio(servicio) : formVacio());
-  }, [isOpen, servicio]);
+    if (isOpen) setForm(servicio ? formDesdeServicio(servicio) : { ...formVacio(), rutaId: rutaInicial });
+  }, [isOpen, servicio, rutaInicial]);
 
   // Si la unidad del servicio ya no está en la lista de la cuenta, se conserva igual.
   const opcionesUnidad =

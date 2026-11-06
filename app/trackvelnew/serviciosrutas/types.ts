@@ -74,3 +74,16 @@ export interface NuevoServicioForm {
   conductorBrevete: string;
   conductorCelular: string;
 }
+
+/** Ruta activa lista para mostrarse: con su color y, si cargó, con paraderos y trazado. */
+export interface RutaVista extends Ruta {
+  color: string;
+}
+
+/** Punto donde terminan una o varias rutas (mismo paradero destino). */
+export interface DestinoComun {
+  lat: number;
+  lng: number;
+  nombre: string;
+  rutaIds: number[];
+}

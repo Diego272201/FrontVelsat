@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import { ArrowLeft, Pencil, Plus } from 'lucide-react';
-import { mensajeError, RutaGuardar, useServiciosRutasApi } from '../api';
+import { mensajeError, useServiciosRutasApi } from '../api';
 import { Ruta } from '../types';
-import ModalRuta, { RutaForm } from './ModalRuta';
+import ModalRuta, { RutaForm, rutaFormAGuardar } from './ModalRuta';
 
 // Administración de rutas y paraderos (api/servicios-rutas: rutas).
 const AdministrarRutasPage: React.FC = () => {
@@ -65,21 +65,7 @@ const AdministrarRutasPage: React.FC = () => {
   };
 
   const handleGuardar = async (form: RutaForm) => {
-    const datos: RutaGuardar = {
-      codigo: form.codigo.trim(),
-      nombre: form.nombre.trim(),
-      grupo: form.grupo.trim(),
-      descripcion: form.descripcion.trim() || null,
-      distanciaKm: form.distanciaKm.trim() === '' ? null : Number(form.distanciaKm),
-      paraderos: form.paraderos.map((p, i) => ({
-        id: p.id,
-        nombre: p.nombre.trim(),
-        latitud: Number(p.latitud),
-        longitud: Number(p.longitud),
-        radioMetros: Number(p.radioMetros),
-        minutosDesdeAnterior: i === 0 ? 0 : Number(p.minutosDesdeAnterior),
-      })),
-    };
+    const datos = rutaFormAGuardar(form);
 
     setGuardando(true);
     try {

@@ -1,0 +1,269 @@
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import { Ban, Bus, CalendarClock, CalendarX2, Pencil, Plus, User, X } from 'lucide-react';
+import { EstadoServicio, RutaVista, Servicio } from './types';
+import {
+  ESTADO_SERVICIO_CLASE,
+  ESTADO_SERVICIO_LABEL,
+  ESTADO_SERVICIO_PUNTO,
+  ordenarServicios,
+  sumarMinutos,
+} from './utils';
+
+export interface AccionesServicioProps {
+  /** Solo servicios PROGRAMADO. */
+  onEditar: (servicio: Servicio) => void;
+  /** Solo servicios EN_CURSO (los PROGRAMADO se cambian con Editar). */
+  onReprogramar: (servicio: Servicio) => void;
+  /** Servicios PROGRAMADO y EN_CURSO. */
+  onCancelar: (servicio: Servicio) => void;
+}
+
+// Iniciar y finalizar un servicio, y marcar los paraderos, lo hace la app móvil: aquí no hay botones.
+export const AccionesServicio: React.FC<AccionesServicioProps & { servicio: Servicio }> = ({
+  servicio: s,
+  onEditar,
+  onReprogramar,
+  onCancelar,
+}) => {
+  const boton =
+    'flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-[#1E40AF]';
+  const detener = (e: React.MouseEvent, accion: () => void) => {
+    e.stopPropagation();
+    accion();
+  };
+  return (
+    <div className="flex items-center gap-1">
+      {s.estado === 'PROGRAMADO' && (
+        <button type="button" title="Editar servicio" className={boton} onClick={(e) => detener(e, () => onEditar(s))}>
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {s.estado === 'EN_CURSO' && (
+        <button
+          type="button"
+          title="Reprogramar servicio"
+          className={boton}
+          onClick={(e) => detener(e, () => onReprogramar(s))}
+        >
+          <CalendarClock className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {(s.estado === 'PROGRAMADO' || s.estado === 'EN_CURSO') && (
+        <button
+          type="button"
+          title="Cancelar servicio"
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-red-200 bg-white text-red-600 hover:bg-red-50"
+          onClick={(e) => detener(e, () => onCancelar(s))}
+        >
+          <Ban className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+};
+
+export const EstadoChip: React.FC<{ estado: EstadoServicio }> = ({ estado }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${ESTADO_SERVICIO_CLASE[estado]}`}
+  >
+    <span className={`h-1.5 w-1.5 rounded-full ${ESTADO_SERVICIO_PUNTO[estado]} ${estado === 'EN_CURSO' ? 'animate-pulse' : ''}`} />
+    {ESTADO_SERVICIO_LABEL[estado]}
+  </span>
+);
+
+export const BarraAvance: React.FC<{ servicio: Servicio; color: string }> = ({ servicio: s, color }) => {
+  const total = Math.max(s.totalParaderos, 1);
+  const pct = Math.min(100, Math.round((s.paraderosCompletados / total) * 100));
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="shrink-0 font-mono text-[10.5px] text-slate-500">
+        {s.paraderosCompletados}/{s.totalParaderos}
+      </span>
+    </div>
+  );
+};
+
+type FiltroEstado = EstadoServicio | 'TODOS';
+const FILTROS: FiltroEstado[] = ['TODOS', 'EN_CURSO', 'PROGRAMADO', 'FINALIZADO', 'CANCELADO'];
+
+interface PanelServiciosProps extends AccionesServicioProps {
+  /** Servicios del día en las rutas visibles. */
+  servicios: Servicio[];
+  rutasPorId: Record<number, RutaVista | undefined>;
+  fechaTexto: string;
+  esHoy: boolean;
+  cargando: boolean;
+  onAbrir: (servicio: Servicio) => void;
+  onNuevo: () => void;
+  puedeCrear: boolean;
+  onCerrar: () => void;
+}
+
+// Panel derecho cuando no hay una ruta seleccionada: todos los servicios del día.
+const PanelServicios: React.FC<PanelServiciosProps> = ({
+  servicios,
+  rutasPorId,
+  fechaTexto,
+  esHoy,
+  cargando,
+  onAbrir,
+  onNuevo,
+  puedeCrear,
+  onCerrar,
+  ...acciones
+}) => {
+  const [filtro, setFiltro] = useState<FiltroEstado>('TODOS');
+
+  const conteo = useMemo(() => {
+    const c: Record<FiltroEstado, number> = { TODOS: servicios.length, EN_CURSO: 0, PROGRAMADO: 0, FINALIZADO: 0, CANCELADO: 0 };
+    servicios.forEach((s) => (c[s.estado] += 1));
+    return c;
+  }, [servicios]);
+
+  const lista = useMemo(
+    () => ordenarServicios(filtro === 'TODOS' ? servicios : servicios.filter((s) => s.estado === filtro)),
+    [servicios, filtro],
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-b border-slate-200 px-4 pb-3 pt-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Servicios {esHoy ? 'de hoy' : 'del día'}
+            </div>
+            <div className="mt-0.5 text-[14px] font-bold text-slate-800">{fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1)}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Ocultar panel"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {FILTROS.map((f) => {
+            if (f !== 'TODOS' && conteo[f] === 0) return null;
+            const activo = filtro === f;
+            return (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFiltro(f)}
+                className={`rounded-full border px-2.5 py-0.5 text-[11.5px] font-medium transition-colors ${
+                  activo
+                    ? 'border-[#1E40AF] bg-[#1E40AF] text-white'
+                    : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {f === 'TODOS' ? 'Todos' : ESTADO_SERVICIO_LABEL[f]} <span className="opacity-70">{conteo[f]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {cargando && servicios.length === 0 ? (
+          <div className="space-y-2 p-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-20 animate-pulse rounded-lg bg-slate-100" />
+            ))}
+          </div>
+        ) : lista.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
+              <CalendarX2 className="h-5 w-5 text-slate-400" />
+            </div>
+            <p className="text-[12.5px] font-semibold text-slate-700">Sin servicios</p>
+            <p className="text-[11.5px] text-slate-500">
+              No hay servicios {filtro === 'TODOS' ? '' : `${ESTADO_SERVICIO_LABEL[filtro].toLowerCase()}s `}en las
+              rutas del mapa para el {fechaTexto}.
+            </p>
+            <p className="text-[11.5px] text-slate-400">Elige una ruta en el mapa o en la lista para ver sus paradas.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {lista.map((s) => {
+              const ruta = rutasPorId[s.rutaId];
+              const color = ruta?.color ?? '#64748b';
+              return (
+                <li key={s.id}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onAbrir(s)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') onAbrir(s);
+                    }}
+                    className="flex cursor-pointer gap-3 px-4 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:bg-blue-50"
+                  >
+                    <span className="w-[3px] shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-mono text-[14px] font-bold text-slate-800">{s.horaSalida}</span>
+                            {ruta && (
+                              <span className="font-mono text-[10.5px] text-slate-400">
+                                llega {sumarMinutos(s.horaSalida, ruta.duracionMin)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="truncate text-[12px] text-slate-600">
+                            <span className="font-mono text-[10.5px] font-semibold text-slate-400">{s.rutaCodigo}</span>{' '}
+                            {s.rutaNombre}
+                          </div>
+                        </div>
+                        <EstadoChip estado={s.estado} />
+                      </div>
+                      <div className="flex items-center gap-3 text-[11.5px] text-slate-500">
+                        <span className="flex items-center gap-1 font-semibold text-slate-700">
+                          <Bus className="h-3.5 w-3.5 text-slate-400" />
+                          {s.deviceID}
+                        </span>
+                        <span className="flex min-w-0 items-center gap-1">
+                          <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate">{s.conductorNombre}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <BarraAvance servicio={s} color={color} />
+                        </div>
+                        <AccionesServicio servicio={s} {...acciones} />
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className="border-t border-slate-200 p-3">
+        <button
+          type="button"
+          onClick={onNuevo}
+          disabled={!puedeCrear}
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[#1E40AF] text-[12.5px] font-semibold text-white hover:bg-[#1A378F] disabled:opacity-50"
+        >
+          <Plus className="h-4 w-4" />
+          Programar servicio
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default PanelServicios;
