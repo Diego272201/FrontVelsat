@@ -8,8 +8,8 @@ import { getDeviceListUrlSelect } from '@/app/components/urlsApi/urlApi';
 import { Paradero, Ruta, Servicio, EstadoServicio, NuevoServicioForm, SIN_GRUPO } from './types';
 import { isoToDdMmYyyy } from './utils';
 
-// Capa de acceso a api/servicios-rutas (backend). Todas las rutas exigen JWT:
-// se usa el token de la sesión de next-auth y la URL del servidor del usuario.
+// Capa de acceso a api/servicios-rutas/{accountId}/... (backend). La cuenta va en la URL
+// (el usuario de la sesión) y por ahora la API no exige token.
 
 interface RutaApi {
   id: number;
@@ -102,15 +102,13 @@ export function mensajeError(error: unknown, porDefecto = 'Ocurrió un error'): 
 export function useServiciosRutasApi() {
   const { baseUrl } = useApi();
   const { data: session } = useSession();
-  const token = session?.user?.token as string | undefined;
   const username = (session?.user?.username as string | undefined) ?? '';
 
-  // Solo se puede llamar cuando ya hay URL de servidor y token.
-  const listo = Boolean(baseUrl && token);
+  // Solo se puede llamar cuando ya hay URL de servidor y usuario (la cuenta de la URL).
+  const listo = Boolean(baseUrl && username);
 
   return useMemo(() => {
-    const raiz = `${baseUrl}/api/servicios-rutas`;
-    const cfg = { headers: { Authorization: `Bearer ${token}` } };
+    const raiz = `${baseUrl}/api/servicios-rutas/${encodeURIComponent(username)}`;
 
     return {
       listo,
@@ -118,48 +116,46 @@ export function useServiciosRutasApi() {
       // ---- Rutas ----
       async getRutas(incluirInactivas = false): Promise<Ruta[]> {
         const { data } = await axios.get<RutaApi[]>(`${raiz}/rutas`, {
-          ...cfg,
           params: { incluirInactivas },
         });
         return data.map(aRuta);
       },
 
       async getRuta(id: number): Promise<Ruta> {
-        const { data } = await axios.get<RutaApi>(`${raiz}/rutas/${id}`, cfg);
+        const { data } = await axios.get<RutaApi>(`${raiz}/rutas/${id}`);
         // TEMPORAL: ver en consola cómo llega el JSON del detalle (paraderos + trazado).
         console.log(`[servicios-rutas] GET rutas/${id}`, data);
         return aRuta(data);
       },
 
       async crearRuta(ruta: RutaGuardar): Promise<void> {
-        await axios.post(`${raiz}/rutas`, cuerpoRuta(ruta), cfg);
+        await axios.post(`${raiz}/rutas`, cuerpoRuta(ruta));
       },
 
       async actualizarRuta(id: number, ruta: RutaGuardar): Promise<void> {
-        await axios.put(`${raiz}/rutas/${id}`, cuerpoRuta(ruta), cfg);
+        await axios.put(`${raiz}/rutas/${id}`, cuerpoRuta(ruta));
       },
 
       async setRutaActiva(id: number, activo: boolean): Promise<void> {
-        await axios.patch(`${raiz}/rutas/${id}/activo`, { activo }, cfg);
+        await axios.patch(`${raiz}/rutas/${id}/activo`, { activo });
       },
 
       // ---- Servicios ----
       async getServicios(fechaIso: string): Promise<Servicio[]> {
         const fecha = isoToDdMmYyyy(fechaIso);
         const { data } = await axios.get<ServicioApi[]>(`${raiz}/servicios`, {
-          ...cfg,
           params: { desde: fecha, hasta: fecha },
         });
         return data.map(aServicio);
       },
 
       async crearServicio(form: NuevoServicioForm): Promise<void> {
-        await axios.post(`${raiz}/servicios`, cuerpoServicio(form), cfg);
+        await axios.post(`${raiz}/servicios`, cuerpoServicio(form));
       },
 
       // Solo servicios PROGRAMADO; el backend regenera las horas esperadas por paradero.
       async actualizarServicio(id: number, form: NuevoServicioForm): Promise<void> {
-        await axios.put(`${raiz}/servicios/${id}`, cuerpoServicio(form), cfg);
+        await axios.put(`${raiz}/servicios/${id}`, cuerpoServicio(form));
       },
 
       // PROGRAMADO o EN_CURSO: nueva fecha/hora de salida (las llegadas ya marcadas se conservan).
@@ -174,20 +170,18 @@ export function useServiciosRutasApi() {
             horaSalida: datos.hora,
             motivo: datos.motivo.trim() || null,
           },
-          cfg,
         );
       },
 
       // PROGRAMADO o EN_CURSO -> CANCELADO. Iniciar y finalizar los hace la app móvil.
       async cancelarServicio(id: number): Promise<void> {
-        await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' }, cfg);
+        await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' });
       },
 
       // ---- Unidades (placas de la cuenta) ----
       async getUnidades(): Promise<string[]> {
         const { data } = await axios.get<{ deviceId?: string }[]>(
           getDeviceListUrlSelect(baseUrl, username),
-          cfg,
         );
         return (Array.isArray(data) ? data : [])
           .map((d) => d.deviceId ?? '')
@@ -195,7 +189,7 @@ export function useServiciosRutasApi() {
           .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
       },
     };
-  }, [baseUrl, token, username, listo]);
+  }, [baseUrl, username, listo]);
 }
 
 function cuerpoServicio(form: NuevoServicioForm) {
