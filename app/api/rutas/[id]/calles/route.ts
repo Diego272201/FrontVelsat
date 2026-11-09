@@ -117,10 +117,9 @@ async function servidorDeCuenta(cuenta: string): Promise<string> {
 }
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const apiKey = process.env.ORS_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Falta ORS_API_KEY en el servidor' }, { status: 500 });
-  }
+  // ORS es solo el respaldo: el motor principal (Valhalla) no necesita clave. Sin ORS_API_KEY, si
+  // Valhalla falla, calcularLineaCalles responde con error y el front dibuja el trazado de la API.
+  const apiKey = process.env.ORS_API_KEY || undefined;
 
   const id = Number(params.id);
   const cuenta = request.nextUrl.searchParams.get('cuenta') ?? '';

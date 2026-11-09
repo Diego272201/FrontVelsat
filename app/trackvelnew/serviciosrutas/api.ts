@@ -147,7 +147,6 @@ export function useServiciosRutasApi() {
       async getRuta(id: number): Promise<Ruta> {
         const { data } = await axios.get<RutaApi>(`${raiz}/rutas/${id}`);
         // TEMPORAL: ver en consola cómo llega el JSON del detalle (paraderos + trazado).
-        console.log(`[servicios-rutas] GET rutas/${id}`, data);
         return aRuta(data);
       },
 
