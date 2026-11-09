@@ -15,7 +15,7 @@ import PanelServicios from './PanelServicios';
 import ModalRuta, { RutaForm, rutaFormAGuardar } from './rutas/ModalRuta';
 import type { FocoMapa } from './MapaRutas';
 import { mensajeError, useServiciosRutasApi } from './api';
-import { NuevoServicioForm, Paradero, Ruta, RutaVista, Servicio } from './types';
+import { NuevoServicioForm, Paradero, PosicionConductor, Ruta, RutaVista, Servicio } from './types';
 import { getIsoToday, RUTA_COLORES, servicioReferencia } from './utils';
 
 // Leaflet necesita `window`: el mapa se carga solo en el navegador
@@ -24,6 +24,9 @@ const MapaRutas = dynamic(() => import('./MapaRutas'), { ssr: false });
 // Cada cuánto se refrescan los servicios (polling). Las marcas de llegada/salida las
 // envía la app del conductor y esta pantalla solo las consulta.
 const INTERVALO_REFRESCO_MS = 15000;
+
+// Cada cuánto se piden las posiciones en vivo de los conductores.
+const INTERVALO_POSICIONES_MS = 5000;
 
 /** Ancho del panel flotante de la derecha (+ margen) en escritorio, para encuadrar el mapa. */
 const ANCHO_PANEL = 372;
@@ -51,6 +54,9 @@ const ServiciosRutasView: React.FC = () => {
   const [detalles, setDetalles] = useState<Record<number, Ruta>>({});
   const [cargandoRutas, setCargandoRutas] = useState(true);
   const [cargandoDetalles, setCargandoDetalles] = useState(true);
+  // Recorrido por calles de cada ruta (null = falló: se dibuja el trazado como respaldo).
+  const [lineasCalles, setLineasCalles] = useState<Record<number, [number, number][] | null>>({});
+  const [posiciones, setPosiciones] = useState<PosicionConductor[]>([]);
   const [unidades, setUnidades] = useState<string[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [cargandoServicios, setCargandoServicios] = useState(true);
@@ -91,6 +97,14 @@ const ServiciosRutasView: React.FC = () => {
         if (d) mapa[d.id] = d;
       });
       setDetalles(mapa);
+      // La línea por calles se calcula en el servidor (OpenRouteService) y queda en caché hasta que
+      // la ruta cambie. Cada ruta se dibuja apenas llega la suya.
+      lista.forEach((r) => {
+        api
+          .getLineaCalles(r.id)
+          .then((linea) => setLineasCalles((prev) => ({ ...prev, [r.id]: linea })))
+          .catch(() => setLineasCalles((prev) => ({ ...prev, [r.id]: null })));
+      });
       if (detallesLista.some((d) => d === null)) toast.error('No se pudieron cargar las paradas de algunas rutas');
     } catch (error) {
       toast.error(mensajeError(error, 'No se pudieron cargar las rutas'));
@@ -152,11 +166,13 @@ const ServiciosRutasView: React.FC = () => {
             trazado: d?.trazado ?? null,
             duracionMin: r.duracionMin || d?.duracionMin || 0,
             color: RUTA_COLORES[i % RUTA_COLORES.length],
+            lineaCalles: lineasCalles[r.id] ?? null,
           };
         }),
-    [rutasBase, detalles],
+    [rutasBase, detalles, lineasCalles],
   );
 
+  const colorPorRuta = useMemo(() => Object.fromEntries(rutas.map((r) => [r.id, r.color])), [rutas]);
   const rutasPorId = useMemo(() => Object.fromEntries(rutas.map((r) => [r.id, r])), [rutas]);
   const grupos = useMemo(() => Array.from(new Set(rutas.map((r) => r.grupo))).sort(), [rutas]);
   const rutasVisibles = useMemo(() => rutas.filter((r) => !ocultas.has(r.id)), [rutas, ocultas]);
@@ -185,6 +201,28 @@ const ServiciosRutasView: React.FC = () => {
   // El panel de servicios muestra solo los de las rutas que están en el mapa.
   const serviciosEnMapa = useMemo(() => servicios.filter((s) => !ocultas.has(s.rutaId)), [servicios, ocultas]);
   const enCursoTotal = servicios.filter((s) => s.estado === 'EN_CURSO').length;
+
+  // Posiciones en vivo cada 5 s mientras la pestaña está visible. Si la API falla se conserva
+  // la última posición conocida (sin avisos: es un refresco automático).
+  useEffect(() => {
+    if (!api.listo) return;
+    let activo = true;
+    const cargar = () => {
+      if (document.visibilityState !== 'visible') return;
+      api
+        .getPosiciones()
+        .then((lista) => {
+          if (activo) setPosiciones(lista);
+        })
+        .catch(() => undefined);
+    };
+    cargar();
+    const timer = setInterval(cargar, INTERVALO_POSICIONES_MS);
+    return () => {
+      activo = false;
+      clearInterval(timer);
+    };
+  }, [api]);
 
   const panelVisible = seleccionada !== null || panelAbierto;
   const margenDerecho = esEscritorio && panelVisible ? ANCHO_PANEL : 0;
@@ -360,6 +398,7 @@ const ServiciosRutasView: React.FC = () => {
           <div className="text-[13px] font-semibold">
             {rutas.length} rutas · {servicios.length} servicio{servicios.length === 1 ? '' : 's'}
             {enCursoTotal > 0 && <span className="text-green-300"> · {enCursoTotal} en curso</span>}
+            {posiciones.length > 0 && <span className="text-amber-300"> · {posiciones.length} en vivo</span>}
           </div>
         </div>
 
@@ -433,6 +472,8 @@ const ServiciosRutasView: React.FC = () => {
         <main className="relative min-w-0 flex-1">
           <MapaRutas
             rutas={rutasVisibles}
+            posiciones={posiciones}
+            colorPorRuta={colorPorRuta}
             seleccionadaId={seleccionadaId}
             resaltadaId={resaltadaId}
             paraderosCompletados={servicioActual?.paraderosCompletados ?? 0}

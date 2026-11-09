@@ -5,7 +5,15 @@ import axios from 'axios';
 import { useSession } from 'next-auth/react';
 import { useApi } from '@/context/ApiContext';
 import { getDeviceListUrlSelect } from '@/app/components/urlsApi/urlApi';
-import { Paradero, Ruta, Servicio, EstadoServicio, NuevoServicioForm, SIN_GRUPO } from './types';
+import {
+  Paradero,
+  PosicionConductor,
+  Ruta,
+  Servicio,
+  EstadoServicio,
+  NuevoServicioForm,
+  SIN_GRUPO,
+} from './types';
 import { isoToDdMmYyyy } from './utils';
 
 // Capa de acceso a api/servicios-rutas/{accountId}/... (backend). La cuenta va en la URL
@@ -112,6 +120,7 @@ export function useServiciosRutasApi() {
 
     return {
       listo,
+      cuenta: username,
 
       // ---- Rutas ----
       async getRutas(incluirInactivas = false): Promise<Ruta[]> {
@@ -178,6 +187,25 @@ export function useServiciosRutasApi() {
         await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' });
       },
 
+      // ---- Recorrido por calles (Route Handler propio: llama a OpenRouteService en el servidor) ----
+      async getLineaCalles(id: number): Promise<[number, number][]> {
+        const { data } = await axios.get<{ linea: [number, number][] }>(`/api/rutas/${id}/calles`, {
+          params: { cuenta: username },
+        });
+        return data.linea;
+      },
+
+      // ---- Posiciones en vivo de los conductores ----
+      async getPosiciones(): Promise<PosicionConductor[]> {
+        const { data } = await axios.get<unknown>(`${raiz}/posiciones`);
+        const lista = Array.isArray(data)
+          ? data
+          : Array.isArray((data as { data?: unknown })?.data)
+            ? (data as { data: unknown[] }).data
+            : [];
+        return lista.map(aPosicion).filter((p): p is PosicionConductor => p !== null);
+      },
+
       // ---- Unidades (placas de la cuenta) ----
       async getUnidades(): Promise<string[]> {
         const { data } = await axios.get<{ deviceId?: string }[]>(
@@ -213,5 +241,38 @@ function cuerpoRuta(ruta: RutaGuardar) {
     descripcion: ruta.descripcion,
     distanciaKm: ruta.distanciaKm,
     paraderos: ruta.paraderos,
+  };
+}
+
+// El formato de /posiciones todavía no está publicado: se aceptan los nombres de campo más comunes.
+const primero = (o: Record<string, unknown>, claves: string[]): unknown =>
+  claves.map((k) => o[k]).find((v) => v !== undefined && v !== null && v !== '');
+
+const numero = (v: unknown): number | null => {
+  const n = typeof v === 'string' ? Number(v.replace(',', '.')) : typeof v === 'number' ? v : NaN;
+  return Number.isFinite(n) ? n : null;
+};
+
+function aPosicion(item: unknown): PosicionConductor | null {
+  if (!item || typeof item !== 'object') return null;
+  const o = item as Record<string, unknown>;
+  const lat = numero(primero(o, ['latitud', 'lat', 'latitude']));
+  const lng = numero(primero(o, ['longitud', 'lng', 'lon', 'longitude']));
+  if (lat === null || lng === null || (lat === 0 && lng === 0)) return null;
+  const deviceID = (primero(o, ['deviceID', 'deviceId', 'placa', 'unidad']) as string | undefined) ?? null;
+  const conductor =
+    (primero(o, ['conductorNombre', 'conductor', 'nombreConductor', 'nombre']) as string | undefined) ?? null;
+  const clave = String(primero(o, ['deviceID', 'deviceId', 'placa', 'conductorId', 'idConductor', 'id', 'conductorNombre', 'conductor']) ?? `${lat},${lng}`);
+  const fecha = primero(o, ['fecha', 'fechaHora', 'timestamp', 'fechaGps', 'ultimaActualizacion']);
+  return {
+    clave,
+    lat,
+    lng,
+    rumbo: numero(primero(o, ['rumbo', 'heading', 'course', 'direccion'])) ?? 0,
+    deviceID: deviceID ? String(deviceID) : null,
+    conductor: conductor ? String(conductor) : null,
+    rutaId: numero(primero(o, ['rutaId', 'idRuta'])),
+    velocidad: numero(primero(o, ['velocidad', 'speed'])),
+    fecha: fecha ? String(fecha) : null,
   };
 }

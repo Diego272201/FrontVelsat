@@ -78,6 +78,23 @@ export interface NuevoServicioForm {
 /** Ruta activa lista para mostrarse: con su color y, si cargó, con paraderos y trazado. */
 export interface RutaVista extends Ruta {
   color: string;
+  /** Recorrido por calles (OpenRouteService) como [lat, lng]; null mientras carga o si falló. */
+  lineaCalles: [number, number][] | null;
+}
+
+/** Posición en vivo de un conductor (GET {cuenta}/posiciones). */
+export interface PosicionConductor {
+  /** Identificador estable del marcador (unidad o conductor). */
+  clave: string;
+  lat: number;
+  lng: number;
+  /** Grados desde el norte, sentido horario. */
+  rumbo: number;
+  deviceID: string | null;
+  conductor: string | null;
+  rutaId: number | null;
+  velocidad: number | null;
+  fecha: string | null;
 }
 
 /** Punto donde terminan una o varias rutas (mismo paradero destino). */
