@@ -222,6 +222,11 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                           <div className="truncate text-[12px] text-slate-600">
                             <span className="font-mono text-[10.5px] font-semibold text-slate-400">{s.rutaCodigo}</span>{' '}
                             {s.rutaNombre}
+                            {s.rutaSentido === 'REGRESO' && (
+                              <span className="ml-1 rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-700">
+                                Regreso
+                              </span>
+                            )}
                           </div>
                         </div>
                         <EstadoChip estado={s.estado} />

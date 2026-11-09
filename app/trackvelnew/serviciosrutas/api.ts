@@ -13,6 +13,7 @@ import {
   EstadoServicio,
   NuevoServicioForm,
   SIN_GRUPO,
+  Sentido,
 } from './types';
 import { isoToDdMmYyyy } from './utils';
 
@@ -24,6 +25,10 @@ interface RutaApi {
   codigo: string;
   nombre: string;
   grupo?: string | null;
+  sentido?: Sentido | null;
+  rutaParejaId?: number | null;
+  rutaParejaCodigo?: string | null;
+  rutaParejaNombre?: string | null;
   descripcion?: string | null;
   distanciaKm?: number | null;
   activo: boolean;
@@ -39,6 +44,7 @@ interface ServicioApi {
   rutaId: number;
   rutaCodigo?: string | null;
   rutaNombre?: string | null;
+  rutaSentido?: Sentido | null;
   fechaSalida?: string | null;
   horaSalida?: string | null;
   conductorNombre: string;
@@ -62,6 +68,9 @@ export interface RutaGuardar {
   codigo: string;
   nombre: string;
   grupo: string;
+  sentido: Sentido;
+  /** null = sin pareja (al editar, desenlaza la que tenía). */
+  rutaParejaId: number | null;
   descripcion: string | null;
   distanciaKm: number | null;
   paraderos: ParaderoGuardar[];
@@ -72,6 +81,10 @@ const aRuta = (r: RutaApi): Ruta => ({
   codigo: r.codigo,
   nombre: r.nombre,
   grupo: r.grupo?.trim() ? r.grupo : SIN_GRUPO,
+  sentido: r.sentido === 'REGRESO' ? 'REGRESO' : 'IDA',
+  rutaParejaId: r.rutaParejaId ?? null,
+  rutaParejaCodigo: r.rutaParejaCodigo ?? null,
+  rutaParejaNombre: r.rutaParejaNombre ?? null,
   descripcion: r.descripcion ?? null,
   distanciaKm: r.distanciaKm ?? null,
   activo: r.activo,
@@ -88,6 +101,7 @@ const aServicio = (s: ServicioApi): Servicio => ({
   rutaId: s.rutaId,
   rutaCodigo: s.rutaCodigo ?? '',
   rutaNombre: s.rutaNombre ?? '',
+  rutaSentido: s.rutaSentido === 'REGRESO' ? 'REGRESO' : 'IDA',
   fechaSalida: s.fechaSalida ?? '',
   horaSalida: s.horaSalida ?? '',
   conductorNombre: s.conductorNombre,
@@ -238,6 +252,8 @@ function cuerpoRuta(ruta: RutaGuardar) {
     nombre: ruta.nombre,
     // "Sin grupo" es solo una etiqueta del front: en la base va NULL.
     grupo: ruta.grupo === SIN_GRUPO ? null : ruta.grupo,
+    sentido: ruta.sentido,
+    rutaParejaId: ruta.rutaParejaId,
     descripcion: ruta.descripcion,
     distanciaKm: ruta.distanciaKm,
     paraderos: ruta.paraderos,

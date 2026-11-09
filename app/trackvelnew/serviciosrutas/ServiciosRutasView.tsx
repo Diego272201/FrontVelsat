@@ -442,15 +442,6 @@ const ServiciosRutasView: React.FC = () => {
             <Settings2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Administrar rutas</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => abrirNuevo(seleccionadaId)}
-            disabled={!api.listo}
-            className="flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-[#1E40AF] shadow-sm hover:bg-blue-50 disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Nuevo servicio</span>
-          </button>
         </div>
       </header>
 
@@ -575,6 +566,7 @@ const ServiciosRutasView: React.FC = () => {
         onClose={() => setModalRutaAbierto(false)}
         ruta={seleccionada}
         grupos={grupos}
+        rutas={rutas}
         guardando={guardando}
         onGuardar={handleGuardarRuta}
       />

@@ -12,6 +12,8 @@ export type EstadoParadero =
 
 export type TipoParadero = 'ORIGEN' | 'INTERMEDIO' | 'DESTINO';
 
+export type Sentido = 'IDA' | 'REGRESO';
+
 export interface Paradero {
   id: number;
   orden: number;
@@ -32,6 +34,12 @@ export interface Ruta {
   nombre: string;
   /** Texto libre de la columna `ruta.grupo`. Las rutas sin grupo llegan como SIN_GRUPO. */
   grupo: string;
+  /** Cada sentido es una ruta propia (con su trazado y paraderos). */
+  sentido: Sentido;
+  /** Ruta del sentido contrario (null si no tiene). Se enlaza en las dos rutas. */
+  rutaParejaId: number | null;
+  rutaParejaCodigo: string | null;
+  rutaParejaNombre: string | null;
   descripcion?: string | null;
   distanciaKm: number | null;
   activo: boolean;
@@ -54,6 +62,7 @@ export interface Servicio {
   rutaId: number;
   rutaCodigo: string;
   rutaNombre: string;
+  rutaSentido: Sentido;
   fechaSalida: string; // dd/MM/yyyy
   horaSalida: string; // HH:mm
   conductorNombre: string;

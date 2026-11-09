@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Route as RouteIcon, Trash2, Plus } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
-import { Ruta } from '../types';
+import { Ruta, Sentido } from '../types';
 import type { RutaGuardar } from '../api';
 
 export interface ParaderoForm {
@@ -19,6 +19,9 @@ export interface RutaForm {
   codigo: string;
   nombre: string;
   grupo: string;
+  sentido: Sentido;
+  /** id de la ruta pareja como texto del <select>; '' = sin pareja. */
+  rutaParejaId: string;
   descripcion: string;
   distanciaKm: string;
   paraderos: ParaderoForm[];
@@ -30,6 +33,8 @@ interface ModalRutaProps {
   /** null = ruta nueva. */
   ruta: Ruta | null;
   grupos: readonly string[];
+  /** Rutas existentes: de ahí se elige la pareja (la del sentido contrario). */
+  rutas: readonly Ruta[];
   guardando?: boolean;
   onGuardar: (form: RutaForm) => void;
 }
@@ -39,6 +44,8 @@ export const rutaFormAGuardar = (form: RutaForm): RutaGuardar => ({
   codigo: form.codigo.trim(),
   nombre: form.nombre.trim(),
   grupo: form.grupo.trim(),
+  sentido: form.sentido,
+  rutaParejaId: form.rutaParejaId ? Number(form.rutaParejaId) : null,
   descripcion: form.descripcion.trim() || null,
   distanciaKm: form.distanciaKm.trim() === '' ? null : Number(form.distanciaKm),
   paraderos: form.paraderos.map((p, i) => ({
@@ -63,6 +70,8 @@ const formDesdeRuta = (ruta: Ruta | null, grupos: readonly string[]): RutaForm =
   codigo: ruta?.codigo ?? '',
   nombre: ruta?.nombre ?? '',
   grupo: ruta?.grupo ?? grupos[0] ?? '',
+  sentido: ruta?.sentido ?? 'IDA',
+  rutaParejaId: ruta?.rutaParejaId != null ? String(ruta.rutaParejaId) : '',
   descripcion: ruta?.descripcion ?? '',
   distanciaKm: ruta?.distanciaKm != null ? String(ruta.distanciaKm) : '',
   paraderos: ruta
@@ -91,6 +100,7 @@ const ModalRuta: React.FC<ModalRutaProps> = ({
   onClose,
   ruta,
   grupos,
+  rutas,
   guardando = false,
   onGuardar,
 }) => {
@@ -130,6 +140,14 @@ const ModalRuta: React.FC<ModalRutaProps> = ({
       [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
       return { ...prev, paraderos: copia };
     });
+
+  // Candidatas a pareja: rutas del sentido contrario (nunca la propia).
+  const sentidoContrario: Sentido = form.sentido === 'IDA' ? 'REGRESO' : 'IDA';
+  const candidatasPareja = rutas.filter((r) => r.sentido === sentidoContrario && r.id !== ruta?.id);
+
+  const cambiarSentido = (sentido: Sentido) =>
+    // La pareja elegida deja de valer si el sentido cambia (tendría el mismo sentido que esta ruta).
+    setForm((prev) => ({ ...prev, sentido, rutaParejaId: '' }));
 
   const numeroValido = (v: string) => v.trim() !== '' && !Number.isNaN(Number(v));
 
@@ -215,6 +233,34 @@ const ModalRuta: React.FC<ModalRutaProps> = ({
               onChange={(e) => setCampo('grupo', e.target.value)}
             />
           )}
+        </div>
+        <div>
+          <label className={labelClase}>Sentido</label>
+          <select
+            className={inputClase}
+            value={form.sentido}
+            onChange={(e) => cambiarSentido(e.target.value as Sentido)}
+          >
+            <option value="IDA">Ida</option>
+            <option value="REGRESO">Regreso</option>
+          </select>
+        </div>
+        <div className="sm:col-span-3">
+          <label className={labelClase}>
+            Ruta de {form.sentido === 'IDA' ? 'regreso' : 'ida'} (pareja, opcional)
+          </label>
+          <select
+            className={inputClase}
+            value={form.rutaParejaId}
+            onChange={(e) => setCampo('rutaParejaId', e.target.value)}
+          >
+            <option value="">Sin pareja</option>
+            {candidatasPareja.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.codigo} · {r.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="sm:col-span-3">
           <label className={labelClase}>Descripción (opcional)</label>

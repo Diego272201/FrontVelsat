@@ -135,6 +135,8 @@ const AdministrarRutasPage: React.FC = () => {
                 <th className="px-3 py-2 font-semibold">Código</th>
                 <th className="px-3 py-2 font-semibold">Nombre</th>
                 <th className="px-3 py-2 font-semibold">Grupo</th>
+                <th className="px-3 py-2 font-semibold">Sentido</th>
+                <th className="px-3 py-2 font-semibold">Pareja</th>
                 <th className="px-3 py-2 font-semibold">Paraderos</th>
                 <th className="px-3 py-2 font-semibold">Duración</th>
                 <th className="px-3 py-2 font-semibold">Distancia</th>
@@ -151,6 +153,8 @@ const AdministrarRutasPage: React.FC = () => {
                   <td className="px-3 py-2 font-medium">{r.codigo}</td>
                   <td className="px-3 py-2">{r.nombre}</td>
                   <td className="px-3 py-2">{r.grupo}</td>
+                  <td className="px-3 py-2">{r.sentido === 'REGRESO' ? 'Regreso' : 'Ida'}</td>
+                  <td className="px-3 py-2">{r.rutaParejaCodigo ?? '—'}</td>
                   <td className="px-3 py-2">{r.cantidadParaderos}</td>
                   <td className="px-3 py-2">{r.duracionMin} min</td>
                   <td className="px-3 py-2">
@@ -184,14 +188,14 @@ const AdministrarRutasPage: React.FC = () => {
               ))}
               {!cargando && rutasVisibles.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-3 py-8 text-center text-gray-500">
                     No hay rutas. Crea la primera con “Nueva ruta”.
                   </td>
                 </tr>
               )}
               {cargando && (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-gray-500">
+                  <td colSpan={10} className="px-3 py-8 text-center text-gray-500">
                     Cargando rutas…
                   </td>
                 </tr>
@@ -206,6 +210,7 @@ const AdministrarRutasPage: React.FC = () => {
         onClose={() => setModalAbierto(false)}
         ruta={rutaEditando}
         grupos={grupos}
+        rutas={rutas}
         guardando={guardando}
         onGuardar={handleGuardar}
       />
