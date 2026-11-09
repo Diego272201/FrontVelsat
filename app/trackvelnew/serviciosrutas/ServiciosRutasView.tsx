@@ -12,7 +12,6 @@ import ModalNuevoServicio from './ModalNuevoServicio';
 import ModalReprogramar, { ReprogramarForm } from './ModalReprogramar';
 import PanelRuta from './PanelRuta';
 import PanelServicios from './PanelServicios';
-import ModalRuta, { RutaForm, rutaFormAGuardar } from './rutas/ModalRuta';
 import type { FocoMapa } from './MapaRutas';
 import { mensajeError, useServiciosRutasApi } from './api';
 import { NuevoServicioForm, Paradero, PosicionConductor, Ruta, RutaVista, Servicio } from './types';
@@ -75,7 +74,6 @@ const ServiciosRutasView: React.FC = () => {
   // Modales
   const [showModalNuevo, setShowModalNuevo] = useState(false);
   const [rutaInicial, setRutaInicial] = useState<number | null>(null);
-  const [modalRutaAbierto, setModalRutaAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [servicioEditando, setServicioEditando] = useState<Servicio | null>(null);
   const [servicioCancelando, setServicioCancelando] = useState<Servicio | null>(null);
@@ -357,22 +355,6 @@ const ServiciosRutasView: React.FC = () => {
     }
   };
 
-  // Editar la ruta abierta (mismo modal que Administrar rutas). El backend recalcula el trazado.
-  const handleGuardarRuta = async (form: RutaForm) => {
-    if (!seleccionada) return;
-    setGuardando(true);
-    try {
-      await api.actualizarRuta(seleccionada.id, rutaFormAGuardar(form));
-      setModalRutaAbierto(false);
-      toast.success('Ruta guardada');
-      await cargarRutas();
-    } catch (error) {
-      toast.error(mensajeError(error, 'No se pudo guardar la ruta'));
-    } finally {
-      setGuardando(false);
-    }
-  };
-
   const accionesServicio = {
     onEditar: abrirEdicion,
     onReprogramar: setServicioReprogramando,
@@ -436,8 +418,10 @@ const ServiciosRutasView: React.FC = () => {
           </Link>
           <Link
             href="/trackvelnew/serviciosrutas/rutas"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
-            title="Administrar rutas"
+            title="Administrar rutas (abre en nueva pestaña)"
           >
             <Settings2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Administrar rutas</span>
@@ -508,9 +492,6 @@ const ServiciosRutasView: React.FC = () => {
                   fechaTexto={fechaTexto}
                   onCerrar={cerrarRuta}
                   onEnfocarParadero={enfocarParadero}
-                  onEditarRuta={() => setModalRutaAbierto(true)}
-                  onNuevoServicio={() => abrirNuevo(seleccionada.id)}
-                  puedeCrear={api.listo}
                   {...accionesServicio}
                 />
               ) : (
@@ -561,16 +542,6 @@ const ServiciosRutasView: React.FC = () => {
         onGuardar={confirmarReprogramacion}
       />
 
-      <ModalRuta
-        isOpen={modalRutaAbierto}
-        onClose={() => setModalRutaAbierto(false)}
-        ruta={seleccionada}
-        grupos={grupos}
-        rutas={rutas}
-        guardando={guardando}
-        onGuardar={handleGuardarRuta}
-      />
-
       <BaseModal
         isOpen={servicioCancelando !== null}
         onClose={() => setServicioCancelando(null)}
@@ -580,6 +551,7 @@ const ServiciosRutasView: React.FC = () => {
         size="md"
         confirmText="Sí, cancelar servicio"
         cancelText="Volver"
+        cancelButtonClass="bg-slate-100 hover:bg-slate-200 text-slate-700"
         loadingText="Cancelando..."
         confirmIcon={<Ban className="h-3.5 w-3.5" />}
         confirmButtonClass="bg-red-600 hover:bg-red-700 text-white"

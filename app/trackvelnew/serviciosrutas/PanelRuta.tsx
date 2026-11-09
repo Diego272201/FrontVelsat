@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bus, Check, Flag, Pencil, Phone, Plus, User, X } from 'lucide-react';
+import { Bus, Check, Flag, Phone, User, X } from 'lucide-react';
 import { Paradero, RutaVista, Servicio } from './types';
 import { AccionesServicio, AccionesServicioProps, BarraAvance, EstadoChip } from './PanelServicios';
 import { formatoDuracion, formatoKm, ordenarServicios, sumarMinutos } from './utils';
@@ -17,9 +17,6 @@ interface PanelRutaProps extends AccionesServicioProps {
   fechaTexto: string;
   onCerrar: () => void;
   onEnfocarParadero: (paradero: Paradero) => void;
-  onEditarRuta: () => void;
-  onNuevoServicio: () => void;
-  puedeCrear: boolean;
 }
 
 // Panel derecho con el detalle de la ruta seleccionada: datos, servicios del día y paradas.
@@ -32,9 +29,6 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
   fechaTexto,
   onCerrar,
   onEnfocarParadero,
-  onEditarRuta,
-  onNuevoServicio,
-  puedeCrear,
   ...acciones
 }) => {
   const paraderos = ruta.paraderos;
@@ -233,28 +227,6 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
             </ol>
           )}
         </div>
-      </div>
-
-      {/* Acciones */}
-      <div className="flex gap-2 border-t border-slate-200 p-3">
-        <button
-          type="button"
-          onClick={onEditarRuta}
-          disabled={paraderos.length === 0}
-          className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#1E40AF] text-[12.5px] font-semibold text-white hover:bg-[#1A378F] disabled:opacity-50"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-          Editar ruta
-        </button>
-        <button
-          type="button"
-          onClick={onNuevoServicio}
-          disabled={!puedeCrear}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-slate-300 px-3 text-[12.5px] font-semibold text-[#1E40AF] hover:bg-blue-50 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Servicio
-        </button>
       </div>
     </div>
   );
