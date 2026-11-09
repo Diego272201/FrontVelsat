@@ -269,7 +269,7 @@ const numero = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-function aPosicion(item: unknown): PosicionConductor | null {
+export function aPosicion(item: unknown): PosicionConductor | null {
   if (!item || typeof item !== 'object') return null;
   const o = item as Record<string, unknown>;
   const lat = numero(primero(o, ['latitud', 'lat', 'latitude']));

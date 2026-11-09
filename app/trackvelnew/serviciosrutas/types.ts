@@ -106,6 +106,25 @@ export interface PosicionConductor {
   fecha: string | null;
 }
 
+/** Evento "ServicioActualizado" del hub: algo cambió en un servicio. */
+export interface AvisoServicio {
+  servicioId: number;
+  tipo: 'CREADO' | 'EDITADO' | 'REPROGRAMADO' | 'ESTADO' | 'LLEGADA' | 'SALIDA';
+  deviceID?: string | null;
+  orden?: number | null;
+  paradero?: string | null;
+  /** HH:mm:ss, hora de Perú. */
+  hora?: string | null;
+  /** Solo LLEGADA: A_TIEMPO | ADELANTADO | RETRASADO. */
+  estadoParadero?: string | null;
+  /** Solo LLEGADA: minutos de diferencia (+ = retraso). */
+  diferenciaMin?: number | null;
+  /** Solo SALIDA: minutos entre la llegada y la salida. */
+  permanenciaMin?: number | null;
+  /** Solo ESTADO: nuevo estado del servicio. */
+  estadoServicio?: string | null;
+}
+
 /** Punto donde terminan una o varias rutas (mismo paradero destino). */
 export interface DestinoComun {
   lat: number;

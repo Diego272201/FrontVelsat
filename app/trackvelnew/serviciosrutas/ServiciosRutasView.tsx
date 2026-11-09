@@ -14,7 +14,8 @@ import PanelRuta from './PanelRuta';
 import PanelServicios from './PanelServicios';
 import type { FocoMapa } from './MapaRutas';
 import { mensajeError, useServiciosRutasApi } from './api';
-import { NuevoServicioForm, Paradero, PosicionConductor, Ruta, RutaVista, Servicio } from './types';
+import { usePosicionesEnVivo } from './usePosicionesEnVivo';
+import { AvisoServicio, NuevoServicioForm, Paradero, Ruta, RutaVista, Servicio } from './types';
 import { getIsoToday, RUTA_COLORES, servicioReferencia } from './utils';
 
 // Leaflet necesita `window`: el mapa se carga solo en el navegador
@@ -23,9 +24,6 @@ const MapaRutas = dynamic(() => import('./MapaRutas'), { ssr: false });
 // Cada cuánto se refrescan los servicios (polling). Las marcas de llegada/salida las
 // envía la app del conductor y esta pantalla solo las consulta.
 const INTERVALO_REFRESCO_MS = 15000;
-
-// Cada cuánto se piden las posiciones en vivo de los conductores.
-const INTERVALO_POSICIONES_MS = 5000;
 
 /** Ancho del panel flotante de la derecha (+ margen) en escritorio, para encuadrar el mapa. */
 const ANCHO_PANEL = 372;
@@ -55,7 +53,6 @@ const ServiciosRutasView: React.FC = () => {
   const [cargandoDetalles, setCargandoDetalles] = useState(true);
   // Recorrido por calles de cada ruta (null = falló: se dibuja el trazado como respaldo).
   const [lineasCalles, setLineasCalles] = useState<Record<number, [number, number][] | null>>({});
-  const [posiciones, setPosiciones] = useState<PosicionConductor[]>([]);
   const [unidades, setUnidades] = useState<string[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [cargandoServicios, setCargandoServicios] = useState(true);
@@ -146,6 +143,35 @@ const ServiciosRutasView: React.FC = () => {
     return () => clearInterval(timer);
   }, [cargarServicios]);
 
+  // Tiempo real por SignalR. Posiciones: el backend no las guarda en la base. Avisos: cuando la app
+  // marca una llegada/salida o cambia un servicio, se refresca al instante (el refresco de 15 s queda
+  // como respaldo) y se muestra un aviso con lo ocurrido.
+  const alRecibirAviso = useCallback(
+    (aviso: AvisoServicio) => {
+      const unidad = aviso.deviceID ? `${aviso.deviceID}: ` : '';
+      if (aviso.tipo === 'LLEGADA') {
+        const dif = aviso.diferenciaMin ?? 0;
+        const estado = (aviso.estadoParadero ?? '').replace('_', ' ').toLowerCase();
+        toast.info(
+          `${unidad}llegó a ${aviso.paradero} · ${(aviso.hora ?? '').slice(0, 5)} (${estado}${
+            dif !== 0 ? `, ${dif > 0 ? '+' : ''}${dif} min` : ''
+          })`,
+        );
+      } else if (aviso.tipo === 'SALIDA') {
+        toast.info(
+          `${unidad}salió de ${aviso.paradero} · ${(aviso.hora ?? '').slice(0, 5)}${
+            aviso.permanenciaMin != null ? ` (estuvo ${aviso.permanenciaMin} min)` : ''
+          }`,
+        );
+      } else if (aviso.tipo === 'ESTADO') {
+        toast.info(`${unidad}servicio ${(aviso.estadoServicio ?? '').replace('_', ' ').toLowerCase()}`);
+      }
+      cargarServicios(true);
+    },
+    [cargarServicios],
+  );
+  const posiciones = usePosicionesEnVivo(alRecibirAviso);
+
   /* ------------------------------------------------------------------ */
   /* Datos derivados                                                     */
   /* ------------------------------------------------------------------ */
@@ -199,28 +225,6 @@ const ServiciosRutasView: React.FC = () => {
   // El panel de servicios muestra solo los de las rutas que están en el mapa.
   const serviciosEnMapa = useMemo(() => servicios.filter((s) => !ocultas.has(s.rutaId)), [servicios, ocultas]);
   const enCursoTotal = servicios.filter((s) => s.estado === 'EN_CURSO').length;
-
-  // Posiciones en vivo cada 5 s mientras la pestaña está visible. Si la API falla se conserva
-  // la última posición conocida (sin avisos: es un refresco automático).
-  useEffect(() => {
-    if (!api.listo) return;
-    let activo = true;
-    const cargar = () => {
-      if (document.visibilityState !== 'visible') return;
-      api
-        .getPosiciones()
-        .then((lista) => {
-          if (activo) setPosiciones(lista);
-        })
-        .catch(() => undefined);
-    };
-    cargar();
-    const timer = setInterval(cargar, INTERVALO_POSICIONES_MS);
-    return () => {
-      activo = false;
-      clearInterval(timer);
-    };
-  }, [api]);
 
   const panelVisible = seleccionada !== null || panelAbierto;
   const margenDerecho = esEscritorio && panelVisible ? ANCHO_PANEL : 0;
