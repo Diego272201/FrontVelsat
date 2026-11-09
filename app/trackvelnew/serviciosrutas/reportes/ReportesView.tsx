@@ -2,13 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import {
-  ArrowLeft,
-  FileBarChart2,
-  RefreshCw,
-  Route as RouteIcon,
+  Columns,
+  RotateCw,
 } from 'lucide-react';
 import { useServiciosRutasApi } from '../api';
 import { EstadoPuntualidad, ReporteServicio } from './types';
@@ -130,52 +129,63 @@ const ReportesView: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-100">
+    <div className="flex min-h-screen w-full flex-col bg-slate-100/80">
       <Toaster position="top-right" richColors />
 
-      {/* Encabezado Principal idéntico a Servicios Rutas (#1E40AF + #0B1F4D) */}
-      <header className="sticky top-0 z-20 flex h-14 shrink-0 items-stretch bg-[#1E40AF] text-white shadow-sm">
-        <div className="flex items-center gap-2.5 bg-[#0B1F4D] px-4">
-          <RouteIcon className="h-5 w-5 text-amber-400" />
-          <div className="leading-tight">
-            <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">TRACKVEL SYSTEM</div>
-            <div className="text-[13px] font-bold tracking-wide">SERVICIOS RUTAS</div>
+      {/* Encabezado idéntico a las páginas corporativas de Trackvel (#113EB9 + Logo naranja) */}
+      <header className="sticky top-0 z-50 flex-shrink-0 bg-[#113EB9] shadow-sm">
+        <div className="flex h-12 items-stretch justify-between">
+          {/* Lado izquierdo: Logo naranja, separador y subtítulo/título */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-full items-center bg-gradient-to-r from-orange-500 to-red-500 px-4">
+              <Image
+                src="/LogoWeb.png"
+                alt="Velsat"
+                width={44}
+                height={44}
+                className="h-9 w-9 object-contain"
+                priority
+              />
+            </div>
+
+            <div className="h-7 w-[2px] rounded-full bg-white/40 self-center" />
+
+            <div className="flex flex-col justify-center">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-blue-200 leading-none mb-0.5">
+                SERVICIOS RUTAS / REPORTES
+              </span>
+              <h1 className="text-[14px] font-bold leading-none tracking-[0.01em] text-white flex items-center gap-1.5 uppercase">
+                <span>CUMPLIMIENTO DE RUTAS Y PARADAS</span>
+              </h1>
+            </div>
           </div>
-        </div>
 
-        <div className="ml-4 hidden flex-col justify-center border-l-2 border-white/25 pl-3 leading-tight md:flex">
-          <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">REPORTE DETALLADO</div>
-          <div className="text-[13px] font-semibold">Cumplimiento de Rutas y Paradas</div>
-        </div>
+          {/* Lado derecho: Botón Monitoreo en mapa y Refrescar */}
+          <div className="flex items-center gap-2 pr-4">
+            <Link
+              href="/trackvelnew/serviciosrutas"
+              className="flex items-center gap-1.5 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 text-[12px] font-semibold text-white transition-colors"
+              title="Volver a la vista de Monitoreo en mapa"
+            >
+              <Columns className="h-3.5 w-3.5" />
+              <span>Monitoreo en mapa</span>
+            </Link>
 
-        <div className="ml-auto flex items-center gap-2 px-3">
-          <Link
-            href="/trackvelnew/serviciosrutas"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
-            title="Volver a la pantalla de Monitoreo en Mapa"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Monitoreo en Mapa</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={cargarDatos}
-            className="flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-semibold text-[#1E40AF] shadow-sm hover:bg-blue-50"
-            title="Actualizar datos del reporte"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Actualizar</span>
-          </button>
+            <button
+              type="button"
+              onClick={cargarDatos}
+              className="rounded-md bg-white/10 hover:bg-white/20 border border-white/20 p-2 text-white transition-colors"
+              title="Actualizar datos del reporte"
+            >
+              <RotateCw className={`h-3.5 w-3.5 ${cargando ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Contenido Principal */}
-      <main className="flex-1 space-y-4 p-4 lg:p-6">
-        {/* Tarjetas de Métricas y KPIs con colores vivos */}
-        <ResumenKpis kpis={kpis} />
-
-        {/* Barra de Filtros, Búsqueda y Botones Excel / PDF con colores propios */}
+      <main className="flex-1 space-y-3.5 p-4 lg:p-5">
+        {/* 1. Barra de Filtros, Búsqueda y Botones de Exportación */}
         <FiltrosReporte
           fechaIso={fechaIso}
           onFechaChange={setFechaIso}
@@ -192,10 +202,13 @@ const ReportesView: React.FC = () => {
           exportandoPdf={exportandoPdf}
         />
 
-        {/* Tabla Detallada de Paradas con color distinto por ruta */}
+        {/* 2. Tarjetas de Resumen y KPIs (Una sola barra blanca subdividida) */}
+        <ResumenKpis kpis={kpis} />
+
+        {/* 3. Acordeón / Tablas Detalladas por Ruta */}
         {cargando ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
-            <RefreshCw className="h-7 w-7 animate-spin text-[#1E40AF]" />
+            <RotateCw className="h-7 w-7 animate-spin text-[#113EB9]" />
             <p className="mt-2 text-[13px] font-semibold text-slate-700">Calculando reporte de paradas…</p>
             <p className="text-[11.5px] text-slate-400">Procesando tiempos de llegada, estancia y puntualidad</p>
           </div>
