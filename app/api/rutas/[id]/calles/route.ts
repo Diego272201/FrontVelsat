@@ -26,7 +26,7 @@ const TTL_SERVIDOR_MS = 60 * 60 * 1000;
 const ESPERA_TRAS_ERROR_MS = 10 * 60 * 1000;
 const CUENTA_VALIDA = /^[A-Za-z0-9._-]{1,64}$/;
 // Sube al cambiar el cálculo: las líneas guardadas con la versión anterior se recalculan.
-const VERSION_CALCULO = 16;
+const VERSION_CALCULO = 17;
 const CARPETA_CACHE = path.join(os.tmpdir(), 'trackvel-rutas-calles');
 
 interface RespuestaCalles extends LineaCalles {

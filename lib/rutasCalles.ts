@@ -326,7 +326,8 @@ async function pedirValhallaMapMatch(puntosTrazo: LatLng[]): Promise<LatLng[]> {
             search_radius: 50,
             gps_accuracy: 20,
             breakage_distance: 3000,
-            turn_penalty_factor: 500,
+            // Sin turn_penalty_factor: castigar los giros hacía que Valhalla evitara vueltas en U
+            // que el trazado sí hace (p. ej. el retorno en el separador de Av. Ayacucho, RT-001).
           },
         }),
         cache: 'no-store',
@@ -616,8 +617,12 @@ function proyectar(p: LatLng, a: LatLng, b: LatLng): LatLng {
  * Si el trazado de la API no tiene ninguna vuelta, la ruta nunca pasa dos veces por el mismo lugar
  * y se recortan todas. Si el trazado sí tiene (una ruta que entra a un lugar y regresa por la misma
  * calle), solo se recortan las vueltas cortas, que son errores de calzada.
+ *
+ * Nunca se recorta una vuelta que el trazado también hace (todo lo descartado queda a menos de
+ * DESVIO_VUELTA_REAL m del trazado): p. ej. un retorno en U por el separador de una avenida.
  */
 const MAX_RECORTE_SI_TRAZADO_VUELVE = 600; // m
+const DESVIO_VUELTA_REAL = 30; // m
 
 export function recortarBucles(entrada: LatLng[], trazado: LatLng[] | null): LatLng[] {
   const sinLimite = !!trazado && detectarBucles(trazado).length === 0;
@@ -630,7 +635,9 @@ export function recortarBucles(entrada: LatLng[], trazado: LatLng[] | null): Lat
         if (cum[i] - cum[j + 1] < BUCLE_CERRADO_LARGO) break;
         if (!sinLimite && cum[i] - cum[j] > MAX_RECORTE_SI_TRAZADO_VUELVE) continue;
         if (cierraBucle(linea, i, j, cum[i] - cum[j + 1])) {
-          corte = { i, j };
+          const sigueTrazado =
+            !!trazado && linea.slice(j + 1, i).every((p) => distanciaALinea(p, trazado) <= DESVIO_VUELTA_REAL);
+          if (!sigueTrazado) corte = { i, j };
           break;
         }
       }

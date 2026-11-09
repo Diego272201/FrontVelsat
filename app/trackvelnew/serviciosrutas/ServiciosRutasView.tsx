@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
-import { Ban, CalendarDays, ListChecks, PanelLeftOpen, Plus, Route as RouteIcon, Settings2 } from 'lucide-react';
+import { Ban, CalendarDays, FileBarChart2, ListChecks, PanelLeftOpen, Plus, Route as RouteIcon, Settings2 } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import ListaRutas, { ResumenRuta } from './ListaRutas';
 import ModalNuevoServicio from './ModalNuevoServicio';
@@ -424,6 +424,16 @@ const ServiciosRutasView: React.FC = () => {
               Hoy
             </button>
           )}
+          <Link
+            href="/trackvelnew/serviciosrutas/reportes"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
+            title="Reportes de servicios y paradas (abre en nueva pestaña)"
+          >
+            <FileBarChart2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Reportes</span>
+          </Link>
           <Link
             href="/trackvelnew/serviciosrutas/rutas"
             className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
