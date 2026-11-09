@@ -254,15 +254,15 @@ export function generarReporteServicios(fechaIso: string, rutaIdSeleccionada: nu
       if (desvio > 3) {
         estadoPuntualidad = 'RETRASADO';
         paradasRetrasadas++;
-        observaciones = `Demora por congestión vehicular (+${desvio} min)`;
+        observaciones = `Congestión vehicular (+${desvio} min)`;
       } else if (desvio < -2) {
         estadoPuntualidad = 'ADELANTADO';
         paradasAdelantadas++;
-        observaciones = `Llegada anticipada (${desvio} min)`;
+        observaciones = `Paso anticipado (${desvio} min)`;
       } else {
         estadoPuntualidad = 'A_TIEMPO';
         paradasATiempo++;
-        observaciones = 'Parada realizada dentro del rango óptimo';
+        observaciones = 'Dentro del rango óptimo';
       }
 
       paradasCompletadas++;

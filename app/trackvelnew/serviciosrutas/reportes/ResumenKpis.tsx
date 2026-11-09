@@ -1,14 +1,6 @@
 'use client';
 
 import React from 'react';
-import {
-  Clock,
-  Bus,
-  MapPin,
-  TrendingUp,
-  AlertTriangle,
-  FastForward,
-} from 'lucide-react';
 import { ResumenKpisData } from './types';
 
 interface ResumenKpisProps {
@@ -17,93 +9,83 @@ interface ResumenKpisProps {
 
 const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {/* 1. Total Servicios - Azul Corporativo */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-blue-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Servicios</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <Bus className="h-3.5 w-3.5" />
-          </div>
+    <div className="grid grid-cols-2 gap-y-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs sm:grid-cols-3 lg:grid-cols-6 lg:divide-x lg:divide-slate-100">
+      {/* 1. SERVICIOS */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          SERVICIOS
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
+          {kpis.totalServicios}
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-blue-900">{kpis.totalServicios}</div>
-          <p className="text-[11px] font-medium text-slate-500">Rutas analizadas</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          Rutas analizadas
+        </span>
       </div>
 
-      {/* 2. Paradas Auditadas - Azul Corporativo */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-blue-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Paradas</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <MapPin className="h-3.5 w-3.5" />
-          </div>
+      {/* 2. PARADAS */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          PARADAS
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
+          {kpis.totalParadas}
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-blue-900">{kpis.totalParadas}</div>
-          <p className="text-[11px] font-medium text-slate-500">{kpis.paradasCompletadas} ejecutadas</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          {kpis.paradasCompletadas} ejecutadas
+        </span>
       </div>
 
-      {/* 3. Puntualidad - Verde Esmeralda */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Puntualidad</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-            <TrendingUp className="h-3.5 w-3.5" />
-          </div>
+      {/* 3. PUNTUALIDAD */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          PUNTUALIDAD
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
+          {kpis.porcentajePuntualidad}%
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-emerald-600">
-            {kpis.porcentajePuntualidad}%
-          </div>
-          <p className="text-[11px] font-medium text-slate-500">{kpis.paradasATiempo} a tiempo</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          {kpis.paradasATiempo} a tiempo
+        </span>
       </div>
 
-      {/* 4. Retrasadas - Rojo Alerta */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-rose-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Retrasadas</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-            <AlertTriangle className="h-3.5 w-3.5" />
-          </div>
+      {/* 4. RETRASADAS */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          RETRASADAS
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-rose-600 leading-none">
+          {kpis.paradasRetrasadas}
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-rose-600">{kpis.paradasRetrasadas}</div>
-          <p className="text-[11px] font-medium text-slate-500">&gt; 3 min demora</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          Más de 3 min de demora
+        </span>
       </div>
 
-      {/* 5. Adelantadas - Rojo Alerta (Desvío horario) */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-rose-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Adelantadas</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-            <FastForward className="h-3.5 w-3.5" />
-          </div>
+      {/* 5. ADELANTADAS */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          ADELANTADAS
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
+          {kpis.paradasAdelantadas}
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-rose-600">{kpis.paradasAdelantadas}</div>
-          <p className="text-[11px] font-medium text-slate-500">&gt; 2 min anticipo</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          Más de 2 min de anticipo
+        </span>
       </div>
 
-      {/* 6. Estancia - Azul Corporativo */}
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-all hover:border-blue-300 hover:shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Estancia</span>
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <Clock className="h-3.5 w-3.5" />
-          </div>
+      {/* 6. ESTANCIA PROMEDIO */}
+      <div className="flex flex-col px-3 first:pl-1 last:pr-1">
+        <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+          ESTANCIA PROMEDIO
+        </span>
+        <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
+          {kpis.promedioPermanenciaMin} <span className="text-[14px] font-bold text-slate-600">min</span>
         </div>
-        <div className="mt-2.5">
-          <div className="text-[24px] font-black tracking-tight text-blue-900">
-            {kpis.promedioPermanenciaMin} <span className="text-[14px] font-bold text-slate-500">min</span>
-          </div>
-          <p className="text-[11px] font-medium text-slate-500">Total: {kpis.tiempoTotalEnParadasMin} min</p>
-        </div>
+        <span className="mt-1.5 text-[11px] font-medium text-slate-500">
+          Total: {kpis.tiempoTotalEnParadasMin} min
+        </span>
       </div>
     </div>
   );
