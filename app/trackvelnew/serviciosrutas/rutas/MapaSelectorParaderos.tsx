@@ -184,19 +184,6 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
 
     const editandoParaderos = modo === 'paraderos';
 
-    if (editandoParaderos && puntos.length >= 2) {
-      L.polyline(
-        puntos.map((p) => [p.lat, p.lng] as [number, number]),
-        {
-          color: COLOR,
-          weight: 3,
-          opacity: 0.45,
-          dashArray: '6 8',
-          interactive: false,
-        },
-      ).addTo(capa);
-    }
-
     for (const p of puntos) {
       const esActivo = p.indice === activo;
       const esOrigen = p.indice === 0;

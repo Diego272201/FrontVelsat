@@ -1,5 +1,6 @@
 import { Ruta, Sentido } from '../types';
 import type { RutaGuardar } from '../api';
+import { largoMetros } from './trazado';
 
 // Modelo del formulario de ruta (todo texto, como lo escribe el usuario) y sus utilidades.
 
@@ -51,26 +52,35 @@ export const paraderoVacio = (): ParaderoForm => ({
 export const formDesdeRuta = (
   ruta: Ruta | null,
   grupos: readonly string[],
-): RutaForm => ({
-  codigo: ruta?.codigo ?? '',
-  nombre: ruta?.nombre ?? '',
-  grupo: ruta?.grupo ?? grupos[0] ?? '',
-  sentido: ruta?.sentido ?? 'IDA',
-  rutaParejaId: ruta?.rutaParejaId != null ? String(ruta.rutaParejaId) : '',
-  descripcion: ruta?.descripcion ?? '',
-  distanciaKm: ruta?.distanciaKm != null ? String(ruta.distanciaKm) : '',
-  paraderos: ruta
-    ? ruta.paraderos.map((p) => ({
-        id: p.id,
-        uid: nuevoUid(),
-        nombre: p.nombre,
-        latitud: String(p.latitud),
-        longitud: String(p.longitud),
-        radioMetros: String(p.radioMetros),
-        minutosDesdeAnterior: String(p.minutosDesdeAnterior),
-      }))
-    : [paraderoVacio(), paraderoVacio()],
-});
+): RutaForm => {
+  const distanciaDesdeTrazado =
+    ruta?.trazado && ruta.trazado.length >= 2
+      ? (Math.round((largoMetros(ruta.trazado) / 1000) * 100) / 100).toFixed(2)
+      : null;
+
+  return {
+    codigo: ruta?.codigo ?? '',
+    nombre: ruta?.nombre ?? '',
+    grupo: ruta?.grupo ?? grupos[0] ?? '',
+    sentido: ruta?.sentido ?? 'IDA',
+    rutaParejaId: ruta?.rutaParejaId != null ? String(ruta.rutaParejaId) : '',
+    descripcion: ruta?.descripcion ?? '',
+    distanciaKm:
+      distanciaDesdeTrazado ??
+      (ruta?.distanciaKm != null ? String(ruta.distanciaKm) : ''),
+    paraderos: ruta
+      ? ruta.paraderos.map((p) => ({
+          id: p.id,
+          uid: nuevoUid(),
+          nombre: p.nombre,
+          latitud: String(p.latitud),
+          longitud: String(p.longitud),
+          radioMetros: String(p.radioMetros),
+          minutosDesdeAnterior: String(p.minutosDesdeAnterior),
+        }))
+      : [paraderoVacio(), paraderoVacio()],
+  };
+};
 
 /** Pasa el formulario (todo texto) al cuerpo que espera la API. */
 export const rutaFormAGuardar = (form: RutaForm): RutaGuardar => ({

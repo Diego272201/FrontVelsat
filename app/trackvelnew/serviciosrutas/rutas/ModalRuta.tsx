@@ -8,7 +8,18 @@ import React, {
   useState,
 } from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2, MapPin, Plus, Spline } from 'lucide-react';
+import { Loader2, MapPin, Plus, Redo2, Spline, Trash2, Undo2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/app/components/ui/alert-dialog';
 import { useServiciosRutasApi } from '../api';
 import { Ruta, Sentido } from '../types';
 import type { FocoSelector, PuntoParadero } from './MapaSelectorParaderos';
@@ -20,6 +31,7 @@ import {
   Punto,
   agregarPunto,
   insertarDespuesDe as insertarPuntoDespuesDe,
+  largoMetros,
   moverPunto,
   quitarPunto,
 } from './trazado';
@@ -73,13 +85,18 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const inicial = useRef(JSON.stringify(form));
   // true = el usuario eligió "+ Nuevo grupo…" y escribe el nombre a mano.
   const [nuevoGrupo, setNuevoGrupo] = useState(grupos.length === 0);
-  const [datosAbiertos, setDatosAbiertos] = useState(!ruta);
+  // Por default los datos de la ruta salen mostrados
+  const [datosAbiertos, setDatosAbiertos] = useState(true);
   // Paradero que recibe el próximo clic del mapa (por uid); null = el clic crea uno nuevo.
   const [activoUid, setActivoUid] = useState<string | null>(() =>
     ruta ? null : (form.paraderos[0].uid ?? null),
   );
   const [foco, setFoco] = useState<FocoSelector | null>(null);
   const focoClave = useRef(0);
+  const [paraderoAEliminar, setParaderoAEliminar] = useState<{
+    indice: number;
+    nombre: string;
+  } | null>(null);
 
   // Trazado (la línea del recorrido): se edita en la pestaña "Trazado", con historial para deshacer.
   const api = useServiciosRutasApi();
@@ -88,6 +105,76 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const [puntoSel, setPuntoSel] = useState<number | null>(null);
   const [alInicio, setAlInicio] = useState(false);
   const [demasiadosPuntos, setDemasiadosPuntos] = useState(false);
+
+  // Historial de paraderos para Deshacer / Rehacer (movimientos en el mapa, reordenamientos, altas y bajas)
+  const [historialParaderos, setHistorialParaderos] = useState<{
+    pasado: ParaderoForm[][];
+    futuro: ParaderoForm[][];
+  }>({ pasado: [], futuro: [] });
+
+  const registrarHistorial = useCallback((paraderosPrevios: ParaderoForm[]) => {
+    const copia = paraderosPrevios.map((p) => ({ ...p }));
+    setHistorialParaderos((h) => ({
+      pasado: [...h.pasado, copia].slice(-50),
+      futuro: [],
+    }));
+  }, []);
+
+  const deshacerParadero = useCallback(() => {
+    if (historialParaderos.pasado.length === 0) return;
+
+    const previo =
+      historialParaderos.pasado[historialParaderos.pasado.length - 1];
+    const copiaActual = form.paraderos.map((p) => ({ ...p }));
+
+    setHistorialParaderos((h) => ({
+      pasado: h.pasado.slice(0, -1),
+      futuro: [copiaActual, ...h.futuro],
+    }));
+
+    setForm((prev) => ({
+      ...prev,
+      paraderos: previo.map((p) => ({ ...p })),
+    }));
+
+    toast.info('Cambio deshecho en paraderos', { id: 'paraderos-undo' });
+  }, [form.paraderos, historialParaderos.pasado]);
+
+  const rehacerParadero = useCallback(() => {
+    if (historialParaderos.futuro.length === 0) return;
+
+    const siguiente = historialParaderos.futuro[0];
+    const copiaActual = form.paraderos.map((p) => ({ ...p }));
+
+    setHistorialParaderos((h) => ({
+      pasado: [...h.pasado, copiaActual],
+      futuro: h.futuro.slice(1),
+    }));
+
+    setForm((prev) => ({
+      ...prev,
+      paraderos: siguiente.map((p) => ({ ...p })),
+    }));
+
+    toast.info('Cambio rehecho en paraderos', { id: 'paraderos-undo' });
+  }, [form.paraderos, historialParaderos.futuro]);
+
+  const puedeDeshacerParaderos = historialParaderos.pasado.length > 0;
+  const puedeRehacerParaderos = historialParaderos.futuro.length > 0;
+
+  // Cálculo automático de distancia a partir del trazado (no de los paraderos)
+  useEffect(() => {
+    if (t.trazado && t.trazado.length >= 2) {
+      const kmCalculado = (
+        Math.round((largoMetros(t.trazado) / 1000) * 100) / 100
+      ).toFixed(2);
+      setForm((prev) =>
+        prev.distanciaKm === kmCalculado
+          ? prev
+          : { ...prev, distanciaKm: kmCalculado },
+      );
+    }
+  }, [t.trazado]);
 
   const accionesTrazado = useMemo(
     () => ({
@@ -108,9 +195,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
     [t.trazado, t.aplicar],
   );
 
-  // Ctrl+Z / Ctrl+Y en la pestaña de trazado (sin pisar el deshacer de los campos de texto).
+  // Ctrl+Z / Ctrl+Y para deshacer/rehacer tanto en Paraderos como en Trazado
   useEffect(() => {
-    if (modo !== 'trazado') return;
     const alTeclear = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       if (
@@ -124,17 +210,23 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       const tecla = e.key.toLowerCase();
       if (tecla === 'z' && !e.shiftKey) {
         e.preventDefault();
-        t.deshacer();
+        if (modo === 'paraderos') {
+          deshacerParadero();
+        } else {
+          t.deshacer();
+        }
       } else if (tecla === 'y' || (tecla === 'z' && e.shiftKey)) {
         e.preventDefault();
-        t.rehacer();
+        if (modo === 'paraderos') {
+          rehacerParadero();
+        } else {
+          t.rehacer();
+        }
       }
     };
     window.addEventListener('keydown', alTeclear);
     return () => window.removeEventListener('keydown', alTeclear);
-    // deshacer / rehacer son estables (useCallback): no hace falta volver a registrar el listener.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modo, t.deshacer, t.rehacer]);
+  }, [modo, deshacerParadero, rehacerParadero, t.deshacer, t.rehacer]);
 
   const cargarTrazadoDe = useCallback(
     async (rutaId: number): Promise<Punto[]> =>
@@ -205,6 +297,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
     const latitud = redondear(lat);
     const longitud = redondear(lng);
 
+    registrarHistorial(form.paraderos);
+
     if (activoIdx >= 0) {
       const actual = form.paraderos[activoIdx];
       setParaderoPorUid(actual.uid!, { latitud, longitud });
@@ -228,6 +322,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const moverMarcador = (indice: number, lat: number, lng: number) => {
     const p = form.paraderos[indice];
     if (!p?.uid) return;
+    registrarHistorial(form.paraderos);
     setParaderoPorUid(p.uid, {
       latitud: redondear(lat),
       longitud: redondear(lng),
@@ -246,6 +341,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   /* ----------------------- Acciones de la lista ------------------------ */
 
   const agregarParadero = () => {
+    registrarHistorial(form.paraderos);
     const nuevo = paraderoVacio();
     setForm((prev) => ({ ...prev, paraderos: [...prev.paraderos, nuevo] }));
     setActivoUid(nuevo.uid!);
@@ -253,6 +349,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   };
 
   const insertarDespuesDe = (indice: number) => {
+    registrarHistorial(form.paraderos);
     const nuevo = paraderoVacio();
     setForm((prev) => {
       const copia = [...prev.paraderos];
@@ -264,6 +361,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   };
 
   const quitarParadero = (indice: number) => {
+    registrarHistorial(form.paraderos);
     const quitado = form.paraderos[indice];
     setForm((prev) => ({
       ...prev,
@@ -272,14 +370,16 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
     if (quitado?.uid === activoUid) setActivoUid(null);
   };
 
-  const mover = (indice: number, delta: -1 | 1) =>
+  const mover = (indice: number, delta: -1 | 1) => {
+    const destino = indice + delta;
+    if (destino < 0 || destino >= form.paraderos.length) return;
+    registrarHistorial(form.paraderos);
     setForm((prev) => {
-      const destino = indice + delta;
-      if (destino < 0 || destino >= prev.paraderos.length) return prev;
       const copia = [...prev.paraderos];
       [copia[indice], copia[destino]] = [copia[destino], copia[indice]];
       return { ...prev, paraderos: copia };
     });
+  };
 
   /* ----------------------------- Validación ---------------------------- */
 
@@ -417,19 +517,43 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
                   onCambiarSentido={cambiarSentido}
                 />
 
-                <div className="px-4 py-3">
+                <div className="px-3 py-2.5">
                   <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-700">
+                    <h3 className="text-[11.5px] font-bold uppercase tracking-wider text-slate-700">
                       Paraderos ({total})
                     </h3>
-                    <button
-                      type="button"
-                      onClick={agregarParadero}
-                      className="flex h-7 items-center gap-1 rounded-md bg-blue-600 px-2.5 text-[12px] font-medium text-white transition hover:bg-blue-700"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      Agregar
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={deshacerParadero}
+                        disabled={!puedeDeshacerParaderos}
+                        title="Deshacer cambio en paraderos (Ctrl+Z)"
+                        className="flex h-7 items-center gap-1 rounded border border-slate-300 bg-white px-2 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <Undo2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Deshacer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={rehacerParadero}
+                        disabled={!puedeRehacerParaderos}
+                        title="Rehacer cambio en paraderos (Ctrl+Y)"
+                        className="flex h-7 items-center gap-1 rounded border border-slate-300 bg-white px-2 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <Redo2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Rehacer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={agregarParadero}
+                        className="flex h-7 items-center gap-1 rounded-md bg-blue-600 px-2.5 text-[11.5px] font-medium text-white transition hover:bg-blue-700"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Agregar
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -451,7 +575,12 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
                         }
                         onMover={(delta) => mover(i, delta)}
                         onInsertarDespues={() => insertarDespuesDe(i)}
-                        onQuitar={() => quitarParadero(i)}
+                        onQuitar={() =>
+                          setParaderoAEliminar({
+                            indice: i,
+                            nombre: p.nombre.trim() || `Paradero ${i + 1}`,
+                          })
+                        }
                       />
                     ))}
                   </div>
@@ -480,6 +609,44 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
           />
         </div>
       </div>
+
+      {/* Alerta de confirmación para eliminar paradero */}
+      {paraderoAEliminar && (
+        <AlertDialog
+          open={paraderoAEliminar !== null}
+          onOpenChange={(open) => !open && setParaderoAEliminar(null)}
+        >
+          <AlertDialogContent className="z-[160] max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="h-5 w-5" />
+                <span>¿Eliminar paradero?</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] text-slate-600">
+                ¿Estás seguro de que deseas eliminar{' '}
+                <strong className="text-slate-900">
+                  {paraderoAEliminar.nombre}
+                </strong>
+                ? Esta acción quitará el paradero de la ruta. Podrás deshacerlo en cualquier momento con el botón Deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setParaderoAEliminar(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  quitarParadero(paraderoAEliminar.indice);
+                  setParaderoAEliminar(null);
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 };
