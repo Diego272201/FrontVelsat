@@ -87,8 +87,6 @@ export interface NuevoServicioForm {
 /** Ruta activa lista para mostrarse: con su color y, si cargó, con paraderos y trazado. */
 export interface RutaVista extends Ruta {
   color: string;
-  /** Recorrido por calles (OpenRouteService) como [lat, lng]; null mientras carga o si falló. */
-  lineaCalles: [number, number][] | null;
 }
 
 /** Posición en vivo de un conductor (GET {cuenta}/posiciones). */

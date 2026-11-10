@@ -1,13 +1,29 @@
 'use client';
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, MapPin, Plus, Spline } from 'lucide-react';
+import { useServiciosRutasApi } from '../api';
 import { Ruta, Sentido } from '../types';
 import type { FocoSelector, PuntoParadero } from './MapaSelectorParaderos';
 import DatosRutaForm from './DatosRutaForm';
 import EncabezadoEditor from './EncabezadoEditor';
+import PanelTrazado from './PanelTrazado';
 import TarjetaParadero from './TarjetaParadero';
+import {
+  Punto,
+  agregarPunto,
+  insertarDespuesDe as insertarPuntoDespuesDe,
+  moverPunto,
+  quitarPunto,
+} from './trazado';
+import { useEditorTrazado } from './useEditorTrazado';
 import {
   ParaderoForm,
   RutaForm,
@@ -59,9 +75,72 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const [nuevoGrupo, setNuevoGrupo] = useState(grupos.length === 0);
   const [datosAbiertos, setDatosAbiertos] = useState(!ruta);
   // Paradero que recibe el próximo clic del mapa (por uid); null = el clic crea uno nuevo.
-  const [activoUid, setActivoUid] = useState<string | null>(() => (ruta ? null : (form.paraderos[0].uid ?? null)));
+  const [activoUid, setActivoUid] = useState<string | null>(() =>
+    ruta ? null : (form.paraderos[0].uid ?? null),
+  );
   const [foco, setFoco] = useState<FocoSelector | null>(null);
   const focoClave = useRef(0);
+
+  // Trazado (la línea del recorrido): se edita en la pestaña "Trazado", con historial para deshacer.
+  const api = useServiciosRutasApi();
+  const [modo, setModo] = useState<'paraderos' | 'trazado'>('paraderos');
+  const t = useEditorTrazado(ruta?.trazado ?? null);
+  const [puntoSel, setPuntoSel] = useState<number | null>(null);
+  const [alInicio, setAlInicio] = useState(false);
+  const [demasiadosPuntos, setDemasiadosPuntos] = useState(false);
+
+  const accionesTrazado = useMemo(
+    () => ({
+      onInsertar: (indice: number, lat: number, lng: number) => {
+        t.aplicar(insertarPuntoDespuesDe(t.trazado, indice, [lat, lng]));
+        setPuntoSel(indice + 1);
+      },
+      onMover: (indice: number, lat: number, lng: number) =>
+        t.aplicar(moverPunto(t.trazado, indice, [lat, lng])),
+      onSeleccionar: (indice: number) =>
+        setPuntoSel((actual) => (actual === indice ? null : indice)),
+      onEliminar: (indice: number) => {
+        t.aplicar(quitarPunto(t.trazado, indice));
+        setPuntoSel(null);
+      },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t.trazado, t.aplicar],
+  );
+
+  // Ctrl+Z / Ctrl+Y en la pestaña de trazado (sin pisar el deshacer de los campos de texto).
+  useEffect(() => {
+    if (modo !== 'trazado') return;
+    const alTeclear = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (
+        el &&
+        (el.tagName === 'INPUT' ||
+          el.tagName === 'TEXTAREA' ||
+          el.tagName === 'SELECT')
+      )
+        return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const tecla = e.key.toLowerCase();
+      if (tecla === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        t.deshacer();
+      } else if (tecla === 'y' || (tecla === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        t.rehacer();
+      }
+    };
+    window.addEventListener('keydown', alTeclear);
+    return () => window.removeEventListener('keydown', alTeclear);
+    // deshacer / rehacer son estables (useCallback): no hace falta volver a registrar el listener.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modo, t.deshacer, t.rehacer]);
+
+  const cargarTrazadoDe = useCallback(
+    async (rutaId: number): Promise<Punto[]> =>
+      (await api.getRuta(rutaId)).trazado ?? [],
+    [api],
+  );
   const filasRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const total = form.paraderos.length;
@@ -71,42 +150,70 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
   // La pareja elegida deja de valer si el sentido cambia (tendría el mismo sentido que esta ruta).
-  const cambiarSentido = (sentido: Sentido) => setForm((prev) => ({ ...prev, sentido, rutaParejaId: '' }));
+  const cambiarSentido = (sentido: Sentido) =>
+    setForm((prev) => ({ ...prev, sentido, rutaParejaId: '' }));
 
-  const setParaderoPorUid = useCallback((uid: string, cambios: Partial<ParaderoForm>) => {
-    setForm((prev) => ({
-      ...prev,
-      paraderos: prev.paraderos.map((p) => (p.uid === uid ? { ...p, ...cambios } : p)),
-    }));
-  }, []);
+  const setParaderoPorUid = useCallback(
+    (uid: string, cambios: Partial<ParaderoForm>) => {
+      setForm((prev) => ({
+        ...prev,
+        paraderos: prev.paraderos.map((p) =>
+          p.uid === uid ? { ...p, ...cambios } : p,
+        ),
+      }));
+    },
+    [],
+  );
 
-  const centrar = (lat: number, lng: number) => setFoco({ lat, lng, clave: ++focoClave.current });
+  const centrar = (lat: number, lng: number) =>
+    setFoco({ lat, lng, clave: ++focoClave.current });
 
   const irAFila = (uid: string) =>
-    window.setTimeout(() => filasRef.current.get(uid)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    window.setTimeout(
+      () =>
+        filasRef.current
+          .get(uid)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }),
+      50,
+    );
 
   /** Si el paradero no tiene nombre todavía, le propone el de la calle donde se ubicó. */
-  const sugerirNombre = useCallback(async (uid: string, lat: number, lng: number) => {
-    const nombre = await nombreDeCoordenada(lat, lng);
-    if (!nombre) return;
-    setForm((prev) => ({
-      ...prev,
-      paraderos: prev.paraderos.map((p) => (p.uid === uid && p.nombre.trim() === '' ? { ...p, nombre } : p)),
-    }));
-  }, []);
+  const sugerirNombre = useCallback(
+    async (uid: string, lat: number, lng: number) => {
+      const nombre = await nombreDeCoordenada(lat, lng);
+      if (!nombre) return;
+      setForm((prev) => ({
+        ...prev,
+        paraderos: prev.paraderos.map((p) =>
+          p.uid === uid && p.nombre.trim() === '' ? { ...p, nombre } : p,
+        ),
+      }));
+    },
+    [],
+  );
 
   /* ------------------------- Acciones del mapa ------------------------- */
 
   const clickMapa = (lat: number, lng: number) => {
+    // En la pestaña de trazado el clic agrega un punto a la línea (al final o al inicio).
+    if (modo === 'trazado') {
+      t.aplicar(agregarPunto(t.trazado, [lat, lng], alInicio));
+      setPuntoSel(alInicio ? 0 : t.trazado.length);
+      return;
+    }
+
     const latitud = redondear(lat);
     const longitud = redondear(lng);
 
     if (activoIdx >= 0) {
       const actual = form.paraderos[activoIdx];
       setParaderoPorUid(actual.uid!, { latitud, longitud });
-      if (actual.nombre.trim() === '') void sugerirNombre(actual.uid!, lat, lng);
+      if (actual.nombre.trim() === '')
+        void sugerirNombre(actual.uid!, lat, lng);
       // Pasa solo al siguiente paradero sin ubicar; si no hay, el próximo clic crea uno nuevo.
-      const siguiente = form.paraderos.find((p, i) => i > activoIdx && !coordenadasValidas(p));
+      const siguiente = form.paraderos.find(
+        (p, i) => i > activoIdx && !coordenadasValidas(p),
+      );
       setActivoUid(siguiente?.uid ?? null);
       if (siguiente?.uid) irAFila(siguiente.uid);
       return;
@@ -121,7 +228,10 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const moverMarcador = (indice: number, lat: number, lng: number) => {
     const p = form.paraderos[indice];
     if (!p?.uid) return;
-    setParaderoPorUid(p.uid, { latitud: redondear(lat), longitud: redondear(lng) });
+    setParaderoPorUid(p.uid, {
+      latitud: redondear(lat),
+      longitud: redondear(lng),
+    });
     if (p.nombre.trim() === '') void sugerirNombre(p.uid, lat, lng);
   };
 
@@ -155,7 +265,10 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
 
   const quitarParadero = (indice: number) => {
     const quitado = form.paraderos[indice];
-    setForm((prev) => ({ ...prev, paraderos: prev.paraderos.filter((_, i) => i !== indice) }));
+    setForm((prev) => ({
+      ...prev,
+      paraderos: prev.paraderos.filter((_, i) => i !== indice),
+    }));
     if (quitado?.uid === activoUid) setActivoUid(null);
   };
 
@@ -204,7 +317,10 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
 
   const intentarCerrar = () => {
     if (guardando) return;
-    if (JSON.stringify(form) !== inicial.current && !window.confirm('Hay cambios sin guardar. ¿Salir de todos modos?')) {
+    if (
+      (JSON.stringify(form) !== inicial.current || t.editado) &&
+      !window.confirm('Hay cambios sin guardar. ¿Salir de todos modos?')
+    ) {
       return;
     }
     onClose();
@@ -218,61 +334,130 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
         guardando={guardando}
         puedeGuardar={completo}
         onCancelar={intentarCerrar}
-        onGuardar={() => onGuardar(form)}
+        // El trazado solo viaja si se tocó: si no, el backend conserva el que ya tiene la ruta.
+        onGuardar={() =>
+          onGuardar({ ...form, trazado: t.editado ? t.trazado : undefined })
+        }
       />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Panel izquierdo: datos de la ruta y lista de paraderos */}
         <div className="flex max-h-[55%] w-full shrink-0 flex-col border-b border-slate-200 bg-white lg:max-h-none lg:w-[430px] lg:border-b-0 lg:border-r">
+          <div className="grid shrink-0 grid-cols-2 gap-1 border-b border-slate-200 bg-slate-50 p-1.5">
+            {(
+              [
+                { id: 'paraderos', texto: 'Paraderos', Icono: MapPin },
+                { id: 'trazado', texto: 'Trazado', Icono: Spline },
+              ] as const
+            ).map(({ id, texto, Icono }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setModo(id)}
+                className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 text-[12.5px] font-semibold transition ${
+                  modo === id
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Icono className="h-3.5 w-3.5" />
+                {texto}
+              </button>
+            ))}
+          </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <DatosRutaForm
-              form={form}
-              ruta={ruta}
-              grupos={grupos}
-              rutas={rutas}
-              abierto={datosAbiertos}
-              onToggle={() => setDatosAbiertos((v) => !v)}
-              nuevoGrupo={nuevoGrupo}
-              onNuevoGrupo={setNuevoGrupo}
-              onCampo={setCampo}
-              onCambiarSentido={cambiarSentido}
-            />
+            {modo === 'trazado' && (
+              <PanelTrazado
+                trazado={t.trazado}
+                seleccionado={puntoSel}
+                demasiadosPuntos={demasiadosPuntos}
+                alInicio={alInicio}
+                onAlInicio={setAlInicio}
+                puedeDeshacer={t.puedeDeshacer}
+                puedeRehacer={t.puedeRehacer}
+                onDeshacer={t.deshacer}
+                onRehacer={t.rehacer}
+                onAplicar={t.aplicar}
+                onDeseleccionar={() => setPuntoSel(null)}
+                otrasRutas={rutas.filter((r) => r.id !== ruta?.id)}
+                onCargarTrazadoDe={cargarTrazadoDe}
+                origen={
+                  coordenadasValidas(form.paraderos[0])
+                    ? [
+                        Number(form.paraderos[0].latitud),
+                        Number(form.paraderos[0].longitud),
+                      ]
+                    : null
+                }
+                destino={
+                  total > 1 && coordenadasValidas(form.paraderos[total - 1])
+                    ? [
+                        Number(form.paraderos[total - 1].latitud),
+                        Number(form.paraderos[total - 1].longitud),
+                      ]
+                    : null
+                }
+                onUsarDistancia={(km) => setCampo('distanciaKm', String(km))}
+              />
+            )}
 
-            <div className="px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-700">Paraderos ({total})</h3>
-                <button
-                  type="button"
-                  onClick={agregarParadero}
-                  className="flex h-7 items-center gap-1 rounded-md bg-blue-600 px-2.5 text-[12px] font-medium text-white transition hover:bg-blue-700"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Agregar
-                </button>
-              </div>
+            {modo === 'paraderos' && (
+              <>
+                <DatosRutaForm
+                  form={form}
+                  ruta={ruta}
+                  grupos={grupos}
+                  rutas={rutas}
+                  abierto={datosAbiertos}
+                  onToggle={() => setDatosAbiertos((v) => !v)}
+                  nuevoGrupo={nuevoGrupo}
+                  onNuevoGrupo={setNuevoGrupo}
+                  onCampo={setCampo}
+                  onCambiarSentido={cambiarSentido}
+                />
 
-              <div className="space-y-2">
-                {form.paraderos.map((p, i) => (
-                  <TarjetaParadero
-                    key={p.uid}
-                    paradero={p}
-                    indice={i}
-                    total={total}
-                    activo={p.uid === activoUid}
-                    registrarFila={(el) => {
-                      if (!p.uid) return;
-                      if (el) filasRef.current.set(p.uid, el);
-                      else filasRef.current.delete(p.uid);
-                    }}
-                    onSeleccionar={() => seleccionarIdx(i)}
-                    onCambio={(cambios) => setParaderoPorUid(p.uid!, cambios)}
-                    onMover={(delta) => mover(i, delta)}
-                    onInsertarDespues={() => insertarDespuesDe(i)}
-                    onQuitar={() => quitarParadero(i)}
-                  />
-                ))}
-              </div>
-            </div>
+                <div className="px-4 py-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-[12px] font-bold uppercase tracking-wide text-slate-700">
+                      Paraderos ({total})
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={agregarParadero}
+                      className="flex h-7 items-center gap-1 rounded-md bg-blue-600 px-2.5 text-[12px] font-medium text-white transition hover:bg-blue-700"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Agregar
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {form.paraderos.map((p, i) => (
+                      <TarjetaParadero
+                        key={p.uid}
+                        paradero={p}
+                        indice={i}
+                        total={total}
+                        activo={p.uid === activoUid}
+                        registrarFila={(el) => {
+                          if (!p.uid) return;
+                          if (el) filasRef.current.set(p.uid, el);
+                          else filasRef.current.delete(p.uid);
+                        }}
+                        onSeleccionar={() => seleccionarIdx(i)}
+                        onCambio={(cambios) =>
+                          setParaderoPorUid(p.uid!, cambios)
+                        }
+                        onMover={(delta) => mover(i, delta)}
+                        onInsertarDespues={() => insertarDespuesDe(i)}
+                        onQuitar={() => quitarParadero(i)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -287,6 +472,11 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
             onSeleccionar={seleccionarIdx}
             foco={foco}
             claveEncuadre={`${ruta?.id ?? 'nueva'}`}
+            modo={modo}
+            trazado={t.trazado}
+            puntoSeleccionado={puntoSel}
+            accionesTrazado={accionesTrazado}
+            onDemasiadosPuntos={setDemasiadosPuntos}
           />
         </div>
       </div>

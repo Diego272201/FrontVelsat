@@ -36,7 +36,9 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
 }) => {
   // Candidatas a pareja: rutas del sentido contrario (nunca la propia).
   const sentidoContrario: Sentido = form.sentido === 'IDA' ? 'REGRESO' : 'IDA';
-  const candidatasPareja = rutas.filter((r) => r.sentido === sentidoContrario && r.id !== ruta?.id);
+  const candidatasPareja = rutas.filter(
+    (r) => r.sentido === sentidoContrario && r.id !== ruta?.id,
+  );
 
   return (
     <div className="border-b border-slate-200">
@@ -49,11 +51,14 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
           Datos de la ruta
           {!abierto && (
             <span className="ml-2 font-medium normal-case tracking-normal text-slate-400">
-              {form.codigo || 'sin código'} · {form.sentido === 'IDA' ? 'Ida' : 'Regreso'}
+              {form.codigo || 'sin código'} ·{' '}
+              {form.sentido === 'IDA' ? 'Ida' : 'Regreso'}
             </span>
           )}
         </span>
-        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-4 w-4 text-slate-400 transition-transform ${abierto ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {abierto && (
@@ -80,7 +85,11 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
           </div>
           <div className="col-span-2">
             <label className={labelClase}>Nombre</label>
-            <input className={inputClase} value={form.nombre} onChange={(e) => onCampo('nombre', e.target.value)} />
+            <input
+              className={inputClase}
+              value={form.nombre}
+              onChange={(e) => onCampo('nombre', e.target.value)}
+            />
           </div>
           <div className="col-span-2">
             <label className={labelClase}>Grupo</label>
@@ -115,7 +124,10 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
             )}
           </div>
           <div className="col-span-2">
-            <label className={labelClase}>Ruta de {form.sentido === 'IDA' ? 'regreso' : 'ida'} (pareja, opcional)</label>
+            <label className={labelClase}>
+              Ruta de {form.sentido === 'IDA' ? 'regreso' : 'ida'} (pareja,
+              opcional)
+            </label>
             <select
               className={inputClase}
               value={form.rutaParejaId}

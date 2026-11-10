@@ -1,8 +1,20 @@
 'use client';
 
 import React from 'react';
-import { ArrowDown, ArrowUp, CornerDownRight, MapPin, Trash2 } from 'lucide-react';
-import { ParaderoForm, colorTipo, coordenadasValidas, inputClase, tipoDe } from './formRuta';
+import {
+  ArrowDown,
+  ArrowUp,
+  CornerDownRight,
+  MapPin,
+  Trash2,
+} from 'lucide-react';
+import {
+  ParaderoForm,
+  colorTipo,
+  coordenadasValidas,
+  inputClase,
+  tipoDe,
+} from './formRuta';
 
 interface TarjetaParaderoProps {
   paradero: ParaderoForm;
@@ -69,7 +81,11 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
           }`}
         >
           <MapPin className="h-3 w-3" />
-          {ubicado ? tipoDe(i, total) : activo ? 'Haz clic en el mapa' : 'Sin ubicar'}
+          {ubicado
+            ? tipoDe(i, total)
+            : activo
+              ? 'Haz clic en el mapa'
+              : 'Sin ubicar'}
         </span>
         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
           <button
@@ -111,7 +127,10 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
         </div>
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="mt-2 grid grid-cols-2 gap-2"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Campo etiqueta="Latitud">
           <input
             className={inputClase}
@@ -153,9 +172,14 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
   );
 };
 
-const Campo: React.FC<{ etiqueta: string; children: React.ReactNode }> = ({ etiqueta, children }) => (
+const Campo: React.FC<{ etiqueta: string; children: React.ReactNode }> = ({
+  etiqueta,
+  children,
+}) => (
   <div>
-    <label className="mb-0.5 block text-[10.5px] font-medium text-slate-500">{etiqueta}</label>
+    <label className="mb-0.5 block text-[10.5px] font-medium text-slate-500">
+      {etiqueta}
+    </label>
     {children}
   </div>
 );

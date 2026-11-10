@@ -74,6 +74,11 @@ export interface RutaGuardar {
   descripcion: string | null;
   distanciaKm: number | null;
   paraderos: ParaderoGuardar[];
+  /**
+   * Línea del recorrido [lat, lng]. undefined = no se toca (el backend conserva la actual);
+   * lista vacía = borrar el trazado.
+   */
+  trazado?: [number, number][];
 }
 
 const aRuta = (r: RutaApi): Ruta => ({
@@ -146,7 +151,6 @@ export function useServiciosRutasApi() {
 
       async getRuta(id: number): Promise<Ruta> {
         const { data } = await axios.get<RutaApi>(`${raiz}/rutas/${id}`);
-        // TEMPORAL: ver en consola cómo llega el JSON del detalle (paraderos + trazado).
         return aRuta(data);
       },
 
@@ -200,14 +204,6 @@ export function useServiciosRutasApi() {
         await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' });
       },
 
-      // ---- Recorrido por calles (Route Handler propio: llama a OpenRouteService en el servidor) ----
-      async getLineaCalles(id: number): Promise<[number, number][]> {
-        const { data } = await axios.get<{ linea: [number, number][] }>(`/api/rutas/${id}/calles`, {
-          params: { cuenta: username },
-        });
-        return data.linea;
-      },
-
       // ---- Posiciones en vivo de los conductores ----
       async getPosiciones(): Promise<PosicionConductor[]> {
         const { data } = await axios.get<unknown>(`${raiz}/posiciones`);
@@ -256,6 +252,8 @@ function cuerpoRuta(ruta: RutaGuardar) {
     descripcion: ruta.descripcion,
     distanciaKm: ruta.distanciaKm,
     paraderos: ruta.paraderos,
+    // Sin la propiedad el backend conserva el trazado que ya tiene la ruta.
+    ...(ruta.trazado !== undefined ? { trazado: ruta.trazado } : {}),
   };
 }
 

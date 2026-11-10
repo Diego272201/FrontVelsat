@@ -5,7 +5,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './serviciosrutas.css';
 import { Crosshair, MapPin, Minus, Plus } from 'lucide-react';
-import { MAP_TYPES, readDefaultMapType, toMapTypeId, type MapTypeId } from '@/app/components/MapTypeSelector';
+import {
+  MAP_TYPES,
+  readDefaultMapType,
+  toMapTypeId,
+  type MapTypeId,
+} from '@/app/components/MapTypeSelector';
 import { GOOGLE_TILES_MAX_ZOOM, googleTileLayer } from '@/lib/googleTiles';
 import { LIMA_CENTER } from '../geocercas/types';
 import { PosicionConductor, RutaVista } from './types';
@@ -17,18 +22,22 @@ const ICONO_BANDERA =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#FBBF24" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>';
 
 const escapar = (texto: string) =>
-  texto.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+  texto.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ] ?? c,
+  );
 
 /**
- * Línea de la ruta: el recorrido por calles (OpenRouteService). Mientras carga, o si falló, se usa
- * el trazado de la API (o los paraderos unidos) solo como respaldo y se dibuja punteado.
+ * Línea de la ruta: el trazado guardado, tal cual (se edita en Administrar rutas). Si la ruta aún no
+ * tiene trazado se unen los paraderos con líneas rectas y se dibuja punteado.
  */
 const lineaDe = (r: RutaVista): L.LatLngExpression[] =>
-  r.lineaCalles && r.lineaCalles.length >= 2
-    ? r.lineaCalles
-    : r.trazado && r.trazado.length >= 2
-      ? r.trazado
-      : r.paraderos.map((p) => [p.latitud, p.longitud] as [number, number]);
+  r.trazado && r.trazado.length >= 2
+    ? r.trazado
+    : r.paraderos.map((p) => [p.latitud, p.longitud] as [number, number]);
 
 const ICONO_FLECHA =
   '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 19 20 12 16 5 20Z"/></svg>';
@@ -145,7 +154,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
       }
     };
     window.addEventListener('trackvel:settings-updated', handleSettingsUpdate);
-    return () => window.removeEventListener('trackvel:settings-updated', handleSettingsUpdate);
+    return () =>
+      window.removeEventListener(
+        'trackvel:settings-updated',
+        handleSettingsUpdate,
+      );
   }, []);
 
   /* ------------------------------------------------------------------ */
@@ -156,9 +169,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
     if (!map || !mapReady) return;
 
     const capa = L.layerGroup().addTo(map);
-    const haySeleccion = seleccionadaId !== null && rutas.some((r) => r.id === seleccionadaId);
+    const haySeleccion =
+      seleccionadaId !== null && rutas.some((r) => r.id === seleccionadaId);
     // La seleccionada y la resaltada se dibujan al final para quedar encima.
-    const peso = (r: RutaVista) => (r.id === seleccionadaId ? 2 : r.id === resaltadaId ? 1 : 0);
+    const peso = (r: RutaVista) =>
+      r.id === seleccionadaId ? 2 : r.id === resaltadaId ? 1 : 0;
     const orden = [...rutas].sort((a, b) => peso(a) - peso(b));
 
     for (const r of orden) {
@@ -181,12 +196,12 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             interactive: false,
           }).addTo(capa);
         }
-        const porCalles = !!r.lineaCalles && r.lineaCalles.length >= 2;
+        const porCalles = !!r.trazado && r.trazado.length >= 2;
         L.polyline(linea, {
           color: r.color,
           weight: activa ? 6 : resaltada ? 5 : 4,
           opacity: atenuada ? 0.3 : porCalles ? 0.92 : 0.6,
-          // Punteado = trazado aproximado (todavía no llegó, o falló, el recorrido por calles).
+          // Punteado = la ruta aún no tiene trazado: son los paraderos unidos en línea recta.
           dashArray: porCalles ? undefined : '6 8',
           lineCap: 'round',
           lineJoin: 'round',
@@ -219,7 +234,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             }),
             zIndexOffset: activa ? 800 : 400,
           })
-            .bindTooltip(textoTip, { direction: 'top', offset: [0, -8], className: 'sr-tip' })
+            .bindTooltip(textoTip, {
+              direction: 'top',
+              offset: [0, -8],
+              className: 'sr-tip',
+            })
             .on('click', seleccionar)
             .addTo(capa);
           return;
@@ -236,7 +255,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             }),
             zIndexOffset: 700,
           })
-            .bindTooltip(textoTip, { direction: 'top', offset: [0, -10], className: 'sr-tip' })
+            .bindTooltip(textoTip, {
+              direction: 'top',
+              offset: [0, -10],
+              className: 'sr-tip',
+            })
             .addTo(capa);
         } else if (!atenuada) {
           L.circleMarker(posicion, {
@@ -246,7 +269,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             fillColor: '#ffffff',
             fillOpacity: 1,
           })
-            .bindTooltip(textoTip, { direction: 'top', offset: [0, -4], className: 'sr-tip' })
+            .bindTooltip(textoTip, {
+              direction: 'top',
+              offset: [0, -4],
+              className: 'sr-tip',
+            })
             .on('click', seleccionar)
             .addTo(capa);
         }
@@ -267,7 +294,12 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
       })
         .bindTooltip(
           `Destino · ${escapar(d.nombre)}${compartido ? ` <span style="font-weight:500;opacity:.7">(${d.rutaIds.length} rutas)</span>` : ''}`,
-          { permanent: true, direction: 'right', offset: [18, 0], className: 'sr-tip-destino' },
+          {
+            permanent: true,
+            direction: 'right',
+            offset: [18, 0],
+            className: 'sr-tip-destino',
+          },
         )
         .addTo(capa);
     }
@@ -304,20 +336,36 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
         const anterior = existente.getLatLng();
         if (el && (anterior.lat !== p.lat || anterior.lng !== p.lng)) {
           el.classList.add('sr-vehiculo-mover');
-          window.setTimeout(() => el.classList.remove('sr-vehiculo-mover'), 1300);
+          window.setTimeout(
+            () => el.classList.remove('sr-vehiculo-mover'),
+            1300,
+          );
         }
         existente.setLatLng([p.lat, p.lng]);
-        const flecha = existente.getElement()?.querySelector<HTMLElement>('.sr-vehiculo__flecha');
-        const caja = existente.getElement()?.querySelector<HTMLElement>('.sr-vehiculo');
+        const flecha = existente
+          .getElement()
+          ?.querySelector<HTMLElement>('.sr-vehiculo__flecha');
+        const caja = existente
+          .getElement()
+          ?.querySelector<HTMLElement>('.sr-vehiculo');
         if (flecha) flecha.style.transform = `rotate(${p.rumbo}deg)`;
         if (caja) caja.style.background = color;
         existente.setTooltipContent(tip);
       } else {
         const marcador = L.marker([p.lat, p.lng], {
-          icon: L.divIcon({ className: 'sr-icono sr-vehiculo-icono', html, iconSize: [30, 30], iconAnchor: [15, 15] }),
+          icon: L.divIcon({
+            className: 'sr-icono sr-vehiculo-icono',
+            html,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+          }),
           zIndexOffset: 2000,
         })
-          .bindTooltip(tip, { direction: 'top', offset: [0, -14], className: 'sr-tip' })
+          .bindTooltip(tip, {
+            direction: 'top',
+            offset: [0, -14],
+            className: 'sr-tip',
+          })
           .addTo(map);
         marcadores.set(p.clave, marcador);
       }
@@ -337,8 +385,15 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
   const encuadrar = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    const { rutas: todas, seleccionadaId: sel, margenDerecho: margen } = datosRef.current;
-    const objetivo = sel !== null && todas.some((r) => r.id === sel) ? todas.filter((r) => r.id === sel) : todas;
+    const {
+      rutas: todas,
+      seleccionadaId: sel,
+      margenDerecho: margen,
+    } = datosRef.current;
+    const objetivo =
+      sel !== null && todas.some((r) => r.id === sel)
+        ? todas.filter((r) => r.id === sel)
+        : todas;
     const puntos: L.LatLngExpression[] = objetivo.flatMap((r) => [
       ...lineaDe(r),
       ...r.paraderos.map((p) => [p.latitud, p.longitud] as [number, number]),
@@ -360,13 +415,20 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !foco) return;
-    map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 17), { animate: true });
+    map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 17), {
+      animate: true,
+    });
   }, [foco, mapReady]);
 
   const zoomBy = useCallback((delta: number) => {
     const map = mapRef.current;
     if (!map) return;
-    map.setZoom(Math.max(MIN_ZOOM, Math.min(GOOGLE_TILES_MAX_ZOOM, map.getZoom() + delta)));
+    map.setZoom(
+      Math.max(
+        MIN_ZOOM,
+        Math.min(GOOGLE_TILES_MAX_ZOOM, map.getZoom() + delta),
+      ),
+    );
   }, []);
 
   const botonZoom =
@@ -380,7 +442,9 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
           <div className="flex flex-col items-center gap-2">
             <MapPin size={26} className="animate-pulse text-[#1E40AF]" />
-            <p className="text-[12px] font-medium text-slate-500">Cargando mapa…</p>
+            <p className="text-[12px] font-medium text-slate-500">
+              Cargando mapa…
+            </p>
           </div>
         </div>
       )}
@@ -399,7 +463,9 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
                     onClick={() => setMapType(id)}
                     title={title}
                     className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
-                      mapType === id ? 'bg-[#1E40AF] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+                      mapType === id
+                        ? 'bg-[#1E40AF] text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     <Icon size={13} strokeWidth={2.4} />
@@ -410,7 +476,12 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             </div>
 
             <div className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-md">
-              <button type="button" onClick={() => zoomBy(1)} title="Acercar" className={botonZoom}>
+              <button
+                type="button"
+                onClick={() => zoomBy(1)}
+                title="Acercar"
+                className={botonZoom}
+              >
                 <Plus size={17} />
               </button>
               <button
@@ -424,7 +495,11 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
               <button
                 type="button"
                 onClick={encuadrar}
-                title={seleccionadaId !== null ? 'Encuadrar la ruta' : 'Ver todas las rutas'}
+                title={
+                  seleccionadaId !== null
+                    ? 'Encuadrar la ruta'
+                    : 'Ver todas las rutas'
+                }
                 className={`${botonZoom} border-t border-slate-100`}
               >
                 <Crosshair size={16} />
@@ -435,13 +510,16 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
           {/* Leyenda */}
           <div className="absolute bottom-3 left-3 z-10 hidden items-center gap-4 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11.5px] font-medium text-slate-600 shadow-md sm:flex">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-[#0f1f4b]" /> Destino
+              <span className="h-2.5 w-2.5 rounded-[2px] bg-[#0f1f4b]" />{' '}
+              Destino
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[2px] bg-slate-500" /> Inicio de ruta
+              <span className="h-2.5 w-2.5 rounded-[2px] bg-slate-500" /> Inicio
+              de ruta
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-500 bg-white" /> Parada
+              <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-500 bg-white" />{' '}
+              Parada
             </span>
           </div>
         </>

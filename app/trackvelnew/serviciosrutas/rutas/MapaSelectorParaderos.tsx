@@ -5,9 +5,16 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../serviciosrutas.css';
 import { Crosshair, Loader2, MapPin, Minus, Plus, Search } from 'lucide-react';
-import { MAP_TYPES, readDefaultMapType, toMapTypeId, type MapTypeId } from '@/app/components/MapTypeSelector';
+import {
+  MAP_TYPES,
+  readDefaultMapType,
+  toMapTypeId,
+  type MapTypeId,
+} from '@/app/components/MapTypeSelector';
 import { GOOGLE_TILES_MAX_ZOOM, googleTileLayer } from '@/lib/googleTiles';
 import { LIMA_CENTER } from '../../geocercas/types';
+import type { Punto } from './trazado';
+import { AccionesTrazado, useCapaTrazado } from './useCapaTrazado';
 
 const MIN_ZOOM = 3;
 const COLOR = '#1E40AF';
@@ -42,10 +49,23 @@ interface MapaSelectorParaderosProps {
   foco: FocoSelector | null;
   /** Al cambiar, el mapa vuelve a encuadrar todos los paraderos. */
   claveEncuadre: string;
+  /** 'paraderos': se ubican paraderos. 'trazado': se edita la línea (los paraderos quedan de referencia). */
+  modo: 'paraderos' | 'trazado';
+  trazado: readonly Punto[];
+  puntoSeleccionado: number | null;
+  accionesTrazado: AccionesTrazado;
+  /** Avisa si hay demasiados puntos a la vista para mostrar los tiradores. */
+  onDemasiadosPuntos: (demasiados: boolean) => void;
 }
 
 const escapar = (texto: string) =>
-  texto.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+  texto.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ] ?? c,
+  );
 
 /**
  * Mapa para colocar paraderos con un clic. Usa la misma estrategia que el monitoreo de rutas:
@@ -61,6 +81,11 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
   onSeleccionar,
   foco,
   claveEncuadre,
+  modo,
+  trazado,
+  puntoSeleccionado,
+  accionesTrazado,
+  onDemasiadosPuntos,
 }) => {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -91,7 +116,9 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
     });
     mapRef.current = map;
     map.getContainer().classList.add('sr-mapa-colocando');
-    map.on('click', (e: L.LeafletMouseEvent) => handlers.current.onClickMapa(e.latlng.lat, e.latlng.lng));
+    map.on('click', (e: L.LeafletMouseEvent) =>
+      handlers.current.onClickMapa(e.latlng.lat, e.latlng.lng),
+    );
     setMapReady(true);
 
     const observer = new ResizeObserver(() => map.invalidateSize());
@@ -130,8 +157,22 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       }
     };
     window.addEventListener('trackvel:settings-updated', handleSettingsUpdate);
-    return () => window.removeEventListener('trackvel:settings-updated', handleSettingsUpdate);
+    return () =>
+      window.removeEventListener(
+        'trackvel:settings-updated',
+        handleSettingsUpdate,
+      );
   }, []);
+
+  useCapaTrazado({
+    mapRef,
+    mapReady,
+    trazado,
+    editable: modo === 'trazado',
+    seleccionado: puntoSeleccionado,
+    acciones: accionesTrazado,
+    onDemasiados: onDemasiadosPuntos,
+  });
 
   /* ------------------------------------------------------------------ */
   /* Dibujo de paraderos                                                 */
@@ -141,10 +182,18 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
     if (!map || !mapReady) return;
     const capa = L.layerGroup().addTo(map);
 
-    if (puntos.length >= 2) {
+    const editandoParaderos = modo === 'paraderos';
+
+    if (editandoParaderos && puntos.length >= 2) {
       L.polyline(
         puntos.map((p) => [p.lat, p.lng] as [number, number]),
-        { color: COLOR, weight: 3, opacity: 0.45, dashArray: '6 8', interactive: false },
+        {
+          color: COLOR,
+          weight: 3,
+          opacity: 0.45,
+          dashArray: '6 8',
+          interactive: false,
+        },
       ).addTo(capa);
     }
 
@@ -154,7 +203,7 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       const esDestino = p.indice === total - 1 && total > 1;
 
       // Geocerca del paradero (solo la del seleccionado, para no saturar el mapa)
-      if (esActivo && p.radio > 0) {
+      if (editandoParaderos && esActivo && p.radio > 0) {
         L.circle([p.lat, p.lng], {
           radius: p.radio,
           color: COLOR,
@@ -165,10 +214,17 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
         }).addTo(capa);
       }
 
-      const clase = esOrigen ? 'sr-sel sr-sel--origen' : esDestino ? 'sr-sel sr-sel--destino' : 'sr-sel';
+      const clase = esOrigen
+        ? 'sr-sel sr-sel--origen'
+        : esDestino
+          ? 'sr-sel sr-sel--destino'
+          : 'sr-sel';
       const lado = esActivo ? 30 : 24;
       const marcador = L.marker([p.lat, p.lng], {
-        draggable: true,
+        draggable: editandoParaderos,
+        // En modo trazado son solo referencia: no tapan los clics sobre la línea.
+        interactive: editandoParaderos,
+        opacity: editandoParaderos ? 1 : 0.75,
         icon: L.divIcon({
           className: 'sr-icono',
           html: `<div class="${clase}${esActivo ? ' sr-sel--activo' : ''}">${p.indice + 1}</div>`,
@@ -195,16 +251,22 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
     return () => {
       capa.remove();
     };
-  }, [puntos, activo, total, mapReady]);
+  }, [puntos, activo, total, mapReady, modo]);
 
   /* ------------------------------------------------------------------ */
   /* Encuadre                                                            */
   /* ------------------------------------------------------------------ */
+  const trazadoRef = useRef(trazado);
+  trazadoRef.current = trazado;
+
   const encuadrar = useCallback(() => {
     const map = mapRef.current;
-    const lista = puntosRef.current;
+    const lista: Array<[number, number]> = [
+      ...puntosRef.current.map((p) => [p.lat, p.lng] as [number, number]),
+      ...trazadoRef.current,
+    ];
     if (!map || lista.length === 0) return;
-    map.fitBounds(L.latLngBounds(lista.map((p) => [p.lat, p.lng] as [number, number])), {
+    map.fitBounds(L.latLngBounds(lista), {
       padding: [60, 60],
       maxZoom: 17,
     });
@@ -218,13 +280,20 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !foco) return;
-    map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 17), { animate: true });
+    map.setView([foco.lat, foco.lng], Math.max(map.getZoom(), 17), {
+      animate: true,
+    });
   }, [foco, mapReady]);
 
   const zoomBy = useCallback((delta: number) => {
     const map = mapRef.current;
     if (!map) return;
-    map.setZoom(Math.max(MIN_ZOOM, Math.min(GOOGLE_TILES_MAX_ZOOM, map.getZoom() + delta)));
+    map.setZoom(
+      Math.max(
+        MIN_ZOOM,
+        Math.min(GOOGLE_TILES_MAX_ZOOM, map.getZoom() + delta),
+      ),
+    );
   }, []);
 
   /* ------------------------------------------------------------------ */
@@ -246,7 +315,11 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       if (datos.length === 0) {
         setSinResultado(true);
       } else {
-        map.setView([Number(datos[0].lat), Number(datos[0].lon)], Math.max(map.getZoom(), 17), { animate: true });
+        map.setView(
+          [Number(datos[0].lat), Number(datos[0].lon)],
+          Math.max(map.getZoom(), 17),
+          { animate: true },
+        );
       }
     } catch {
       setSinResultado(true);
@@ -266,7 +339,9 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100">
           <div className="flex flex-col items-center gap-2">
             <MapPin size={26} className="animate-pulse text-[#1E40AF]" />
-            <p className="text-[12px] font-medium text-slate-500">Cargando mapa…</p>
+            <p className="text-[12px] font-medium text-slate-500">
+              Cargando mapa…
+            </p>
           </div>
         </div>
       )}
@@ -307,7 +382,9 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
                   onClick={() => setMapType(id)}
                   title={title}
                   className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${
-                    mapType === id ? 'bg-[#1E40AF] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+                    mapType === id
+                      ? 'bg-[#1E40AF] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <Icon size={13} strokeWidth={2.4} />
@@ -317,7 +394,12 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
             </div>
 
             <div className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-md">
-              <button type="button" onClick={() => zoomBy(1)} title="Acercar" className={botonZoom}>
+              <button
+                type="button"
+                onClick={() => zoomBy(1)}
+                title="Acercar"
+                className={botonZoom}
+              >
                 <Plus size={17} />
               </button>
               <button
@@ -340,10 +422,12 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
           </div>
 
           {/* Indicación de qué hará el próximo clic */}
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#0f1f4b]/90 px-4 py-1.5 text-[12px] font-semibold text-white shadow-lg">
-            {activo !== null
-              ? `Haz clic en el mapa para ubicar el paradero ${activo + 1}`
-              : 'Haz clic en el mapa para agregar un paradero'}
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[92%] -translate-x-1/2 rounded-full bg-[#0f1f4b]/90 px-4 py-1.5 text-center text-[12px] font-semibold text-white shadow-lg">
+            {modo === 'trazado'
+              ? 'Clic en el mapa: agrega un punto · clic sobre la línea: lo inserta · arrastra para mover · clic derecho: borra'
+              : activo !== null
+                ? `Haz clic en el mapa para ubicar el paradero ${activo + 1}`
+                : 'Haz clic en el mapa para agregar un paradero'}
           </div>
         </>
       )}

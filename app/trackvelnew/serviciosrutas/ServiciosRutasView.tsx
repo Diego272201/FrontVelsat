@@ -5,7 +5,16 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
-import { Ban, CalendarDays, FileBarChart2, ListChecks, PanelLeftOpen, Plus, Route as RouteIcon, Settings2 } from 'lucide-react';
+import {
+  Ban,
+  CalendarDays,
+  FileBarChart2,
+  ListChecks,
+  PanelLeftOpen,
+  Plus,
+  Route as RouteIcon,
+  Settings2,
+} from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import ListaRutas, { ResumenRuta } from './ListaRutas';
 import ModalNuevoServicio from './ModalNuevoServicio';
@@ -15,7 +24,14 @@ import PanelServicios from './PanelServicios';
 import type { FocoMapa } from './MapaRutas';
 import { mensajeError, useServiciosRutasApi } from './api';
 import { usePosicionesEnVivo } from './usePosicionesEnVivo';
-import { AvisoServicio, NuevoServicioForm, Paradero, Ruta, RutaVista, Servicio } from './types';
+import {
+  AvisoServicio,
+  NuevoServicioForm,
+  Paradero,
+  Ruta,
+  RutaVista,
+  Servicio,
+} from './types';
 import { getIsoToday, RUTA_COLORES, servicioReferencia } from './utils';
 
 // Leaflet necesita `window`: el mapa se carga solo en el navegador
@@ -51,8 +67,6 @@ const ServiciosRutasView: React.FC = () => {
   const [detalles, setDetalles] = useState<Record<number, Ruta>>({});
   const [cargandoRutas, setCargandoRutas] = useState(true);
   const [cargandoDetalles, setCargandoDetalles] = useState(true);
-  // Recorrido por calles de cada ruta (null = falló: se dibuja el trazado como respaldo).
-  const [lineasCalles, setLineasCalles] = useState<Record<number, [number, number][] | null>>({});
   const [unidades, setUnidades] = useState<string[]>([]);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [cargandoServicios, setCargandoServicios] = useState(true);
@@ -61,7 +75,9 @@ const ServiciosRutasView: React.FC = () => {
   // Vista
   const [ocultas, setOcultas] = useState<ReadonlySet<number>>(new Set());
   const [seleccionadaId, setSeleccionadaId] = useState<number | null>(null);
-  const [servicioElegidoId, setServicioElegidoId] = useState<number | null>(null);
+  const [servicioElegidoId, setServicioElegidoId] = useState<number | null>(
+    null,
+  );
   const [resaltadaId, setResaltadaId] = useState<number | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [foco, setFoco] = useState<FocoMapa | null>(null);
@@ -72,9 +88,14 @@ const ServiciosRutasView: React.FC = () => {
   const [showModalNuevo, setShowModalNuevo] = useState(false);
   const [rutaInicial, setRutaInicial] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [servicioEditando, setServicioEditando] = useState<Servicio | null>(null);
-  const [servicioCancelando, setServicioCancelando] = useState<Servicio | null>(null);
-  const [servicioReprogramando, setServicioReprogramando] = useState<Servicio | null>(null);
+  const [servicioEditando, setServicioEditando] = useState<Servicio | null>(
+    null,
+  );
+  const [servicioCancelando, setServicioCancelando] = useState<Servicio | null>(
+    null,
+  );
+  const [servicioReprogramando, setServicioReprogramando] =
+    useState<Servicio | null>(null);
 
   /* ------------------------------------------------------------------ */
   /* Carga                                                               */
@@ -86,21 +107,16 @@ const ServiciosRutasView: React.FC = () => {
       const lista = await api.getRutas(false);
       setRutasBase(lista);
       setCargandoRutas(false);
-      const detallesLista = await Promise.all(lista.map((r) => api.getRuta(r.id).catch(() => null)));
+      const detallesLista = await Promise.all(
+        lista.map((r) => api.getRuta(r.id).catch(() => null)),
+      );
       const mapa: Record<number, Ruta> = {};
       detallesLista.forEach((d) => {
         if (d) mapa[d.id] = d;
       });
       setDetalles(mapa);
-      // La línea por calles se calcula en el servidor (OpenRouteService) y queda en caché hasta que
-      // la ruta cambie. Cada ruta se dibuja apenas llega la suya.
-      lista.forEach((r) => {
-        api
-          .getLineaCalles(r.id)
-          .then((linea) => setLineasCalles((prev) => ({ ...prev, [r.id]: linea })))
-          .catch(() => setLineasCalles((prev) => ({ ...prev, [r.id]: null })));
-      });
-      if (detallesLista.some((d) => d === null)) toast.error('No se pudieron cargar las paradas de algunas rutas');
+      if (detallesLista.some((d) => d === null))
+        toast.error('No se pudieron cargar las paradas de algunas rutas');
     } catch (error) {
       toast.error(mensajeError(error, 'No se pudieron cargar las rutas'));
     } finally {
@@ -115,7 +131,10 @@ const ServiciosRutasView: React.FC = () => {
 
   useEffect(() => {
     if (!api.listo) return;
-    api.getUnidades().then(setUnidades).catch(() => setUnidades([]));
+    api
+      .getUnidades()
+      .then(setUnidades)
+      .catch(() => setUnidades([]));
   }, [api]);
 
   const cargarServicios = useCallback(
@@ -125,7 +144,10 @@ const ServiciosRutasView: React.FC = () => {
         setServicios(await api.getServicios(fechaIso));
       } catch (error) {
         // En el refresco automático no se molesta al usuario con un toast por cada fallo.
-        if (!silencioso) toast.error(mensajeError(error, 'No se pudieron cargar los servicios'));
+        if (!silencioso)
+          toast.error(
+            mensajeError(error, 'No se pudieron cargar los servicios'),
+          );
       } finally {
         setCargandoServicios(false);
       }
@@ -151,7 +173,9 @@ const ServiciosRutasView: React.FC = () => {
       const unidad = aviso.deviceID ? `${aviso.deviceID}: ` : '';
       if (aviso.tipo === 'LLEGADA') {
         const dif = aviso.diferenciaMin ?? 0;
-        const estado = (aviso.estadoParadero ?? '').replace('_', ' ').toLowerCase();
+        const estado = (aviso.estadoParadero ?? '')
+          .replace('_', ' ')
+          .toLowerCase();
         toast.info(
           `${unidad}llegó a ${aviso.paradero} · ${(aviso.hora ?? '').slice(0, 5)} (${estado}${
             dif !== 0 ? `, ${dif > 0 ? '+' : ''}${dif} min` : ''
@@ -160,11 +184,15 @@ const ServiciosRutasView: React.FC = () => {
       } else if (aviso.tipo === 'SALIDA') {
         toast.info(
           `${unidad}salió de ${aviso.paradero} · ${(aviso.hora ?? '').slice(0, 5)}${
-            aviso.permanenciaMin != null ? ` (estuvo ${aviso.permanenciaMin} min)` : ''
+            aviso.permanenciaMin != null
+              ? ` (estuvo ${aviso.permanenciaMin} min)`
+              : ''
           }`,
         );
       } else if (aviso.tipo === 'ESTADO') {
-        toast.info(`${unidad}servicio ${(aviso.estadoServicio ?? '').replace('_', ' ').toLowerCase()}`);
+        toast.info(
+          `${unidad}servicio ${(aviso.estadoServicio ?? '').replace('_', ' ').toLowerCase()}`,
+        );
       }
       cargarServicios(true);
     },
@@ -180,7 +208,9 @@ const ServiciosRutasView: React.FC = () => {
     () =>
       rutasBase
         .filter((r) => r.activo)
-        .sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }))
+        .sort((a, b) =>
+          a.codigo.localeCompare(b.codigo, undefined, { numeric: true }),
+        )
         .map((r, i) => {
           const d = detalles[r.id];
           return {
@@ -190,16 +220,27 @@ const ServiciosRutasView: React.FC = () => {
             trazado: d?.trazado ?? null,
             duracionMin: r.duracionMin || d?.duracionMin || 0,
             color: RUTA_COLORES[i % RUTA_COLORES.length],
-            lineaCalles: lineasCalles[r.id] ?? null,
           };
         }),
-    [rutasBase, detalles, lineasCalles],
+    [rutasBase, detalles],
   );
 
-  const colorPorRuta = useMemo(() => Object.fromEntries(rutas.map((r) => [r.id, r.color])), [rutas]);
-  const rutasPorId = useMemo(() => Object.fromEntries(rutas.map((r) => [r.id, r])), [rutas]);
-  const grupos = useMemo(() => Array.from(new Set(rutas.map((r) => r.grupo))).sort(), [rutas]);
-  const rutasVisibles = useMemo(() => rutas.filter((r) => !ocultas.has(r.id)), [rutas, ocultas]);
+  const colorPorRuta = useMemo(
+    () => Object.fromEntries(rutas.map((r) => [r.id, r.color])),
+    [rutas],
+  );
+  const rutasPorId = useMemo(
+    () => Object.fromEntries(rutas.map((r) => [r.id, r])),
+    [rutas],
+  );
+  const grupos = useMemo(
+    () => Array.from(new Set(rutas.map((r) => r.grupo))).sort(),
+    [rutas],
+  );
+  const rutasVisibles = useMemo(
+    () => rutas.filter((r) => !ocultas.has(r.id)),
+    [rutas, ocultas],
+  );
 
   const resumenes = useMemo(() => {
     const res: Record<number, ResumenRuta> = {};
@@ -214,16 +255,24 @@ const ServiciosRutasView: React.FC = () => {
     return res;
   }, [rutas, servicios]);
 
-  const seleccionada = seleccionadaId !== null ? rutasPorId[seleccionadaId] ?? null : null;
+  const seleccionada =
+    seleccionadaId !== null ? (rutasPorId[seleccionadaId] ?? null) : null;
   const serviciosSeleccionada = useMemo(
-    () => (seleccionadaId === null ? [] : servicios.filter((s) => s.rutaId === seleccionadaId)),
+    () =>
+      seleccionadaId === null
+        ? []
+        : servicios.filter((s) => s.rutaId === seleccionadaId),
     [servicios, seleccionadaId],
   );
   const servicioActual =
-    serviciosSeleccionada.find((s) => s.id === servicioElegidoId) ?? servicioReferencia(serviciosSeleccionada);
+    serviciosSeleccionada.find((s) => s.id === servicioElegidoId) ??
+    servicioReferencia(serviciosSeleccionada);
 
   // El panel de servicios muestra solo los de las rutas que están en el mapa.
-  const serviciosEnMapa = useMemo(() => servicios.filter((s) => !ocultas.has(s.rutaId)), [servicios, ocultas]);
+  const serviciosEnMapa = useMemo(
+    () => servicios.filter((s) => !ocultas.has(s.rutaId)),
+    [servicios, ocultas],
+  );
   const enCursoTotal = servicios.filter((s) => s.estado === 'EN_CURSO').length;
 
   const panelVisible = seleccionada !== null || panelAbierto;
@@ -237,7 +286,11 @@ const ServiciosRutasView: React.FC = () => {
     const fecha = new Date(`${fechaIso}T00:00:00`);
     return Number.isNaN(fecha.getTime())
       ? fechaIso
-      : fecha.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' });
+      : fecha.toLocaleDateString('es-PE', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+        });
   }, [fechaIso]);
 
   /* ------------------------------------------------------------------ */
@@ -276,16 +329,24 @@ const ServiciosRutasView: React.FC = () => {
       return next;
     });
     // Si se oculta la ruta abierta, se cierra su detalle.
-    if (!visible && seleccionadaId !== null && ids.includes(seleccionadaId)) cerrarRuta();
+    if (!visible && seleccionadaId !== null && ids.includes(seleccionadaId))
+      cerrarRuta();
   };
 
-  const enfocarParadero = (p: Paradero) => setFoco({ lat: p.latitud, lng: p.longitud, clave: Date.now() });
+  const enfocarParadero = (p: Paradero) =>
+    setFoco({ lat: p.latitud, lng: p.longitud, clave: Date.now() });
 
   // Esc cierra el detalle de la ruta
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
-      if (e.key === 'Escape' && tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') cerrarRuta();
+      if (
+        e.key === 'Escape' &&
+        tag !== 'INPUT' &&
+        tag !== 'SELECT' &&
+        tag !== 'TEXTAREA'
+      )
+        cerrarRuta();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -348,7 +409,9 @@ const ServiciosRutasView: React.FC = () => {
         await api.crearServicio(form);
       }
       setShowModalNuevo(false);
-      toast.success(servicioEditando ? 'Servicio actualizado' : 'Servicio agregado');
+      toast.success(
+        servicioEditando ? 'Servicio actualizado' : 'Servicio agregado',
+      );
       // Si el servicio es de otro día, se muestra ese día para que el usuario lo vea.
       if (form.fechaIso !== fechaIso) setFechaIso(form.fechaIso);
       else await cargarServicios();
@@ -374,17 +437,31 @@ const ServiciosRutasView: React.FC = () => {
         <div className="flex items-center gap-2.5 bg-[#0B1F4D] px-4">
           <RouteIcon className="h-5 w-5 text-amber-400" />
           <div className="leading-tight">
-            <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">TRACKVEL SYSTEM</div>
-            <div className="text-[13px] font-bold tracking-wide">SERVICIOS RUTAS</div>
+            <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">
+              TRACKVEL SYSTEM
+            </div>
+            <div className="text-[13px] font-bold tracking-wide">
+              SERVICIOS RUTAS
+            </div>
           </div>
         </div>
 
         <div className="ml-4 hidden flex-col justify-center border-l-2 border-white/25 pl-3 leading-tight md:flex">
-          <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">MONITOREO</div>
+          <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">
+            MONITOREO
+          </div>
           <div className="text-[13px] font-semibold">
-            {rutas.length} rutas · {servicios.length} servicio{servicios.length === 1 ? '' : 's'}
-            {enCursoTotal > 0 && <span className="text-green-300"> · {enCursoTotal} en curso</span>}
-            {posiciones.length > 0 && <span className="text-amber-300"> · {posiciones.length} en vivo</span>}
+            {rutas.length} rutas · {servicios.length} servicio
+            {servicios.length === 1 ? '' : 's'}
+            {enCursoTotal > 0 && (
+              <span className="text-green-300"> · {enCursoTotal} en curso</span>
+            )}
+            {posiciones.length > 0 && (
+              <span className="text-amber-300">
+                {' '}
+                · {posiciones.length} en vivo
+              </span>
+            )}
           </div>
         </div>
 
@@ -436,7 +513,10 @@ const ServiciosRutasView: React.FC = () => {
       <div className="relative flex min-h-0 flex-1">
         {/* Lista de rutas: fija en escritorio, cajón en móvil */}
         {listaAbierta && (
-          <div className="absolute inset-0 z-20 bg-slate-900/30 md:hidden" onClick={() => setListaAbierta(false)} />
+          <div
+            className="absolute inset-0 z-20 bg-slate-900/30 md:hidden"
+            onClick={() => setListaAbierta(false)}
+          />
         )}
         <aside
           className={`${
@@ -521,7 +601,9 @@ const ServiciosRutasView: React.FC = () => {
             >
               <ListChecks className="h-4 w-4" />
               Servicios
-              <span className="rounded-full bg-slate-100 px-1.5 text-[11px]">{serviciosEnMapa.length}</span>
+              <span className="rounded-full bg-slate-100 px-1.5 text-[11px]">
+                {serviciosEnMapa.length}
+              </span>
             </button>
           )}
         </main>
@@ -564,8 +646,9 @@ const ServiciosRutasView: React.FC = () => {
       >
         {servicioCancelando && (
           <p className="text-[13px] text-gray-700">
-            Se cancelará el servicio de <b>{servicioCancelando.deviceID}</b> en la ruta{' '}
-            <b>{servicioCancelando.rutaNombre}</b> de las <b>{servicioCancelando.horaSalida}</b>.
+            Se cancelará el servicio de <b>{servicioCancelando.deviceID}</b> en
+            la ruta <b>{servicioCancelando.rutaNombre}</b> de las{' '}
+            <b>{servicioCancelando.horaSalida}</b>.
             {servicioCancelando.estado === 'EN_CURSO' &&
               ' El servicio ya está en curso: se detendrá el seguimiento.'}{' '}
             Esta acción no se puede deshacer.

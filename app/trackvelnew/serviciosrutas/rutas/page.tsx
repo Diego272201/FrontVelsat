@@ -42,7 +42,9 @@ const AdministrarRutasPage: React.FC = () => {
   const rutasVisibles = rutas.filter(
     (r) =>
       (grupoFiltro === 'TODOS' || r.grupo === grupoFiltro) &&
-      (texto === '' || r.codigo.toLowerCase().includes(texto) || r.nombre.toLowerCase().includes(texto)),
+      (texto === '' ||
+        r.codigo.toLowerCase().includes(texto) ||
+        r.nombre.toLowerCase().includes(texto)),
   );
 
   const abrirNueva = () => {
@@ -64,9 +66,15 @@ const AdministrarRutasPage: React.FC = () => {
   const toggleActivo = async (ruta: Ruta) => {
     try {
       await api.setRutaActiva(ruta.id, !ruta.activo);
-      setRutas((prev) => prev.map((r) => (r.id === ruta.id ? { ...r, activo: !ruta.activo } : r)));
+      setRutas((prev) =>
+        prev.map((r) =>
+          r.id === ruta.id ? { ...r, activo: !ruta.activo } : r,
+        ),
+      );
     } catch (error) {
-      toast.error(mensajeError(error, 'No se pudo cambiar el estado de la ruta'));
+      toast.error(
+        mensajeError(error, 'No se pudo cambiar el estado de la ruta'),
+      );
     }
   };
 
@@ -101,7 +109,11 @@ const AdministrarRutasPage: React.FC = () => {
         grupos={grupos}
         grupoFiltro={grupoFiltro}
         onGrupo={setGrupoFiltro}
-        cantidadPorGrupo={(g) => (g === 'TODOS' ? rutas.length : rutas.filter((r) => r.grupo === g).length)}
+        cantidadPorGrupo={(g) =>
+          g === 'TODOS'
+            ? rutas.length
+            : rutas.filter((r) => r.grupo === g).length
+        }
         nuevaDeshabilitada={!api.listo}
         onNueva={abrirNueva}
       />

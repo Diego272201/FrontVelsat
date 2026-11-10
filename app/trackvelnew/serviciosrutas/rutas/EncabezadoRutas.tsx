@@ -40,9 +40,12 @@ const EncabezadoRutas: React.FC<EncabezadoRutasProps> = ({
           Servicios
         </Link>
         <div>
-          <h1 className="text-[17px] font-bold leading-tight text-slate-800">Administrar rutas</h1>
+          <h1 className="text-[17px] font-bold leading-tight text-slate-800">
+            Administrar rutas
+          </h1>
           <p className="text-[12px] text-slate-500">
-            {totalVisibles} {totalVisibles === 1 ? 'ruta' : 'rutas'} · edita paraderos, tiempos y geocercas
+            {totalVisibles} {totalVisibles === 1 ? 'ruta' : 'rutas'} · edita
+            paraderos, tiempos y geocercas
           </p>
         </div>
       </div>
@@ -85,7 +88,9 @@ const EncabezadoRutas: React.FC<EncabezadoRutasProps> = ({
             {g === 'TODOS' ? 'Todos los grupos' : g}
             <span
               className={`rounded-full px-1.5 text-[10.5px] font-bold ${
-                activo ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                activo
+                  ? 'bg-white/25 text-white'
+                  : 'bg-slate-100 text-slate-500'
               }`}
             >
               {cantidadPorGrupo(g)}

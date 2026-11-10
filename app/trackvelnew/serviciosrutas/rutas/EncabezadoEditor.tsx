@@ -28,14 +28,21 @@ const EncabezadoEditor: React.FC<EncabezadoEditorProps> = ({
         <RouteIcon className="h-[18px] w-[18px] text-blue-600" />
       </div>
       <div className="min-w-0">
-        <h2 className="truncate text-[15px] font-bold leading-tight text-slate-800">{titulo}</h2>
+        <h2 className="truncate text-[15px] font-bold leading-tight text-slate-800">
+          {titulo}
+        </h2>
         <p className="truncate text-[11.5px] text-slate-500">
-          Haz clic en el mapa para ubicar los paraderos, o arrástralos para ajustarlos.
+          Haz clic en el mapa para ubicar los paraderos, o arrástralos para
+          ajustarlos.
         </p>
       </div>
     </div>
     <div className="flex shrink-0 items-center gap-2">
-      {pendiente && <span className="hidden text-[11.5px] font-medium text-amber-600 md:inline">{pendiente}</span>}
+      {pendiente && (
+        <span className="hidden text-[11.5px] font-medium text-amber-600 md:inline">
+          {pendiente}
+        </span>
+      )}
       <button
         type="button"
         onClick={onCancelar}
@@ -51,7 +58,11 @@ const EncabezadoEditor: React.FC<EncabezadoEditorProps> = ({
         disabled={!puedeGuardar || guardando}
         className="flex h-8 items-center gap-1.5 rounded-md bg-blue-600 px-3.5 text-[12px] font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {guardando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        {guardando ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Save className="h-3.5 w-3.5" />
+        )}
         {guardando ? 'Guardando…' : 'Guardar ruta'}
       </button>
     </div>

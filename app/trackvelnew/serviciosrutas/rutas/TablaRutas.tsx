@@ -24,7 +24,13 @@ const MensajeFila: React.FC<{ texto: string }> = ({ texto }) => (
 );
 
 // Listado de rutas con su sentido, pareja, estado y acceso al editor.
-const TablaRutas: React.FC<TablaRutasProps> = ({ rutas, cargando, hayRutas, onEditar, onToggleActivo }) => (
+const TablaRutas: React.FC<TablaRutasProps> = ({
+  rutas,
+  cargando,
+  hayRutas,
+  onEditar,
+  onToggleActivo,
+}) => (
   <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
     <div className="overflow-x-auto">
       <table className="w-full min-w-[860px] border-collapse text-[12.5px]">
@@ -54,7 +60,9 @@ const TablaRutas: React.FC<TablaRutasProps> = ({ rutas, cargando, hayRutas, onEd
                   </span>
                   <div className="min-w-0">
                     <p className="font-semibold text-slate-800">{r.codigo}</p>
-                    <p className="truncate text-[12px] text-slate-500">{r.nombre}</p>
+                    <p className="truncate text-[12px] text-slate-500">
+                      {r.nombre}
+                    </p>
                   </div>
                 </div>
               </td>
@@ -62,15 +70,21 @@ const TablaRutas: React.FC<TablaRutasProps> = ({ rutas, cargando, hayRutas, onEd
               <td className="px-3 py-2.5">
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                    r.sentido === 'REGRESO' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'
+                    r.sentido === 'REGRESO'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-sky-100 text-sky-700'
                   }`}
                 >
                   {r.sentido === 'REGRESO' ? 'Regreso' : 'Ida'}
                 </span>
               </td>
               <td className="px-3 py-2.5">{r.rutaParejaCodigo ?? '—'}</td>
-              <td className="px-3 py-2.5 text-right tabular-nums">{r.cantidadParaderos}</td>
-              <td className="px-3 py-2.5 text-right tabular-nums">{r.duracionMin} min</td>
+              <td className="px-3 py-2.5 text-right tabular-nums">
+                {r.cantidadParaderos}
+              </td>
+              <td className="px-3 py-2.5 text-right tabular-nums">
+                {r.duracionMin} min
+              </td>
               <td className="px-3 py-2.5 text-right tabular-nums">
                 {r.distanciaKm != null ? `${r.distanciaKm} km` : '—'}
               </td>
@@ -103,7 +117,11 @@ const TablaRutas: React.FC<TablaRutasProps> = ({ rutas, cargando, hayRutas, onEd
           {cargando && <MensajeFila texto="Cargando rutas…" />}
           {!cargando && rutas.length === 0 && (
             <MensajeFila
-              texto={hayRutas ? 'Ninguna ruta coincide con el filtro.' : 'No hay rutas. Crea la primera con “Nueva ruta”.'}
+              texto={
+                hayRutas
+                  ? 'Ninguna ruta coincide con el filtro.'
+                  : 'No hay rutas. Crea la primera con “Nueva ruta”.'
+              }
             />
           )}
         </tbody>
