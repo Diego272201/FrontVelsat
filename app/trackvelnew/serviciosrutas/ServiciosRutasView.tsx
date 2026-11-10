@@ -242,6 +242,19 @@ const ServiciosRutasView: React.FC = () => {
     [rutas, ocultas],
   );
 
+  // Servicios EN_CURSO cuya unidad está enviando posición ahora (vigente). Si deja de reportar, ya no cuenta.
+  const serviciosEnVivo = useMemo(() => {
+    const unidades = new Set(
+      posiciones.map((p) => (p.deviceID ?? '').trim().toUpperCase()).filter(Boolean),
+    );
+    const ids = new Set<number>();
+    for (const s of servicios) {
+      if (s.estado !== 'EN_CURSO') continue;
+      if (unidades.has((s.deviceID ?? '').trim().toUpperCase())) ids.add(s.id);
+    }
+    return ids;
+  }, [posiciones, servicios]);
+
   const resumenes = useMemo(() => {
     const res: Record<number, ResumenRuta> = {};
     for (const r of rutas) {
@@ -250,10 +263,11 @@ const ServiciosRutasView: React.FC = () => {
         referencia: servicioReferencia(propios),
         total: propios.length,
         enCurso: propios.filter((s) => s.estado === 'EN_CURSO').length,
+        enVivo: propios.filter((s) => serviciosEnVivo.has(s.id)).length,
       };
     }
     return res;
-  }, [rutas, servicios]);
+  }, [rutas, servicios, serviciosEnVivo]);
 
   const seleccionada =
     seleccionadaId !== null ? (rutasPorId[seleccionadaId] ?? null) : null;
@@ -268,11 +282,8 @@ const ServiciosRutasView: React.FC = () => {
     serviciosSeleccionada.find((s) => s.id === servicioElegidoId) ??
     servicioReferencia(serviciosSeleccionada);
 
-  // El panel de servicios muestra solo los de las rutas que están en el mapa.
-  const serviciosEnMapa = useMemo(
-    () => servicios.filter((s) => !ocultas.has(s.rutaId)),
-    [servicios, ocultas],
-  );
+  // Ocultar rutas del mapa no oculta sus servicios: el panel siempre muestra todos los del día.
+  const serviciosEnMapa = servicios;
   const enCursoTotal = servicios.filter((s) => s.estado === 'EN_CURSO').length;
 
   const panelVisible = seleccionada !== null || panelAbierto;
@@ -571,6 +582,7 @@ const ServiciosRutasView: React.FC = () => {
                   ruta={seleccionada}
                   servicios={serviciosSeleccionada}
                   servicio={servicioActual}
+                  serviciosEnVivo={serviciosEnVivo}
                   onElegirServicio={(s) => setServicioElegidoId(s.id)}
                   cargandoDetalle={cargandoDetalles}
                   fechaTexto={fechaTexto}
@@ -581,6 +593,7 @@ const ServiciosRutasView: React.FC = () => {
               ) : (
                 <PanelServicios
                   servicios={serviciosEnMapa}
+                  serviciosEnVivo={serviciosEnVivo}
                   rutasPorId={rutasPorId}
                   fechaTexto={fechaTexto}
                   esHoy={esHoy}

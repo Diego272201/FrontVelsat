@@ -3,13 +3,15 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { MapPin, Search, X } from 'lucide-react';
 import { RutaVista, Servicio } from './types';
-import { agruparDestinos, formatoDuracion, formatoKm, sumarMinutos } from './utils';
+import { agruparDestinos, formatoDuracion, formatoKm, sumarMinutos, textoSobre } from './utils';
 
 export interface ResumenRuta {
   /** Servicio que da las horas de la ruta (en curso, o el próximo programado). */
   referencia: Servicio | null;
   total: number;
   enCurso: number;
+  /** Servicios en curso cuya unidad está enviando posición ahora. */
+  enVivo: number;
 }
 
 interface ListaRutasProps {
@@ -171,6 +173,7 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                 const ref = resumen?.referencia;
                 const seleccionada = r.id === seleccionadaId;
                 const visible = !ocultas.has(r.id);
+                const enVivo = visible && (resumen?.enVivo ?? 0) > 0;
                 return (
                   <div
                     key={r.id}
@@ -185,11 +188,20 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                     }}
                     onMouseEnter={() => onResaltar(r.id)}
                     onMouseLeave={() => onResaltar(null)}
-                    className={`relative flex cursor-pointer items-center gap-3 border-b border-slate-100 px-3 py-2.5 outline-none transition-colors focus-visible:bg-blue-50 ${
-                      seleccionada ? 'bg-blue-50/70' : 'hover:bg-slate-50'
+                    style={
+                      enVivo
+                        ? ({ backgroundColor: r.color, '--sr-vivo-txt': textoSobre(r.color) } as React.CSSProperties)
+                        : undefined
+                    }
+                    className={`relative flex cursor-pointer items-center gap-3 border-b border-slate-100 px-3 py-2.5 outline-none transition-colors ${
+                      enVivo
+                        ? 'sr-vivo hover:brightness-95 focus-visible:brightness-95'
+                        : `focus-visible:bg-blue-50 ${seleccionada ? 'bg-blue-50/70' : 'hover:bg-slate-50'}`
                     }`}
                   >
-                    {seleccionada && <span className="absolute inset-y-0 left-0 w-[3px] bg-[#1E40AF]" />}
+                    {seleccionada && (
+                      <span className={`absolute inset-y-0 left-0 w-[3px] ${enVivo ? 'bg-white' : 'bg-[#1E40AF]'}`} />
+                    )}
                     <Casilla
                       marcada={visible}
                       onCambiar={() => onCambiarVisibles([r.id], !visible)}
@@ -197,7 +209,10 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                     />
                     <span
                       className="h-8 w-[3px] shrink-0 rounded-full"
-                      style={{ backgroundColor: r.color, opacity: visible ? 1 : 0.35 }}
+                      style={{
+                        backgroundColor: enVivo ? textoSobre(r.color) : r.color,
+                        opacity: visible ? 1 : 0.35,
+                      }}
                     />
                     <div className={`min-w-0 flex-1 ${visible ? '' : 'opacity-60'}`}>
                       <div className="flex items-center gap-1.5">

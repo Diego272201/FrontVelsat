@@ -39,8 +39,40 @@ const lineaDe = (r: RutaVista): L.LatLngExpression[] =>
     ? r.trazado
     : r.paraderos.map((p) => [p.latitud, p.longitud] as [number, number]);
 
-const ICONO_FLECHA =
-  '<svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3 19 20 12 16 5 20Z"/></svg>';
+/** Van tipo Mercedes-Benz Sprinter vista desde arriba, frente hacia el norte (rumbo 0°): carrocería blanca/gris con detalles negros. */
+const ICONO_CARRO =
+  '<svg viewBox="0 0 28 74" width="26" height="68" xmlns="http://www.w3.org/2000/svg">' +
+  // llantas
+  '<rect x="0.8" y="11" width="4" height="10" rx="1.6" fill="#0f172a"/><rect x="23.2" y="11" width="4" height="10" rx="1.6" fill="#0f172a"/>' +
+  '<rect x="0.8" y="53" width="4" height="10" rx="1.6" fill="#0f172a"/><rect x="23.2" y="53" width="4" height="10" rx="1.6" fill="#0f172a"/>' +
+  // espejos retrovisores
+  '<path d="M3.6 19.5 .6 18.6c-.5 1.6-.2 3 .8 3.6l2.4.2Z" fill="#111827" stroke="#e5e7eb" stroke-width=".5"/><path d="M24.4 19.5l3-.9c.5 1.6.2 3-.8 3.6l-2.4.2Z" fill="#111827" stroke="#e5e7eb" stroke-width=".5"/>' +
+  // carrocería
+  '<path d="M9 1.8h10c3.6 0 5.5 1.7 5.7 5.2l.8 54.5c.1 3.9-1.9 6.7-5.4 6.7H7.9c-3.5 0-5.5-2.8-5.4-6.7L3.3 7C3.5 3.5 5.4 1.8 9 1.8Z" fill="#e5e7eb" stroke="#374151" stroke-width="1.2"/>' +
+  // capó y líneas
+  '<path d="M4.6 12.6c6-2.2 12.8-2.2 18.8 0" fill="none" stroke="#9ca3af" stroke-width=".8"/><path d="M14 3.8v7.2" stroke="#9ca3af" stroke-width=".7"/>' +
+  // faros delanteros
+  '<rect x="5.2" y="3.3" width="4.6" height="2" rx="1" fill="#fef9c3" stroke="#a16207" stroke-width=".3"/><rect x="18.2" y="3.3" width="4.6" height="2" rx="1" fill="#fef9c3" stroke="#a16207" stroke-width=".3"/>' +
+  // parabrisas
+  '<path d="M5.4 14.6c5.4-1.8 12.8-1.8 17.2 0l-1.1 8.2H6.5Z" fill="#0b0f19"/><path d="M8 16.2c3.2-.8 8.8-.8 12 0" stroke="#64748b" stroke-width=".6" fill="none" opacity=".7"/>' +
+  // techo blanco
+  '<rect x="5.3" y="25.2" width="17.4" height="38" rx="2.4" fill="#f9fafb"/>' +
+  '<rect x="8.6" y="29" width="10.8" height="5.6" rx="1.2" fill="#e2e8f0" stroke="#cbd5e1" stroke-width=".5"/>' +
+  '<path d="M5.3 40h17.4M5.3 46h17.4M5.3 52h17.4" stroke="#e2e8f0" stroke-width=".8"/>' +
+  '<path d="M7.6 25.5v37.5M20.4 25.5v37.5" stroke="#cbd5e1" stroke-width=".6"/>' +
+  // puerta trasera y luces
+  '<path d="M6.8 65.4h14.4" stroke="#374151" stroke-width=".7"/>' +
+  '<rect x="4.4" y="68.2" width="4" height="2.2" rx="1" fill="#ef4444"/><rect x="19.6" y="68.2" width="4" height="2.2" rx="1" fill="#ef4444"/>' +
+  '</svg>';
+
+/** Velocidad (km/h) bajo la cual el GPS no da un rumbo confiable: se conserva el último. */
+const VELOCIDAD_MIN_RUMBO = 3;
+
+/** Ángulo acumulado más cercano a `previo` que equivale a `objetivo` (gira por el lado corto, sin dar vueltas). */
+const anguloCorto = (previo: number, objetivo: number): number => {
+  const delta = ((((objetivo - previo) % 360) + 540) % 360) - 180;
+  return previo + delta;
+};
 
 export interface FocoMapa {
   lat: number;
@@ -90,6 +122,8 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const vehiculosRef = useRef<Map<string, L.Marker>>(new Map());
+  /** Último ángulo acumulado por vehículo (evita vueltas de 340° al cruzar 360°→0°). */
+  const angulosRef = useRef<Map<string, number>>(new Map());
   const [mapReady, setMapReady] = useState(false);
   const [mapType, setMapType] = useState<MapTypeId>(readDefaultMapType);
 
@@ -321,8 +355,16 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
 
     for (const p of posiciones) {
       vigentes.add(p.clave);
-      const color = (p.rutaId !== null && colorPorRuta[p.rutaId]) || '#0f1f4b';
-      const html = `<div class="sr-vehiculo" style="background:${color}"><div class="sr-vehiculo__flecha" style="transform:rotate(${p.rumbo}deg)">${ICONO_FLECHA}</div></div>`;
+      const previo = angulosRef.current.get(p.clave);
+      const parado = p.velocidad !== null && p.velocidad < VELOCIDAD_MIN_RUMBO;
+      const angulo =
+        previo === undefined
+          ? p.rumbo
+          : parado
+            ? previo
+            : anguloCorto(previo, p.rumbo);
+      angulosRef.current.set(p.clave, angulo);
+      const html = `<div class="sr-vehiculo"><div class="sr-vehiculo__flecha" style="transform:rotate(${angulo}deg)">${ICONO_CARRO}</div></div>`;
       const partes = [
         p.deviceID ? `<b>${escapar(p.deviceID)}</b>` : '',
         p.conductor ? escapar(p.conductor) : '',
@@ -345,25 +387,21 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
         const flecha = existente
           .getElement()
           ?.querySelector<HTMLElement>('.sr-vehiculo__flecha');
-        const caja = existente
-          .getElement()
-          ?.querySelector<HTMLElement>('.sr-vehiculo');
-        if (flecha) flecha.style.transform = `rotate(${p.rumbo}deg)`;
-        if (caja) caja.style.background = color;
+        if (flecha) flecha.style.transform = `rotate(${angulo}deg)`;
         existente.setTooltipContent(tip);
       } else {
         const marcador = L.marker([p.lat, p.lng], {
           icon: L.divIcon({
             className: 'sr-icono sr-vehiculo-icono',
             html,
-            iconSize: [30, 30],
-            iconAnchor: [15, 15],
+            iconSize: [80, 80],
+            iconAnchor: [40, 40],
           }),
           zIndexOffset: 2000,
         })
           .bindTooltip(tip, {
             direction: 'top',
-            offset: [0, -14],
+            offset: [0, -30],
             className: 'sr-tip',
           })
           .addTo(map);
@@ -375,9 +413,25 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
       if (!vigentes.has(clave)) {
         m.remove();
         marcadores.delete(clave);
+        angulosRef.current.delete(clave);
       }
     });
   }, [posiciones, colorPorRuta, mapReady]);
+
+  // Tamaño del vehículo según el zoom: pequeño al ver toda la ciudad, completo al acercarse.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const ajustar = () => {
+      const esc = Math.min(1, Math.max(0.65, 2 **((map.getZoom() - 17) * 0.25)));
+      map.getContainer().style.setProperty('--sr-esc', esc.toFixed(3));
+    };
+    ajustar();
+    map.on('zoom', ajustar);
+    return () => {
+      map.off('zoom', ajustar);
+    };
+  }, [mapReady]);
 
   /* ------------------------------------------------------------------ */
   /* Encuadre                                                            */

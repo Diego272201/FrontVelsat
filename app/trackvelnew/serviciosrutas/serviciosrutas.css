@@ -81,21 +81,20 @@
   display: none;
 }
 
-/* Conductor en vivo: círculo del color de la ruta con flecha girada según el rumbo. */
+/* Conductor en vivo: carro visto desde arriba, del color de la ruta, girado según el rumbo. */
 .sr-vehiculo {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  border: 2.5px solid #fff;
-  border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.45);
+  transform: scale(var(--sr-esc, 1));
 }
 
 .sr-vehiculo__flecha {
   display: flex;
-  transition: transform 0.6s ease;
+  transition: transform 0.8s ease;
+  filter: drop-shadow(0 3px 4px rgba(15, 23, 42, 0.45));
 }
 
 /* Desplazamiento suave entre refrescos (cada 5 s). Solo mientras se mueve: con zoom no hay transición. */
@@ -171,4 +170,19 @@
   border-color: #fff;
   background: #e11d48;
   box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.35), 0 2px 6px rgba(15, 23, 42, 0.5);
+}
+
+/* Tarjeta con unidad en vivo: fondo del color de la ruta; el texto hereda el color legible (--sr-vivo-txt). */
+.sr-vivo {
+  color: var(--sr-vivo-txt, #fff);
+}
+
+.sr-vivo [class*='text-slate'],
+.sr-vivo [class*='text-[#'] {
+  color: inherit !important;
+}
+
+.sr-vivo [class*='text-slate-400'],
+.sr-vivo [class*='text-slate-500'] {
+  opacity: 0.8;
 }

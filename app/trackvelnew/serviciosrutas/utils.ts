@@ -124,3 +124,12 @@ export function agruparDestinos(
   }
   return Array.from(grupos.values());
 }
+
+/** Color de texto (blanco u oscuro) legible sobre un fondo `#rrggbb`. */
+export const textoSobre = (hex: string): string => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.62 ? '#0f172a' : '#ffffff';
+};

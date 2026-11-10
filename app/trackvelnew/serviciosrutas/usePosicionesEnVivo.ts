@@ -9,9 +9,23 @@ import { AvisoServicio, PosicionConductor } from './types';
 const VIGENCIA_MS = 2 * 60 * 1000;
 const LIMPIEZA_MS = 15000;
 
-const estaVigente = (p: PosicionConductor) => {
-  const t = p.fecha ? Date.parse(p.fecha) : NaN;
-  return Number.isNaN(t) || Date.now() - t <= VIGENCIA_MS;
+const TOLERANCIA_FUTURO_MS = 30 * 1000;
+const TIENE_ZONA = /(Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * Instante (ms) desde el que cuenta la vigencia de una posición: la hora del GPS (`fecha`) si es creíble, o
+ * la hora de llegada a esta pantalla si no. Si el servidor manda la hora sin zona horaria se prueba también
+ * como UTC; una hora en el futuro (reloj desfasado) se descarta. Así una unidad que dejó de reportar expira
+ * aunque el backend siga reenviando su última posición, y una con `fecha` rara no queda para siempre.
+ */
+const instanteRecibido = (p: PosicionConductor): number => {
+  const ahora = Date.now();
+  if (!p.fecha) return ahora;
+  const texto = p.fecha.trim();
+  const candidatos = [Date.parse(texto)];
+  if (!TIENE_ZONA.test(texto)) candidatos.push(Date.parse(`${texto.replace(' ', 'T')}Z`));
+  const validos = candidatos.filter((t) => !Number.isNaN(t) && t <= ahora + TOLERANCIA_FUTURO_MS);
+  return validos.length > 0 ? Math.min(ahora, Math.max(...validos)) : ahora;
 };
 
 // Posiciones de los conductores en tiempo real. La app del conductor las manda a
@@ -34,12 +48,15 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
 
   const [posiciones, setPosiciones] = useState<PosicionConductor[]>([]);
   const porClave = useRef<Map<string, PosicionConductor>>(new Map());
+  const recibidoEn = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!baseUrl || !username) return;
     let activo = true;
     const mapa = porClave.current;
+    const recibido = recibidoEn.current;
     mapa.clear();
+    recibido.clear();
 
     const publicar = () => {
       if (activo) setPosiciones(Array.from(mapa.values()));
@@ -51,7 +68,10 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
       .then((lista) => {
         // Lo que ya llegó por SignalR mientras tanto es más reciente: no se pisa.
         lista.forEach((p) => {
-          if (!mapa.has(p.clave)) mapa.set(p.clave, p);
+          if (!mapa.has(p.clave)) {
+            mapa.set(p.clave, p);
+            recibido.set(p.clave, instanteRecibido(p));
+          }
         });
         publicar();
       })
@@ -68,6 +88,7 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
       const p = aPosicion(mensaje);
       if (!p) return;
       mapa.set(p.clave, p);
+      recibido.set(p.clave, instanteRecibido(p));
       publicar();
     });
 
@@ -80,7 +101,10 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
       api
         .getPosiciones()
         .then((lista) => {
-          lista.forEach((p) => mapa.set(p.clave, p));
+          lista.forEach((p) => {
+            mapa.set(p.clave, p);
+            recibido.set(p.clave, instanteRecibido(p));
+          });
           publicar();
         })
         .catch(() => undefined);
@@ -94,9 +118,10 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
     // Quita del mapa las unidades que dejaron de reportar.
     const limpieza = setInterval(() => {
       let cambio = false;
-      mapa.forEach((p, clave) => {
-        if (!estaVigente(p)) {
+      mapa.forEach((_p, clave) => {
+        if (Date.now() - (recibido.get(clave) ?? 0) > VIGENCIA_MS) {
           mapa.delete(clave);
+          recibido.delete(clave);
           cambio = true;
         }
       });

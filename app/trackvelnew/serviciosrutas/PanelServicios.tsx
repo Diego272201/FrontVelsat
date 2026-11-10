@@ -9,6 +9,7 @@ import {
   ESTADO_SERVICIO_PUNTO,
   ordenarServicios,
   sumarMinutos,
+  textoSobre,
 } from './utils';
 
 export interface AccionesServicioProps {
@@ -73,13 +74,20 @@ export const EstadoChip: React.FC<{ estado: EstadoServicio }> = ({ estado }) => 
   </span>
 );
 
-export const BarraAvance: React.FC<{ servicio: Servicio; color: string }> = ({ servicio: s, color }) => {
+export const BarraAvance: React.FC<{ servicio: Servicio; color: string; sobreColor?: boolean }> = ({
+  servicio: s,
+  color,
+  sobreColor = false,
+}) => {
   const total = Math.max(s.totalParaderos, 1);
   const pct = Math.min(100, Math.round((s.paraderosCompletados / total) * 100));
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+      <div className={`h-1.5 flex-1 overflow-hidden rounded-full ${sobreColor ? 'bg-black/20' : 'bg-slate-100'}`}>
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: sobreColor ? textoSobre(color) : color }}
+        />
       </div>
       <span className="shrink-0 font-mono text-[10.5px] text-slate-500">
         {s.paraderosCompletados}/{s.totalParaderos}
@@ -95,6 +103,8 @@ interface PanelServiciosProps extends AccionesServicioProps {
   /** Servicios del día en las rutas visibles. */
   servicios: Servicio[];
   rutasPorId: Record<number, RutaVista | undefined>;
+  /** Ids de servicios cuya unidad está enviando posición ahora. */
+  serviciosEnVivo: ReadonlySet<number>;
   fechaTexto: string;
   esHoy: boolean;
   cargando: boolean;
@@ -108,6 +118,7 @@ interface PanelServiciosProps extends AccionesServicioProps {
 const PanelServicios: React.FC<PanelServiciosProps> = ({
   servicios,
   rutasPorId,
+  serviciosEnVivo,
   fechaTexto,
   esHoy,
   cargando,
@@ -187,7 +198,7 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
             <p className="text-[12.5px] font-semibold text-slate-700">Sin servicios</p>
             <p className="text-[11.5px] text-slate-500">
               No hay servicios {filtro === 'TODOS' ? '' : `${ESTADO_SERVICIO_LABEL[filtro].toLowerCase()}s `}en las
-              rutas del mapa para el {fechaTexto}.
+              rutas para el {fechaTexto}.
             </p>
             <p className="text-[11.5px] text-slate-400">Elige una ruta en el mapa o en la lista para ver sus paradas.</p>
           </div>
@@ -196,6 +207,7 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
             {lista.map((s) => {
               const ruta = rutasPorId[s.rutaId];
               const color = ruta?.color ?? '#64748b';
+              const enVivo = serviciosEnVivo.has(s.id);
               return (
                 <li key={s.id}>
                   <div
@@ -205,9 +217,21 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') onAbrir(s);
                     }}
-                    className="flex cursor-pointer gap-3 px-4 py-3 outline-none transition-colors hover:bg-slate-50 focus-visible:bg-blue-50"
+                    style={
+                      enVivo
+                        ? ({ backgroundColor: color, '--sr-vivo-txt': textoSobre(color) } as React.CSSProperties)
+                        : undefined
+                    }
+                    className={`flex cursor-pointer gap-3 px-4 py-3 outline-none transition-colors ${
+                      enVivo
+                        ? 'sr-vivo hover:brightness-95 focus-visible:brightness-95'
+                        : 'hover:bg-slate-50 focus-visible:bg-blue-50'
+                    }`}
                   >
-                    <span className="w-[3px] shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                    <span
+                      className="w-[3px] shrink-0 rounded-full"
+                      style={{ backgroundColor: enVivo ? textoSobre(color) : color }}
+                    />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -243,7 +267,7 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex-1">
-                          <BarraAvance servicio={s} color={color} />
+                          <BarraAvance servicio={s} color={color} sobreColor={enVivo} />
                         </div>
                         <AccionesServicio servicio={s} {...acciones} />
                       </div>

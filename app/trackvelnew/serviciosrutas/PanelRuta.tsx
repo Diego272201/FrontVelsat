@@ -4,7 +4,7 @@ import React from 'react';
 import { Bus, Check, Flag, Phone, User, X } from 'lucide-react';
 import { Paradero, RutaVista, Servicio } from './types';
 import { AccionesServicio, AccionesServicioProps, BarraAvance, EstadoChip } from './PanelServicios';
-import { formatoDuracion, formatoKm, ordenarServicios, sumarMinutos } from './utils';
+import { formatoDuracion, formatoKm, ordenarServicios, sumarMinutos, textoSobre } from './utils';
 
 interface PanelRutaProps extends AccionesServicioProps {
   ruta: RutaVista;
@@ -12,6 +12,8 @@ interface PanelRutaProps extends AccionesServicioProps {
   servicios: Servicio[];
   /** Servicio cuyas horas se muestran (null = sin servicios). */
   servicio: Servicio | null;
+  /** Ids de servicios cuya unidad está enviando posición ahora. */
+  serviciosEnVivo: ReadonlySet<number>;
   onElegirServicio: (servicio: Servicio) => void;
   cargandoDetalle: boolean;
   fechaTexto: string;
@@ -24,6 +26,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
   ruta,
   servicios,
   servicio,
+  serviciosEnVivo,
   onElegirServicio,
   cargandoDetalle,
   fechaTexto,
@@ -34,6 +37,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
   const paraderos = ruta.paraderos;
   const completados = servicio ? servicio.paraderosCompletados : 0;
   const ordenados = ordenarServicios(servicios);
+  const enVivo = servicio ? serviciosEnVivo.has(servicio.id) : false;
 
   const estadistica = (titulo: string, valor: string) => (
     <div className="rounded-lg border border-slate-200 px-3 py-2">
@@ -108,7 +112,16 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
               )}
 
               {servicio && (
-                <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                <div
+                  style={
+                    enVivo
+                      ? ({ backgroundColor: ruta.color, '--sr-vivo-txt': textoSobre(ruta.color) } as React.CSSProperties)
+                      : undefined
+                  }
+                  className={`space-y-2 rounded-lg border px-3 py-2.5 ${
+                    enVivo ? 'sr-vivo border-transparent' : 'border-slate-200 bg-slate-50/60'
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-[14px] font-bold text-slate-800">{servicio.horaSalida}</span>
@@ -132,7 +145,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
-                      <BarraAvance servicio={servicio} color={ruta.color} />
+                      <BarraAvance servicio={servicio} color={ruta.color} sobreColor={enVivo} />
                     </div>
                     <AccionesServicio servicio={servicio} {...acciones} />
                   </div>
