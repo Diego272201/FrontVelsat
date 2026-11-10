@@ -117,9 +117,16 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
           </button>
           <button
             type="button"
-            onClick={onQuitar}
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuitar();
+            }}
             disabled={total <= 2}
-            title="Quitar"
+            title={
+              total <= 2
+                ? 'La ruta debe tener al menos 2 paraderos'
+                : 'Eliminar paradero'
+            }
             className={`${botonAccion} text-red-500 hover:bg-red-50`}
           >
             <Trash2 className="h-3.5 w-3.5" />

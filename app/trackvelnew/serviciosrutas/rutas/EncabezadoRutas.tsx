@@ -1,105 +1,82 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Plus, Search } from 'lucide-react';
+import Image from 'next/image';
+import { Download, Plus, Route as RouteIcon } from 'lucide-react';
 
 interface EncabezadoRutasProps {
-  totalVisibles: number;
-  busqueda: string;
-  onBusqueda: (valor: string) => void;
-  grupos: readonly string[];
-  grupoFiltro: string;
-  onGrupo: (grupo: string) => void;
-  /** Cantidad de rutas por grupo ('TODOS' = el total). */
-  cantidadPorGrupo: (grupo: string) => number;
+  totalRutas: number;
   nuevaDeshabilitada: boolean;
   onNueva: () => void;
+  onExportar: () => void;
+  exportandoDeshabilitado: boolean;
 }
 
-// Cabecera de "Administrar rutas": título, buscador, botón de nueva ruta y filtro por grupo.
+// Cabecera institucional de "Gestión de Rutas" con diseño optimizado
 const EncabezadoRutas: React.FC<EncabezadoRutasProps> = ({
-  totalVisibles,
-  busqueda,
-  onBusqueda,
-  grupos,
-  grupoFiltro,
-  onGrupo,
-  cantidadPorGrupo,
+  totalRutas,
   nuevaDeshabilitada,
   onNueva,
-}) => (
-  <div className="border-b border-slate-200 bg-white px-5 py-3">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/trackvelnew/serviciosrutas"
-          className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-medium text-slate-700 transition hover:bg-slate-100"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Servicios
-        </Link>
-        <div>
-          <h1 className="text-[17px] font-bold leading-tight text-slate-800">
-            Administrar rutas
-          </h1>
-          <p className="text-[12px] text-slate-500">
-            {totalVisibles} {totalVisibles === 1 ? 'ruta' : 'rutas'} · edita
-            paraderos, tiempos y geocercas
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-9 w-60 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-          <Search className="h-3.5 w-3.5 text-slate-400" />
-          <input
-            value={busqueda}
-            onChange={(e) => onBusqueda(e.target.value)}
-            placeholder="Buscar por código o nombre…"
-            className="min-w-0 flex-1 bg-transparent text-[12.5px] text-slate-800 outline-none placeholder:text-slate-400"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={onNueva}
-          disabled={nuevaDeshabilitada}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-4 text-[12.5px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva ruta
-        </button>
-      </div>
-    </div>
-
-    <div className="mt-3 flex flex-wrap gap-1.5">
-      {['TODOS', ...grupos].map((g) => {
-        const activo = grupoFiltro === g;
-        return (
-          <button
-            key={g}
-            type="button"
-            onClick={() => onGrupo(g)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium transition ${
-              activo
-                ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            {g === 'TODOS' ? 'Todos los grupos' : g}
-            <span
-              className={`rounded-full px-1.5 text-[10.5px] font-bold ${
-                activo
-                  ? 'bg-white/25 text-white'
-                  : 'bg-slate-100 text-slate-500'
-              }`}
-            >
-              {cantidadPorGrupo(g)}
+  onExportar,
+  exportandoDeshabilitado,
+}) => {
+  return (
+    <div className="bg-[#113EB9]">
+      <div className="flex h-12 items-stretch justify-between">
+        {/* Lado izquierdo: Logo Velsat con gradiente, divisor y subtítulo/título */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-full items-center bg-gradient-to-r from-orange-500 to-red-500 px-4">
+            <Image
+              src="/LogoWeb.png"
+              alt="Velsat"
+              width={44}
+              height={44}
+              className="h-9 w-9 object-contain"
+              priority
+            />
+          </div>
+          <div className="h-7 w-[2px] rounded-full bg-white/40 self-center" />
+          <div className="flex flex-col justify-center">
+            <span className="text-[9.5px] font-bold uppercase tracking-wider text-blue-200 leading-none mb-0.5">
+              SERVICIOS / RUTAS
             </span>
+            <h1 className="text-[14px] font-bold leading-none tracking-[0.01em] text-white flex items-center gap-1.5 uppercase">
+              <span>GESTIÓN DE RUTAS</span>
+            </h1>
+          </div>
+        </div>
+
+        {/* Lado derecho: Contador, Exportar y Nueva ruta */}
+        <div className="flex items-center gap-2 pr-4">
+          <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-semibold text-white">
+            <RouteIcon className="h-3.5 w-3.5" />
+            {totalRutas}
+          </div>
+
+          <button
+            type="button"
+            onClick={onExportar}
+            disabled={exportandoDeshabilitado}
+            className="flex h-8 items-center gap-1.5 rounded-md border border-white/30 bg-white/10 px-3 text-[12px] font-medium text-white transition-colors hover:bg-white/15 disabled:opacity-50"
+            title="Exportar listado a Excel"
+          >
+            <Download className="h-3.5 w-3.5 text-blue-200" />
+            <span>Exportar</span>
           </button>
-        );
-      })}
+
+          <button
+            type="button"
+            onClick={onNueva}
+            disabled={nuevaDeshabilitada}
+            className="flex h-8 items-center gap-1.5 rounded-md bg-white px-3.5 text-[12px] font-semibold text-[#113EB9] shadow-sm transition-colors hover:bg-blue-50 disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Nueva ruta</span>
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default EncabezadoRutas;
