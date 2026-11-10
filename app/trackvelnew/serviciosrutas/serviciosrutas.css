@@ -182,6 +182,12 @@
   color: inherit !important;
 }
 
+/* Los botones de acción (editar, reprogramar…) tienen fondo blanco: conservan su propio color de icono. */
+.sr-vivo button[class*='text-slate'] {
+  color: #334155 !important;
+  opacity: 1;
+}
+
 .sr-vivo [class*='text-slate-400'],
 .sr-vivo [class*='text-slate-500'] {
   opacity: 0.8;

@@ -241,7 +241,6 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                           resumen.enCurso ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {resumen.enCurso > 0 && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />}
                         {resumen.total}
                       </span>
                     )}

@@ -6,7 +6,6 @@ import { EstadoServicio, RutaVista, Servicio } from './types';
 import {
   ESTADO_SERVICIO_CLASE,
   ESTADO_SERVICIO_LABEL,
-  ESTADO_SERVICIO_PUNTO,
   ordenarServicios,
   sumarMinutos,
   textoSobre,
@@ -69,7 +68,6 @@ export const EstadoChip: React.FC<{ estado: EstadoServicio }> = ({ estado }) => 
   <span
     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${ESTADO_SERVICIO_CLASE[estado]}`}
   >
-    <span className={`h-1.5 w-1.5 rounded-full ${ESTADO_SERVICIO_PUNTO[estado]} ${estado === 'EN_CURSO' ? 'animate-pulse' : ''}`} />
     {ESTADO_SERVICIO_LABEL[estado]}
   </span>
 );
