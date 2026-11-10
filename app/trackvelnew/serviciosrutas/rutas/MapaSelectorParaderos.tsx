@@ -39,8 +39,10 @@ interface MapaSelectorParaderosProps {
   puntos: PuntoParadero[];
   /** Total de paraderos del formulario (para saber cuál es origen y destino). */
   total: number;
-  /** Paradero que recibe el próximo clic; null = el clic crea uno nuevo. */
+  /** Paradero seleccionado en la lista / mapa. */
   activo: number | null;
+  /** Paradero esperando clic en el mapa para ubicar sus coordenadas. */
+  colocando?: number | null;
   /** Clic en un lugar vacío del mapa. */
   onClickMapa: (lat: number, lng: number) => void;
   /** Se arrastró un marcador a otro lugar. */
@@ -76,6 +78,7 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
   puntos,
   total,
   activo,
+  colocando = null,
   onClickMapa,
   onMover,
   onSeleccionar,
@@ -115,7 +118,6 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       attributionControl: false,
     });
     mapRef.current = map;
-    map.getContainer().classList.add('sr-mapa-colocando');
     map.on('click', (e: L.LeafletMouseEvent) =>
       handlers.current.onClickMapa(e.latlng.lat, e.latlng.lng),
     );
@@ -164,6 +166,19 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       );
   }, []);
 
+  // Cursor tipo cruz solo cuando hay un paradero pendiente de ubicar o trazando
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    map
+      .getContainer()
+      .classList.toggle(
+        'sr-mapa-colocando',
+        modo === 'trazado' ||
+          (modo === 'paraderos' && colocando !== null && colocando !== undefined),
+      );
+  }, [modo, colocando, mapReady]);
+
   useCapaTrazado({
     mapRef,
     mapReady,
@@ -188,17 +203,50 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
       const esActivo = p.indice === activo;
       const esOrigen = p.indice === 0;
       const esDestino = p.indice === total - 1 && total > 1;
+      const radio = p.radio > 0 ? p.radio : 25;
 
-      // Geocerca del paradero (solo la del seleccionado, para no saturar el mapa)
-      if (editandoParaderos && esActivo && p.radio > 0) {
-        L.circle([p.lat, p.lng], {
-          radius: p.radio,
-          color: COLOR,
-          weight: 2,
-          fillColor: COLOR,
-          fillOpacity: 0.15,
-          interactive: false,
-        }).addTo(capa);
+      // Color de la geocerca según tipo de paradero
+      const colorBorde = esOrigen
+        ? '#059669'
+        : esDestino
+          ? '#1E3A8A'
+          : '#2563EB';
+      const colorRelleno = esOrigen
+        ? '#10B981'
+        : esDestino
+          ? '#3B82F6'
+          : '#60A5FA';
+
+      // Geocerca de cada paradero (siempre dibujada en el mapa, interactiva y reactiva)
+      const circulo = L.circle([p.lat, p.lng], {
+        radius: radio,
+        color: esActivo ? (esOrigen ? '#047857' : '#1D4ED8') : colorBorde,
+        weight: esActivo ? 2.5 : 1.5,
+        dashArray: esActivo ? '5 5' : undefined,
+        fillColor: colorRelleno,
+        fillOpacity: editandoParaderos ? (esActivo ? 0.3 : 0.16) : 0.08,
+        interactive: editandoParaderos,
+      }).addTo(capa);
+
+      if (editandoParaderos) {
+        circulo
+          .bindTooltip(
+            `<b>${p.indice + 1}. ${escapar(p.nombre || 'Sin nombre')}</b><br/><span style="color:#0284c7;font-weight:600">Geocerca: radio ${radio} m</span>`,
+            { direction: 'top', className: 'sr-tip' },
+          )
+          .on('click', () => handlers.current.onSeleccionar(p.indice))
+          .on('mouseover', () => {
+            circulo.setStyle({
+              fillOpacity: esActivo ? 0.42 : 0.28,
+              weight: esActivo ? 3 : 2,
+            });
+          })
+          .on('mouseout', () => {
+            circulo.setStyle({
+              fillOpacity: esActivo ? 0.3 : 0.16,
+              weight: esActivo ? 2.5 : 1.5,
+            });
+          });
       }
 
       const clase = esOrigen
@@ -223,10 +271,14 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
         .bindTooltip(
           `<b>${p.indice + 1}. ${escapar(p.nombre || 'Sin nombre')}</b><br/><span style="font-weight:500;color:#64748b">${
             esOrigen ? 'Origen' : esDestino ? 'Destino' : 'Intermedio'
-          } · radio ${p.radio} m</span>`,
+          } · radio ${radio} m</span>`,
           { direction: 'top', offset: [0, -lado / 2], className: 'sr-tip' },
         )
         .on('click', () => handlers.current.onSeleccionar(p.indice))
+        .on('drag', (e) => {
+          const pos = (e.target as L.Marker).getLatLng();
+          circulo.setLatLng(pos);
+        })
         .on('dragend', (e) => {
           const { lat, lng } = (e.target as L.Marker).getLatLng();
           handlers.current.onMover(p.indice, lat, lng);
@@ -409,13 +461,18 @@ const MapaSelectorParaderos: React.FC<MapaSelectorParaderosProps> = ({
           </div>
 
           {/* Indicación de qué hará el próximo clic */}
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[92%] -translate-x-1/2 rounded-full bg-[#0f1f4b]/90 px-4 py-1.5 text-center text-[12px] font-semibold text-white shadow-lg">
-            {modo === 'trazado'
-              ? 'Clic en el mapa: agrega un punto · clic sobre la línea: lo inserta · arrastra para mover · clic derecho: borra'
-              : activo !== null
-                ? `Haz clic en el mapa para ubicar el paradero ${activo + 1}`
-                : 'Haz clic en el mapa para agregar un paradero'}
-          </div>
+          {modo === 'trazado' && (
+            <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[92%] -translate-x-1/2 rounded-full bg-[#0f1f4b]/90 px-4 py-1.5 text-center text-[12px] font-semibold text-white shadow-lg">
+              Clic en el mapa: agrega un punto · clic sobre la línea: lo inserta · arrastra para mover · clic derecho: borra
+            </div>
+          )}
+          {modo === 'paraderos' &&
+            colocando !== null &&
+            colocando !== undefined && (
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-max max-w-[92%] -translate-x-1/2 rounded-full bg-[#0f1f4b]/90 px-4 py-1.5 text-center text-[12px] font-semibold text-white shadow-lg">
+                Haz clic en el mapa para ubicar el paradero {colocando + 1}
+              </div>
+            )}
         </>
       )}
     </div>

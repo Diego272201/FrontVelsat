@@ -45,7 +45,7 @@ export const paraderoVacio = (): ParaderoForm => ({
   nombre: '',
   latitud: '',
   longitud: '',
-  radioMetros: '50',
+  radioMetros: '25',
   minutosDesdeAnterior: '1',
 });
 

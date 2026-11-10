@@ -20,8 +20,10 @@ interface TarjetaParaderoProps {
   paradero: ParaderoForm;
   indice: number;
   total: number;
-  /** Es el paradero que recibe el próximo clic del mapa. */
+  /** Está seleccionado / enfocado actualmente. */
   activo: boolean;
+  /** Está esperando clic en el mapa para ubicar sus coordenadas. */
+  colocando?: boolean;
   registrarFila: (el: HTMLDivElement | null) => void;
   onSeleccionar: () => void;
   onCambio: (cambios: Partial<ParaderoForm>) => void;
@@ -38,6 +40,7 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
   indice: i,
   total,
   activo,
+  colocando = false,
   registrarFila,
   onSeleccionar,
   onCambio,
@@ -77,13 +80,17 @@ const TarjetaParadero: React.FC<TarjetaParaderoProps> = ({
       <div className="mt-2 flex items-center justify-between gap-2">
         <span
           className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
-            ubicado ? 'text-green-600' : 'text-amber-600'
+            ubicado
+              ? 'text-green-600'
+              : colocando
+                ? 'animate-pulse text-blue-600'
+                : 'text-amber-600'
           }`}
         >
           <MapPin className="h-3 w-3" />
           {ubicado
             ? tipoDe(i, total)
-            : activo
+            : colocando
               ? 'Haz clic en el mapa'
               : 'Sin ubicar'}
         </span>

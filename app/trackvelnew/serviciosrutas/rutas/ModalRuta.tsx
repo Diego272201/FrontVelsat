@@ -87,10 +87,14 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const [nuevoGrupo, setNuevoGrupo] = useState(grupos.length === 0);
   // Por default los datos de la ruta salen mostrados
   const [datosAbiertos, setDatosAbiertos] = useState(true);
-  // Paradero que recibe el próximo clic del mapa (por uid); null = el clic crea uno nuevo.
-  const [activoUid, setActivoUid] = useState<string | null>(() =>
-    ruta ? null : (form.paraderos[0].uid ?? null),
-  );
+  // Paradero seleccionado para ver o editar (por uid); null = ninguno
+  const [seleccionadoUid, setSeleccionadoUid] = useState<string | null>(null);
+  // Paradero que espera clic en el mapa para ubicar coordenadas (por uid); null = ninguno
+  const [colocandoUid, setColocandoUid] = useState<string | null>(() => {
+    if (ruta) return null;
+    const sinUbicar = form.paraderos.find((p) => !coordenadasValidas(p));
+    return sinUbicar?.uid ?? null;
+  });
   const [foco, setFoco] = useState<FocoSelector | null>(null);
   const focoClave = useRef(0);
   const [paraderoAEliminar, setParaderoAEliminar] = useState<{
@@ -136,6 +140,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       ...prev,
       paraderos: previo.map((p) => ({ ...p })),
     }));
+    setColocandoUid(null);
 
     toast.info('Cambio deshecho en paraderos', { id: 'paraderos-undo' });
   }, [form.paraderos, historialParaderos.pasado]);
@@ -155,6 +160,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       ...prev,
       paraderos: siguiente.map((p) => ({ ...p })),
     }));
+    setColocandoUid(null);
 
     toast.info('Cambio rehecho en paraderos', { id: 'paraderos-undo' });
   }, [form.paraderos, historialParaderos.futuro]);
@@ -236,7 +242,10 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const filasRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const total = form.paraderos.length;
-  const activoIdx = form.paraderos.findIndex((p) => p.uid === activoUid);
+  const seleccionadoIdx = form.paraderos.findIndex(
+    (p) => p.uid === seleccionadoUid,
+  );
+  const colocandoIdx = form.paraderos.findIndex((p) => p.uid === colocandoUid);
 
   const setCampo = <K extends keyof RutaForm>(campo: K, valor: RutaForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
@@ -294,29 +303,36 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       return;
     }
 
+    // Si NO estamos colocando un paradero, el clic en el mapa NO hace nada.
+    // Los paraderos nuevos solo se crean al presionar el botón "+ Agregar".
+    if (!colocandoUid) return;
+
+    const idxAColocar = form.paraderos.findIndex((p) => p.uid === colocandoUid);
+    if (idxAColocar < 0) {
+      setColocandoUid(null);
+      return;
+    }
+
     const latitud = redondear(lat);
     const longitud = redondear(lng);
 
     registrarHistorial(form.paraderos);
+    const actual = form.paraderos[idxAColocar];
+    setParaderoPorUid(actual.uid!, { latitud, longitud });
+    if (actual.nombre.trim() === '')
+      void sugerirNombre(actual.uid!, lat, lng);
 
-    if (activoIdx >= 0) {
-      const actual = form.paraderos[activoIdx];
-      setParaderoPorUid(actual.uid!, { latitud, longitud });
-      if (actual.nombre.trim() === '')
-        void sugerirNombre(actual.uid!, lat, lng);
-      // Pasa solo al siguiente paradero sin ubicar; si no hay, el próximo clic crea uno nuevo.
-      const siguiente = form.paraderos.find(
-        (p, i) => i > activoIdx && !coordenadasValidas(p),
-      );
-      setActivoUid(siguiente?.uid ?? null);
-      if (siguiente?.uid) irAFila(siguiente.uid);
-      return;
+    // Pasa al siguiente paradero sin ubicar solo si existe
+    const siguiente = form.paraderos.find(
+      (p, i) => i > idxAColocar && !coordenadasValidas(p),
+    );
+    if (siguiente?.uid) {
+      setColocandoUid(siguiente.uid);
+      setSeleccionadoUid(siguiente.uid);
+      irAFila(siguiente.uid);
+    } else {
+      setColocandoUid(null);
     }
-
-    const nuevo: ParaderoForm = { ...paraderoVacio(), latitud, longitud };
-    setForm((prev) => ({ ...prev, paraderos: [...prev.paraderos, nuevo] }));
-    irAFila(nuevo.uid!);
-    void sugerirNombre(nuevo.uid!, lat, lng);
   };
 
   const moverMarcador = (indice: number, lat: number, lng: number) => {
@@ -333,7 +349,13 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const seleccionarIdx = (indice: number) => {
     const p = form.paraderos[indice];
     if (!p?.uid) return;
-    setActivoUid(p.uid);
+    setSeleccionadoUid(p.uid);
+    // Si no tiene coordenadas válidas, activar colocación con el clic en el mapa
+    if (!coordenadasValidas(p)) {
+      setColocandoUid(p.uid);
+    } else {
+      setColocandoUid(null);
+    }
     irAFila(p.uid);
     if (coordenadasValidas(p)) centrar(Number(p.latitud), Number(p.longitud));
   };
@@ -344,7 +366,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
     registrarHistorial(form.paraderos);
     const nuevo = paraderoVacio();
     setForm((prev) => ({ ...prev, paraderos: [...prev.paraderos, nuevo] }));
-    setActivoUid(nuevo.uid!);
+    setColocandoUid(nuevo.uid!);
+    setSeleccionadoUid(nuevo.uid!);
     irAFila(nuevo.uid!);
   };
 
@@ -356,7 +379,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       copia.splice(indice + 1, 0, nuevo);
       return { ...prev, paraderos: copia };
     });
-    setActivoUid(nuevo.uid!);
+    setColocandoUid(nuevo.uid!);
+    setSeleccionadoUid(nuevo.uid!);
     irAFila(nuevo.uid!);
   };
 
@@ -367,7 +391,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
       ...prev,
       paraderos: prev.paraderos.filter((_, i) => i !== indice),
     }));
-    if (quitado?.uid === activoUid) setActivoUid(null);
+    if (quitado?.uid === colocandoUid) setColocandoUid(null);
+    if (quitado?.uid === seleccionadoUid) setSeleccionadoUid(null);
   };
 
   const mover = (indice: number, delta: -1 | 1) => {
@@ -407,7 +432,10 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
                 nombre: p.nombre,
                 lat: Number(p.latitud),
                 lng: Number(p.longitud),
-                radio: numeroValido(p.radioMetros) ? Number(p.radioMetros) : 0,
+                radio:
+                  numeroValido(p.radioMetros) && Number(p.radioMetros) > 0
+                    ? Number(p.radioMetros)
+                    : 25,
               },
             ]
           : [],
@@ -446,10 +474,20 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
           <div className="grid shrink-0 grid-cols-2 gap-1 border-b border-slate-200 bg-slate-50 p-1.5">
             {(
               [
-                { id: 'paraderos', texto: 'Paraderos', Icono: MapPin },
-                { id: 'trazado', texto: 'Trazado', Icono: Spline },
+                {
+                  id: 'paraderos',
+                  texto: 'Paraderos',
+                  Icono: MapPin,
+                  count: total,
+                },
+                {
+                  id: 'trazado',
+                  texto: 'Trazado',
+                  Icono: Spline,
+                  count: t.trazado.length,
+                },
               ] as const
-            ).map(({ id, texto, Icono }) => (
+            ).map(({ id, texto, Icono, count }) => (
               <button
                 key={id}
                 type="button"
@@ -461,7 +499,16 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
                 }`}
               >
                 <Icono className="h-3.5 w-3.5" />
-                {texto}
+                <span>{texto}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-bold ${
+                    modo === id
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-slate-200/80 text-slate-600'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             ))}
           </div>
@@ -563,7 +610,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
                         paradero={p}
                         indice={i}
                         total={total}
-                        activo={p.uid === activoUid}
+                        activo={p.uid === seleccionadoUid}
+                        colocando={p.uid === colocandoUid}
                         registrarFila={(el) => {
                           if (!p.uid) return;
                           if (el) filasRef.current.set(p.uid, el);
@@ -595,7 +643,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
           <MapaSelectorParaderos
             puntos={puntos}
             total={total}
-            activo={activoIdx >= 0 ? activoIdx : null}
+            activo={seleccionadoIdx >= 0 ? seleccionadoIdx : null}
+            colocando={colocandoIdx >= 0 ? colocandoIdx : null}
             onClickMapa={clickMapa}
             onMover={moverMarcador}
             onSeleccionar={seleccionarIdx}
