@@ -1,11 +1,23 @@
 import { DestinoComun, EstadoServicio } from './types';
 
+const ZONA_PERU = 'America/Lima';
+
+/** Fecha de hoy en Perú (yyyy-MM-dd), sin depender de la zona horaria del navegador. */
 export function getIsoToday(): string {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  // "en-CA" formatea como yyyy-MM-dd.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_PERU,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** Fecha (yyyy-MM-dd) `dias` días antes o después de hoy en Perú. */
+export function getIsoDesplazado(dias: number): string {
+  const [y, m, d] = getIsoToday().split('-').map(Number);
+  const fecha = new Date(Date.UTC(y, m - 1, d + dias));
+  return fecha.toISOString().slice(0, 10);
 }
 
 export function isoToDdMmYyyy(iso: string): string {
@@ -133,3 +145,24 @@ export const textoSobre = (hex: string): string => {
   const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return lum > 0.62 ? '#0f172a' : '#ffffff';
 };
+
+/** Segundos como texto legible: "35 s", "1 min 05 s". */
+export function formatoSegundos(seg: number | null | undefined): string {
+  if (seg === null || seg === undefined) return '—';
+  const total = Math.abs(Math.round(seg));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return m === 0 ? `${s} s` : `${m} min ${String(s).padStart(2, '0')} s`;
+}
+
+/** Diferencia con la hora esperada: "Exacto", "+1 min 20 s" (retraso) o "-35 s" (adelanto). */
+export function formatoDiferencia(seg: number): string {
+  if (seg === 0) return 'Exacto';
+  return `${seg > 0 ? '+' : '-'}${formatoSegundos(seg)}`;
+}
+
+/** Hora "HH:mm" -> "HH:mm:ss" (con "00" si no trae segundos). Deja igual lo que ya los trae o no es hora. */
+export function conSegundos(hora: string | null | undefined): string {
+  if (!hora) return '—';
+  return /^\d{1,2}:\d{2}$/.test(hora) ? `${hora}:00` : hora;
+}

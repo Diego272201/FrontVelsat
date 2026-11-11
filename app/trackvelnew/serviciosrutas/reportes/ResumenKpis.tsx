@@ -2,12 +2,15 @@
 
 import React from 'react';
 import { ResumenKpisData } from './types';
+import { formatoSegundos } from '../utils';
 
 interface ResumenKpisProps {
   kpis: ResumenKpisData;
+  /** Tolerancia configurada de la cuenta (± minutos para estar "a tiempo"). */
+  toleranciaMin?: number;
 }
 
-const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
+const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis, toleranciaMin = 5 }) => {
   return (
     <div className="grid grid-cols-2 gap-y-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs sm:grid-cols-3 lg:grid-cols-6 lg:divide-x lg:divide-slate-100">
       {/* 1. SERVICIOS */}
@@ -19,7 +22,7 @@ const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
           {kpis.totalServicios}
         </div>
         <span className="mt-1.5 text-[11px] font-medium text-slate-500">
-          Rutas analizadas
+          Servicios analizados
         </span>
       </div>
 
@@ -58,7 +61,7 @@ const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
           {kpis.paradasRetrasadas}
         </div>
         <span className="mt-1.5 text-[11px] font-medium text-slate-500">
-          Más de 3 min de demora
+          Más de {toleranciaMin} min de demora
         </span>
       </div>
 
@@ -71,7 +74,7 @@ const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
           {kpis.paradasAdelantadas}
         </div>
         <span className="mt-1.5 text-[11px] font-medium text-slate-500">
-          Más de 2 min de anticipo
+          Más de {toleranciaMin} min de anticipo
         </span>
       </div>
 
@@ -81,10 +84,10 @@ const ResumenKpis: React.FC<ResumenKpisProps> = ({ kpis }) => {
           ESTANCIA PROMEDIO
         </span>
         <div className="mt-1 text-[26px] font-black tracking-tight text-slate-900 leading-none">
-          {kpis.promedioPermanenciaMin} <span className="text-[14px] font-bold text-slate-600">min</span>
+          {formatoSegundos(kpis.promedioPermanenciaSeg)}
         </div>
         <span className="mt-1.5 text-[11px] font-medium text-slate-500">
-          Total: {kpis.tiempoTotalEnParadasMin} min
+          Total: {formatoSegundos(kpis.tiempoTotalEnParadasSeg)}
         </span>
       </div>
     </div>

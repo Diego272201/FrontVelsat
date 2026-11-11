@@ -9,91 +9,98 @@ import {
   Columns,
   RotateCw,
 } from 'lucide-react';
-import { useServiciosRutasApi } from '../api';
+import { mensajeError, useServiciosRutasApi } from '../api';
 import { EstadoPuntualidad, ReporteServicio } from './types';
-import { calcularKpis, generarReporteServicios } from './mockData';
+import { aReporteServicios, calcularKpis } from './construirReporte';
 import { exportarExcelReporte, exportarPdfReporte } from './exportUtils';
-import FiltrosReporte from './FiltrosReporte';
+import FiltrosReporte, { FiltroEstadoServicio } from './FiltrosReporte';
 import ResumenKpis from './ResumenKpis';
 import TablaReporteParadas from './TablaReporteParadas';
-import { getIsoToday } from '../utils';
+import { getIsoToday, isoToDdMmYyyy } from '../utils';
 
 const ReportesView: React.FC = () => {
   const api = useServiciosRutasApi();
 
-  // Estados de filtrado
-  const [fechaIso, setFechaIso] = useState<string>(getIsoToday());
-  const [rutaId, setRutaId] = useState<number | 'TODAS'>('TODAS');
+  // Filtros: los reportes son por servicio (rango de fechas, estado del servicio y unidad).
+  const [desdeIso, setDesdeIso] = useState<string>(getIsoToday());
+  const [hastaIso, setHastaIso] = useState<string>(getIsoToday());
+  const [estadoServicio, setEstadoServicio] = useState<FiltroEstadoServicio>('TODOS');
+  const [unidad, setUnidad] = useState<string>('');
   const [estadoFiltro, setEstadoFiltro] = useState<'TODOS' | EstadoPuntualidad>('TODOS');
   const [busqueda, setBusqueda] = useState<string>('');
 
-  // Estados de datos
-  const [rutasOpciones, setRutasOpciones] = useState<{ id: number; codigo: string; nombre: string }[]>([]);
-  const [servicios, setServicios] = useState<ReporteServicio[]>([]);
+  // Datos
+  const [toleranciaMin, setToleranciaMin] = useState<number>(5);
+  // Todo lo que trajo el API para el rango de fechas. Estado, unidad y puntualidad filtran sobre esto.
+  const [cargados, setCargados] = useState<ReporteServicio[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [exportandoExcel, setExportandoExcel] = useState<boolean>(false);
   const [exportandoPdf, setExportandoPdf] = useState<boolean>(false);
 
-  // Carga de opciones de rutas reales del backend si está disponible
-  useEffect(() => {
+  const cambiarRango = (desde: string, hasta: string) => {
+    setDesdeIso(desde);
+    setHastaIso(hasta < desde ? desde : hasta);
+  };
+
+  // El API se consulta solo al entrar, al cambiar el rango de fechas o con el botón de actualizar:
+  // una llamada trae los servicios del rango con sus paraderos. Los demás filtros se aplican en pantalla.
+  const cargarDatos = useCallback(async () => {
     if (!api.listo) return;
-    api
-      .getRutas(false)
-      .then((lista) => {
-        if (lista && lista.length > 0) {
-          setRutasOpciones(
-            lista.map((r) => ({
-              id: r.id,
-              codigo: r.codigo,
-              nombre: r.nombre,
-            })),
-          );
-        }
-      })
-      .catch(() => undefined);
-  }, [api]);
-
-  // Si no hay rutas cargadas desde la API, usamos las rutas base por defecto
-  const opcionesFinales = useMemo(() => {
-    if (rutasOpciones.length > 0) return rutasOpciones;
-    return [
-      { id: 3, codigo: 'RT-001', nombre: 'Ruta 1' },
-      { id: 4, codigo: 'RT-002', nombre: 'Ruta 2' },
-      { id: 5, codigo: 'RT-003', nombre: 'Ruta 3' },
-      { id: 6, codigo: 'RT-004', nombre: 'Ruta 4' },
-      { id: 7, codigo: 'RT-005', nombre: 'Ruta 5' },
-    ];
-  }, [rutasOpciones]);
-
-  // Cargar datos del reporte según fecha y ruta seleccionada
-  const cargarDatos = useCallback(() => {
     setCargando(true);
-    const timer = setTimeout(() => {
-      const data = generarReporteServicios(fechaIso, rutaId);
-      setServicios(data);
+    try {
+      const reporte = await api.getReporteServicios(desdeIso, hastaIso);
+      setCargados(aReporteServicios(reporte));
+      setToleranciaMin(reporte.toleranciaMin);
+    } catch (error) {
+      setCargados([]);
+      toast.error(mensajeError(error, 'No se pudo cargar el reporte'));
+    } finally {
       setCargando(false);
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [fechaIso, rutaId]);
+    }
+  }, [api, desdeIso, hastaIso]);
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
 
-  // Métricas y KPIs
+  // Unidades presentes en lo cargado (para el filtro).
+  const unidades = useMemo(
+    () => Array.from(new Set(cargados.map((s) => s.deviceID))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [cargados],
+  );
+
+  // Si al cambiar de rango la unidad elegida ya no aparece, se quita el filtro.
+  useEffect(() => {
+    if (unidad && !cargando && !unidades.includes(unidad)) setUnidad('');
+  }, [unidad, unidades, cargando]);
+
+  const servicios = useMemo(
+    () =>
+      cargados.filter(
+        (s) => (estadoServicio === 'TODOS' || s.estadoServicio === estadoServicio) && (!unidad || s.deviceID === unidad),
+      ),
+    [cargados, estadoServicio, unidad],
+  );
+
   const kpis = useMemo(() => calcularKpis(servicios), [servicios]);
 
-  // Formato legible de fecha
-  const fechaTexto = useMemo(() => {
-    const [yyyy, mm, dd] = fechaIso.split('-');
-    return `${dd}/${mm}/${yyyy}`;
-  }, [fechaIso]);
+  const fechaTexto = useMemo(
+    () =>
+      desdeIso === hastaIso
+        ? isoToDdMmYyyy(desdeIso)
+        : `${isoToDdMmYyyy(desdeIso)} al ${isoToDdMmYyyy(hastaIso)}`,
+    [desdeIso, hastaIso],
+  );
 
-  const rutaFiltroTexto = useMemo(() => {
-    if (rutaId === 'TODAS') return 'Todas las rutas';
-    const r = opcionesFinales.find((opt) => opt.id === rutaId);
-    return r ? `${r.codigo} - ${r.nombre}` : `Ruta #${rutaId}`;
-  }, [rutaId, opcionesFinales]);
+  const filtroTexto = useMemo(() => {
+    const partes = [
+      estadoServicio === 'TODOS'
+        ? 'Todos los servicios'
+        : `Servicios ${estadoServicio.toLowerCase().replace('_', ' ')}`,
+      unidad ? `Unidad ${unidad}` : 'Todas las unidades',
+    ];
+    return partes.join(', ');
+  }, [estadoServicio, unidad]);
 
   // Acciones de Exportación
   const handleExportarExcel = async () => {
@@ -103,7 +110,7 @@ const ReportesView: React.FC = () => {
     }
     setExportandoExcel(true);
     try {
-      await exportarExcelReporte(servicios, fechaTexto, rutaFiltroTexto, kpis);
+      await exportarExcelReporte(servicios, fechaTexto, filtroTexto, kpis);
       toast.success('Reporte Excel generado correctamente');
     } catch {
       toast.error('Error al generar el archivo Excel');
@@ -119,7 +126,7 @@ const ReportesView: React.FC = () => {
     }
     setExportandoPdf(true);
     try {
-      await exportarPdfReporte(servicios, fechaTexto, rutaFiltroTexto, kpis);
+      await exportarPdfReporte(servicios, fechaTexto, filtroTexto, kpis);
       toast.success('Reporte PDF descargado correctamente');
     } catch {
       toast.error('Error al generar el archivo PDF');
@@ -187,11 +194,14 @@ const ReportesView: React.FC = () => {
       <main className="flex-1 space-y-3.5 p-4 lg:p-5">
         {/* 1. Barra de Filtros, Búsqueda y Botones de Exportación */}
         <FiltrosReporte
-          fechaIso={fechaIso}
-          onFechaChange={setFechaIso}
-          rutaId={rutaId}
-          onRutaChange={setRutaId}
-          rutasOpciones={opcionesFinales}
+          desdeIso={desdeIso}
+          hastaIso={hastaIso}
+          onRangoChange={cambiarRango}
+          estadoServicio={estadoServicio}
+          onEstadoServicioChange={setEstadoServicio}
+          unidad={unidad}
+          onUnidadChange={setUnidad}
+          unidades={unidades}
           estadoFiltro={estadoFiltro}
           onEstadoFiltroChange={setEstadoFiltro}
           busqueda={busqueda}
@@ -203,13 +213,13 @@ const ReportesView: React.FC = () => {
         />
 
         {/* 2. Tarjetas de Resumen y KPIs (Una sola barra blanca subdividida) */}
-        <ResumenKpis kpis={kpis} />
+        <ResumenKpis kpis={kpis} toleranciaMin={toleranciaMin} />
 
-        {/* 3. Acordeón / Tablas Detalladas por Ruta */}
+        {/* 3. Un bloque por servicio, con el detalle de sus paradas */}
         {cargando ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
             <RotateCw className="h-7 w-7 animate-spin text-[#113EB9]" />
-            <p className="mt-2 text-[13px] font-semibold text-slate-700">Calculando reporte de paradas…</p>
+            <p className="mt-2 text-[13px] font-semibold text-slate-700">Cargando servicios y paradas…</p>
             <p className="text-[11.5px] text-slate-400">Procesando tiempos de llegada, estancia y puntualidad</p>
           </div>
         ) : (

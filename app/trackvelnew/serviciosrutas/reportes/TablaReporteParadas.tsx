@@ -10,6 +10,8 @@ import {
   FileQuestion,
 } from 'lucide-react';
 import { EstadoPuntualidad, ReporteServicio } from './types';
+import { EstadoChip } from '../PanelServicios';
+import { conSegundos, formatoDiferencia, formatoSegundos } from '../utils';
 
 interface TablaReporteParadasProps {
   servicios: ReporteServicio[];
@@ -28,17 +30,11 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
   estadoFiltro,
   busqueda,
 }) => {
-  // Por defecto la primera ruta (índice 0) abierta y las demás colapsadas, como en el diseño de referencia
-  const [colapsados, setColapsados] = useState<Record<number, boolean>>(() => {
-    const init: Record<number, boolean> = {};
-    servicios.forEach((s, idx) => {
-      init[s.id] = idx !== 0; // Solo la primera abierta
-    });
-    return init;
-  });
+  // El primer servicio abierto y los demás colapsados.
+  const [abiertos, setAbiertos] = useState<Record<number, boolean>>({});
 
-  const toggleColapso = (id: number) => {
-    setColapsados((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleColapso = (id: number, abiertoActual: boolean) => {
+    setAbiertos((prev) => ({ ...prev, [id]: !abiertoActual }));
   };
 
   const query = normalizar(busqueda.trim());
@@ -66,9 +62,13 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
       return {
         ...s,
         paradasFiltradas,
+        coincideServicio: Boolean(coincideServicio),
       };
     })
-    .filter((s) => s.paradasFiltradas.length > 0);
+    // Sin filtros ni búsqueda se muestran todos los servicios (también los que aún no tienen paradas).
+    .filter((s) =>
+      estadoFiltro === 'TODOS' && !query ? true : s.paradasFiltradas.length > 0 || s.coincideServicio,
+    );
 
   if (serviciosFiltrados.length === 0) {
     return (
@@ -78,7 +78,7 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
         </div>
         <h3 className="mt-3 text-[14px] font-bold text-slate-800">No se encontraron registros</h3>
         <p className="mt-1 text-[12.5px] text-slate-500">
-          Ninguna parada o servicio coincide con los filtros seleccionados.
+          No hay servicios en el rango y con los filtros seleccionados.
         </p>
       </div>
     );
@@ -86,10 +86,10 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
 
   return (
     <div className="space-y-3">
-      {serviciosFiltrados.map((s) => {
-        const estaColapsado = colapsados[s.id] ?? false;
-        const totalParadas = s.paradas.length;
-        const pctPuntual = totalParadas > 0 ? Math.round((s.paradasATiempo / totalParadas) * 100) : 100;
+      {serviciosFiltrados.map((s, idx) => {
+        const estaColapsado = !(abiertos[s.id] ?? idx === 0);
+        const pctPuntual =
+          s.paradasCompletadas > 0 ? Math.round((s.paradasATiempo / s.paradasCompletadas) * 100) : 0;
 
         return (
           <div
@@ -98,25 +98,23 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
           >
             {/* Header de la ruta en blanco con metadata completa y resumen de puntualidad */}
             <div
-              onClick={() => toggleColapso(s.id)}
+              onClick={() => toggleColapso(s.id, !estaColapsado)}
               className={`flex cursor-pointer flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 text-slate-800 transition-colors hover:bg-slate-50/80 ${
                 !estaColapsado ? 'border-b border-slate-200' : ''
               }`}
             >
               <div className="flex flex-wrap items-center gap-3">
-                {/* Código de Ruta con badge suave */}
-                <span className="rounded bg-blue-50 border border-blue-200 px-2 py-0.5 font-mono text-[11.5px] font-bold text-blue-700">
-                  {s.rutaCodigo}
-                </span>
+                {/* Servicio: salida programada, fecha y estado */}
+                <span className="font-mono text-[15px] font-bold text-slate-900">{conSegundos(s.horaSalidaProgramada)}</span>
+                <span className="text-[12.5px] font-semibold text-slate-500">{s.fechaSalida}</span>
+                <EstadoChip estado={s.estadoServicio} />
 
-                {/* Nombre de la Ruta */}
-                <span className="text-[14px] font-bold text-slate-900">
+                {/* Ruta que cubre el servicio */}
+                <span className="flex items-center gap-1.5 text-[12.5px] text-slate-500">
+                  <span className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10.5px] font-bold text-slate-600">
+                    {s.rutaCodigo}
+                  </span>
                   {s.rutaNombre}
-                </span>
-
-                {/* Grupo / Operación */}
-                <span className="text-[12.5px] font-normal text-slate-500">
-                  {s.grupo}
                 </span>
 
                 <div className="hidden h-3.5 w-[1px] bg-slate-200 md:block" />
@@ -133,7 +131,12 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
                   </span>
                   <span className="flex items-center gap-1 font-mono text-slate-600">
                     <Clock className="h-3.5 w-3.5 text-slate-400" />
-                    Salida: <strong className="font-bold text-slate-900">{s.horaSalidaReal ?? s.horaSalidaProgramada}</strong>
+                    Salió: <strong className="font-bold text-slate-900">{s.horaSalidaReal ?? '—'}</strong>
+                    {s.horaLlegadaReal && (
+                      <>
+                        {' '}· Llegó: <strong className="font-bold text-slate-900">{s.horaLlegadaReal}</strong>
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
@@ -148,6 +151,9 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
                   <span className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-rose-500" />
                     {s.paradasRetrasadas} retrasos
+                  </span>
+                  <span className="text-slate-500">
+                    {s.paradasCompletadas}/{s.totalParadas} paradas
                   </span>
                 </div>
 
@@ -186,12 +192,18 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
               </span>
               <span className="flex items-center gap-1 font-mono text-slate-700">
                 <Clock className="h-3.5 w-3.5 text-slate-500" />
-                Salida: {s.horaSalidaReal ?? s.horaSalidaProgramada}
+                Salió: {s.horaSalidaReal ?? '—'}
               </span>
             </div>
 
             {/* Tabla detallada de paradas de la ruta */}
-            {!estaColapsado && (
+            {!estaColapsado && s.paradasFiltradas.length === 0 && (
+              <p className="px-4 py-5 text-center text-[12.5px] text-slate-500">
+                Este servicio no tiene paradas que coincidan con los filtros.
+              </p>
+            )}
+
+            {!estaColapsado && s.paradasFiltradas.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
@@ -245,7 +257,7 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
 
                           {/* Hora Programada */}
                           <td className="px-3 py-2.5 text-center font-mono text-slate-500">
-                            {p.horaProgramada}
+                            {conSegundos(p.horaProgramada)}
                           </td>
 
                           {/* Hora Llegada Real */}
@@ -260,19 +272,17 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
 
                           {/* Tiempo de Estancia */}
                           <td className="px-3 py-2.5 text-center font-medium text-slate-600">
-                            {p.tiempoPermanenciaMin !== null ? `${p.tiempoPermanenciaMin} min` : '—'}
+                            {formatoSegundos(p.tiempoPermanenciaSeg)}
                           </td>
 
                           {/* Diferencia */}
                           <td className="px-3 py-2.5 text-center font-mono font-bold">
-                            {p.diferenciaMinutos > 0 ? (
+                            {p.diferenciaSeg > 0 ? (
                               <span className={esRetrasado ? 'text-rose-600' : 'text-emerald-600'}>
-                                +{p.diferenciaMinutos} min
+                                {formatoDiferencia(p.diferenciaSeg)}
                               </span>
-                            ) : p.diferenciaMinutos < 0 ? (
-                              <span className="text-blue-600">
-                                {p.diferenciaMinutos} min
-                              </span>
+                            ) : p.diferenciaSeg < 0 ? (
+                              <span className="text-blue-600">{formatoDiferencia(p.diferenciaSeg)}</span>
                             ) : (
                               <span className="text-emerald-600">Exacto</span>
                             )}

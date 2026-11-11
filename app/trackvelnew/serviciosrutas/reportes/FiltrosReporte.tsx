@@ -8,21 +8,21 @@ import {
   FileText,
   X,
 } from 'lucide-react';
+import { EstadoServicio } from '../types';
 import { EstadoPuntualidad } from './types';
-import { getIsoToday } from '../utils';
+import { getIsoDesplazado, getIsoToday } from '../utils';
 
-interface RutaOpcion {
-  id: number;
-  codigo: string;
-  nombre: string;
-}
+export type FiltroEstadoServicio = 'TODOS' | EstadoServicio;
 
 interface FiltrosReporteProps {
-  fechaIso: string;
-  onFechaChange: (f: string) => void;
-  rutaId: number | 'TODAS';
-  onRutaChange: (id: number | 'TODAS') => void;
-  rutasOpciones: RutaOpcion[];
+  desdeIso: string;
+  hastaIso: string;
+  onRangoChange: (desde: string, hasta: string) => void;
+  estadoServicio: FiltroEstadoServicio;
+  onEstadoServicioChange: (e: FiltroEstadoServicio) => void;
+  unidad: string;
+  onUnidadChange: (u: string) => void;
+  unidades: string[];
   estadoFiltro: 'TODOS' | EstadoPuntualidad;
   onEstadoFiltroChange: (e: 'TODOS' | EstadoPuntualidad) => void;
   busqueda: string;
@@ -34,11 +34,14 @@ interface FiltrosReporteProps {
 }
 
 const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
-  fechaIso,
-  onFechaChange,
-  rutaId,
-  onRutaChange,
-  rutasOpciones,
+  desdeIso,
+  hastaIso,
+  onRangoChange,
+  estadoServicio,
+  onEstadoServicioChange,
+  unidad,
+  onUnidadChange,
+  unidades,
   estadoFiltro,
   onEstadoFiltroChange,
   busqueda,
@@ -49,26 +52,39 @@ const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
   exportandoPdf,
 }) => {
   const hoyIso = getIsoToday();
+  const ayerIso = getIsoDesplazado(-1);
+  const hace6Iso = getIsoDesplazado(-6);
 
-  const setFechaAyer = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    onFechaChange(`${yyyy}-${mm}-${dd}`);
-  };
+  const atajo = (activo: boolean) =>
+    `h-8 rounded-lg px-2.5 text-[11.5px] font-semibold transition-colors ${
+      activo ? 'bg-slate-200 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+    }`;
+
+  const campoFecha =
+    'flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-2xs hover:border-slate-300 cursor-pointer';
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 shadow-xs">
-      {/* Selector de Fecha y accesos rápidos */}
-      <div className="flex items-center gap-1.5">
-        <label className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-2xs hover:border-slate-300 cursor-pointer">
+      {/* Rango de fechas y accesos rápidos */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <label className={campoFecha} title="Desde">
           <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
           <input
             type="date"
-            value={fechaIso}
-            onChange={(e) => e.target.value && onFechaChange(e.target.value)}
+            value={desdeIso}
+            max={hastaIso}
+            onChange={(e) => e.target.value && onRangoChange(e.target.value, hastaIso)}
+            className="cursor-pointer bg-transparent text-[12px] font-semibold text-slate-800 outline-none"
+          />
+        </label>
+        <span className="text-[11px] font-semibold text-slate-400">al</span>
+        <label className={campoFecha} title="Hasta">
+          <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
+          <input
+            type="date"
+            value={hastaIso}
+            min={desdeIso}
+            onChange={(e) => e.target.value && onRangoChange(desdeIso, e.target.value)}
             className="cursor-pointer bg-transparent text-[12px] font-semibold text-slate-800 outline-none"
           />
         </label>
@@ -76,39 +92,52 @@ const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => onFechaChange(hoyIso)}
-            className={`h-8 rounded-lg px-2.5 text-[11.5px] font-semibold transition-colors ${
-              fechaIso === hoyIso
-                ? 'bg-slate-200 text-slate-900 font-bold'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            onClick={() => onRangoChange(hoyIso, hoyIso)}
+            className={atajo(desdeIso === hoyIso && hastaIso === hoyIso)}
           >
             Hoy
           </button>
           <button
             type="button"
-            onClick={setFechaAyer}
-            className="h-8 rounded-lg bg-slate-100 px-2.5 text-[11.5px] font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+            onClick={() => onRangoChange(ayerIso, ayerIso)}
+            className={atajo(desdeIso === ayerIso && hastaIso === ayerIso)}
           >
             Ayer
+          </button>
+          <button
+            type="button"
+            onClick={() => onRangoChange(hace6Iso, hoyIso)}
+            className={atajo(desdeIso === hace6Iso && hastaIso === hoyIso)}
+          >
+            7 días
           </button>
         </div>
       </div>
 
-      {/* Selector de Ruta */}
-      <div className="flex items-center">
+      {/* Estado del servicio y unidad */}
+      <div className="flex items-center gap-1.5">
         <select
-          value={rutaId}
-          onChange={(e) => {
-            const val = e.target.value;
-            onRutaChange(val === 'TODAS' ? 'TODAS' : Number(val));
-          }}
+          value={estadoServicio}
+          onChange={(e) => onEstadoServicioChange(e.target.value as FiltroEstadoServicio)}
+          title="Estado del servicio"
           className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none cursor-pointer"
         >
-          <option value="TODAS">Todas las rutas</option>
-          {rutasOpciones.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.codigo} - {r.nombre}
+          <option value="TODOS">Todos los servicios</option>
+          <option value="FINALIZADO">Finalizados</option>
+          <option value="EN_CURSO">En curso</option>
+          <option value="PROGRAMADO">Programados</option>
+          <option value="CANCELADO">Cancelados</option>
+        </select>
+        <select
+          value={unidad}
+          onChange={(e) => onUnidadChange(e.target.value)}
+          title="Unidad"
+          className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:outline-none cursor-pointer"
+        >
+          <option value="">Todas las unidades</option>
+          {unidades.map((u) => (
+            <option key={u} value={u}>
+              {u}
             </option>
           ))}
         </select>
@@ -173,7 +202,7 @@ const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
           type="text"
           value={busqueda}
           onChange={(e) => onBusquedaChange(e.target.value)}
-          placeholder="Buscar parada, placa, conductor o ruta"
+          placeholder="Buscar parada, placa o conductor"
           className="h-8 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-8 pr-7 text-[12px] text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
         {busqueda && (

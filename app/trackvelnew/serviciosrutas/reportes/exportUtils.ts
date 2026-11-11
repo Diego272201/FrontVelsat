@@ -1,6 +1,7 @@
 'use client';
 
 import ExcelJS from 'exceljs';
+import { conSegundos, formatoDiferencia, formatoSegundos } from '../utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { ReporteServicio, ResumenKpisData } from './types';
@@ -19,7 +20,7 @@ const ESTADO_LABEL: Record<string, string> = {
 export async function exportarExcelReporte(
   servicios: ReporteServicio[],
   fechaTexto: string,
-  filtroRutaTexto: string,
+  filtroTexto: string,
   kpis: ResumenKpisData,
 ): Promise<void> {
   const workbook = new ExcelJS.Workbook();
@@ -45,7 +46,7 @@ export async function exportarExcelReporte(
   // Metadata de la consulta
   sheet.mergeCells('A2:N2');
   const metaCell = sheet.getCell('A2');
-  metaCell.value = `Fecha de evaluación: ${fechaTexto}  |  Ruta: ${filtroRutaTexto}  |  Total Servicios: ${kpis.totalServicios}  |  Puntualidad Global: ${kpis.porcentajePuntualidad}%  |  Generado: ${new Date().toLocaleString('es-PE')}`;
+  metaCell.value = `Fecha de evaluación: ${fechaTexto}  |  Filtros: ${filtroTexto}  |  Total Servicios: ${kpis.totalServicios}  |  Puntualidad Global: ${kpis.porcentajePuntualidad}%  |  Generado: ${new Date().toLocaleString('es-PE')}`;
   metaCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF334155' } };
   metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
   metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -90,13 +91,9 @@ export async function exportarExcelReporte(
   for (const s of servicios) {
     for (const p of s.paradas) {
       const difTexto =
-        p.diferenciaMinutos === 0
-          ? '0 min'
-          : p.diferenciaMinutos > 0
-            ? `+${p.diferenciaMinutos} min`
-            : `${p.diferenciaMinutos} min`;
+        formatoDiferencia(p.diferenciaSeg);
 
-      const permTexto = p.tiempoPermanenciaMin !== null ? `${p.tiempoPermanenciaMin} min` : '—';
+      const permTexto = formatoSegundos(p.tiempoPermanenciaSeg);
 
       const row = sheet.addRow([
         s.rutaCodigo,
@@ -106,7 +103,7 @@ export async function exportarExcelReporte(
         p.orden,
         p.nombre,
         p.tipo,
-        p.horaProgramada,
+        conSegundos(p.horaProgramada),
         p.horaLlegadaReal ?? '—',
         permTexto,
         p.horaSalidaReal ?? '—',
@@ -212,7 +209,7 @@ export async function exportarExcelReporte(
       s.paradasAdelantadas,
       s.paradasRetrasadas,
       `${pct}%`,
-      `${s.tiempoTotalParadasMin} min`,
+      formatoSegundos(s.tiempoTotalParadasSeg),
     ]);
     r.height = 20;
     r.eachCell((c, colNum) => {
@@ -237,7 +234,7 @@ export async function exportarExcelReporte(
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Reporte_Cumplimiento_Rutas_${fechaTexto.replace(/\//g, '-')}.xlsx`;
+  a.download = `Reporte_Cumplimiento_Rutas_${fechaTexto.replace(/[\/\s]+/g, '-')}.xlsx`;
   a.click();
   window.URL.revokeObjectURL(url);
 }
@@ -248,7 +245,7 @@ export async function exportarExcelReporte(
 export async function exportarPdfReporte(
   servicios: ReporteServicio[],
   fechaTexto: string,
-  filtroRutaTexto: string,
+  filtroTexto: string,
   kpis: ResumenKpisData,
 ): Promise<void> {
   const doc = new jsPDF({
@@ -271,7 +268,7 @@ export async function exportarPdfReporte(
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    `Fecha: ${fechaTexto}   |   Ruta: ${filtroRutaTexto}   |   Generado: ${new Date().toLocaleString('es-PE')}`,
+    `Fecha: ${fechaTexto}   |   Filtros: ${filtroTexto}   |   Generado: ${new Date().toLocaleString('es-PE')}`,
     14,
     18,
   );
@@ -286,7 +283,7 @@ export async function exportarPdfReporte(
     { label: 'PARADAS TOTALES', val: `${kpis.totalParadas}`, color: [71, 85, 105] },
     { label: 'PUNTUALIDAD GLOBAL', val: `${kpis.porcentajePuntualidad}%`, color: [22, 163, 74] },
     { label: 'PARADAS RETRASADAS', val: `${kpis.paradasRetrasadas}`, color: [220, 38, 38] },
-    { label: 'PROMEDIO EN PARADA', val: `${kpis.promedioPermanenciaMin} min`, color: [202, 138, 4] },
+    { label: 'PROMEDIO EN PARADA', val: formatoSegundos(kpis.promedioPermanenciaSeg), color: [202, 138, 4] },
   ];
 
   kpisItems.forEach((item, i) => {
@@ -311,20 +308,16 @@ export async function exportarPdfReporte(
   for (const s of servicios) {
     for (const p of s.paradas) {
       const difTexto =
-        p.diferenciaMinutos === 0
-          ? '0 min'
-          : p.diferenciaMinutos > 0
-            ? `+${p.diferenciaMinutos}m`
-            : `${p.diferenciaMinutos}m`;
+        formatoDiferencia(p.diferenciaSeg);
 
-      const permTexto = p.tiempoPermanenciaMin !== null ? `${p.tiempoPermanenciaMin} min` : '—';
+      const permTexto = formatoSegundos(p.tiempoPermanenciaSeg);
 
       bodyData.push([
         s.rutaCodigo,
         s.deviceID,
         p.orden,
         p.nombre,
-        p.horaProgramada,
+        conSegundos(p.horaProgramada),
         p.horaLlegadaReal ?? '—',
         permTexto,
         p.horaSalidaReal ?? '—',
@@ -412,5 +405,5 @@ export async function exportarPdfReporte(
     },
   });
 
-  doc.save(`Reporte_Cumplimiento_Rutas_${fechaTexto.replace(/\//g, '-')}.pdf`);
+  doc.save(`Reporte_Cumplimiento_Rutas_${fechaTexto.replace(/[\/\s]+/g, '-')}.pdf`);
 }

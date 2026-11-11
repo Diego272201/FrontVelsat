@@ -15,6 +15,7 @@ import {
   SIN_GRUPO,
   Sentido,
 } from './types';
+import type { ReporteServiciosApi } from './reportes/types';
 import { isoToDdMmYyyy } from './utils';
 
 // Capa de acceso a api/servicios-rutas/{accountId}/... (backend). La cuenta va en la URL
@@ -173,6 +174,20 @@ export function useServiciosRutasApi() {
           params: { desde: fecha, hasta: fecha },
         });
         return data.map(aServicio);
+      },
+
+      // Reporte por servicio: servicios del rango con sus paraderos y los totales, en una sola llamada.
+      async getReporteServicios(desdeIso: string, hastaIso: string): Promise<ReporteServiciosApi> {
+        const { data } = await axios.get<ReporteServiciosApi>(`${raiz}/reportes/servicios`, {
+          params: { desde: isoToDdMmYyyy(desdeIso), hasta: isoToDdMmYyyy(hastaIso) },
+        });
+        return data;
+      },
+
+      // Tolerancia (± minutos) para considerar un paradero "a tiempo".
+      async getTolerancia(): Promise<number> {
+        const { data } = await axios.get<{ toleranciaMin?: number }>(`${raiz}/configuracion`);
+        return data?.toleranciaMin ?? 5;
       },
 
       async crearServicio(form: NuevoServicioForm): Promise<void> {
