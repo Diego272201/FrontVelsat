@@ -97,6 +97,8 @@ interface MapaRutasProps {
   foco: FocoMapa | null;
   /** Ancho que tapa el panel flotante de la derecha, para encuadrar las rutas a su izquierda. */
   margenDerecho: number;
+  /** IDs de rutas a enfocar específicamente al encuadrar (por ejemplo al hacer clic en un grupo). */
+  encuadreIds?: number[] | null;
   /** Al cambiar, el mapa vuelve a encuadrar (selección, rutas visibles, carga de datos). */
   claveEncuadre: string;
   /** Botones extra arriba a la izquierda (p. ej. abrir la lista en móvil). */
@@ -115,6 +117,7 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
   onSeleccionar,
   foco,
   margenDerecho,
+  encuadreIds,
   claveEncuadre,
   accesosIzquierda,
 }) => {
@@ -130,8 +133,8 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
   // Los handlers de Leaflet se crean una vez por dibujo: leen siempre la última versión.
   const onSeleccionarRef = useRef(onSeleccionar);
   onSeleccionarRef.current = onSeleccionar;
-  const datosRef = useRef({ rutas, seleccionadaId, margenDerecho });
-  datosRef.current = { rutas, seleccionadaId, margenDerecho };
+  const datosRef = useRef({ rutas, seleccionadaId, margenDerecho, encuadreIds });
+  datosRef.current = { rutas, seleccionadaId, margenDerecho, encuadreIds };
 
   useEffect(() => {
     if (mapRef.current || !mapDivRef.current) return;
@@ -480,12 +483,15 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
     const {
       rutas: todas,
       seleccionadaId: sel,
+      encuadreIds: encIds,
       margenDerecho: margen,
     } = datosRef.current;
     const objetivo =
       sel !== null && todas.some((r) => r.id === sel)
         ? todas.filter((r) => r.id === sel)
-        : todas;
+        : encIds && encIds.length > 0 && todas.some((r) => encIds.includes(r.id))
+          ? todas.filter((r) => encIds.includes(r.id))
+          : todas;
     const puntos: L.LatLngExpression[] = objetivo.flatMap((r) => [
       ...lineaDe(r),
       ...r.paraderos.map((p) => [p.latitud, p.longitud] as [number, number]),

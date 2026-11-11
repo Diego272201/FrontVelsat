@@ -289,7 +289,16 @@ const ServiciosRutasView: React.FC = () => {
 
   const panelVisible = seleccionada !== null || panelAbierto;
   const margenDerecho = esEscritorio && panelVisible ? ANCHO_PANEL : 0;
-  const claveEncuadre = `${seleccionadaId ?? 'todas'}|${rutasVisibles.map((r) => r.id).join(',')}|${
+
+  const [grupoEnfocado, setGrupoEnfocado] = useState<string | null>(null);
+  const [timestampFocoGrupo, setTimestampFocoGrupo] = useState<number>(0);
+
+  const encuadreIds = useMemo(() => {
+    if (!grupoEnfocado) return null;
+    return rutas.filter((r) => r.grupo === grupoEnfocado).map((r) => r.id);
+  }, [grupoEnfocado, rutas]);
+
+  const claveEncuadre = `${seleccionadaId ?? 'todas'}|${grupoEnfocado ?? 'todos-grupos'}|${timestampFocoGrupo}|${rutasVisibles.map((r) => r.id).join(',')}|${
     Object.keys(detalles).length
   }|${margenDerecho}`;
 
@@ -343,6 +352,29 @@ const ServiciosRutasView: React.FC = () => {
     // Si se oculta la ruta abierta, se cierra su detalle.
     if (!visible && seleccionadaId !== null && ids.includes(seleccionadaId))
       cerrarRuta();
+  };
+
+  const enfocarGrupo = (grupo: string, ids: number[]) => {
+    // Si ya estaba enfocado este grupo, se desenfoca para encuadrar todas las rutas visibles
+    const nuevoGrupo = grupoEnfocado === grupo ? null : grupo;
+    setGrupoEnfocado(nuevoGrupo);
+    setTimestampFocoGrupo(Date.now());
+
+    // Si había alguna ruta del grupo oculta, la hacemos visible para que se vea en el mapa,
+    // pero SIN ocultar ninguna de las demás rutas (todos los demás grupos siguen visibles)
+    if (nuevoGrupo !== null) {
+      setOcultas((prev) => {
+        const hayOcultaDelGrupo = ids.some((id) => prev.has(id));
+        if (!hayOcultaDelGrupo) return prev;
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }
+
+    if (seleccionadaId !== null) {
+      cerrarRuta();
+    }
   };
 
   const enfocarParadero = (p: Paradero) =>
@@ -495,6 +527,8 @@ const ServiciosRutasView: React.FC = () => {
             cargando={cargandoRutas}
             ocultas={ocultas}
             onCambiarVisibles={cambiarVisibles}
+            onEnfocarGrupo={enfocarGrupo}
+            grupoEnfocado={grupoEnfocado}
             seleccionadaId={seleccionadaId}
             onSeleccionar={seleccionarRuta}
             onResaltar={setResaltadaId}
@@ -516,6 +550,7 @@ const ServiciosRutasView: React.FC = () => {
             onSeleccionar={seleccionarRuta}
             foco={foco}
             margenDerecho={margenDerecho}
+            encuadreIds={encuadreIds}
             claveEncuadre={claveEncuadre}
             accesosIzquierda={
               <button

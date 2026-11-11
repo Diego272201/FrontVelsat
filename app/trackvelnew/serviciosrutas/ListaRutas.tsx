@@ -19,6 +19,8 @@ interface ListaRutasProps {
   cargando: boolean;
   ocultas: ReadonlySet<number>;
   onCambiarVisibles: (ids: number[], visible: boolean) => void;
+  onEnfocarGrupo: (grupo: string, ids: number[]) => void;
+  grupoEnfocado: string | null;
   seleccionadaId: number | null;
   onSeleccionar: (id: number) => void;
   onResaltar: (id: number | null) => void;
@@ -61,6 +63,8 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
   cargando,
   ocultas,
   onCambiarVisibles,
+  onEnfocarGrupo,
+  grupoEnfocado,
   seleccionadaId,
   onSeleccionar,
   onResaltar,
@@ -96,15 +100,15 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
   return (
     <div className="flex h-full flex-col bg-white">
       {/* Búsqueda */}
-      <div className="border-b border-slate-200 p-3">
+      <div className="border-b border-slate-200 p-2.5">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={busqueda}
             onChange={(e) => onBuscar(e.target.value)}
-            placeholder="Buscar ruta o parada"
-            className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-8 text-[12.5px] text-slate-800 placeholder:text-slate-400 focus:border-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-blue-100"
+            placeholder="Buscar ruta o parada..."
+            className="h-8 w-full rounded-md border border-slate-300 bg-white pl-8 pr-8 text-[12px] text-slate-800 placeholder:text-slate-400 focus:border-[#1E40AF] focus:outline-none focus:ring-1 focus:ring-[#1E40AF]"
           />
           {busqueda && (
             <button
@@ -148,23 +152,54 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
               ? `${items.length} ${items.length === 1 ? 'origen' : 'orígenes'} → ${destinos[0].nombre}`
               : `${items.length} ruta${items.length === 1 ? '' : 's'}`;
 
+          const esGrupoEnfocado = grupoEnfocado === grupo;
+
           return (
             <div key={grupo}>
-              <div className="sticky top-0 z-[1] flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
+              {/* Al hacer clic en el encabezado se centra el mapa en este grupo (sin ocultar los demás) */}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onEnfocarGrupo(grupo, ids)}
+                title={
+                  esGrupoEnfocado
+                    ? 'Centrado en este grupo. Haz clic para reencuadrar todas las rutas'
+                    : `Haz clic para centrar el mapa en ${grupo}`
+                }
+                className={`sticky top-0 z-[1] flex cursor-pointer select-none items-center gap-2.5 border-b border-slate-200 px-3 py-2 transition-colors ${
+                  esGrupoEnfocado
+                    ? 'border-l-[3px] border-l-[#1E40AF] bg-blue-50/80 hover:bg-blue-100/60'
+                    : 'bg-slate-50 hover:bg-slate-100'
+                }`}
+              >
                 <Casilla
                   marcada={enMapa === ids.length}
                   indeterminada={enMapa > 0 && enMapa < ids.length}
                   onCambiar={() => onCambiarVisibles(ids, enMapa < ids.length)}
-                  titulo="Mostrar / ocultar todo el grupo en el mapa"
+                  titulo="Mostrar / ocultar grupo en el mapa"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-bold text-slate-800">{grupo}</div>
-                  <div className="truncate text-[11px] text-slate-500" title={subtitulo}>
+                  <div
+                    className={`truncate text-[12.5px] font-bold ${
+                      esGrupoEnfocado ? 'text-[#1E40AF]' : 'text-slate-800'
+                    }`}
+                  >
+                    {grupo}
+                  </div>
+                  <div className="truncate text-[10.5px] text-slate-500" title={subtitulo}>
                     {subtitulo}
                   </div>
                 </div>
-                <span className="shrink-0 rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-[#1E40AF] ring-1 ring-blue-100">
-                  {enMapa} / {ids.length} en mapa
+
+                <span
+                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10.5px] font-bold transition-colors ${
+                    esGrupoEnfocado
+                      ? 'bg-[#1E40AF] text-white shadow-2xs'
+                      : 'bg-blue-50 text-[#1E40AF] ring-1 ring-blue-100'
+                  }`}
+                  title={`${enMapa} de ${ids.length} rutas visibles en el mapa`}
+                >
+                  {enMapa}/{ids.length}
                 </span>
               </div>
 
@@ -193,7 +228,7 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                         ? ({ backgroundColor: r.color, '--sr-vivo-txt': textoSobre(r.color) } as React.CSSProperties)
                         : undefined
                     }
-                    className={`relative flex cursor-pointer items-center gap-3 border-b border-slate-100 px-3 py-2.5 outline-none transition-colors ${
+                    className={`relative flex cursor-pointer items-center gap-2.5 border-b border-slate-100 px-2.5 py-2 outline-none transition-colors ${
                       enVivo
                         ? 'sr-vivo hover:brightness-95 focus-visible:brightness-95'
                         : `focus-visible:bg-blue-50 ${seleccionada ? 'bg-blue-50/70' : 'hover:bg-slate-50'}`
@@ -208,7 +243,7 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                       titulo={visible ? 'Ocultar del mapa' : 'Mostrar en el mapa'}
                     />
                     <span
-                      className="h-8 w-[3px] shrink-0 rounded-full"
+                      className="h-7 w-[3px] shrink-0 rounded-full"
                       style={{
                         backgroundColor: enVivo ? textoSobre(r.color) : r.color,
                         opacity: visible ? 1 : 0.35,
@@ -219,14 +254,14 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                         <span className="shrink-0 font-mono text-[11px] font-semibold text-slate-400">
                           {r.codigo}
                         </span>
-                        <span className="truncate text-[12.5px] font-semibold text-slate-800">{r.nombre}</span>
+                        <span className="truncate text-[12px] font-semibold text-slate-800">{r.nombre}</span>
                       </div>
-                      <div className="truncate text-[11px] text-slate-500">
+                      <div className="truncate text-[10.5px] text-slate-500">
                         {r.cantidadParaderos} paradas · {formatoKm(r.distanciaKm)} ·{' '}
                         {ref ? `llega ${sumarMinutos(ref.horaSalida, r.duracionMin)}` : formatoDuracion(r.duracionMin)}
                       </div>
                       {parada && (
-                        <div className="mt-0.5 flex items-center gap-1 truncate text-[11px] font-medium text-[#1E40AF]">
+                        <div className="mt-0.5 flex items-center gap-1 truncate text-[10.5px] font-medium text-[#1E40AF]">
                           <MapPin className="h-3 w-3 shrink-0" />
                           <span className="truncate">{parada}</span>
                         </div>
@@ -241,7 +276,7 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
       </div>
 
       {/* Pie */}
-      <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-3 py-2.5 text-[11.5px] text-slate-500">
+      <div className="flex items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 text-[11.5px] text-slate-500">
         <span>
           En mapa <b className="text-slate-800">{visiblesTotal}</b> de {rutas.length} rutas
         </span>
@@ -254,7 +289,7 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
               visiblesTotal < rutas.length,
             )
           }
-          className="rounded-md border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="rounded-md border border-slate-300 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           {visiblesTotal < rutas.length ? 'Mostrar todas' : 'Ocultar todas'}
         </button>
