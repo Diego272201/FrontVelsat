@@ -232,18 +232,6 @@ const ListaRutas: React.FC<ListaRutasProps> = ({
                         </div>
                       )}
                     </div>
-                    {resumen && resumen.total > 0 && (
-                      <span
-                        title={`${resumen.total} servicio${resumen.total === 1 ? '' : 's'} el día elegido${
-                          resumen.enCurso ? ` · ${resumen.enCurso} en curso` : ''
-                        }`}
-                        className={`flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold ${
-                          resumen.enCurso ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {resumen.total}
-                      </span>
-                    )}
                   </div>
                 );
               })}

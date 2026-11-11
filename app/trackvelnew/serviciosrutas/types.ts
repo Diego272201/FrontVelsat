@@ -36,10 +36,6 @@ export interface Ruta {
   grupo: string;
   /** Cada sentido es una ruta propia (con su trazado y paraderos). */
   sentido: Sentido;
-  /** Ruta del sentido contrario (null si no tiene). Se enlaza en las dos rutas. */
-  rutaParejaId: number | null;
-  rutaParejaCodigo: string | null;
-  rutaParejaNombre: string | null;
   descripcion?: string | null;
   distanciaKm: number | null;
   activo: boolean;

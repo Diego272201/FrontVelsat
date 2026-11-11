@@ -27,9 +27,6 @@ interface RutaApi {
   nombre: string;
   grupo?: string | null;
   sentido?: Sentido | null;
-  rutaParejaId?: number | null;
-  rutaParejaCodigo?: string | null;
-  rutaParejaNombre?: string | null;
   descripcion?: string | null;
   distanciaKm?: number | null;
   activo: boolean;
@@ -70,8 +67,6 @@ export interface RutaGuardar {
   nombre: string;
   grupo: string;
   sentido: Sentido;
-  /** null = sin pareja (al editar, desenlaza la que tenía). */
-  rutaParejaId: number | null;
   descripcion: string | null;
   distanciaKm: number | null;
   paraderos: ParaderoGuardar[];
@@ -88,9 +83,6 @@ const aRuta = (r: RutaApi): Ruta => ({
   nombre: r.nombre,
   grupo: r.grupo?.trim() ? r.grupo : SIN_GRUPO,
   sentido: r.sentido === 'REGRESO' ? 'REGRESO' : 'IDA',
-  rutaParejaId: r.rutaParejaId ?? null,
-  rutaParejaCodigo: r.rutaParejaCodigo ?? null,
-  rutaParejaNombre: r.rutaParejaNombre ?? null,
   descripcion: r.descripcion ?? null,
   distanciaKm: r.distanciaKm ?? null,
   activo: r.activo,
@@ -190,6 +182,11 @@ export function useServiciosRutasApi() {
         return data?.toleranciaMin ?? 5;
       },
 
+      async setTolerancia(toleranciaMin: number): Promise<number> {
+        const { data } = await axios.put<{ toleranciaMin?: number }>(`${raiz}/configuracion`, { toleranciaMin });
+        return data?.toleranciaMin ?? toleranciaMin;
+      },
+
       async crearServicio(form: NuevoServicioForm): Promise<void> {
         await axios.post(`${raiz}/servicios`, cuerpoServicio(form));
       },
@@ -263,7 +260,6 @@ function cuerpoRuta(ruta: RutaGuardar) {
     // "Sin grupo" es solo una etiqueta del front: en la base va NULL.
     grupo: ruta.grupo === SIN_GRUPO ? null : ruta.grupo,
     sentido: ruta.sentido,
-    rutaParejaId: ruta.rutaParejaId,
     descripcion: ruta.descripcion,
     distanciaKm: ruta.distanciaKm,
     paraderos: ruta.paraderos,

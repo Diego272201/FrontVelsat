@@ -14,11 +14,13 @@ import {
   Plus,
   Route as RouteIcon,
   Settings2,
+  Timer,
 } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import ListaRutas, { ResumenRuta } from './ListaRutas';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import ModalReprogramar, { ReprogramarForm } from './ModalReprogramar';
+import ModalTolerancia from './ModalTolerancia';
 import PanelRuta from './PanelRuta';
 import PanelServicios from './PanelServicios';
 import type { FocoMapa } from './MapaRutas';
@@ -96,6 +98,10 @@ const ServiciosRutasView: React.FC = () => {
   );
   const [servicioReprogramando, setServicioReprogramando] =
     useState<Servicio | null>(null);
+
+  // Tolerancia general (± minutos para considerar "a tiempo" la llegada a un paradero)
+  const [toleranciaMin, setToleranciaMin] = useState<number | null>(null);
+  const [modalTolerancia, setModalTolerancia] = useState(false);
 
   /* ------------------------------------------------------------------ */
   /* Carga                                                               */
@@ -377,6 +383,25 @@ const ServiciosRutasView: React.FC = () => {
     setShowModalNuevo(true);
   };
 
+  // La tolerancia se pide una sola vez al entrar.
+  useEffect(() => {
+    if (!api.listo) return;
+    api.getTolerancia().then(setToleranciaMin).catch(() => undefined);
+  }, [api]);
+
+  const guardarTolerancia = async (minutos: number) => {
+    setGuardando(true);
+    try {
+      setToleranciaMin(await api.setTolerancia(minutos));
+      toast.success('Tolerancia actualizada');
+      setModalTolerancia(false);
+    } catch (error) {
+      toast.error(mensajeError(error, 'No se pudo guardar la tolerancia'));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const confirmarReprogramacion = async (form: ReprogramarForm) => {
     if (!servicioReprogramando) return;
     setGuardando(true);
@@ -498,6 +523,18 @@ const ServiciosRutasView: React.FC = () => {
               Hoy
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setModalTolerancia(true)}
+            disabled={toleranciaMin === null}
+            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10 disabled:opacity-60"
+            title="Tolerancia para considerar un paradero a tiempo (configuración general)"
+          >
+            <Timer className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">
+              Tolerancia{toleranciaMin !== null ? `: ±${toleranciaMin} min` : ''}
+            </span>
+          </button>
           <Link
             href="/trackvelnew/serviciosrutas/reportes"
             target="_blank"
@@ -632,6 +669,14 @@ const ServiciosRutasView: React.FC = () => {
         rutaInicial={rutaInicial}
         guardando={guardando}
         onGuardar={handleGuardarServicio}
+      />
+
+      <ModalTolerancia
+        isOpen={modalTolerancia}
+        valorActual={toleranciaMin ?? 5}
+        guardando={guardando}
+        onClose={() => setModalTolerancia(false)}
+        onGuardar={guardarTolerancia}
       />
 
       <ModalReprogramar

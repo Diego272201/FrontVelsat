@@ -20,8 +20,6 @@ export interface RutaForm {
   nombre: string;
   grupo: string;
   sentido: Sentido;
-  /** id de la ruta pareja como texto del <select>; '' = sin pareja. */
-  rutaParejaId: string;
   descripcion: string;
   distanciaKm: string;
   paraderos: ParaderoForm[];
@@ -63,7 +61,6 @@ export const formDesdeRuta = (
     nombre: ruta?.nombre ?? '',
     grupo: ruta?.grupo ?? grupos[0] ?? '',
     sentido: ruta?.sentido ?? 'IDA',
-    rutaParejaId: ruta?.rutaParejaId != null ? String(ruta.rutaParejaId) : '',
     descripcion: ruta?.descripcion ?? '',
     distanciaKm:
       distanciaDesdeTrazado ??
@@ -88,7 +85,6 @@ export const rutaFormAGuardar = (form: RutaForm): RutaGuardar => ({
   nombre: form.nombre.trim(),
   grupo: form.grupo.trim(),
   sentido: form.sentido,
-  rutaParejaId: form.rutaParejaId ? Number(form.rutaParejaId) : null,
   descripcion: form.descripcion.trim() || null,
   distanciaKm: form.distanciaKm.trim() === '' ? null : Number(form.distanciaKm),
   trazado: form.trazado,

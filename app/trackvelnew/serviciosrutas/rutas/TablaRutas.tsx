@@ -23,7 +23,7 @@ const MensajeFila: React.FC<{ texto: string }> = ({ texto }) => (
   </tr>
 );
 
-// Listado de rutas con su sentido, pareja, estado y acceso al editor.
+// Listado de rutas con su sentido, estado y acceso al editor.
 const TablaRutas: React.FC<TablaRutasProps> = ({
   rutas,
   cargando,
@@ -38,7 +38,6 @@ const TablaRutas: React.FC<TablaRutasProps> = ({
           <th className="px-4 py-2.5 font-semibold">Ruta</th>
           <th className="px-3 py-2.5 font-semibold">Grupo</th>
           <th className="px-3 py-2.5 font-semibold">Sentido</th>
-          <th className="px-3 py-2.5 font-semibold">Pareja</th>
           <th className="px-3 py-2.5 text-right font-semibold">Paraderos</th>
           <th className="px-3 py-2.5 text-right font-semibold">Duración</th>
           <th className="px-3 py-2.5 text-right font-semibold">Distancia</th>
@@ -77,7 +76,6 @@ const TablaRutas: React.FC<TablaRutasProps> = ({
                 {r.sentido === 'REGRESO' ? 'Regreso' : 'Ida'}
               </span>
             </td>
-            <td className="px-3 py-2.5">{r.rutaParejaCodigo ?? '—'}</td>
             <td className="px-3 py-2.5 text-right tabular-nums">
               {r.cantidadParaderos}
             </td>

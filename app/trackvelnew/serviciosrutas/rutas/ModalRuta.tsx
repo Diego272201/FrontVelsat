@@ -67,7 +67,7 @@ interface ModalRutaProps {
   /** null = ruta nueva. */
   ruta: Ruta | null;
   grupos: readonly string[];
-  /** Rutas existentes: de ahí se elige la pareja (la del sentido contrario). */
+  /** Rutas existentes: de ahí se puede copiar el trazado de otra ruta. */
   rutas: readonly Ruta[];
   guardando?: boolean;
   onGuardar: (form: RutaForm) => void;
@@ -250,9 +250,8 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
   const setCampo = <K extends keyof RutaForm>(campo: K, valor: RutaForm[K]) =>
     setForm((prev) => ({ ...prev, [campo]: valor }));
 
-  // La pareja elegida deja de valer si el sentido cambia (tendría el mismo sentido que esta ruta).
   const cambiarSentido = (sentido: Sentido) =>
-    setForm((prev) => ({ ...prev, sentido, rutaParejaId: '' }));
+    setForm((prev) => ({ ...prev, sentido }));
 
   const setParaderoPorUid = useCallback(
     (uid: string, cambios: Partial<ParaderoForm>) => {
@@ -553,9 +552,7 @@ const Editor: React.FC<Omit<ModalRutaProps, 'isOpen'>> = ({
               <>
                 <DatosRutaForm
                   form={form}
-                  ruta={ruta}
                   grupos={grupos}
-                  rutas={rutas}
                   abierto={datosAbiertos}
                   onToggle={() => setDatosAbiertos((v) => !v)}
                   nuevoGrupo={nuevoGrupo}

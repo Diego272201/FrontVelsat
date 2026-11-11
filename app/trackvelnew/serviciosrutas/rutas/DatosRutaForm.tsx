@@ -2,17 +2,14 @@
 
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Ruta, Sentido } from '../types';
+import { Sentido } from '../types';
 import { RutaForm } from './formRuta';
 
 const NUEVO_GRUPO = '__nuevo_grupo__';
 
 interface DatosRutaFormProps {
   form: RutaForm;
-  /** Ruta que se edita (null = nueva): se excluye de las candidatas a pareja. */
-  ruta: Ruta | null;
   grupos: readonly string[];
-  rutas: readonly Ruta[];
   abierto: boolean;
   onToggle: () => void;
   nuevoGrupo: boolean;
@@ -29,9 +26,7 @@ const labelCompacto =
 // Sección compacta y plegable con los datos generales de la ruta
 const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
   form,
-  ruta,
   grupos,
-  rutas,
   abierto,
   onToggle,
   nuevoGrupo,
@@ -39,12 +34,6 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
   onCampo,
   onCambiarSentido,
 }) => {
-  // Candidatas a pareja: rutas del sentido contrario (nunca la propia).
-  const sentidoContrario: Sentido = form.sentido === 'IDA' ? 'REGRESO' : 'IDA';
-  const candidatasPareja = rutas.filter(
-    (r) => r.sentido === sentidoContrario && r.id !== ruta?.id,
-  );
-
   return (
     <div className="border-b border-slate-200 bg-white">
       {/* Barra de cabecera compacta tipo acordeón */}
@@ -182,27 +171,7 @@ const DatosRutaForm: React.FC<DatosRutaFormProps> = ({
               />
             </div>
 
-            {/* Fila 4: Ruta Pareja y Descripción */}
-            <div>
-              <label
-                className={labelCompacto}
-                title={`Ruta de ${form.sentido === 'IDA' ? 'regreso' : 'ida'} (pareja)`}
-              >
-                Pareja ({form.sentido === 'IDA' ? 'Regreso' : 'Ida'})
-              </label>
-              <select
-                className={inputCompacto}
-                value={form.rutaParejaId}
-                onChange={(e) => onCampo('rutaParejaId', e.target.value)}
-              >
-                <option value="">Sin pareja</option>
-                {candidatasPareja.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.codigo} · {r.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Fila 4: Descripción */}
             <div>
               <label className={labelCompacto}>Descripción</label>
               <input
