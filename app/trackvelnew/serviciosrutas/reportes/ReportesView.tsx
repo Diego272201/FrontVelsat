@@ -16,28 +16,30 @@ import { exportarExcelReporte, exportarPdfReporte } from './exportUtils';
 import FiltrosReporte, { FiltroEstadoServicio } from './FiltrosReporte';
 import ResumenKpis from './ResumenKpis';
 import TablaReporteParadas from './TablaReporteParadas';
-import TabsRutasReporte, { TabRuta } from './TabsRutasReporte';
+import NavegadorGruposRutas, { GrupoItemInfo, RutaItemInfo } from './NavegadorGruposRutas';
 import { getIsoToday, isoToDdMmYyyy } from '../utils';
 
 const ReportesView: React.FC = () => {
   const api = useServiciosRutasApi();
 
-  // Filtros: los reportes son por servicio (rango de fechas, estado del servicio y unidad).
+  // Filtros: rango de fechas, estado del servicio, unidad, estado de puntualidad y búsqueda
   const [desdeIso, setDesdeIso] = useState<string>(getIsoToday());
   const [hastaIso, setHastaIso] = useState<string>(getIsoToday());
   const [estadoServicio, setEstadoServicio] = useState<FiltroEstadoServicio>('TODOS');
   const [unidad, setUnidad] = useState<string>('');
   const [estadoFiltro, setEstadoFiltro] = useState<'TODOS' | EstadoPuntualidad>('TODOS');
   const [busqueda, setBusqueda] = useState<string>('');
-  // Pestaña: todos los servicios o los de una sola ruta.
-  const [tabRutaId, setTabRutaId] = useState<number | 'TODOS'>('TODOS');
+
+  // Filtro jerárquico por Grupo y por Ruta
+  const [grupoFiltro, setGrupoFiltro] = useState<string | 'TODOS'>('TODOS');
+  const [rutaFiltro, setRutaFiltro] = useState<number | 'TODOS'>('TODOS');
 
   // Datos
   const [toleranciaMin, setToleranciaMin] = useState<number>(5);
   // Todo lo que trajo el API para el rango de fechas. Estado, unidad y puntualidad filtran sobre esto.
   const [cargados, setCargados] = useState<ReporteServicio[]>([]);
-  // Rutas activas de la cuenta (una pestaña por cada una). Se piden una sola vez al entrar.
-  const [rutasCuenta, setRutasCuenta] = useState<{ id: number; codigo: string; nombre: string }[]>([]);
+  // Rutas activas de la cuenta con su grupo.
+  const [rutasCuenta, setRutasCuenta] = useState<{ id: number; codigo: string; nombre: string; grupo: string }[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [exportandoExcel, setExportandoExcel] = useState<boolean>(false);
   const [exportandoPdf, setExportandoPdf] = useState<boolean>(false);
@@ -47,16 +49,33 @@ const ReportesView: React.FC = () => {
     setHastaIso(hasta < desde ? desde : hasta);
   };
 
+  const handleLimpiarFiltros = useCallback(() => {
+    setEstadoServicio('TODOS');
+    setUnidad('');
+    setEstadoFiltro('TODOS');
+    setBusqueda('');
+    setGrupoFiltro('TODOS');
+    setRutaFiltro('TODOS');
+  }, []);
+
   useEffect(() => {
     if (!api.listo) return;
     api
       .getRutas(false)
-      .then((lista) => setRutasCuenta(lista.map((r) => ({ id: r.id, codigo: r.codigo, nombre: r.nombre }))))
+      .then((lista) =>
+        setRutasCuenta(
+          lista.map((r) => ({
+            id: r.id,
+            codigo: r.codigo,
+            nombre: r.nombre,
+            grupo: r.grupo?.trim() ? r.grupo.trim() : 'Sin grupo',
+          })),
+        ),
+      )
       .catch(() => undefined);
   }, [api]);
 
-  // El API se consulta solo al entrar, al cambiar el rango de fechas o con el botón de actualizar:
-  // una llamada trae los servicios del rango con sus paraderos. Los demás filtros se aplican en pantalla.
+  // El API se consulta al entrar, al cambiar el rango de fechas o con el botón de actualizar.
   const cargarDatos = useCallback(async () => {
     if (!api.listo) return;
     setCargando(true);
@@ -76,7 +95,7 @@ const ReportesView: React.FC = () => {
     cargarDatos();
   }, [cargarDatos]);
 
-  // Unidades presentes en lo cargado (para el filtro).
+  // Unidades presentes en lo cargado (para el filtro de vehículos).
   const unidades = useMemo(
     () => Array.from(new Set(cargados.map((s) => s.deviceID))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
     [cargados],
@@ -87,7 +106,7 @@ const ReportesView: React.FC = () => {
     if (unidad && !cargando && !unidades.includes(unidad)) setUnidad('');
   }, [unidad, unidades, cargando]);
 
-  // Estado del servicio y unidad filtran sobre lo cargado; la pestaña de ruta se aplica encima.
+  // Estado del servicio y unidad filtran sobre lo cargado.
   const filtrados = useMemo(
     () =>
       cargados.filter(
@@ -96,29 +115,73 @@ const ReportesView: React.FC = () => {
     [cargados, estadoServicio, unidad],
   );
 
-  // Una pestaña por ruta: las de la cuenta más las que aparezcan en los servicios cargados.
-  const tabs = useMemo<TabRuta[]>(() => {
-    const porId = new Map<number, { codigo: string; nombre: string }>();
-    rutasCuenta.forEach((r) => porId.set(r.id, { codigo: r.codigo, nombre: r.nombre }));
-    cargados.forEach((s) => {
-      if (!porId.has(s.rutaId)) porId.set(s.rutaId, { codigo: s.rutaCodigo, nombre: s.rutaNombre });
+  // Construcción de la jerarquía de Grupos y sus Rutas
+  const gruposInfo = useMemo<GrupoItemInfo[]>(() => {
+    const mapaRutas = new Map<number, { codigo: string; nombre: string; grupo: string }>();
+    rutasCuenta.forEach((r) => {
+      mapaRutas.set(r.id, { codigo: r.codigo, nombre: r.nombre, grupo: r.grupo });
     });
-    const cuenta = new Map<number, number>();
-    filtrados.forEach((s) => cuenta.set(s.rutaId, (cuenta.get(s.rutaId) ?? 0) + 1));
-    return Array.from(porId, ([id, r]) => ({ id, ...r, cantidad: cuenta.get(id) ?? 0 })).sort((a, b) =>
-      a.codigo.localeCompare(b.codigo, undefined, { numeric: true }),
-    );
+    cargados.forEach((s) => {
+      if (!mapaRutas.has(s.rutaId)) {
+        mapaRutas.set(s.rutaId, { codigo: s.rutaCodigo, nombre: s.rutaNombre, grupo: s.grupo || 'Sin grupo' });
+      }
+    });
+
+    const cuentaServicios = new Map<number, number>();
+    filtrados.forEach((s) => {
+      cuentaServicios.set(s.rutaId, (cuentaServicios.get(s.rutaId) ?? 0) + 1);
+    });
+
+    const mapaGrupos = new Map<string, RutaItemInfo[]>();
+    mapaRutas.forEach((info, rutaId) => {
+      const g = info.grupo || 'Sin grupo';
+      if (!mapaGrupos.has(g)) mapaGrupos.set(g, []);
+      mapaGrupos.get(g)!.push({
+        id: rutaId,
+        codigo: info.codigo,
+        nombre: info.nombre,
+        grupo: g,
+        cantidadServicios: cuentaServicios.get(rutaId) ?? 0,
+      });
+    });
+
+    return Array.from(mapaGrupos.entries())
+      .map(([nombre, rutas]) => {
+        rutas.sort((a, b) => {
+          if (a.cantidadServicios > 0 && b.cantidadServicios === 0) return -1;
+          if (a.cantidadServicios === 0 && b.cantidadServicios > 0) return 1;
+          return a.codigo.localeCompare(b.codigo, undefined, { numeric: true });
+        });
+        const cantidadServicios = rutas.reduce((acc, r) => acc + r.cantidadServicios, 0);
+        return {
+          nombre,
+          cantidadServicios,
+          totalRutas: rutas.length,
+          rutas,
+        };
+      })
+      .sort((a, b) => {
+        if (a.cantidadServicios > 0 && b.cantidadServicios === 0) return -1;
+        if (a.cantidadServicios === 0 && b.cantidadServicios > 0) return 1;
+        return a.nombre.localeCompare(b.nombre, undefined, { numeric: true });
+      });
   }, [rutasCuenta, cargados, filtrados]);
 
-  // Si la ruta de la pestaña ya no existe, se vuelve a "Todos".
+  // Si el grupo seleccionado ya no existe, volver a TODOS
   useEffect(() => {
-    if (tabRutaId !== 'TODOS' && !tabs.some((t) => t.id === tabRutaId)) setTabRutaId('TODOS');
-  }, [tabRutaId, tabs]);
+    if (grupoFiltro !== 'TODOS' && !gruposInfo.some((g) => g.nombre === grupoFiltro)) {
+      setGrupoFiltro('TODOS');
+    }
+  }, [grupoFiltro, gruposInfo]);
 
-  const servicios = useMemo(
-    () => (tabRutaId === 'TODOS' ? filtrados : filtrados.filter((s) => s.rutaId === tabRutaId)),
-    [filtrados, tabRutaId],
-  );
+  // Servicios filtrados por Grupo y por Ruta
+  const servicios = useMemo(() => {
+    return filtrados.filter((s) => {
+      if (grupoFiltro !== 'TODOS' && s.grupo !== grupoFiltro) return false;
+      if (rutaFiltro !== 'TODOS' && s.rutaId !== rutaFiltro) return false;
+      return true;
+    });
+  }, [filtrados, grupoFiltro, rutaFiltro]);
 
   const kpis = useMemo(() => calcularKpis(servicios), [servicios]);
 
@@ -133,16 +196,19 @@ const ReportesView: React.FC = () => {
   const filtroTexto = useMemo(() => {
     const partes = [
       estadoServicio === 'TODOS'
-        ? 'Todos los servicios'
+        ? 'Todos los estados'
         : `Servicios ${estadoServicio.toLowerCase().replace('_', ' ')}`,
       unidad ? `Unidad ${unidad}` : 'Todas las unidades',
     ];
-    if (tabRutaId !== 'TODOS') {
-      const t = tabs.find((x) => x.id === tabRutaId);
-      partes.unshift(t ? `Ruta ${t.codigo} - ${t.nombre}` : `Ruta #${tabRutaId}`);
+    if (grupoFiltro !== 'TODOS') {
+      partes.unshift(`Grupo: ${grupoFiltro}`);
+    }
+    if (rutaFiltro !== 'TODOS') {
+      const r = rutasCuenta.find((x) => x.id === rutaFiltro);
+      if (r) partes.unshift(`Ruta: ${r.codigo} - ${r.nombre}`);
     }
     return partes.join(', ');
-  }, [estadoServicio, unidad, tabRutaId, tabs]);
+  }, [estadoServicio, unidad, grupoFiltro, rutaFiltro, rutasCuenta]);
 
   // Acciones de Exportación
   const handleExportarExcel = async () => {
@@ -178,13 +244,14 @@ const ReportesView: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-slate-100/80">
+    // h-screen overflow-y-auto asegura que el scroll vertical funcione sin restricciones
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-100/80">
       <Toaster position="top-right" richColors />
 
-      {/* Encabezado idéntico a las páginas corporativas de Trackvel (#113EB9 + Logo naranja) */}
+      {/* Encabezado (#113EB9 + Logo corporativo) */}
       <header className="sticky top-0 z-50 flex-shrink-0 bg-[#113EB9] shadow-sm">
         <div className="flex h-12 items-stretch justify-between">
-          {/* Lado izquierdo: Logo naranja, separador y subtítulo/título */}
+          {/* Lado izquierdo: Logo naranja, separador y títulos */}
           <div className="flex items-center gap-3">
             <div className="flex h-full items-center bg-gradient-to-r from-orange-500 to-red-500 px-4">
               <Image
@@ -232,54 +299,57 @@ const ReportesView: React.FC = () => {
         </div>
       </header>
 
-      {/* Contenido Principal */}
-      <main className="flex-1 space-y-3.5 p-4 lg:p-5">
-        {/* 1. Barra de Filtros, Búsqueda y Botones de Exportación */}
-        <FiltrosReporte
-          desdeIso={desdeIso}
-          hastaIso={hastaIso}
-          onRangoChange={cambiarRango}
-          estadoServicio={estadoServicio}
-          onEstadoServicioChange={setEstadoServicio}
-          unidad={unidad}
-          onUnidadChange={setUnidad}
-          unidades={unidades}
-          estadoFiltro={estadoFiltro}
-          onEstadoFiltroChange={setEstadoFiltro}
-          busqueda={busqueda}
-          onBusquedaChange={setBusqueda}
-          onExportarExcel={handleExportarExcel}
-          onExportarPdf={handleExportarPdf}
-          exportandoExcel={exportandoExcel}
-          exportandoPdf={exportandoPdf}
-        />
+      {/* 1. Navegador de Pestañas por GRUPOS y RUTAS (Igual que en Servicios Turismo) */}
+      <NavegadorGruposRutas
+        grupos={gruposInfo}
+        totalServicios={filtrados.length}
+        grupoSeleccionado={grupoFiltro}
+        onSeleccionarGrupo={setGrupoFiltro}
+        rutaSeleccionada={rutaFiltro}
+        onSeleccionarRuta={setRutaFiltro}
+      />
 
-        {/* Pestañas: todos los servicios o los de una ruta */}
-        <TabsRutasReporte
-          tabs={tabs}
-          total={filtrados.length}
-          seleccionada={tabRutaId}
-          onSeleccionar={setTabRutaId}
-        />
+      {/* 2. Barra de Filtros, Búsqueda y Botones de Exportación (Compacta y a todo el ancho) */}
+      <FiltrosReporte
+        desdeIso={desdeIso}
+        hastaIso={hastaIso}
+        onRangoChange={cambiarRango}
+        estadoServicio={estadoServicio}
+        onEstadoServicioChange={setEstadoServicio}
+        unidad={unidad}
+        onUnidadChange={setUnidad}
+        unidades={unidades}
+        estadoFiltro={estadoFiltro}
+        onEstadoFiltroChange={setEstadoFiltro}
+        busqueda={busqueda}
+        onBusquedaChange={setBusqueda}
+        onExportarExcel={handleExportarExcel}
+        onExportarPdf={handleExportarPdf}
+        exportandoExcel={exportandoExcel}
+        exportandoPdf={exportandoPdf}
+        onLimpiarFiltros={handleLimpiarFiltros}
+      />
 
-        {/* 2. Tarjetas de Resumen y KPIs (Una sola barra blanca subdividida) */}
-        <ResumenKpis kpis={kpis} toleranciaMin={toleranciaMin} />
+      {/* 3. Tarjetas de Resumen y KPIs (Tira compacta a todo el ancho) */}
+      <ResumenKpis kpis={kpis} toleranciaMin={toleranciaMin} />
 
-        {/* 3. Un bloque por servicio, con el detalle de sus paradas */}
+      {/* 4. Bloques de servicios organizados por Grupo y por Ruta con detalle de paradas */}
+      <div className="w-full flex-1 pb-24">
         {cargando ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
-            <RotateCw className="h-7 w-7 animate-spin text-[#113EB9]" />
-            <p className="mt-2 text-[13px] font-semibold text-slate-700">Cargando servicios y paradas…</p>
-            <p className="text-[11.5px] text-slate-400">Procesando tiempos de llegada, estancia y puntualidad</p>
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <RotateCw className="h-6 w-6 animate-spin text-[#113EB9]" />
+            <p className="mt-2 text-[12.5px] font-bold text-slate-700">Cargando servicios y paradas…</p>
+            <p className="text-[11px] text-slate-400">Procesando tiempos de llegada, estancia y puntualidad</p>
           </div>
         ) : (
           <TablaReporteParadas
             servicios={servicios}
             estadoFiltro={estadoFiltro}
             busqueda={busqueda}
+            onRestablecerFiltros={handleLimpiarFiltros}
           />
         )}
-      </main>
+      </div>
     </div>
   );
 };

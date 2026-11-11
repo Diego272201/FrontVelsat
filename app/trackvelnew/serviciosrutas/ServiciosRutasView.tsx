@@ -2,21 +2,16 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import {
   Ban,
-  CalendarDays,
-  FileBarChart2,
   ListChecks,
   PanelLeftOpen,
   Plus,
-  Route as RouteIcon,
-  Settings2,
-  Timer,
 } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
+import EncabezadoServiciosRutas from './EncabezadoServiciosRutas';
 import ListaRutas, { ResumenRuta } from './ListaRutas';
 import ModalNuevoServicio from './ModalNuevoServicio';
 import ModalReprogramar, { ReprogramarForm } from './ModalReprogramar';
@@ -468,95 +463,19 @@ const ServiciosRutasView: React.FC = () => {
     <div className="flex h-screen w-full flex-col bg-slate-100">
       <Toaster position="top-right" richColors />
 
-      {/* Encabezado */}
-      <header className="flex h-14 shrink-0 items-stretch bg-[#1E40AF] text-white shadow-sm">
-        <div className="flex items-center gap-2.5 bg-[#0B1F4D] px-4">
-          <RouteIcon className="h-5 w-5 text-amber-400" />
-          <div className="leading-tight">
-            <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">
-              TRACKVEL SYSTEM
-            </div>
-            <div className="text-[13px] font-bold tracking-wide">
-              SERVICIOS RUTAS
-            </div>
-          </div>
-        </div>
-
-        <div className="ml-4 hidden flex-col justify-center border-l-2 border-white/25 pl-3 leading-tight md:flex">
-          <div className="text-[9.5px] font-semibold tracking-[0.18em] text-blue-200">
-            MONITOREO
-          </div>
-          <div className="text-[13px] font-semibold">
-            {rutas.length} rutas · {servicios.length} servicio
-            {servicios.length === 1 ? '' : 's'}
-            {enCursoTotal > 0 && (
-              <span className="text-green-300"> · {enCursoTotal} en curso</span>
-            )}
-            {posiciones.length > 0 && (
-              <span className="text-amber-300">
-                {' '}
-                · {posiciones.length} en vivo
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="ml-auto flex items-center gap-2 px-3">
-          <label
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/30 bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15"
-            title="Día de los servicios"
-          >
-            <CalendarDays className="h-3.5 w-3.5 text-blue-200" />
-            <input
-              type="date"
-              value={fechaIso}
-              onChange={(e) => e.target.value && setFechaIso(e.target.value)}
-              className="w-[112px] bg-transparent text-white outline-none [color-scheme:dark]"
-            />
-          </label>
-          {!esHoy && (
-            <button
-              type="button"
-              onClick={() => setFechaIso(getIsoToday())}
-              className="hidden h-8 rounded-md px-2 text-[12px] font-medium text-blue-100 hover:bg-white/10 sm:block"
-            >
-              Hoy
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setModalTolerancia(true)}
-            disabled={toleranciaMin === null}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10 disabled:opacity-60"
-            title="Tolerancia para considerar un paradero a tiempo (configuración general)"
-          >
-            <Timer className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">
-              Tolerancia{toleranciaMin !== null ? `: ±${toleranciaMin} min` : ''}
-            </span>
-          </button>
-          <Link
-            href="/trackvelnew/serviciosrutas/reportes"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
-            title="Reportes de servicios y paradas (abre en nueva pestaña)"
-          >
-            <FileBarChart2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Reportes</span>
-          </Link>
-          <Link
-            href="/trackvelnew/serviciosrutas/rutas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/40 px-3 text-[12px] font-semibold hover:bg-white/10"
-            title="Administrar rutas (abre en nueva pestaña)"
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Administrar rutas</span>
-          </Link>
-        </div>
-      </header>
+      {/* Encabezado institucional idéntico a Gestión de Rutas y Conductores */}
+      <EncabezadoServiciosRutas
+        totalRutas={rutas.length}
+        totalServicios={servicios.length}
+        enCursoTotal={enCursoTotal}
+        posicionesTotal={posiciones.length}
+        fechaIso={fechaIso}
+        onFechaChange={setFechaIso}
+        esHoy={esHoy}
+        onHoy={() => setFechaIso(getIsoToday())}
+        toleranciaMin={toleranciaMin}
+        onAbrirTolerancia={() => setModalTolerancia(true)}
+      />
 
       <div className="relative flex min-h-0 flex-1">
         {/* Lista de rutas: fija en escritorio, cajón en móvil */}

@@ -179,11 +179,12 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
                   : esOrigen
                     ? 'Salida'
                     : `+${p.minutosAcumulados} min`;
+                const radio = p.radioMetros && p.radioMetros > 0 ? p.radioMetros : 25;
                 const detalle = esOrigen
-                  ? `Inicio · radio ${p.radioMetros} m`
+                  ? `Inicio · radio ${radio} m`
                   : esDestino
-                    ? `Destino · +${p.minutosDesdeAnterior} min desde la anterior`
-                    : `+${p.minutosDesdeAnterior} min desde la anterior`;
+                    ? `Destino · radio ${radio} m · +${p.minutosDesdeAnterior} min`
+                    : `+${p.minutosDesdeAnterior} min · radio ${radio} m`;
 
                 return (
                   <li key={p.id} className="relative flex gap-3 pb-1">

@@ -248,14 +248,52 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
           .addTo(capa);
       }
 
-      // Paraderos (el destino se dibuja aparte, compartido entre rutas)
+      // 1. Geocercas de cada paradero (círculo con radio en metros del API, por defecto 25 m)
+      r.paraderos.forEach((p, i) => {
+        if (!p.latitud || !p.longitud) return;
+        const posicion: L.LatLngExpression = [p.latitud, p.longitud];
+        const radio = p.radioMetros && p.radioMetros > 0 ? p.radioMetros : 25;
+
+        const geocerca = L.circle(posicion, {
+          radius: radio,
+          color: r.color,
+          weight: activa ? 1.8 : resaltada ? 1.5 : 1.2,
+          dashArray: activa ? '4 4' : undefined,
+          fillColor: r.color,
+          fillOpacity: atenuada ? 0.04 : activa ? 0.22 : 0.12,
+          interactive: true,
+        }).addTo(capa);
+
+        geocerca
+          .bindTooltip(
+            `<b>${i + 1}. ${escapar(p.nombre)}</b><br/><span style="font-weight:600;color:${r.color}">${escapar(r.codigo)}</span> · <span style="color:#0284c7;font-weight:600">Geocerca: ${radio} m</span>`,
+            { direction: 'top', className: 'sr-tip' },
+          )
+          .on('click', seleccionar)
+          .on('mouseover', () => {
+            geocerca.setStyle({
+              fillOpacity: activa ? 0.35 : 0.25,
+              weight: activa ? 2.5 : 2,
+            });
+          })
+          .on('mouseout', () => {
+            geocerca.setStyle({
+              fillOpacity: atenuada ? 0.04 : activa ? 0.22 : 0.12,
+              weight: activa ? 1.8 : resaltada ? 1.5 : 1.2,
+            });
+          });
+      });
+
+      // 2. Marcadores de paraderos (el destino se dibuja aparte, compartido entre rutas)
       const ultimo = r.paraderos.length - 1;
       r.paraderos.forEach((p, i) => {
+        if (!p.latitud || !p.longitud) return;
         if (i === ultimo && ultimo > 0) return;
         const posicion: L.LatLngExpression = [p.latitud, p.longitud];
+        const radio = p.radioMetros && p.radioMetros > 0 ? p.radioMetros : 25;
         const textoTip = `<b>${i + 1}. ${escapar(p.nombre)}</b><br/><span style="font-weight:500;color:#64748b">${escapar(r.codigo)} · ${
           i === 0 ? 'Inicio de ruta' : `+${p.minutosAcumulados} min`
-        }</span>`;
+        } · Radio ${radio} m</span>`;
 
         if (i === 0) {
           const lado = activa ? 20 : 14;
@@ -574,6 +612,10 @@ const MapaRutas: React.FC<MapaRutasProps> = ({
             <span className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full border-2 border-slate-500 bg-white" />{' '}
               Parada
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full border border-blue-500 border-dashed bg-blue-500/20" />{' '}
+              Geocerca
             </span>
           </div>
         </>

@@ -15,7 +15,7 @@ export function aReporteServicios(r: ReporteServiciosApi): ReporteServicio[] {
       rutaId: s.ruta.id,
       rutaCodigo: s.ruta.codigo ?? '',
       rutaNombre: s.ruta.nombre ?? '',
-      grupo: s.ruta.grupo ?? '',
+      grupo: s.ruta.grupo?.trim() ? s.ruta.grupo.trim() : 'Sin grupo',
       color: '#64748b',
       fechaSalida: s.fechaSalida,
       fechaIso: ddMmYyyyToIso(s.fechaSalida),
