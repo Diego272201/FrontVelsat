@@ -16,6 +16,7 @@ import { exportarExcelReporte, exportarPdfReporte } from './exportUtils';
 import FiltrosReporte, { FiltroEstadoServicio } from './FiltrosReporte';
 import ResumenKpis from './ResumenKpis';
 import TablaReporteParadas from './TablaReporteParadas';
+import TabsRutasReporte, { TabRuta } from './TabsRutasReporte';
 import { getIsoToday, isoToDdMmYyyy } from '../utils';
 
 const ReportesView: React.FC = () => {
@@ -28,11 +29,15 @@ const ReportesView: React.FC = () => {
   const [unidad, setUnidad] = useState<string>('');
   const [estadoFiltro, setEstadoFiltro] = useState<'TODOS' | EstadoPuntualidad>('TODOS');
   const [busqueda, setBusqueda] = useState<string>('');
+  // Pestaña: todos los servicios o los de una sola ruta.
+  const [tabRutaId, setTabRutaId] = useState<number | 'TODOS'>('TODOS');
 
   // Datos
   const [toleranciaMin, setToleranciaMin] = useState<number>(5);
   // Todo lo que trajo el API para el rango de fechas. Estado, unidad y puntualidad filtran sobre esto.
   const [cargados, setCargados] = useState<ReporteServicio[]>([]);
+  // Rutas activas de la cuenta (una pestaña por cada una). Se piden una sola vez al entrar.
+  const [rutasCuenta, setRutasCuenta] = useState<{ id: number; codigo: string; nombre: string }[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [exportandoExcel, setExportandoExcel] = useState<boolean>(false);
   const [exportandoPdf, setExportandoPdf] = useState<boolean>(false);
@@ -41,6 +46,14 @@ const ReportesView: React.FC = () => {
     setDesdeIso(desde);
     setHastaIso(hasta < desde ? desde : hasta);
   };
+
+  useEffect(() => {
+    if (!api.listo) return;
+    api
+      .getRutas(false)
+      .then((lista) => setRutasCuenta(lista.map((r) => ({ id: r.id, codigo: r.codigo, nombre: r.nombre }))))
+      .catch(() => undefined);
+  }, [api]);
 
   // El API se consulta solo al entrar, al cambiar el rango de fechas o con el botón de actualizar:
   // una llamada trae los servicios del rango con sus paraderos. Los demás filtros se aplican en pantalla.
@@ -74,12 +87,37 @@ const ReportesView: React.FC = () => {
     if (unidad && !cargando && !unidades.includes(unidad)) setUnidad('');
   }, [unidad, unidades, cargando]);
 
-  const servicios = useMemo(
+  // Estado del servicio y unidad filtran sobre lo cargado; la pestaña de ruta se aplica encima.
+  const filtrados = useMemo(
     () =>
       cargados.filter(
         (s) => (estadoServicio === 'TODOS' || s.estadoServicio === estadoServicio) && (!unidad || s.deviceID === unidad),
       ),
     [cargados, estadoServicio, unidad],
+  );
+
+  // Una pestaña por ruta: las de la cuenta más las que aparezcan en los servicios cargados.
+  const tabs = useMemo<TabRuta[]>(() => {
+    const porId = new Map<number, { codigo: string; nombre: string }>();
+    rutasCuenta.forEach((r) => porId.set(r.id, { codigo: r.codigo, nombre: r.nombre }));
+    cargados.forEach((s) => {
+      if (!porId.has(s.rutaId)) porId.set(s.rutaId, { codigo: s.rutaCodigo, nombre: s.rutaNombre });
+    });
+    const cuenta = new Map<number, number>();
+    filtrados.forEach((s) => cuenta.set(s.rutaId, (cuenta.get(s.rutaId) ?? 0) + 1));
+    return Array.from(porId, ([id, r]) => ({ id, ...r, cantidad: cuenta.get(id) ?? 0 })).sort((a, b) =>
+      a.codigo.localeCompare(b.codigo, undefined, { numeric: true }),
+    );
+  }, [rutasCuenta, cargados, filtrados]);
+
+  // Si la ruta de la pestaña ya no existe, se vuelve a "Todos".
+  useEffect(() => {
+    if (tabRutaId !== 'TODOS' && !tabs.some((t) => t.id === tabRutaId)) setTabRutaId('TODOS');
+  }, [tabRutaId, tabs]);
+
+  const servicios = useMemo(
+    () => (tabRutaId === 'TODOS' ? filtrados : filtrados.filter((s) => s.rutaId === tabRutaId)),
+    [filtrados, tabRutaId],
   );
 
   const kpis = useMemo(() => calcularKpis(servicios), [servicios]);
@@ -99,8 +137,12 @@ const ReportesView: React.FC = () => {
         : `Servicios ${estadoServicio.toLowerCase().replace('_', ' ')}`,
       unidad ? `Unidad ${unidad}` : 'Todas las unidades',
     ];
+    if (tabRutaId !== 'TODOS') {
+      const t = tabs.find((x) => x.id === tabRutaId);
+      partes.unshift(t ? `Ruta ${t.codigo} - ${t.nombre}` : `Ruta #${tabRutaId}`);
+    }
     return partes.join(', ');
-  }, [estadoServicio, unidad]);
+  }, [estadoServicio, unidad, tabRutaId, tabs]);
 
   // Acciones de Exportación
   const handleExportarExcel = async () => {
@@ -210,6 +252,14 @@ const ReportesView: React.FC = () => {
           onExportarPdf={handleExportarPdf}
           exportandoExcel={exportandoExcel}
           exportandoPdf={exportandoPdf}
+        />
+
+        {/* Pestañas: todos los servicios o los de una ruta */}
+        <TabsRutasReporte
+          tabs={tabs}
+          total={filtrados.length}
+          seleccionada={tabRutaId}
+          onSeleccionar={setTabRutaId}
         />
 
         {/* 2. Tarjetas de Resumen y KPIs (Una sola barra blanca subdividida) */}

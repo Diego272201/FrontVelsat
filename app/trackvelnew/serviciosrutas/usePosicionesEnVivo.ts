@@ -6,7 +6,7 @@ import { aPosicion, useServiciosRutasApi } from './api';
 import { AvisoServicio, PosicionConductor } from './types';
 
 // Una unidad que no reporta hace más de esto se quita del mapa.
-const VIGENCIA_MS = 2 * 60 * 1000;
+const VIGENCIA_MS = 10 * 60 * 1000;
 const LIMPIEZA_MS = 15000;
 
 const TOLERANCIA_FUTURO_MS = 30 * 1000;
@@ -84,8 +84,7 @@ export function usePosicionesEnVivo(onAviso?: (aviso: AvisoServicio) => void): P
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    connection.on('PosicionActualizada', (mensaje: unknown) => {
-      const p = aPosicion(mensaje);
+    connection.on('PosicionActualizada', (mensaje: unknown) => {      const p = aPosicion(mensaje);
       if (!p) return;
       mapa.set(p.clave, p);
       recibido.set(p.clave, instanteRecibido(p));

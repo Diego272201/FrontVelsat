@@ -30,7 +30,7 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
   estadoFiltro,
   busqueda,
 }) => {
-  // El primer servicio abierto y los demás colapsados.
+  // Todos los servicios cerrados por defecto; se abren al pulsar su encabezado.
   const [abiertos, setAbiertos] = useState<Record<number, boolean>>({});
 
   const toggleColapso = (id: number, abiertoActual: boolean) => {
@@ -86,8 +86,8 @@ const TablaReporteParadas: React.FC<TablaReporteParadasProps> = ({
 
   return (
     <div className="space-y-3">
-      {serviciosFiltrados.map((s, idx) => {
-        const estaColapsado = !(abiertos[s.id] ?? idx === 0);
+      {serviciosFiltrados.map((s) => {
+        const estaColapsado = !(abiertos[s.id] ?? false);
         const pctPuntual =
           s.paradasCompletadas > 0 ? Math.round((s.paradasATiempo / s.paradasCompletadas) * 100) : 0;
 
