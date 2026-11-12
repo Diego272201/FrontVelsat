@@ -39,6 +39,7 @@ interface Conductor {
   correo: string;
   tipo: string | null;
   imagen: string | null;
+  ruta: boolean;
 }
 
 interface ConductorAPI {
@@ -64,6 +65,7 @@ interface ConductorAPI {
   unidadActual: string | null;
   habilitado: string;
   tipo: string | null;
+  ruta?: string | null;
 }
 
 const TODOS_KEY = '__todos__';
@@ -107,6 +109,7 @@ const EXPORT_COLUMNS: { header: string; key: string; width: number }[] = [
   { header: 'Correo', key: 'email', width: 28 },
   { header: 'Unidad Asignada', key: 'unidadasig', width: 16 },
   { header: 'Tipo', key: 'tipo', width: 16 },
+  { header: 'Rutas', key: 'ruta', width: 10 },
 ];
 
 const exportarExcel = async (data: ConductorAPI[], filename: string) => {
@@ -161,6 +164,7 @@ const exportarExcel = async (data: ConductorAPI[], filename: string) => {
       c.email || '—',
       c.unidadasig || '—',
       c.tipo || '—',
+      c.ruta === '1' ? 'Sí' : 'No',
     ];
     row.eachCell((cell, colNumber) => {
       cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
@@ -258,6 +262,7 @@ export default function Page() {
         correo: conductor.email || '',
         tipo: conductor.tipo || null,
         imagen: conductor.imagen?.trim() || null,
+        ruta: conductor.ruta === '1',
       }));
 
       setConductores(transformedData);
@@ -342,6 +347,7 @@ export default function Page() {
               correo: modifiedConductor.email || '',
               tipo: modifiedConductor.tipo || '',
               imagen: modifiedConductor.imagen?.trim() || null,
+              ruta: modifiedConductor.ruta === '1',
             }
           : conductor,
       ),
@@ -678,8 +684,17 @@ export default function Page() {
                       >
                         {conductor.nombre}
                       </span>
-                      {conductor.tipo && (
-                        <span className="text-[11px] font-medium text-[#113EB9]">{conductor.tipo}</span>
+                      {(conductor.tipo || conductor.ruta) && (
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          {conductor.tipo && conductor.tipo.trim().toLowerCase() !== 'rutas' && (
+                            <span className="text-[11px] font-medium text-[#113EB9]">{conductor.tipo}</span>
+                          )}
+                          {(conductor.ruta || conductor.tipo?.trim().toLowerCase() === 'rutas') && (
+                            <span className="rounded bg-blue-50 px-1.5 py-px text-[10px] font-semibold text-[#113EB9]">
+                              Rutas
+                            </span>
+                          )}
+                        </div>
                       )}
                       <span className="mt-1 w-full truncate text-center text-[11px] text-gray-600">
                         {conductor.telefono || <span className="text-gray-300">—</span>}

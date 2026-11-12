@@ -5,6 +5,8 @@ import { PlusCircle } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { NuevoServicioForm, Ruta, Servicio } from './types';
 import { ddMmYyyyToIso, getIsoToday } from './utils';
+import { useUsername } from '@/hooks/useUsername';
+import { Conductor, SelectConductorBuscable } from '../serviciosturismo/SelectBuscable';
 
 const formDesdeServicio = (s: Servicio): NuevoServicioForm => ({
   deviceID: s.deviceID,
@@ -56,6 +58,36 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
   onGuardar,
 }) => {
   const [form, setForm] = useState<NuevoServicioForm>(formVacio);
+  const [conductores, setConductores] = useState<Conductor[]>([]);
+  const { username, isReady } = useUsername();
+
+  // Conductores de Servicios Rutas (ruta = '1') para sugerirlos al escribir el nombre.
+  useEffect(() => {
+    if (!isOpen || !isReady || !username) return;
+    let activo = true;
+    fetch(`https://do.velsat.pe:2083/api/Preplan/conductores/${encodeURIComponent(username)}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Array<{ codigo: number; apellidos: string | null; telefono: string | null; brevete: string | null; ruta?: string | null }>) => {
+        if (!activo) return;
+        setConductores(
+          (Array.isArray(data) ? data : [])
+            .filter((c) => c.ruta === '1')
+            .map((c) => ({ codtaxi: c.codigo, apellidos: c.apellidos, telefono: c.telefono, brevete: c.brevete })),
+        );
+      })
+      .catch(() => activo && setConductores([]));
+    return () => {
+      activo = false;
+    };
+  }, [isOpen, isReady, username]);
+
+  const seleccionarConductor = (c: Conductor) =>
+    setForm((prev) => ({
+      ...prev,
+      conductorNombre: (c.apellidos || '').trim(),
+      conductorBrevete: c.brevete || '',
+      conductorCelular: c.telefono || '',
+    }));
 
   useEffect(() => {
     if (isOpen) setForm(servicio ? formDesdeServicio(servicio) : { ...formVacio(), rutaId: rutaInicial });
@@ -156,12 +188,15 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
 
         <div className="sm:col-span-2">
           <label className={labelClase}>Conductor</label>
-          <input
-            type="text"
-            className={inputClase}
-            placeholder="Nombre completo"
+          <SelectConductorBuscable
+            fondoBlanco
+            enFlujo
             value={form.conductorNombre}
-            onChange={(e) => set('conductorNombre', e.target.value)}
+            conductores={conductores}
+            onSeleccionar={seleccionarConductor}
+            onChangeTexto={(valor) =>
+              setForm((prev) => ({ ...prev, conductorNombre: valor, conductorBrevete: '', conductorCelular: '' }))
+            }
           />
         </div>
 
@@ -169,9 +204,11 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
           <label className={labelClase}>Brevete</label>
           <input
             type="text"
-            className={inputClase}
+            className={`${inputClase} bg-gray-50 text-gray-600`}
             value={form.conductorBrevete}
-            onChange={(e) => set('conductorBrevete', e.target.value)}
+            readOnly
+            placeholder="Brevete"
+            tabIndex={-1}
           />
         </div>
 
@@ -179,9 +216,11 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
           <label className={labelClase}>Celular</label>
           <input
             type="tel"
-            className={inputClase}
+            className={`${inputClase} bg-gray-50 text-gray-600`}
             value={form.conductorCelular}
-            onChange={(e) => set('conductorCelular', e.target.value)}
+            readOnly
+            placeholder="Celular"
+            tabIndex={-1}
           />
         </div>
       </div>

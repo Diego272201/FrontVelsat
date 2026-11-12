@@ -108,7 +108,11 @@ export const SelectConductorBuscable: React.FC<{
   conductores: Conductor[];
   onSeleccionar: (conductor: Conductor) => void;
   onChangeTexto: (valor: string) => void;
-}> = ({ value, conductores, onSeleccionar, onChangeTexto }) => {
+  /** Fondo blanco en lugar del gris por defecto. */
+  fondoBlanco?: boolean;
+  /** La lista empuja el contenido en lugar de flotar (para modales con scroll propio). */
+  enFlujo?: boolean;
+}> = ({ value, conductores, onSeleccionar, onChangeTexto, fondoBlanco = false, enFlujo = false }) => {
   const [query, setQuery] = useState(value);
   const [abierto, setAbierto] = useState(false);
   const cerrandoPorClickRef = useRef(false);
@@ -152,13 +156,15 @@ export const SelectConductorBuscable: React.FC<{
             }, 120);
           }}
           placeholder="Buscar conductor..."
-          className="w-full rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 pr-7 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]"
+          className={`w-full rounded-md border border-gray-200 ${fondoBlanco ? 'bg-white' : 'bg-gray-50'} px-2 py-1.5 pr-7 text-[12px] focus:border-[#113EB9] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#113EB9]`}
         />
         <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
       </div>
 
       {abierto && (
-        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
+        <div
+          className={`${enFlujo ? 'relative' : 'absolute z-20 shadow-lg'} mt-1 max-h-40 w-full overflow-auto rounded-md border border-gray-200 bg-white`}
+        >
           {opcionesFiltradas.length === 0 ? (
             <div className="px-3 py-2 text-[12px] text-gray-400">
               Sin coincidencias
