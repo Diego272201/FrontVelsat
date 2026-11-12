@@ -15,7 +15,12 @@ type FormField =
   | 'telefono'
   | 'email'
   | 'unidadasig'
-  | 'tipo';
+  | 'tipo'
+  | 'direccion'
+  | 'brevete'
+  | 'catBrevete'
+  | 'estBrevete'
+  | 'sctr';
 
 interface ConductorAPI {
   codigo: number;
@@ -40,6 +45,7 @@ interface ConductorAPI {
   habilitado: string;
   unidadasig: string | null;
   tipo: string | null;
+  ruta?: string | null;
 }
 
 interface ConductorDialogProps {
@@ -49,10 +55,10 @@ interface ConductorDialogProps {
 
 const SectionLabel = ({ index, title }: { index: string; title: string }) => (
   <div className="flex items-center gap-2">
-    <span className="whitespace-nowrap text-[10.5px] font-bold uppercase tracking-wider text-gray-500">
+    <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-[#113EB9]">
       {index} · {title}
     </span>
-    <div className="h-px flex-1 bg-gray-200" />
+    <div className="h-px flex-1 bg-blue-200" />
   </div>
 );
 
@@ -75,6 +81,11 @@ export default function ConductorDialogModificar({
     email: '',
     unidadasig: '',
     tipo: '',
+    direccion: '',
+    brevete: '',
+    catBrevete: '',
+    estBrevete: '',
+    sctr: '',
   });
 
   const handleInputChange = (field: FormField, value: string) => {
@@ -92,6 +103,11 @@ export default function ConductorDialogModificar({
       email: '',
       unidadasig: '',
       tipo: '',
+      direccion: '',
+      brevete: '',
+      catBrevete: '',
+      estBrevete: '',
+      sctr: '',
     });
     setShowPassword(false);
   };
@@ -107,6 +123,11 @@ export default function ConductorDialogModificar({
       email: 'Email',
       unidadasig: 'Unidad Asignada',
       tipo: 'Tipo',
+      direccion: 'Dirección',
+      brevete: 'Brevete',
+      catBrevete: 'Categoría',
+      estBrevete: 'Estado del brevete',
+      sctr: 'SCTR',
     };
     return labels[field];
   };
@@ -148,12 +169,16 @@ export default function ConductorDialogModificar({
         email: formData.email.trim(),
         unidadasig: formData.unidadasig.trim(),
         tipo: formData.tipo.trim(),
-        brevete: conductorData.brevete || '',
-        direccion: conductorData.direccion || '',
-        sctr: conductorData.sctr || '',
-        catBrevete: conductorData.catBrevete || '',
-        estBrevete: conductorData.estBrevete || '',
+        // El UPDATE del backend reescribe estas columnas: se reenvían para no borrarlas.
+        turno: conductorData.turno || '',
+        horainicio: conductorData.horainicio || '',
+        brevete: formData.brevete.trim(),
+        direccion: formData.direccion.trim(),
+        sctr: formData.sctr.trim(),
+        catBrevete: formData.catBrevete.trim(),
+        estBrevete: formData.estBrevete.trim(),
         fecValidBrevete: conductorData.fecValidBrevete || '',
+        ruta: formData.tipo.trim() === 'Rutas' ? '1' : '0',
         sexo: sexoAPI,
       };
 
@@ -185,6 +210,12 @@ export default function ConductorDialogModificar({
         email: formData.email.trim(),
         unidadasig: formData.unidadasig.trim(),
         tipo: formData.tipo.trim(),
+        direccion: formData.direccion.trim(),
+        brevete: formData.brevete.trim(),
+        catBrevete: formData.catBrevete.trim(),
+        estBrevete: formData.estBrevete.trim(),
+        sctr: formData.sctr.trim(),
+        ruta: formData.tipo.trim() === 'Rutas' ? '1' : '0',
         sexo: sexoAPI,
       };
 
@@ -221,7 +252,12 @@ export default function ConductorDialogModificar({
       telefono: conductorData.telefono || '',
       email: conductorData.email || '',
       unidadasig: conductorData.unidadasig || '',
-      tipo: conductorData.tipo || '',
+      tipo: conductorData.tipo || (conductorData.ruta === '1' ? 'Rutas' : ''),
+      direccion: conductorData.direccion || '',
+      brevete: conductorData.brevete || '',
+      catBrevete: conductorData.catBrevete || '',
+      estBrevete: conductorData.estBrevete || '',
+      sctr: conductorData.sctr || '',
     });
 
     setIsOpen(true);
@@ -426,12 +462,91 @@ export default function ConductorDialogModificar({
                     <option value="Tdp Menores">Tdp Menores</option>
                     <option value="Turismo">Turismo</option>
                     <option value="Tdp Mayores">Tdp Mayores</option>
+                    <option value="Rutas">Rutas</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                 </div>
               </div>
             </div>
           )}
+          <SectionLabel index="04" title="Licencia y documentos" />
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="brevete" className={labelClass}>
+                Brevete
+              </Label>
+              <Input
+                id="brevete"
+                type="text"
+                value={formData.brevete}
+                onChange={(e) => handleInputChange('brevete', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="N.° de licencia"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="catBrevete" className={labelClass}>
+                Categoría
+              </Label>
+              <Input
+                id="catBrevete"
+                type="text"
+                value={formData.catBrevete}
+                onChange={(e) => handleInputChange('catBrevete', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Ej. A-IIb"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="estBrevete" className={labelClass}>
+                Estado del brevete
+              </Label>
+              <Input
+                id="estBrevete"
+                type="text"
+                value={formData.estBrevete}
+                onChange={(e) => handleInputChange('estBrevete', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Ej. VIGENTE"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sctr" className={labelClass}>
+                SCTR
+              </Label>
+              <Input
+                id="sctr"
+                type="text"
+                value={formData.sctr}
+                onChange={(e) => handleInputChange('sctr', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="N.° de póliza"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="direccion" className={labelClass}>
+                Dirección
+              </Label>
+              <Input
+                id="direccion"
+                type="text"
+                value={formData.direccion}
+                onChange={(e) => handleInputChange('direccion', e.target.value)}
+                disabled={loading}
+                className={inputClass}
+                placeholder="Dirección domiciliaria"
+              />
+            </div>
+          </div>
+
         </div>
       </BaseModal>
     </div>
