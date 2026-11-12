@@ -36,6 +36,20 @@ const ModalTolerancia: React.FC<ModalToleranciaProps> = ({
   const valor = Number(texto);
   const valido = texto.trim() !== '' && Number.isInteger(valor) && valor >= MIN && valor <= MAX;
 
+  // Cálculo para el ejemplo visual (08:00 como hora esperada de referencia)
+  const tolEjemplo = valido ? valor : 5;
+  const baseMinutos = 480; // 08:00 en minutos
+  const formatearHoraMin = (minutos: number) => {
+    const mod = (minutos + 1440) % 1440;
+    const h = Math.floor(mod / 60);
+    const m = mod % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
+  const horaInicio = formatearHoraMin(baseMinutos - tolEjemplo);
+  const horaFin = formatearHoraMin(baseMinutos + tolEjemplo);
+  const horaRango = tolEjemplo === 0 ? 'exacto 08:00' : `${horaInicio} – ${horaFin}`;
+
   return (
     <BaseModal
       isOpen={isOpen}
@@ -67,20 +81,44 @@ const ModalTolerancia: React.FC<ModalToleranciaProps> = ({
           </div>
         </div>
 
-        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] leading-relaxed text-slate-600">
-          Cuando la unidad llega a un paradero se compara con su hora esperada:
-          <ul className="mt-1 list-disc space-y-0.5 pl-5">
-            <li>
-              <b className="text-emerald-700">A tiempo</b>: dentro de ±{valido ? valor : '…'} min de la hora esperada.
-            </li>
-            <li>
-              <b className="text-blue-700">Adelantado</b>: llega más de {valido ? valor : '…'} min antes.
-            </li>
-            <li>
-              <b className="text-rose-700">Retrasado</b>: llega más de {valido ? valor : '…'} min después.
-            </li>
-          </ul>
-          <p className="mt-1.5 text-slate-500">
+        {/* Visualización gráfica de clasificación de llegada según la tolerancia */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              Así se clasificará una llegada
+            </span>
+            <span className="text-[11.5px] text-slate-600">
+              Ej. hora esperada <strong className="font-bold text-slate-900">08:00</strong>
+            </span>
+          </div>
+
+          {/* Barra continua con tres segmentos de color */}
+          <div className="mt-3 flex overflow-hidden rounded-lg shadow-2xs">
+            <div className="flex-1 bg-[#113EB9] py-2 text-center text-[12.5px] font-bold text-white">
+              Adelantado
+            </div>
+            <div className="flex-1 border-x border-white/20 bg-[#16a34a] py-2 text-center text-[12.5px] font-bold text-white">
+              A tiempo
+            </div>
+            <div className="flex-1 bg-[#dc2626] py-2 text-center text-[12.5px] font-bold text-white">
+              Retrasado
+            </div>
+          </div>
+
+          {/* Rangos horarios debajo de cada segmento */}
+          <div className="mt-2 grid grid-cols-3 text-center text-[11.5px]">
+            <div className="font-semibold text-slate-600">
+              antes de {horaInicio}
+            </div>
+            <div className="font-bold text-[#16a34a]">
+              {horaRango}
+            </div>
+            <div className="font-semibold text-slate-600">
+              después de {horaFin}
+            </div>
+          </div>
+
+          <p className="mt-3.5 text-[11px] text-slate-400">
             Aplica a las llegadas que se registren desde ahora. Las ya registradas conservan su estado.
           </p>
         </div>

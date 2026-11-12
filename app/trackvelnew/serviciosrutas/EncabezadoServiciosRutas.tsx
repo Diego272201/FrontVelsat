@@ -4,7 +4,6 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
-  CalendarDays,
   FileBarChart2,
   ListChecks,
   Radio,
@@ -12,6 +11,7 @@ import {
   Settings2,
   Timer,
 } from 'lucide-react';
+import SelectorFechaHeader from './SelectorFechaHeader';
 
 interface EncabezadoServiciosRutasProps {
   totalRutas: number;
@@ -125,28 +125,12 @@ const EncabezadoServiciosRutas: React.FC<EncabezadoServiciosRutasProps> = ({
 
         {/* Lado derecho: Selector de fecha, tolerancia, reportes y administrar rutas */}
         <div className="flex items-center gap-2 pr-4">
-          <label
-            className="flex h-8 items-center gap-1.5 rounded-md border border-white/30 bg-white/10 px-2.5 text-[12px] font-medium text-white transition-colors hover:bg-white/15 cursor-pointer"
-            title="Día de los servicios"
-          >
-            <CalendarDays className="h-3.5 w-3.5 text-blue-200" />
-            <input
-              type="date"
-              value={fechaIso}
-              onChange={(e) => e.target.value && onFechaChange(e.target.value)}
-              className="w-[112px] bg-transparent text-white outline-none [color-scheme:dark] cursor-pointer"
-            />
-          </label>
-
-          {!esHoy && (
-            <button
-              type="button"
-              onClick={onHoy}
-              className="hidden sm:flex h-8 items-center rounded-md border border-white/30 bg-white/10 px-2.5 text-[12px] font-medium text-white transition-colors hover:bg-white/15"
-            >
-              Hoy
-            </button>
-          )}
+          <SelectorFechaHeader
+            fechaIso={fechaIso}
+            onFechaChange={onFechaChange}
+            esHoy={esHoy}
+            onHoy={onHoy}
+          />
 
           <button
             type="button"

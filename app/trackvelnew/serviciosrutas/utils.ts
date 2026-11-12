@@ -40,10 +40,10 @@ export const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
 };
 
 export const ESTADO_SERVICIO_CLASE: Record<EstadoServicio, string> = {
-  PROGRAMADO: 'bg-blue-100 text-blue-700',
-  EN_CURSO: 'bg-green-100 text-green-700',
-  FINALIZADO: 'bg-gray-200 text-gray-700',
-  CANCELADO: 'bg-red-100 text-red-700',
+  PROGRAMADO: 'bg-blue-100 text-blue-800 border border-blue-200 font-bold',
+  EN_CURSO: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold',
+  FINALIZADO: 'bg-slate-100 text-slate-700 border border-slate-300 font-bold',
+  CANCELADO: 'bg-rose-100 text-rose-800 border border-rose-200 font-bold',
 };
 
 // Colores de las rutas en el mapa y la lista (se asignan por orden de código).

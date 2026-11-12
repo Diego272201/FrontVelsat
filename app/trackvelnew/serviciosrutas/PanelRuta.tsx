@@ -49,23 +49,56 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
   return (
     <div className="flex h-full flex-col">
       {/* Encabezado */}
-      <div className="flex items-start gap-2.5 border-b border-slate-200 px-4 py-3">
-        <span className="mt-0.5 h-9 w-[3px] shrink-0 rounded-full" style={{ backgroundColor: ruta.color }} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11.5px] font-semibold text-slate-400">{ruta.codigo}</span>
-            <span className="truncate text-[14px] font-bold text-slate-800">{ruta.nombre}</span>
+      <div className="relative border-b border-slate-200 bg-white px-4 py-3 pl-5">
+        {/* Barra de color de la ruta en el borde izquierdo */}
+        <span
+          className="absolute inset-y-0 left-0 w-[4px] rounded-l"
+          style={{ backgroundColor: ruta.color }}
+        />
+
+        {/* Fila superior: Código de ruta en badge, grupo y botón de cierre */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className="inline-flex shrink-0 items-center rounded-md px-2 py-0.5 font-mono text-[11px] font-bold tracking-tight whitespace-nowrap shadow-2xs"
+              style={{
+                backgroundColor: `${ruta.color}15`,
+                color: ruta.color,
+                border: `1px solid ${ruta.color}35`,
+              }}
+            >
+              {ruta.codigo}
+            </span>
+
+            <span className="text-slate-300">·</span>
+
+            <span
+              className="truncate text-[12px] font-medium text-slate-500"
+              title={ruta.grupo}
+            >
+              {ruta.grupo}
+            </span>
           </div>
-          <div className="truncate text-[11.5px] text-slate-500">{ruta.grupo}</div>
+
+          <button
+            type="button"
+            onClick={onCerrar}
+            title="Cerrar detalle (Esc)"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onCerrar}
-          title="Cerrar (Esc)"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-        >
-          <X className="h-4 w-4" />
-        </button>
+
+        {/* Fila inferior: Nombre completo de la ruta */}
+        <div className="mt-1.5 pr-1">
+          <h2
+            className="text-[14.5px] font-bold leading-snug text-slate-900"
+            title={ruta.nombre}
+          >
+            {ruta.nombre}
+          </h2>
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -79,11 +112,13 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
 
         {/* Servicios del día en esta ruta */}
         <div className="px-4 pt-4">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
               Servicios · {fechaTexto}
             </span>
-            <span className="text-[11px] text-slate-400">{servicios.length}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+              {servicios.length}
+            </span>
           </div>
 
           {ordenados.length === 0 ? (
@@ -119,29 +154,43 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
                       : undefined
                   }
                   className={`space-y-2 rounded-lg border px-3 py-2.5 ${
-                    enVivo ? 'sr-vivo border-transparent' : 'border-slate-200 bg-slate-50/60'
+                    enVivo ? 'sr-vivo border-transparent' : 'border-slate-200 bg-slate-50/70 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-[14px] font-bold text-slate-800">{servicio.horaSalida}</span>
-                      <span className="font-mono text-[10.5px] text-slate-400">
-                        llega {sumarMinutos(servicio.horaSalida, ruta.duracionMin)}
+                      <span className="font-mono text-[15px] font-bold text-slate-900 tracking-tight">
+                        {servicio.horaSalida}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                        <span className="text-slate-400">llega</span>
+                        <span className="font-mono font-bold text-slate-800">
+                          {sumarMinutos(servicio.horaSalida, ruta.duracionMin)}
+                        </span>
                       </span>
                     </div>
                     <EstadoChip estado={servicio.estado} />
                   </div>
-                  <div className="space-y-0.5 text-[11.5px] text-slate-600">
-                    <div className="flex items-center gap-1.5 font-semibold text-slate-800">
-                      <Bus className="h-3.5 w-3.5 text-slate-400" /> {servicio.deviceID}
+                  <div className="space-y-1 text-[12px]">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                      <Bus className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 border border-slate-200">
+                        {servicio.deviceID}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-slate-400" /> {servicio.conductorNombre}
-                      <span className="text-slate-400">· {servicio.conductorBrevete}</span>
+                    <div className="flex items-center gap-1.5 text-slate-700">
+                      <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="font-semibold text-slate-900">{servicio.conductorNombre}</span>
+                      {servicio.conductorBrevete && (
+                        <span className="text-slate-500 font-normal">· {servicio.conductorBrevete}</span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {servicio.conductorCelular}
-                    </div>
+                    {servicio.conductorCelular && (
+                      <div className="flex items-center gap-1.5 text-slate-700">
+                        <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                        <span className="font-medium">{servicio.conductorCelular}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1">
@@ -157,7 +206,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
 
         {/* Paradas */}
         <div className="px-4 pb-4 pt-4">
-          <div className="mb-2 flex items-center justify-between text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-600">
             <span>Paradas de recojo</span>
             <span>{servicio ? 'Hora' : 'Tiempo'}</span>
           </div>
