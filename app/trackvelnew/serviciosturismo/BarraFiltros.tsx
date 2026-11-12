@@ -18,12 +18,15 @@ import {
 } from 'lucide-react';
 import { getIsoToday } from './utils';
 import ModalReporteObservaciones from './ModalReporteObservaciones';
+import SelectorRangoFechas from './SelectorRangoFechas';
 
 interface BarraFiltrosProps {
   totalServicios: number;
   totalPilotos: number;
   fecha: string;
-  onCambiarFecha: (valor: string) => void;
+  fechaFin: string;
+  esRango: boolean;
+  onCambiarRango: (inicio: string, fin: string) => void;
   busquedaTexto: string;
   onCambiarBusquedaTexto: (valor: string) => void;
   horaFiltro: string;
@@ -64,7 +67,9 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
   totalServicios,
   totalPilotos,
   fecha,
-  onCambiarFecha,
+  fechaFin,
+  esRango,
+  onCambiarRango,
   busquedaTexto,
   onCambiarBusquedaTexto,
   horaFiltro,
@@ -229,12 +234,11 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
           <div className="border-b border-gray-200 bg-white px-4 py-2.5">
             {tabActivo === 'consulta' ? (
               <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="date"
-                  value={fecha}
-                  disabled={deshabilitado}
-                  onChange={(e) => onCambiarFecha(e.target.value)}
-                  className="h-8 rounded-md border border-gray-200 bg-white px-2.5 text-[12px] text-gray-700 focus:border-[#113EB9] focus:outline-none focus:ring-1 focus:ring-[#113EB9] disabled:cursor-not-allowed disabled:opacity-50"
+                <SelectorRangoFechas
+                  inicio={fecha}
+                  fin={fechaFin}
+                  deshabilitado={deshabilitado}
+                  onCambiar={onCambiarRango}
                 />
 
                 <select
@@ -277,7 +281,7 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => onCambiarFecha(getIsoToday())}
+                  onClick={() => onCambiarRango(getIsoToday(), getIsoToday())}
                   disabled={deshabilitado}
                   className="inline-flex h-8 items-center rounded-md border border-gray-300 bg-white px-3 text-[11px] font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -306,7 +310,8 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 <button
                   type="button"
                   onClick={onReporteKilometraje}
-                  disabled={deshabilitado}
+                  disabled={deshabilitado || esRango}
+                  title={esRango ? 'Disponible solo al consultar un único día' : undefined}
                   className="inline-flex h-8 items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 text-[11px] font-semibold text-[#113EB9] transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Gauge className="h-3.5 w-3.5 text-[#113EB9]" />
@@ -316,8 +321,8 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                 <button
                   type="button"
                   onClick={onNotificarRevisionTodos}
-                  disabled={deshabilitado || notificandoRevisionTodos || conductoresParaRevision === 0}
-                  title="Envía la plantilla “Notificar revisión” a todos los conductores con servicios activos en la fecha (WhatsApp + app)"
+                  disabled={deshabilitado || esRango || notificandoRevisionTodos || conductoresParaRevision === 0}
+                  title={esRango ? 'Disponible solo al consultar un único día' : 'Envía la plantilla “Notificar revisión” a todos los conductores con servicios activos en la fecha (WhatsApp + app)'}
                   className="inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {notificandoRevisionTodos ? (
@@ -370,8 +375,8 @@ const BarraFiltros: React.FC<BarraFiltrosProps> = ({
                     <button
                       type="button"
                       onClick={onEliminarCarga}
-                      disabled={deshabilitado || eliminandoCarga}
-                      title="Elimina TODOS los servicios de la fecha seleccionada"
+                      disabled={deshabilitado || eliminandoCarga || esRango}
+                      title={esRango ? 'Disponible solo al consultar un único día' : 'Elimina TODOS los servicios de la fecha seleccionada'}
                       className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md bg-red-600 px-3.5 text-[11px] font-semibold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
