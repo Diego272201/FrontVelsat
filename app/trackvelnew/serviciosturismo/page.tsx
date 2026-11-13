@@ -25,7 +25,9 @@ const ServiciosTurismoPage: React.FC = () => {
 
   const {
     fecha,
-    setFecha,
+    fechaFin,
+    esRango,
+    cambiarRangoFechas,
     loading,
     loadingUnidades,
     error,
@@ -163,7 +165,9 @@ const ServiciosTurismoPage: React.FC = () => {
       s.horafinalizado ? formatFechaHoraAuditoria(s.horafinalizado) : '',
     ]);
 
-    const fechaTexto = isoToDdMmYyyy(fecha);
+    const fechaTexto = esRango
+      ? `${isoToDdMmYyyy(fecha)} al ${isoToDdMmYyyy(fechaFin)}`
+      : isoToDdMmYyyy(fecha);
     exportarExcelEstilizado([{
       sheetName: 'Servicios',
       titulo: `VELSAT — Resumen de Servicios Turismo · ${fechaTexto}`,
@@ -197,7 +201,9 @@ const ServiciosTurismoPage: React.FC = () => {
         totalServicios={serviciosFiltrados.length}
         totalPilotos={totalPilotos}
         fecha={fecha}
-        onCambiarFecha={setFecha}
+        fechaFin={fechaFin}
+        esRango={esRango}
+        onCambiarRango={cambiarRangoFechas}
         busquedaTexto={busquedaTexto}
         onCambiarBusquedaTexto={setBusquedaTexto}
         horaFiltro={horaFiltro}
@@ -212,7 +218,7 @@ const ServiciosTurismoPage: React.FC = () => {
         isVisible={isVisible}
         onToggleVisible={() => setIsVisible((prev) => !prev)}
         deshabilitado={hayEdicionActiva}
-        onConsultar={() => fetchServicios(fecha)}
+        onConsultar={() => fetchServicios(fecha, fechaFin)}
         onDescargarResumen={handleDescargarResumen}
         onReporteKilometraje={() =>
           window.open(`/trackvelnew/serviciosturismo/reportekilometraje?fecha=${fecha}`, '_blank')

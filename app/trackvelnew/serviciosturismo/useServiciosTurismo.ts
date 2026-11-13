@@ -81,6 +81,14 @@ export function useServiciosTurismo() {
   const { username, isReady } = useUsername();
 
   const [fecha, setFecha] = useState<string>(getIsoToday());
+  // Fin del rango (inclusive). Igual a `fecha` cuando se consulta un solo día.
+  const [fechaFin, setFechaFin] = useState<string>(fecha);
+  const esRango = fechaFin !== fecha;
+  const claveSnapshot = esRango ? `${fecha}_${fechaFin}` : fecha;
+  const cambiarRangoFechas = useCallback((inicio: string, fin: string) => {
+    setFecha(inicio);
+    setFechaFin(fin);
+  }, []);
   const [servicios, setServicios] = useState<ServicioTurismo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,7 +168,8 @@ export function useServiciosTurismo() {
     [],
   );
 
-  const fetchServicios = useCallback(async (isoDate: string) => {
+  const fetchServicios = useCallback(async (isoDate: string, isoFin: string = isoDate) => {
+    const clave = isoFin === isoDate ? isoDate : `${isoDate}_${isoFin}`;
     setLoading(true);
     setError(null);
 
@@ -177,7 +186,7 @@ export function useServiciosTurismo() {
     };
 
     const mostrarUltimaDataConocida = async () => {
-      const snapshot = await obtenerSnapshot(isoDate);
+      const snapshot = await obtenerSnapshot(clave);
       if (snapshot) {
         setServicios(snapshot.servicios);
         setUsandoCache(true);
@@ -189,15 +198,14 @@ export function useServiciosTurismo() {
     };
 
     try {
-      const fechaParam = isoToDdMmYyyy(isoDate);
       const res = await fetch(
-        `${API_BASE}?fechaInicio=${fechaParam}&fechaFin=${fechaParam}`,
+        `${API_BASE}?fechaInicio=${isoToDdMmYyyy(isoDate)}&fechaFin=${isoToDdMmYyyy(isoFin)}`,
       );
 
       if (res.status === 404) {
         setServicios([]);
         setUsandoCache(false);
-        guardarSnapshot(isoDate, []);
+        guardarSnapshot(clave, []);
         resetearFiltrosYSeleccion();
         return;
       }
@@ -214,7 +222,7 @@ export function useServiciosTurismo() {
       const lista: ServicioTurismo[] = Array.isArray(data) ? data : [];
       setServicios(lista);
       setUsandoCache(false);
-      guardarSnapshot(isoDate, lista);
+      guardarSnapshot(clave, lista);
       resetearFiltrosYSeleccion();
     } catch (err) {
       if (esFalloDeRed(err)) {
@@ -255,7 +263,7 @@ export function useServiciosTurismo() {
                 ? { ...s, ...(params.cambiosOptimistas || {}), _pendingSync: true }
                 : s,
             );
-        guardarSnapshot(fecha, actualizado);
+        guardarSnapshot(claveSnapshot, actualizado);
         return actualizado;
       });
 
@@ -265,7 +273,7 @@ export function useServiciosTurismo() {
         'Guardado localmente. Se sincronizará cuando vuelva la conexión.',
       );
     },
-    [fecha, mostrarNotificacion],
+    [fecha, claveSnapshot, mostrarNotificacion],
   );
 
   const sincronizarCola = useCallback(async () => {
@@ -299,10 +307,10 @@ export function useServiciosTurismo() {
       const restantes = await listarOperacionesPendientes();
       setPendientesCount(restantes.length);
       if (huboExito) {
-        fetchServicios(fecha);
+        fetchServicios(fecha, fechaFin);
       }
     }
-  }, [fecha, fetchServicios, mostrarNotificacion]);
+  }, [fecha, fechaFin, fetchServicios, mostrarNotificacion]);
 
   useEffect(() => {
     listarOperacionesPendientes().then((pendientes) =>
@@ -389,8 +397,8 @@ export function useServiciosTurismo() {
 
   useEffect(() => {
     if (!isReady) return;
-    fetchServicios(fecha);
-  }, [isReady, fecha, fetchServicios]);
+    fetchServicios(fecha, fechaFin);
+  }, [isReady, fecha, fechaFin, fetchServicios]);
 
   // Ya no se ocultan los servicios con placa no registrada (el conductor de todos modos
   // no los ve en la app móvil, que sí filtra) — se muestran igual en la tabla, marcados
@@ -754,7 +762,7 @@ export function useServiciosTurismo() {
           return resto;
         });
         cancelarEdicion();
-        fetchServicios(fecha);
+        fetchServicios(fecha, fechaFin);
       } else {
         mostrarNotificacion(
           'error',
@@ -778,6 +786,7 @@ export function useServiciosTurismo() {
     editandoId,
     encolarYAplicarOptimista,
     fecha,
+    fechaFin,
     fetchServicios,
     formEdicion,
     servicioEnEdicion,
@@ -819,7 +828,7 @@ export function useServiciosTurismo() {
           data?.mensaje || 'Servicio cancelado correctamente',
         );
         setServicioACancelar(null);
-        fetchServicios(fecha);
+        fetchServicios(fecha, fechaFin);
       } else {
         mostrarNotificacion(
           'error',
@@ -835,7 +844,7 @@ export function useServiciosTurismo() {
     } finally {
       setCancelando(false);
     }
-  }, [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion, servicioACancelar]);
+  }, [encolarYAplicarOptimista, fecha, fechaFin, fetchServicios, mostrarNotificacion, servicioACancelar]);
 
   const ponerEnStandby = useCallback(
     async (servicio: ServicioTurismoVista) => {
@@ -867,7 +876,7 @@ export function useServiciosTurismo() {
             'success',
             data?.mensaje || 'Servicio puesto en Stand By',
           );
-          fetchServicios(fecha);
+          fetchServicios(fecha, fechaFin);
         } else {
           mostrarNotificacion(
             'error',
@@ -884,7 +893,7 @@ export function useServiciosTurismo() {
         setProcesandoStandbyId(null);
       }
     },
-    [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
+    [encolarYAplicarOptimista, fecha, fechaFin, fetchServicios, mostrarNotificacion],
   );
 
   const reanudarServicio = useCallback(
@@ -917,7 +926,7 @@ export function useServiciosTurismo() {
             'success',
             data?.mensaje || 'Servicio reanudado',
           );
-          fetchServicios(fecha);
+          fetchServicios(fecha, fechaFin);
         } else {
           mostrarNotificacion(
             'error',
@@ -934,7 +943,7 @@ export function useServiciosTurismo() {
         setProcesandoStandbyId(null);
       }
     },
-    [encolarYAplicarOptimista, fecha, fetchServicios, mostrarNotificacion],
+    [encolarYAplicarOptimista, fecha, fechaFin, fetchServicios, mostrarNotificacion],
   );
 
   // El backend envía por WhatsApp y por push de la app (Firebase) a la vez, resolviendo el
@@ -1006,9 +1015,9 @@ export function useServiciosTurismo() {
   }, [fecha, mostrarNotificacion]);
 
   const solicitarEliminarCarga = useCallback(() => {
-    if (!opcionesAvanzadasDesbloqueado) return;
+    if (!opcionesAvanzadasDesbloqueado || esRango) return;
     setMostrarModalEliminarCarga(true);
-  }, [opcionesAvanzadasDesbloqueado]);
+  }, [opcionesAvanzadasDesbloqueado, esRango]);
 
   const cancelarEliminarCarga = useCallback(() => {
     setMostrarModalEliminarCarga(false);
@@ -1030,7 +1039,7 @@ export function useServiciosTurismo() {
           data?.mensaje || 'Servicios de la fecha eliminados correctamente',
         );
         setMostrarModalEliminarCarga(false);
-        fetchServicios(fecha);
+        fetchServicios(fecha, fechaFin);
       } else {
         mostrarNotificacion(
           'error',
@@ -1045,7 +1054,7 @@ export function useServiciosTurismo() {
     } finally {
       setEliminandoCarga(false);
     }
-  }, [fecha, fetchServicios, mostrarNotificacion]);
+  }, [fecha, fechaFin, fetchServicios, mostrarNotificacion]);
 
   const crearServicio = useCallback(
     async (
@@ -1084,7 +1093,7 @@ export function useServiciosTurismo() {
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
-          fetchServicios(fecha);
+          fetchServicios(fecha, fechaFin);
           return {
             ok: true,
             offline: false,
@@ -1108,7 +1117,7 @@ export function useServiciosTurismo() {
         };
       }
     },
-    [encolarYAplicarOptimista, fecha, fetchServicios],
+    [encolarYAplicarOptimista, fecha, fechaFin, fetchServicios],
   );
 
   // Único flujo con envío automático de WhatsApp: la carga masiva por Excel. Lo envía el backend
@@ -1155,7 +1164,7 @@ export function useServiciosTurismo() {
         const data = await res.json().catch(() => null);
 
         if (res.ok) {
-          fetchServicios(fecha);
+          fetchServicios(fecha, fechaFin);
           return {
             ok: true,
             offline: false,
@@ -1185,14 +1194,16 @@ export function useServiciosTurismo() {
         };
       }
     },
-    [encolarYAplicarOptimista, fecha, fetchServicios],
+    [encolarYAplicarOptimista, fecha, fechaFin, fetchServicios],
   );
 
   const hayEdicionActiva = editandoId !== null;
 
   return {
     fecha,
-    setFecha,
+    fechaFin,
+    esRango,
+    cambiarRangoFechas,
     loading,
     loadingUnidades,
     error,
