@@ -182,7 +182,59 @@
   color: inherit !important;
 }
 
-/* Los botones de acción (editar, reprogramar…) tienen fondo blanco: conservan su propio color de icono. */
+/* Los botones y pastillas con fondo blanco o claro conservan su texto e iconos oscuros legibles */
+.sr-vivo button[class*='text-slate'],
+.sr-vivo .bg-white,
+.sr-vivo .bg-slate-50,
+.sr-vivo .bg-slate-100,
+.sr-vivo [class*='bg-white'],
+.sr-vivo [class*='bg-slate-100'] {
+  color: #0f172a !important;
+}
+
+.sr-vivo .bg-white *,
+.sr-vivo .bg-slate-50 *,
+.sr-vivo .bg-slate-100 *,
+.sr-vivo [class*='bg-white'] *,
+.sr-vivo [class*='bg-slate-100'] * {
+  color: #0f172a !important;
+}
+
+.sr-vivo .bg-white [class*='text-slate-400'],
+.sr-vivo .bg-white [class*='text-slate-500'],
+.sr-vivo .bg-white [class*='text-slate-600'],
+.sr-vivo .bg-slate-100 [class*='text-slate-400'],
+.sr-vivo .bg-slate-100 [class*='text-slate-500'],
+.sr-vivo .bg-slate-100 [class*='text-slate-600'],
+.sr-vivo [class*='bg-white'] [class*='text-slate-400'],
+.sr-vivo [class*='bg-white'] [class*='text-slate-500'],
+.sr-vivo [class*='bg-white'] [class*='text-slate-600'],
+.sr-vivo [class*='bg-slate-100'] [class*='text-slate-400'],
+.sr-vivo [class*='bg-slate-100'] [class*='text-slate-500'],
+.sr-vivo [class*='bg-slate-100'] [class*='text-slate-600'] {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.sr-vivo .bg-white [class*='text-slate-800'],
+.sr-vivo .bg-white [class*='text-slate-900'],
+.sr-vivo .bg-slate-100 [class*='text-slate-800'],
+.sr-vivo .bg-slate-100 [class*='text-slate-900'],
+.sr-vivo [class*='bg-white'] [class*='text-slate-800'],
+.sr-vivo [class*='bg-white'] [class*='text-slate-900'],
+.sr-vivo [class*='bg-slate-100'] [class*='text-slate-800'],
+.sr-vivo [class*='bg-slate-100'] [class*='text-slate-900'] {
+  color: #0f172a !important;
+  opacity: 1 !important;
+}
+
+.sr-vivo .bg-white svg,
+.sr-vivo .bg-slate-100 svg,
+.sr-vivo [class*='bg-white'] svg,
+.sr-vivo [class*='bg-slate-100'] svg {
+  color: #2563eb !important;
+}
+
 .sr-vivo button[class*='text-slate'] {
   color: #334155 !important;
   opacity: 1;

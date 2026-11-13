@@ -247,7 +247,7 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                               {s.horaSalida}
                             </span>
                             {ruta && (
-                              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                              <span className="inline-flex items-center gap-1 rounded bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs border border-slate-200/80">
                                 <span className="text-slate-400">llega</span>
                                 <span className="font-mono font-bold text-slate-800">
                                   {sumarMinutos(s.horaSalida, ruta.duracionMin)}
@@ -258,11 +258,19 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                           <div className="mt-1 flex items-center gap-1.5 truncate text-[12.5px]">
                             <span
                               className="inline-flex shrink-0 items-center rounded px-1.5 py-0.2 font-mono text-[10.5px] font-bold tracking-tight whitespace-nowrap shadow-2xs"
-                              style={{
-                                backgroundColor: `${color}18`,
-                                color: color,
-                                border: `1px solid ${color}35`,
-                              }}
+                              style={
+                                enVivo
+                                  ? {
+                                      backgroundColor: '#ffffff',
+                                      color: '#0f172a',
+                                      border: '1px solid rgba(255, 255, 255, 0.8)',
+                                    }
+                                  : {
+                                      backgroundColor: `${color}18`,
+                                      color: color,
+                                      border: `1px solid ${color}35`,
+                                    }
+                              }
                             >
                               {s.rutaCodigo}
                             </span>
@@ -279,7 +287,7 @@ const PanelServicios: React.FC<PanelServiciosProps> = ({
                         <EstadoChip estado={s.estado} />
                       </div>
                       <div className="flex items-center gap-2.5 text-[12px]">
-                        <span className="inline-flex items-center gap-1 font-mono font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
+                        <span className="inline-flex items-center gap-1 font-mono font-bold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-slate-200/80 shadow-2xs">
                           <Bus className="h-3.5 w-3.5 text-blue-600 shrink-0" />
                           <span>{s.deviceID}</span>
                         </span>

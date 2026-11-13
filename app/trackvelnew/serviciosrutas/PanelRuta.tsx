@@ -162,7 +162,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
                       <span className="font-mono text-[15px] font-bold text-slate-900 tracking-tight">
                         {servicio.horaSalida}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                      <span className="inline-flex items-center gap-1 rounded bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-600 shadow-2xs border border-slate-200/80">
                         <span className="text-slate-400">llega</span>
                         <span className="font-mono font-bold text-slate-800">
                           {sumarMinutos(servicio.horaSalida, ruta.duracionMin)}
@@ -174,7 +174,7 @@ const PanelRuta: React.FC<PanelRutaProps> = ({
                   <div className="space-y-1 text-[12px]">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
                       <Bus className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 border border-slate-200">
+                      <span className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-slate-800 border border-slate-200/80 shadow-2xs">
                         {servicio.deviceID}
                       </span>
                     </div>

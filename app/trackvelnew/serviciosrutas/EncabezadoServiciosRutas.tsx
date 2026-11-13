@@ -6,7 +6,6 @@ import Link from 'next/link';
 import {
   FileBarChart2,
   ListChecks,
-  Radio,
   Route,
   Settings2,
   Timer,
@@ -97,11 +96,11 @@ const EncabezadoServiciosRutas: React.FC<EncabezadoServiciosRutasProps> = ({
               <>
                 <div className="h-3.5 w-[1px] bg-white/20" />
                 <div
-                  className="flex items-center gap-1.5 rounded-md bg-emerald-500/25 px-2.5 py-0.5 text-[12px] font-semibold text-emerald-100 border border-emerald-400/30"
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 text-[12px]"
                   title={`${enCursoTotal} servicios en recorrido activo`}
                 >
                   <span className="font-bold text-white">{enCursoTotal}</span>
-                  <span className="text-[11px] font-medium text-emerald-200">en curso</span>
+                  <span className="text-[11px] font-medium text-blue-200">en curso</span>
                 </div>
               </>
             )}
@@ -111,12 +110,11 @@ const EncabezadoServiciosRutas: React.FC<EncabezadoServiciosRutasProps> = ({
               <>
                 <div className="h-3.5 w-[1px] bg-white/20" />
                 <div
-                  className="flex items-center gap-1.5 rounded-md bg-amber-500/25 px-2.5 py-0.5 text-[12px] font-semibold text-amber-100 border border-amber-400/30"
-                  title={`${posicionesTotal} unidades transmitiendo GPS en vivo`}
+                  className="flex items-center gap-1.5 px-2.5 py-0.5 text-[12px]"
+                  title={`${posicionesTotal} unidades transmitiendo en vivo`}
                 >
-                  <Radio className="h-3.5 w-3.5 text-amber-300 animate-pulse" />
                   <span className="font-bold text-white">{posicionesTotal}</span>
-                  <span className="text-[11px] font-medium text-amber-200">en vivo</span>
+                  <span className="text-[11px] font-medium text-blue-200">en vivo</span>
                 </div>
               </>
             )}
