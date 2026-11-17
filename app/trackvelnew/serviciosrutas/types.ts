@@ -156,3 +156,10 @@ export interface PlantillaForm {
   dias: number[];
   activo: boolean;
 }
+
+/** Configuración de la generación automática: cada cuántos minutos revisa y desde qué hora crea los de mañana. */
+export interface ConfigPlantillas {
+  intervaloMin: number;
+  /** HH:mm (hora de Perú). */
+  horaGeneracion: string;
+}

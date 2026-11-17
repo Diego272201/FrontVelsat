@@ -12,6 +12,7 @@ import {
   Servicio,
   EstadoServicio,
   NuevoServicioForm,
+  ConfigPlantillas,
   Plantilla,
   PlantillaForm,
   SIN_GRUPO,
@@ -275,14 +276,22 @@ export function useServiciosRutasApi() {
       },
 
       // Cada cuántos minutos el backend revisa y crea los servicios programadas.
-      async getIntervaloPlantillas(): Promise<number> {
-        const { data } = await axios.get<{ intervaloMin?: number }>(`${raiz}/plantillas/configuracion`);
-        return data?.intervaloMin ?? 50;
+      async getConfigPlantillas(): Promise<ConfigPlantillas> {
+        const { data } = await axios.get<{ intervaloMin?: number; horaGeneracion?: string }>(
+          `${raiz}/plantillas/configuracion`,
+        );
+        return { intervaloMin: data?.intervaloMin ?? 50, horaGeneracion: data?.horaGeneracion ?? '18:00' };
       },
 
-      async setIntervaloPlantillas(intervaloMin: number): Promise<number> {
-        const { data } = await axios.put<{ intervaloMin?: number }>(`${raiz}/plantillas/configuracion`, { intervaloMin });
-        return data?.intervaloMin ?? intervaloMin;
+      async setConfigPlantillas(config: ConfigPlantillas): Promise<ConfigPlantillas> {
+        const { data } = await axios.put<{ intervaloMin?: number; horaGeneracion?: string }>(
+          `${raiz}/plantillas/configuracion`,
+          config,
+        );
+        return {
+          intervaloMin: data?.intervaloMin ?? config.intervaloMin,
+          horaGeneracion: data?.horaGeneracion ?? config.horaGeneracion,
+        };
       },
 
       async eliminarPlantilla(id: number): Promise<void> {

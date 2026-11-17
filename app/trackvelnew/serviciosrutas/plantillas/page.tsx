@@ -7,7 +7,7 @@ import { Spinner } from '@nextui-org/react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import { mensajeError, useServiciosRutasApi } from '../api';
-import { Plantilla, PlantillaForm, Ruta } from '../types';
+import { ConfigPlantillas, Plantilla, PlantillaForm, Ruta } from '../types';
 import ModalPlantilla, { DIAS_SEMANA } from './ModalPlantilla';
 
 const textoDias = (dias: number[]): string => {
@@ -29,8 +29,9 @@ const PlantillasPage: React.FC = () => {
   const [busqueda, setBusqueda] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Plantilla | null>(null);
-  const [intervalo, setIntervalo] = useState<number | null>(null);
+  const [config, setConfig] = useState<ConfigPlantillas | null>(null);
   const [intervaloTexto, setIntervaloTexto] = useState('');
+  const [horaTexto, setHoraTexto] = useState('');
   const [guardandoIntervalo, setGuardandoIntervalo] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -40,10 +41,11 @@ const PlantillasPage: React.FC = () => {
         api.getPlantillas(),
         api.getRutas(),
         api.getUnidades().catch(() => [] as string[]),
-        api.getIntervaloPlantillas().catch(() => 50),
+        api.getConfigPlantillas().catch((): ConfigPlantillas => ({ intervaloMin: 50, horaGeneracion: '18:00' })),
       ]);
-      setIntervalo(iv);
-      setIntervaloTexto(String(iv));
+      setConfig(iv);
+      setIntervaloTexto(String(iv.intervaloMin));
+      setHoraTexto(iv.horaGeneracion);
       setPlantillas(pl);
       setRutas(rt);
       setUnidades(un);
@@ -85,12 +87,19 @@ const PlantillasPage: React.FC = () => {
       toast.error('El intervalo debe ser un número entero entre 5 y 1440 minutos');
       return;
     }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(horaTexto)) {
+      toast.error('Indica la hora de creación (HH:mm)');
+      return;
+    }
     setGuardandoIntervalo(true);
     try {
-      const guardado = await api.setIntervaloPlantillas(minutos);
-      setIntervalo(guardado);
-      setIntervaloTexto(String(guardado));
-      toast.success(`Se revisará cada ${guardado} min (aplica desde la próxima revisión)`);
+      const guardado = await api.setConfigPlantillas({ intervaloMin: minutos, horaGeneracion: horaTexto });
+      setConfig(guardado);
+      setIntervaloTexto(String(guardado.intervaloMin));
+      setHoraTexto(guardado.horaGeneracion);
+      toast.success(
+        `Se revisará cada ${guardado.intervaloMin} min y los de mañana se crean desde las ${guardado.horaGeneracion} (aplica desde la próxima revisión)`,
+      );
     } catch (error) {
       toast.error(mensajeError(error, 'No se pudo guardar el intervalo'));
     } finally {
@@ -221,11 +230,20 @@ const PlantillasPage: React.FC = () => {
                   onChange={(e) => setIntervaloTexto(e.target.value)}
                   className="h-7 w-16 rounded-md border border-gray-300 px-1.5 text-center text-[12px] focus:border-[#113EB9] focus:outline-none"
                 />
-                <span>min</span>
+                <span>min · crear los de mañana desde las</span>
+                <input
+                  type="time"
+                  value={horaTexto}
+                  onChange={(e) => setHoraTexto(e.target.value)}
+                  className="h-7 w-24 rounded-md border border-gray-300 px-1.5 text-[12px] focus:border-[#113EB9] focus:outline-none"
+                />
                 <button
                   type="button"
                   onClick={guardarIntervalo}
-                  disabled={guardandoIntervalo || String(intervalo) === intervaloTexto}
+                  disabled={
+                    guardandoIntervalo ||
+                    (String(config?.intervaloMin) === intervaloTexto && config?.horaGeneracion === horaTexto)
+                  }
                   className="h-7 rounded-md bg-[#113EB9] px-2.5 text-[11px] font-semibold text-white hover:bg-[#0C2D78] disabled:opacity-40"
                 >
                   Guardar
@@ -242,7 +260,7 @@ const PlantillasPage: React.FC = () => {
             <p className="border-b border-gray-100 bg-blue-50/50 px-4 py-2 text-[11px] text-gray-600">
               Cada cierto tiempo (configurable arriba) el sistema revisa las plantillas activas y crea el servicio de las
               que estén completas (hora, unidad y conductor). Si alguien ya creó a mano un servicio de esa ruta, fecha y
-              hora, solo esa plantilla se omite; las demás se siguen creando. Los de hoy se crean al completarse y los de mañana desde las 18:00. Después puedes editar,
+              hora, solo esa plantilla se omite; las demás se siguen creando. Los de hoy se crean al completarse y los de mañana desde la hora de creación configurada. Después puedes editar,
               reprogramar o cancelar cada servicio generado desde Servicios Rutas.
             </p>
 
