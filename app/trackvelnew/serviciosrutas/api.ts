@@ -260,7 +260,7 @@ export function useServiciosRutasApi() {
         await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' });
       },
 
-      // ---- Plantillas (servicios automáticos) ----
+      // ---- Plantillas (servicios programados) ----
       async getPlantillas(): Promise<Plantilla[]> {
         const { data } = await axios.get<PlantillaApi[]>(`${raiz}/plantillas`);
         return data.map(aPlantilla);
@@ -274,7 +274,7 @@ export function useServiciosRutasApi() {
         await axios.put(`${raiz}/plantillas/${id}`, cuerpoPlantilla(form));
       },
 
-      // Cada cuántos minutos el backend revisa y crea los servicios automáticos.
+      // Cada cuántos minutos el backend revisa y crea los servicios programadas.
       async getIntervaloPlantillas(): Promise<number> {
         const { data } = await axios.get<{ intervaloMin?: number }>(`${raiz}/plantillas/configuracion`);
         return data?.intervaloMin ?? 50;

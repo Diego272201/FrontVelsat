@@ -18,7 +18,7 @@ const textoDias = (dias: number[]): string => {
     .join(' · ');
 };
 
-// Servicios automáticos: plantillas de las que el backend crea los servicios de cada día.
+// Servicios programados: plantillas de las que el backend crea los servicios de cada día.
 const PlantillasPage: React.FC = () => {
   const api = useServiciosRutasApi();
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
@@ -48,7 +48,7 @@ const PlantillasPage: React.FC = () => {
       setRutas(rt);
       setUnidades(un);
     } catch (error) {
-      toast.error(mensajeError(error, 'No se pudieron cargar los servicios automáticos'));
+      toast.error(mensajeError(error, 'No se pudieron cargar los servicios programados'));
     } finally {
       setCargando(false);
     }
@@ -169,7 +169,7 @@ const PlantillasPage: React.FC = () => {
                 SERVICIOS / RUTAS
               </span>
               <h1 className="flex items-center gap-1.5 text-[14px] font-bold uppercase leading-none tracking-[0.01em] text-white">
-                SERVICIOS AUTOMÁTICOS
+                SERVICIOS PROGRAMADOS
               </h1>
             </div>
           </div>
@@ -195,7 +195,7 @@ const PlantillasPage: React.FC = () => {
         {cargando ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Spinner color="primary" size="md" />
-            <span className="mt-3 text-[12px] text-gray-500">Cargando servicios automáticos...</span>
+            <span className="mt-3 text-[12px] text-gray-500">Cargando servicios programados...</span>
           </div>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -247,7 +247,7 @@ const PlantillasPage: React.FC = () => {
             </p>
 
             {visibles.length === 0 ? (
-              <div className="py-12 text-center text-[12px] text-gray-500">No hay servicios automáticos para mostrar.</div>
+              <div className="py-12 text-center text-[12px] text-gray-500">No hay servicios programados para mostrar.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[12px]">

@@ -160,10 +160,10 @@ const EncabezadoServiciosRutas: React.FC<EncabezadoServiciosRutasProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-8 items-center gap-1.5 rounded-md border border-white/30 bg-white/10 px-3 text-[12px] font-medium text-white transition-colors hover:bg-white/15"
-            title="Servicios automáticos: plantillas que generan los servicios de cada día (abre en nueva pestaña)"
+            title="Servicios programados: plantillas que generan los servicios de cada día (abre en nueva pestaña)"
           >
             <CalendarClock className="h-3.5 w-3.5 text-blue-200" />
-            <span className="hidden sm:inline">Automáticos</span>
+            <span className="hidden sm:inline">Programados</span>
           </Link>
 
           <Link
