@@ -206,7 +206,7 @@ const ModalPlantilla: React.FC<ModalPlantillaProps> = ({
           <label className={labelClase}>Conductor</label>
           <SelectConductorBuscable
             fondoBlanco
-            enFlujo
+            flotante
             value={form.conductorNombre}
             conductores={conductores}
             onSeleccionar={seleccionarConductor}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 
 export const TIPOS_UNIDAD = [
@@ -112,10 +113,37 @@ export const SelectConductorBuscable: React.FC<{
   fondoBlanco?: boolean;
   /** La lista empuja el contenido en lugar de flotar (para modales con scroll propio). */
   enFlujo?: boolean;
-}> = ({ value, conductores, onSeleccionar, onChangeTexto, fondoBlanco = false, enFlujo = false }) => {
+  /** La lista se dibuja por encima de todo (fuera del modal), sin cambiar su tamaño. */
+  flotante?: boolean;
+}> = ({ value, conductores, onSeleccionar, onChangeTexto, fondoBlanco = false, enFlujo = false, flotante = false }) => {
   const [query, setQuery] = useState(value);
   const [abierto, setAbierto] = useState(false);
   const cerrandoPorClickRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [caja, setCaja] = useState<{ left: number; width: number; top?: number; bottom?: number } | null>(null);
+
+  // Modo flotante: la lista usa posición fija calculada desde el input y se reubica al hacer scroll o redimensionar.
+  useEffect(() => {
+    if (!flotante || !abierto) return;
+    const ubicar = () => {
+      const r = inputRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const abajo = window.innerHeight - r.bottom;
+      // Si abajo no cabe la lista (~176 px) y arriba hay más espacio, se abre hacia arriba.
+      if (abajo < 180 && r.top > abajo) {
+        setCaja({ left: r.left, width: r.width, bottom: window.innerHeight - r.top + 4 });
+      } else {
+        setCaja({ left: r.left, width: r.width, top: r.bottom + 4 });
+      }
+    };
+    ubicar();
+    window.addEventListener('resize', ubicar);
+    window.addEventListener('scroll', ubicar, true);
+    return () => {
+      window.removeEventListener('resize', ubicar);
+      window.removeEventListener('scroll', ubicar, true);
+    };
+  }, [flotante, abierto]);
 
   useEffect(() => {
     setQuery(value);
@@ -139,6 +167,7 @@ export const SelectConductorBuscable: React.FC<{
     <div className="relative">
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onFocus={() => setAbierto(true)}
@@ -161,19 +190,16 @@ export const SelectConductorBuscable: React.FC<{
         <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
       </div>
 
-      {abierto && (
-        <div
-          className={`${enFlujo ? 'relative' : 'absolute z-20 shadow-lg'} mt-1 max-h-40 w-full overflow-auto rounded-md border border-gray-200 bg-white`}
-        >
-          {opcionesFiltradas.length === 0 ? (
-            <div className="px-3 py-2 text-[12px] text-gray-400">
-              Sin coincidencias
-            </div>
+      {abierto && (() => {
+        const contenido =
+          opcionesFiltradas.length === 0 ? (
+            <div className="px-3 py-2 text-[12px] text-gray-400">Sin coincidencias</div>
           ) : (
             opcionesFiltradas.map((conductor) => (
               <div
                 key={conductor.codtaxi}
-                onMouseDown={() => {
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   cerrandoPorClickRef.current = true;
                   seleccionar(conductor);
                 }}
@@ -186,9 +212,29 @@ export const SelectConductorBuscable: React.FC<{
                 {conductor.apellidos}
               </div>
             ))
-          )}
-        </div>
-      )}
+          );
+
+        if (flotante) {
+          if (!caja || typeof document === 'undefined') return null;
+          return createPortal(
+            <div
+              style={{ position: 'fixed', left: caja.left, width: caja.width, top: caja.top, bottom: caja.bottom, zIndex: 100000 }}
+              className="pointer-events-auto max-h-44 overflow-auto rounded-md border border-gray-200 bg-white shadow-lg"
+            >
+              {contenido}
+            </div>,
+            document.body,
+          );
+        }
+
+        return (
+          <div
+            className={`${enFlujo ? 'relative' : 'absolute z-20 shadow-lg'} mt-1 max-h-40 w-full overflow-auto rounded-md border border-gray-200 bg-white`}
+          >
+            {contenido}
+          </div>
+        );
+      })()}
     </div>
   );
 };

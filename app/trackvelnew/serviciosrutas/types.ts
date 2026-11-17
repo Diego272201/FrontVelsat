@@ -157,9 +157,8 @@ export interface PlantillaForm {
   activo: boolean;
 }
 
-/** Configuración de la generación automática: cada cuántos minutos revisa y desde qué hora crea los de mañana. */
+/** Configuración de la generación automática: desde qué hora se crean los servicios de mañana. */
 export interface ConfigPlantillas {
-  intervaloMin: number;
   /** HH:mm (hora de Perú). */
   horaGeneracion: string;
 }

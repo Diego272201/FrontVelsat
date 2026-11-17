@@ -277,21 +277,13 @@ export function useServiciosRutasApi() {
 
       // Cada cuántos minutos el backend revisa y crea los servicios programadas.
       async getConfigPlantillas(): Promise<ConfigPlantillas> {
-        const { data } = await axios.get<{ intervaloMin?: number; horaGeneracion?: string }>(
-          `${raiz}/plantillas/configuracion`,
-        );
-        return { intervaloMin: data?.intervaloMin ?? 50, horaGeneracion: data?.horaGeneracion ?? '18:00' };
+        const { data } = await axios.get<{ horaGeneracion?: string }>(`${raiz}/plantillas/configuracion`);
+        return { horaGeneracion: data?.horaGeneracion ?? '18:00' };
       },
 
       async setConfigPlantillas(config: ConfigPlantillas): Promise<ConfigPlantillas> {
-        const { data } = await axios.put<{ intervaloMin?: number; horaGeneracion?: string }>(
-          `${raiz}/plantillas/configuracion`,
-          config,
-        );
-        return {
-          intervaloMin: data?.intervaloMin ?? config.intervaloMin,
-          horaGeneracion: data?.horaGeneracion ?? config.horaGeneracion,
-        };
+        const { data } = await axios.put<{ horaGeneracion?: string }>(`${raiz}/plantillas/configuracion`, config);
+        return { horaGeneracion: data?.horaGeneracion ?? config.horaGeneracion };
       },
 
       async eliminarPlantilla(id: number): Promise<void> {
