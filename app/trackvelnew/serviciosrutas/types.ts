@@ -126,3 +126,33 @@ export interface DestinoComun {
   nombre: string;
   rutaIds: number[];
 }
+
+/** Servicio automático: se repite en los días elegidos y el backend lo crea solo si está completo. */
+export interface Plantilla {
+  id: number;
+  rutaId: number;
+  rutaCodigo: string;
+  rutaNombre: string;
+  rutaGrupo: string;
+  hora: string; // HH:mm, '' si no tiene
+  deviceID: string;
+  conductorNombre: string;
+  conductorBrevete: string;
+  conductorCelular: string;
+  /** 1 = lunes ... 7 = domingo. */
+  dias: number[];
+  activo: boolean;
+  /** true si tiene hora, unidad y conductor: solo así se generan servicios. */
+  completa: boolean;
+}
+
+export interface PlantillaForm {
+  rutaId: number | null;
+  hora: string;
+  deviceID: string;
+  conductorNombre: string;
+  conductorBrevete: string;
+  conductorCelular: string;
+  dias: number[];
+  activo: boolean;
+}

@@ -12,6 +12,8 @@ import {
   Servicio,
   EstadoServicio,
   NuevoServicioForm,
+  Plantilla,
+  PlantillaForm,
   SIN_GRUPO,
   Sentido,
 } from './types';
@@ -51,6 +53,22 @@ interface ServicioApi {
   estado: EstadoServicio;
   paraderosCompletados?: number | null;
   totalParaderos?: number | null;
+}
+
+interface PlantillaApi {
+  id: number;
+  rutaId: number;
+  rutaCodigo?: string | null;
+  rutaNombre?: string | null;
+  rutaGrupo?: string | null;
+  horaSalida?: string | null;
+  deviceID?: string | null;
+  conductorNombre?: string | null;
+  conductorBrevete?: string | null;
+  conductorCelular?: string | null;
+  dias?: number[] | null;
+  activo: boolean;
+  completa?: boolean;
 }
 
 export interface ParaderoGuardar {
@@ -108,6 +126,32 @@ const aServicio = (s: ServicioApi): Servicio => ({
   estado: s.estado,
   paraderosCompletados: s.paraderosCompletados ?? 0,
   totalParaderos: s.totalParaderos ?? 0,
+});
+
+const aPlantilla = (p: PlantillaApi): Plantilla => ({
+  id: p.id,
+  rutaId: p.rutaId,
+  rutaCodigo: p.rutaCodigo ?? '',
+  rutaNombre: p.rutaNombre ?? '',
+  rutaGrupo: p.rutaGrupo?.trim() ? p.rutaGrupo : SIN_GRUPO,
+  hora: p.horaSalida ?? '',
+  deviceID: p.deviceID ?? '',
+  conductorNombre: p.conductorNombre ?? '',
+  conductorBrevete: p.conductorBrevete ?? '',
+  conductorCelular: p.conductorCelular ?? '',
+  dias: p.dias ?? [],
+  activo: p.activo,
+  completa: p.completa ?? false,
+});
+
+const cuerpoPlantilla = (form: PlantillaForm) => ({
+  rutaId: form.rutaId,
+  horaSalida: form.hora || null,
+  deviceID: form.deviceID || null,
+  // El conductor se identifica solo por el brevete; nombre y celular los resuelve el backend.
+  conductorBrevete: form.conductorBrevete.trim() || null,
+  dias: form.dias,
+  activo: form.activo,
 });
 
 /** Saca el mensaje de error que devuelve el backend ({ message }) o uno genérico. */
@@ -214,6 +258,35 @@ export function useServiciosRutasApi() {
       // PROGRAMADO o EN_CURSO -> CANCELADO. Iniciar y finalizar los hace la app móvil.
       async cancelarServicio(id: number): Promise<void> {
         await axios.patch(`${raiz}/servicios/${id}/estado`, { estado: 'CANCELADO' });
+      },
+
+      // ---- Plantillas (servicios automáticos) ----
+      async getPlantillas(): Promise<Plantilla[]> {
+        const { data } = await axios.get<PlantillaApi[]>(`${raiz}/plantillas`);
+        return data.map(aPlantilla);
+      },
+
+      async crearPlantilla(form: PlantillaForm): Promise<void> {
+        await axios.post(`${raiz}/plantillas`, cuerpoPlantilla(form));
+      },
+
+      async actualizarPlantilla(id: number, form: PlantillaForm): Promise<void> {
+        await axios.put(`${raiz}/plantillas/${id}`, cuerpoPlantilla(form));
+      },
+
+      // Cada cuántos minutos el backend revisa y crea los servicios automáticos.
+      async getIntervaloPlantillas(): Promise<number> {
+        const { data } = await axios.get<{ intervaloMin?: number }>(`${raiz}/plantillas/configuracion`);
+        return data?.intervaloMin ?? 50;
+      },
+
+      async setIntervaloPlantillas(intervaloMin: number): Promise<number> {
+        const { data } = await axios.put<{ intervaloMin?: number }>(`${raiz}/plantillas/configuracion`, { intervaloMin });
+        return data?.intervaloMin ?? intervaloMin;
+      },
+
+      async eliminarPlantilla(id: number): Promise<void> {
+        await axios.delete(`${raiz}/plantillas/${id}`);
       },
 
       // ---- Posiciones en vivo de los conductores ----
