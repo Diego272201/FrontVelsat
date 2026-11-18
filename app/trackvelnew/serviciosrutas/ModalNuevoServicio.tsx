@@ -7,6 +7,7 @@ import { NuevoServicioForm, Ruta, Servicio } from './types';
 import { ddMmYyyyToIso, getIsoToday } from './utils';
 import { useUsername } from '@/hooks/useUsername';
 import { Conductor, SelectConductorBuscable } from '../serviciosturismo/SelectBuscable';
+import Hora24 from './Hora24';
 
 const formDesdeServicio = (s: Servicio): NuevoServicioForm => ({
   deviceID: s.deviceID,
@@ -178,12 +179,7 @@ const ModalNuevoServicio: React.FC<ModalNuevoServicioProps> = ({
 
         <div>
           <label className={labelClase}>Hora de salida</label>
-          <input
-            type="time"
-            className={inputClase}
-            value={form.hora}
-            onChange={(e) => set('hora', e.target.value)}
-          />
+          <Hora24 value={form.hora} onChange={(v) => set('hora', v)} />
         </div>
 
         <div className="sm:col-span-2">

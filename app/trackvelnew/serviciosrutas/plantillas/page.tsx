@@ -19,6 +19,7 @@ import '@/app/styles/sonner.css';
 import { mensajeError, useServiciosRutasApi } from '../api';
 import { ConfigPlantillas, Plantilla, PlantillaForm, Ruta } from '../types';
 import ModalPlantilla, { DIAS_SEMANA } from './ModalPlantilla';
+import Hora24 from '../Hora24';
 
 const textoDias = (dias: number[]): string => {
   if (dias.length === 7) return 'Todos los días';
@@ -223,13 +224,8 @@ const PlantillasPage: React.FC = () => {
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-gray-600">
                 <Timer className="h-3.5 w-3.5 text-[#113EB9]" />
-                <span>Crear los de mañana desde las</span>
-                <input
-                  type="time"
-                  value={horaTexto}
-                  onChange={(e) => setHoraTexto(e.target.value)}
-                  className="h-7 w-24 rounded-md border border-gray-300 px-1.5 text-[12px] focus:border-[#113EB9] focus:outline-none"
-                />
+                <span>Crear los de mañana desde las (hora de Perú, 24 h)</span>
+                <Hora24 value={horaTexto} onChange={setHoraTexto} className="w-32" />
                 <button
                   type="button"
                   onClick={guardarHora}
