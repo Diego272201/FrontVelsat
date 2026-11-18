@@ -52,6 +52,7 @@ export function aReporteServicios(r: ReporteServiciosApi): ReporteServicio[] {
         horaSalidaReal: p.salidaReal,
         diferenciaSeg: p.diferenciaSeg ?? (p.diferenciaMin ?? 0) * 60,
         estadoPuntualidad: p.estado,
+        observaciones: p.observaciones ?? undefined,
       })),
     };
   });

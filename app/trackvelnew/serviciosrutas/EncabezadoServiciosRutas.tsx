@@ -12,6 +12,7 @@ import {
   Timer,
 } from 'lucide-react';
 import SelectorFechaHeader from './SelectorFechaHeader';
+import CampanaNotificaciones from './notificaciones/CampanaNotificaciones';
 
 interface EncabezadoServiciosRutasProps {
   totalRutas: number;
@@ -124,6 +125,7 @@ const EncabezadoServiciosRutas: React.FC<EncabezadoServiciosRutasProps> = ({
 
         {/* Lado derecho: Selector de fecha, tolerancia, reportes y administrar rutas */}
         <div className="flex items-center gap-2 pr-4">
+          <CampanaNotificaciones />
           <SelectorFechaHeader
             fechaIso={fechaIso}
             onFechaChange={onFechaChange}

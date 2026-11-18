@@ -13,6 +13,10 @@ import {
   EstadoServicio,
   NuevoServicioForm,
   ConfigPlantillas,
+  Notificacion,
+  NotificacionTipo,
+  FiltroNotificaciones,
+  EstadoNotificacion,
   Plantilla,
   PlantillaForm,
   SIN_GRUPO,
@@ -284,6 +288,52 @@ export function useServiciosRutasApi() {
       async setConfigPlantillas(config: ConfigPlantillas): Promise<ConfigPlantillas> {
         const { data } = await axios.put<{ horaGeneracion?: string }>(`${raiz}/plantillas/configuracion`, config);
         return { horaGeneracion: data?.horaGeneracion ?? config.horaGeneracion };
+      },
+
+      // ---- Notificaciones del conductor ----
+      async getNotificacionTipos(soloActivos = false): Promise<NotificacionTipo[]> {
+        const { data } = await axios.get<NotificacionTipo[]>(`${raiz}/notificaciones/tipos`, { params: { soloActivos } });
+        return data;
+      },
+
+      async guardarNotificacionTipo(tipo: Omit<NotificacionTipo, 'id'>, id?: number): Promise<void> {
+        if (id) await axios.put(`${raiz}/notificaciones/tipos/${id}`, tipo);
+        else await axios.post(`${raiz}/notificaciones/tipos`, tipo);
+      },
+
+      async eliminarNotificacionTipo(id: number): Promise<void> {
+        await axios.delete(`${raiz}/notificaciones/tipos/${id}`);
+      },
+
+      async getNotificaciones(filtro: FiltroNotificaciones = {}, limite = 200): Promise<Notificacion[]> {
+        const { data } = await axios.get<Notificacion[]>(`${raiz}/notificaciones`, {
+          params: {
+            desde: filtro.desde || undefined,
+            hasta: filtro.hasta || undefined,
+            estado: filtro.estado || undefined,
+            tipo: filtro.tipo || undefined,
+            soloNoLeidas: filtro.soloNoLeidas || undefined,
+            limite,
+          },
+        });
+        return data;
+      },
+
+      async getCantidadNoLeidas(): Promise<number> {
+        const { data } = await axios.get<{ cantidad: number }>(`${raiz}/notificaciones/no-leidas/cantidad`);
+        return data?.cantidad ?? 0;
+      },
+
+      async marcarNotificacionLeida(id: number): Promise<void> {
+        await axios.patch(`${raiz}/notificaciones/${id}/leida`);
+      },
+
+      async marcarTodasNotificacionesLeidas(): Promise<void> {
+        await axios.patch(`${raiz}/notificaciones/leidas`);
+      },
+
+      async gestionarNotificacion(id: number, estado: EstadoNotificacion, respuesta: string): Promise<void> {
+        await axios.patch(`${raiz}/notificaciones/${id}/gestion`, { estado, respuesta, usuario: username });
       },
 
       async eliminarPlantilla(id: number): Promise<void> {
