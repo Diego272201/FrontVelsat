@@ -3,24 +3,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell } from 'lucide-react';
-import { toast } from 'sonner';
-import { Notificacion } from '../types';
 import { formatoFechaHora } from '../utils';
 import { useNotificaciones } from './useNotificaciones';
 import { CATEGORIA_CLASE } from './constantes';
+import { avisarNotificacion } from './avisoNotificacion';
 
 // Campana de la cabecera: contador de no leídas, aviso al llegar una nueva y lista de las últimas.
 const CampanaNotificaciones: React.FC = () => {
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
-  const { noLeidas, recientes } = useNotificaciones((n: Notificacion) => {
-    const quien = [n.conductorNombre, n.deviceID].filter(Boolean).join(' · ');
-    toast(n.titulo, {
-      description: [quien, n.paraderoNombre, n.comentario].filter(Boolean).join(' — ') || undefined,
-      duration: 10000,
-    });
-  });
+  const { noLeidas, recientes } = useNotificaciones((n) => avisarNotificacion(n));
 
   useEffect(() => {
     if (!abierto) return;
@@ -66,6 +59,9 @@ const CampanaNotificaciones: React.FC = () => {
                   </div>
                   <p className="mt-0.5 truncate text-[11px] text-slate-500">
                     {[n.conductorNombre, n.deviceID, n.paraderoNombre].filter(Boolean).join(' · ')}
+                  </p>
+                  <p className="font-mono text-[10px] text-slate-600">
+                    {n.latitud.toFixed(6)}, {n.longitud.toFixed(6)}
                   </p>
                   <p className="text-[10px] text-slate-400">{formatoFechaHora(n.createdAt)}</p>
                 </div>

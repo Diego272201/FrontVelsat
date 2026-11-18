@@ -7,6 +7,16 @@ import { Spinner } from '@nextui-org/react';
 import { toast, Toaster } from 'sonner';
 import '@/app/styles/sonner.css';
 import BaseModal from '@/app/components/ui/BaseModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/app/components/ui/alert-dialog';
 import { mensajeError, useServiciosRutasApi } from '../api';
 import {
   CategoriaNotificacion,
@@ -17,6 +27,7 @@ import {
 import { formatoFechaHora, isoToDdMmYyyy } from '../utils';
 import { CATEGORIAS, CATEGORIA_CLASE, ESTADOS, ESTADO_CLASE } from './constantes';
 import { useNotificaciones } from './useNotificaciones';
+import { avisarNotificacion } from './avisoNotificacion';
 
 type Pestana = 'historial' | 'catalogo';
 
@@ -55,6 +66,7 @@ const NotificacionesPage: React.FC = () => {
   const [editandoTipo, setEditandoTipo] = useState<NotificacionTipo | null>(null);
   const [formTipo, setFormTipo] = useState<Omit<NotificacionTipo, 'id'> | null>(null);
   const [guardandoTipo, setGuardandoTipo] = useState(false);
+  const [tipoAEliminar, setTipoAEliminar] = useState<NotificacionTipo | null>(null);
 
   const cargarHistorial = useCallback(async () => {
     if (!api.listo) return;
@@ -95,7 +107,7 @@ const NotificacionesPage: React.FC = () => {
 
   // Una notificación nueva aparece al instante en el historial.
   useNotificaciones((n) => {
-    toast(n.titulo, { description: [n.conductorNombre, n.deviceID].filter(Boolean).join(' · ') || undefined });
+    avisarNotificacion(n);
     cargarHistorial();
   });
 
@@ -169,10 +181,13 @@ const NotificacionesPage: React.FC = () => {
     }
   };
 
-  const eliminarTipo = async (t: NotificacionTipo) => {
-    if (!window.confirm(`¿Eliminar "${t.titulo}"? El historial ya enviado no se modifica.`)) return;
+  const confirmarEliminarTipo = async () => {
+    const t = tipoAEliminar;
+    setTipoAEliminar(null);
+    if (!t) return;
     try {
       await api.eliminarNotificacionTipo(t.id);
+      toast.success('Mensaje eliminado');
       await cargarTipos();
     } catch (error) {
       toast.error(mensajeError(error, 'No se pudo eliminar'));
@@ -273,6 +288,7 @@ const NotificacionesPage: React.FC = () => {
                       <th className="px-3 py-2">Tipo</th>
                       <th className="px-3 py-2">Conductor / Unidad</th>
                       <th className="px-3 py-2">Ruta / Paradero</th>
+                      <th className="px-3 py-2">Coordenadas</th>
                       <th className="px-3 py-2">Estado</th>
                     </tr>
                   </thead>
@@ -292,6 +308,9 @@ const NotificacionesPage: React.FC = () => {
                         </td>
                         <td className="px-3 py-2">{[n.conductorNombre, n.deviceID].filter(Boolean).join(' · ') || '—'}</td>
                         <td className="px-3 py-2">{[n.rutaNombre, n.paraderoNombre].filter(Boolean).join(' · ') || '—'}</td>
+                        <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px]">
+                          {n.latitud.toFixed(6)}, {n.longitud.toFixed(6)}
+                        </td>
                         <td className="px-3 py-2">
                           <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${ESTADO_CLASE[n.estado]}`}>{n.estado}</span>
                         </td>
@@ -348,7 +367,7 @@ const NotificacionesPage: React.FC = () => {
                       <button type="button" onClick={() => abrirTipo(t)} className="mr-2 text-gray-500 hover:text-[#113EB9]" title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button type="button" onClick={() => eliminarTipo(t)} className="text-gray-500 hover:text-red-600" title="Eliminar">
+                      <button type="button" onClick={() => setTipoAEliminar(t)} className="text-gray-500 hover:text-red-600" title="Eliminar">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -359,6 +378,29 @@ const NotificacionesPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmación para eliminar un mensaje predefinido */}
+      <AlertDialog open={tipoAEliminar !== null} onOpenChange={(open) => !open && setTipoAEliminar(null)}>
+        <AlertDialogContent className="z-[160] max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              <span>¿Eliminar mensaje?</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] text-slate-600">
+              ¿Estás seguro de que deseas eliminar{' '}
+              <strong className="text-slate-900">{tipoAEliminar?.titulo}</strong>? Dejará de aparecer en la app del
+              conductor. El historial ya enviado no se modifica.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTipoAEliminar(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarEliminarTipo} className="bg-red-600 text-white hover:bg-red-700">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Detalle de una notificación */}
       <BaseModal isOpen={detalle !== null} onClose={() => setDetalle(null)} title={detalle?.titulo ?? ''} size="lg">
