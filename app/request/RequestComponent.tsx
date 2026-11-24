@@ -40,6 +40,15 @@ function readFollowPreference(): boolean {
 }
 
 const COLOR_MAP: Record<string, string> = {
+  'bg-sky-300': '#7dd3fc',
+  'border-sky-300': '#7dd3fc',
+  'border-t-sky-300': '#7dd3fc',
+  'bg-green-400': '#4ade80',
+  'border-green-400': '#4ade80',
+  'border-t-green-400': '#4ade80',
+  'bg-yellow-400': '#facc15',
+  'border-yellow-400': '#facc15',
+  'border-t-yellow-400': '#facc15',
   'bg-red-500': '#ef4444',
   'bg-white': '#ffffff',
   'bg-green-500': '#22c55e',
@@ -170,6 +179,8 @@ interface DeviceList {
   lastOdometerKM: number;
   rutaact: string;
   servicio: string;
+  // '1' = programado, '2' = en curso, null = sin servicio (solo usuario movilbus)
+  servicioStatus?: string | null;
   ultimoServicio?: {
     conductor?: {
       apepate?: string;
@@ -177,7 +188,58 @@ interface DeviceList {
     numero?: string;
     empresa?: string;
     tipo?: string;
-  };
+  } | null;
+}
+
+// Servicio vigente por placa, de GET /api/DeviceList/ServiciosActuales/{usuario} (base DO).
+interface ServicioActual {
+  deviceId: string;
+  codservicio?: string | null;
+  status?: string | null;
+  numero?: string | null;
+  tipo?: string | null;
+  empresa?: string | null;
+  conductor?: string | null;
+}
+
+// El polling de posiciones ya no trae el servicio (device.servicio en la base local queda
+// desactualizado). Para movilbus se cruza por placa con los servicios de la base DO.
+function aplicarServiciosActuales(
+  devices: DeviceList[],
+  servicios: Record<string, ServicioActual>,
+): DeviceList[] {
+  return devices.map((d) => {
+    const s = servicios[d.deviceId.toLowerCase()];
+    if (!s) {
+      return { ...d, servicio: '', servicioStatus: null, ultimoServicio: null };
+    }
+    return {
+      ...d,
+      servicio: s.codservicio ?? '',
+      servicioStatus: s.status ?? null,
+      ultimoServicio: {
+        conductor: { apepate: s.conductor ?? undefined },
+        numero: s.numero ?? undefined,
+        empresa: s.empresa ?? undefined,
+        tipo: s.tipo ?? undefined,
+      },
+    };
+  });
+}
+
+// Textos del servicio para el popup. Con ocultarSinAsignar (movilbus) no se muestra la fila
+// de conductor cuando no hay conductor, en lugar de "Sin asignar".
+function textosServicio(device: DeviceList, ocultarSinAsignar: boolean) {
+  const u = device.ultimoServicio;
+  if (!u) return { conductor: null, servicioCompleto: null };
+  const conductorRaw = u.conductor?.apepate || '';
+  const conductor = conductorRaw || (ocultarSinAsignar ? '' : 'Sin asignar');
+  const numero = u.numero || '';
+  const empresa = u.empresa || '';
+  const tipo = u.tipo === 'I' ? 'INGRESO' : 'SALIDA';
+  const servicioCompleto =
+    numero && empresa ? `${numero} ${empresa} (${tipo})` : null;
+  return { conductor: conductor || null, servicioCompleto };
 }
 
 interface MarkerData {
@@ -336,12 +398,13 @@ export default function RequestPage() {
     string[] | null
   >(null);
 
+  // Servicios vigentes por placa (minúscula), se refrescan aparte de las posiciones
+  const serviciosRef = useRef<Record<string, ServicioActual>>({});
+
   const activeAlerts = useRef<{ [key: string]: boolean }>({});
   const alertCooldowns = useRef<{ [key: string]: number }>({});
 
   const iconCache = useRef<{ [key: string]: google.maps.Icon }>({});
-  const blinkingIntervalsRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
-  const blinkingStatesRef = useRef<{ [key: string]: boolean }>({});
   const globalClockIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -433,6 +496,65 @@ export default function RequestPage() {
     }
   };
 
+  // Servicios vigentes (base DO) cada 30 s, solo para movilbus. Cambian mucho menos que las
+  // posiciones, por eso van en su propio polling y no dentro del de 8 s.
+  useEffect(() => {
+    const username = session?.user?.username;
+    if (username !== 'movilbus' || !baseUrl) return;
+
+    let isComponentMounted = true;
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const fetchServicios = async () => {
+      try {
+        const response = await fetch(
+          `${baseUrl}/api/DeviceList/ServiciosActuales/${username}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              Pragma: 'no-cache',
+            },
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        const data: ServicioActual[] = await response.json();
+        if (!isComponentMounted) return;
+
+        const mapa: Record<string, ServicioActual> = {};
+        for (const s of data) mapa[s.deviceId.toLowerCase()] = s;
+        serviciosRef.current = mapa;
+        setDeviceList((prev) => aplicarServiciosActuales(prev, mapa));
+      } catch (error) {
+        console.error('Error obteniendo servicios actuales:', error);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (!isComponentMounted) return;
+      if (document.visibilityState === 'visible') {
+        fetchServicios();
+        if (!intervalId) intervalId = setInterval(fetchServicios, 30000);
+      } else if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    fetchServicios();
+    intervalId = setInterval(fetchServicios, 30000);
+
+    return () => {
+      isComponentMounted = false;
+      if (intervalId) clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [session?.user?.username, baseUrl]);
+
   useEffect(() => {
     let isComponentMounted = true;
     let intervalId: NodeJS.Timeout | null = null;
@@ -464,7 +586,11 @@ export default function RequestPage() {
 
         const datos = data.datosDevice;
         setMarkersLoaded(true);
-        setDeviceList(datos);
+        setDeviceList(
+          username === 'movilbus'
+            ? aplicarServiciosActuales(datos, serviciosRef.current)
+            : datos,
+        );
 
         // Centrado suave en la unidad seguida (cámara fija) solo si la preferencia está activa
         if (
@@ -769,55 +895,29 @@ export default function RequestPage() {
         };
       }
 
-      let popup1Colors, popup2Colors;
-
-      if (device.servicio) {
-        popup1Colors = {
-          bgColor: 'bg-[#ffccd5]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffccd5]',
-          triangleColor: 'border-t-[#ffccd5]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#ffccd5]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffccd5]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
-        };
-      } else if (!device.servicio && device.lastValidSpeed < 1) {
-        popup1Colors = {
-          bgColor: 'bg-[#8fd694]',
-          textColor: 'text-black',
-          borderColor: 'border-[#8fd694]',
-          triangleColor: 'border-t-[#8fd694]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#8fd694]',
-          textColor: 'text-black',
-          borderColor: 'border-[#8fd694]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
-        };
-      } else {
-        popup1Colors = {
-          bgColor: 'bg-[#ffd670]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffd670]',
-          triangleColor: 'border-t-[#ffd670]',
-        };
-        popup2Colors = {
-          bgColor: 'bg-[#ffd670]',
-          textColor: 'text-black',
-          borderColor: 'border-[#ffd670]',
-          closeButtonColor: 'text-white hover:text-gray-300',
-          linkColor: 'text-blue-300 hover:text-blue-100',
-        };
-      }
+      // Azul celeste = servicio programado (status 1), verde = servicio iniciado (status 2),
+      // amarillo = unidad libre (sin servicio o finalizado). Texto oscuro en los tres por contraste.
+      const colorBase =
+        device.servicioStatus === '2'
+          ? 'green-400'
+          : device.servicioStatus === '1'
+            ? 'sky-300'
+            : 'yellow-400';
 
       return {
-        popup1: popup1Colors,
-        popup2: popup2Colors,
+        popup1: {
+          bgColor: `bg-${colorBase}`,
+          textColor: 'text-black',
+          borderColor: `border-${colorBase}`,
+          triangleColor: `border-t-${colorBase}`,
+        },
+        popup2: {
+          bgColor: `bg-${colorBase}`,
+          textColor: 'text-black',
+          borderColor: `border-${colorBase}`,
+          closeButtonColor: 'text-black hover:text-gray-600',
+          linkColor: 'text-blue-800 hover:text-blue-900',
+        },
       };
     },
     [session?.user?.username],
@@ -942,24 +1042,14 @@ export default function RequestPage() {
 
       const colorScheme = getColorScheme(device);
 
-      const hasUltimoServicio = device.ultimoServicio !== null;
-      const conductor = hasUltimoServicio
-        ? sanitize(device.ultimoServicio?.conductor?.apepate || 'Sin asignar')
+      const textos = textosServicio(
+        device,
+        session?.user?.username === 'movilbus',
+      );
+      const conductor = textos.conductor ? sanitize(textos.conductor) : null;
+      const servicioCompleto = textos.servicioCompleto
+        ? sanitize(textos.servicioCompleto)
         : null;
-      const numero = hasUltimoServicio
-        ? sanitize(device.ultimoServicio?.numero || '')
-        : '';
-      const empresa = hasUltimoServicio
-        ? sanitize(device.ultimoServicio?.empresa || '')
-        : '';
-      const tipoRaw = hasUltimoServicio
-        ? device.ultimoServicio?.tipo || ''
-        : '';
-      const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
-      const servicioCompleto =
-        hasUltimoServicio && numero && empresa
-          ? `${numero} ${empresa} (${tipo})`
-          : null;
 
       const safeDeviceId = sanitize(device.deviceId);
       const safeDireccion = sanitize(device.direccion);
@@ -1059,7 +1149,7 @@ export default function RequestPage() {
             </div>
           `;
     },
-    [getEstado, getDireccion, getColorScheme],
+    [getEstado, getDireccion, getColorScheme, session?.user?.username],
   );
 
 
@@ -1186,48 +1276,43 @@ export default function RequestPage() {
       const colorScheme = getColorScheme(device);
       const isMovilbusUser = session?.user?.username === 'movilbus';
 
-      const shouldBlink =
-        isMovilbusUser && !device.servicio && device.lastValidSpeed >= 1;
+      // Un popup cerrado (setMap(null)) no está en el documento: buscar dentro de su propio
+      // contenedor para que se mantenga actualizado y, al abrirlo, ya tenga el color correcto.
+      const buscar = (popup: any, selector: string) =>
+        (popup?.containerDiv?.querySelector(selector) ??
+          document.querySelector(selector)) as HTMLElement | null;
 
-      const popup1Element = document.querySelector(
+      const popup1Element = buscar(
+        markerData.popup1,
         `#content-${device.deviceId}`,
-      ) as HTMLElement;
+      );
 
       if (popup1Element) {
         const contentDiv = popup1Element.querySelector(
           '#content',
         ) as HTMLElement;
-        const triangleDiv = document.querySelector(
+        const triangleDiv = buscar(
+          markerData.popup1,
           `#triangle-${device.deviceId}`,
-        ) as HTMLElement;
+        );
 
         if (contentDiv) {
           const bgColor = extractColor(colorScheme.popup1.bgColor);
           const borderColor = extractColor(colorScheme.popup1.borderColor);
 
-          if (shouldBlink) {
-            startBlinkingAnimation(contentDiv, 'background', device.deviceId);
-          } else {
-            stopBlinkingAnimation(device.deviceId);
-            contentDiv.style.setProperty('background-color', bgColor, 'important');
-            contentDiv.style.setProperty('border-color', borderColor, 'important');
-          }
+          contentDiv.style.setProperty('background-color', bgColor, 'important');
+          contentDiv.style.setProperty('border-color', borderColor, 'important');
 
           contentDiv.style.color = extractTextColor(colorScheme.popup1.textColor);
         }
 
         if (triangleDiv) {
           const triangleColor = extractColor(colorScheme.popup1.bgColor);
-          if (shouldBlink) {
-            startBlinkingAnimation(triangleDiv, 'triangle', device.deviceId);
-          } else {
-            stopBlinkingAnimation(device.deviceId);
-            triangleDiv.style.setProperty(
-              'border-top-color',
-              triangleColor,
-              'important',
-            );
-          }
+          triangleDiv.style.setProperty(
+            'border-top-color',
+            triangleColor,
+            'important',
+          );
           triangleDiv.style.setProperty(
             'border-left-color',
             'transparent',
@@ -1242,17 +1327,18 @@ export default function RequestPage() {
       }
 
       // ACTUALIZAR POPUP2
-      const popupElement = document.querySelector(
+      const popupElement = buscar(
+        markerData.popup2,
         `#content2-${device.deviceId}`,
-      ) as HTMLElement;
+      );
 
       if (popupElement) {
         const conductorElement = popupElement.querySelector('.conductor-value');
         const servicioElement = popupElement.querySelector('.servicio-value');
-        const hasUltimoServicio = device.ultimoServicio !== null;
+        const textos = textosServicio(device, isMovilbusUser);
         const needsRegeneration =
-          (hasUltimoServicio && (!conductorElement || !servicioElement)) ||
-          (!hasUltimoServicio && (conductorElement || servicioElement));
+          !!textos.conductor !== !!conductorElement ||
+          !!textos.servicioCompleto !== !!servicioElement;
 
         if (needsRegeneration) {
           const newContent = getOptimizedPopupContent(device);
@@ -1271,13 +1357,8 @@ export default function RequestPage() {
             const borderColor = extractColor(colorScheme.popup2.borderColor, '#1f2937');
             popupElement.style.setProperty('--pv2-tint', bgColor);
 
-            if (shouldBlink) {
-              startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
-            } else {
-              stopBlinkingAnimation(device.deviceId, 'popup2');
-              popupElement.style.setProperty('background-color', bgColor, 'important');
-              popupElement.style.setProperty('border-color', borderColor, 'important');
-            }
+            popupElement.style.setProperty('background-color', bgColor, 'important');
+            popupElement.style.setProperty('border-color', borderColor, 'important');
 
             popupElement.style.color = extractTextColor(colorScheme.popup2.textColor);
           }
@@ -1297,13 +1378,8 @@ export default function RequestPage() {
           const borderColor = extractColor(colorScheme.popup2.borderColor, '#1f2937');
           popupElement.style.setProperty('--pv2-tint', bgColor);
 
-          if (shouldBlink) {
-            startBlinkingAnimation(popupElement, 'background', device.deviceId, 'popup2');
-          } else {
-            stopBlinkingAnimation(device.deviceId, 'popup2');
-            popupElement.style.setProperty('background-color', bgColor, 'important');
-            popupElement.style.setProperty('border-color', borderColor, 'important');
-          }
+          popupElement.style.setProperty('background-color', bgColor, 'important');
+          popupElement.style.setProperty('border-color', borderColor, 'important');
 
           popupElement.style.color = extractTextColor(colorScheme.popup2.textColor);
         }
@@ -1343,23 +1419,11 @@ export default function RequestPage() {
           );
         }
 
-        if (device.ultimoServicio !== null) {
-          if (conductorElementFinal) {
-            const conductor =
-              device.ultimoServicio?.conductor?.apepate || 'Sin asignar';
-            conductorElementFinal.textContent = conductor;
-          }
-          if (servicioElementFinal) {
-            const numero = device.ultimoServicio?.numero || '';
-            const empresa = device.ultimoServicio?.empresa || '';
-            const tipoRaw = device.ultimoServicio?.tipo || '';
-            const tipo = tipoRaw === 'I' ? 'INGRESO' : 'SALIDA';
-            const servicioCompleto =
-              numero && empresa
-                ? `${numero} ${empresa} (${tipo})`
-                : 'Sin servicio';
-            servicioElementFinal.textContent = servicioCompleto;
-          }
+        if (conductorElementFinal && textos.conductor) {
+          conductorElementFinal.textContent = textos.conductor;
+        }
+        if (servicioElementFinal && textos.servicioCompleto) {
+          servicioElementFinal.textContent = textos.servicioCompleto;
         }
       }
     },
@@ -1578,66 +1642,6 @@ export default function RequestPage() {
       updateMarkersAndPopups(mapRef.current);
     }
   }, [updateMarkersAndPopups, mapLoaded, deviceList]);
-
-  function startBlinkingAnimation(
-    element: HTMLElement,
-    type: 'background' | 'triangle',
-    deviceId: string,
-    suffix: string = '',
-  ) {
-    const key = `${deviceId}-${type}-${suffix}`;
-
-    if (blinkingIntervalsRef.current[key]) {
-      return;
-    }
-
-    blinkingStatesRef.current[key] = true;
-
-    if (type === 'background') {
-      element.style.setProperty('background-color', '#ffd670', 'important');
-      element.style.setProperty('border-color', '#ffd670', 'important');
-    } else if (type === 'triangle') {
-      element.style.setProperty('border-top-color', '#ffd670', 'important');
-    }
-
-    blinkingIntervalsRef.current[key] = setInterval(() => {
-      const isYellow = blinkingStatesRef.current[key];
-
-      if (type === 'background') {
-        const color = isYellow ? '#e9ff70' : '#ffd670';
-        element.style.setProperty('background-color', color, 'important');
-        element.style.setProperty('border-color', color, 'important');
-      } else if (type === 'triangle') {
-        element.style.setProperty('border-top-color', isYellow ? '#e9ff70' : '#ffd670', 'important');
-      }
-
-      blinkingStatesRef.current[key] = !blinkingStatesRef.current[key];
-    }, 1000);
-  }
-
-  function stopBlinkingAnimation(deviceId: string, suffix: string = '') {
-    const keysToStop = Object.keys(blinkingIntervalsRef.current).filter((key) =>
-      key.startsWith(`${deviceId}-`),
-    );
-
-    keysToStop.forEach((key) => {
-      if (blinkingIntervalsRef.current[key]) {
-        clearInterval(blinkingIntervalsRef.current[key]);
-        delete blinkingIntervalsRef.current[key];
-        delete blinkingStatesRef.current[key];
-      }
-    });
-  }
-
-  useEffect(() => {
-    return () => {
-      Object.values(blinkingIntervalsRef.current).forEach((interval) => {
-        clearInterval(interval);
-      });
-      blinkingIntervalsRef.current = {};
-      blinkingStatesRef.current = {};
-    };
-  }, []);
 
   const handleMapUnmount = useCallback(() => {
     clustering.destroy();
