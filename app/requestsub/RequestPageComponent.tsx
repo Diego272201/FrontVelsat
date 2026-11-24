@@ -14,6 +14,7 @@ import DocumentosPorVencer from '../components/ExpirySubAlerts';
 import FollowUnitCamera from '../components/FollowUnitCamera';
 import LeafletMapControls, { MAP_MAX_ZOOM } from './LeafletMapControls';
 import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
+import { isSinglePopupMode } from '@/app/components/settings/localPrefs';
 
 /*
  * Mapa principal de /subtrackvelnew. REGLA: aquí no se usa ninguna API key
@@ -27,6 +28,22 @@ const formatOdometerKm = (km?: number | null) => {
   const n = Number(km);
   return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('es-PE') : '—';
 };
+
+/** "Un solo popup abierto": cierra los popups de las demás unidades (ver Preferencias) */
+function closeOtherUnitPopups(
+  markers: Record<string, { popup: { remove(): unknown } }>,
+  map: L.Map,
+  keepDeviceId: string,
+  onClosed?: (deviceId: string) => void,
+) {
+  if (!isSinglePopupMode()) return;
+  Object.entries(markers).forEach(([id, m]) => {
+    if (id !== keepDeviceId && map.hasLayer(m.popup as unknown as L.Layer)) {
+      m.popup.remove();
+      onClosed?.(id);
+    }
+  });
+}
 
 interface DeviceList {
   deviceId: string;
@@ -125,6 +142,12 @@ export default function RequestPage() {
   const [isCameraMinimized, setIsCameraMinimized] = useState(false);
   const followedDeviceIdRef = useRef<string | null>(null);
   followedDeviceIdRef.current = followedDeviceId;
+  // Visor fijado: no se cierra al cerrar el popup de la unidad. Es un modo: se mantiene
+  // al cambiar de unidad o cerrar el visor, hasta que el usuario lo desactive.
+  const [cameraPinned, setCameraPinned] = useState(false);
+  const cameraPinnedRef = useRef(false);
+  cameraPinnedRef.current = cameraPinned;
+  const onDetailPopupClosedRef = useRef<(deviceId: string) => void>(() => {});
 
   const deviceListRef = useRef<DeviceList[]>([]);
   deviceListRef.current = deviceList;
@@ -272,6 +295,12 @@ export default function RequestPage() {
     [updateCameraButtonStates],
   );
 
+  /** Al cerrarse el popup de una unidad: si es la del visor y no está fijado, se cierra el visor */
+  onDetailPopupClosedRef.current = (deviceId: string) => {
+    if (followedDeviceIdRef.current === deviceId && !cameraPinnedRef.current) setFollowed(null);
+  };
+
+
   const toggleFollowUnit = useCallback(
     (deviceId: string) => {
       if (followedDeviceIdRef.current === deviceId) {
@@ -409,6 +438,7 @@ export default function RequestPage() {
   const openUnitPopup = useCallback((deviceId: string) => {
     const data = markersDataRef.current[deviceId];
     if (data && mapRef.current && !mapRef.current.hasLayer(data.popup)) {
+      closeOtherUnitPopups(markersDataRef.current, mapRef.current, deviceId, (id) => onDetailPopupClosedRef.current(id));
       data.popup.addTo(mapRef.current);
     }
   }, []);
@@ -465,6 +495,7 @@ export default function RequestPage() {
         if (target.closest('.pv2-close-btn')) {
           e.preventDefault();
           popup.remove();
+          onDetailPopupClosedRef.current(deviceId);
           return;
         }
         if (target.closest('.camera-track-btn')) {
@@ -490,7 +521,9 @@ export default function RequestPage() {
       marker.on('click', () => {
         if (map.hasLayer(popup)) {
           popup.remove();
+          onDetailPopupClosedRef.current(deviceId);
         } else {
+          closeOtherUnitPopups(markersDataRef.current, map, deviceId, (id) => onDetailPopupClosedRef.current(id));
           popup.addTo(map);
           setFollowed(deviceId);
         }
@@ -676,6 +709,8 @@ export default function RequestPage() {
           keyless
           isMinimized={isCameraMinimized}
           onToggleMinimize={() => setIsCameraMinimized((prev) => !prev)}
+          pinned={cameraPinned}
+          onTogglePin={() => setCameraPinned((prev) => !prev)}
           onClose={() => setFollowed(null)}
         />
       )}

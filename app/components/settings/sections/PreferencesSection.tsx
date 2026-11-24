@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { PreferenceSettings } from '../types';
 import { SaveBar, SectionHeader, Toggle, useDraft } from '../ui';
+import { getLocalPrefs, setLocalPref } from '../localPrefs';
 
 interface Props {
   value: PreferenceSettings;
@@ -18,6 +19,8 @@ const MAP_TYPES: { id: PreferenceSettings['mapType']; label: string }[] = [
 
 export default function PreferencesSection({ value, onSave }: Props) {
   const { draft, setDraft, dirty, saving, saved, save, reset } = useDraft(value, onSave);
+  const [singlePopup, setSinglePopup] = useState(false);
+  useEffect(() => setSinglePopup(getLocalPrefs().singlePopup), []);
   const set = <K extends keyof PreferenceSettings>(k: K, v: PreferenceSettings[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
@@ -63,6 +66,27 @@ export default function PreferencesSection({ value, onSave }: Props) {
             />
           </div>
         ))}
+      </div>
+
+      {/* Ajustes que se guardan solo en este navegador y se aplican al instante */}
+      <p className="mb-2 mt-5 text-[11.5px] font-semibold text-slate-600">En este navegador</p>
+      <div className="rounded-xl border border-slate-200">
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+          <div>
+            <p className="text-[12.5px] font-semibold text-slate-700">Un solo popup abierto</p>
+            <p className="text-[11px] text-slate-500">
+              Al abrir el popup de otra unidad se cierra el anterior · se aplica al instante
+            </p>
+          </div>
+          <Toggle
+            checked={singlePopup}
+            onChange={(v) => {
+              setSinglePopup(v);
+              setLocalPref('singlePopup', v);
+            }}
+            label="Un solo popup abierto"
+          />
+        </div>
       </div>
 
       <SaveBar dirty={dirty} saving={saving} saved={saved} onSave={save} onCancel={reset} />

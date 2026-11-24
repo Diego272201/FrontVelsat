@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Maximize,
   Minimize,
+  Pin,
   X,
 } from 'lucide-react';
 
@@ -41,6 +42,13 @@ interface FollowUnitCameraProps {
    * subtrackvelnew lo exige: ahí no debe usarse ninguna API key de Google.
    */
   keyless?: boolean;
+  /**
+   * Fijado: el visor sigue abierto aunque se cierre el popup de la unidad, y se
+   * mantiene al cambiar de unidad hasta que se desactive. Sin fijar, se cierra
+   * junto con el popup. Si no se pasa onTogglePin, no se muestra el botón.
+   */
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }
 
 const GOOGLE_MAPS_API_KEY =
@@ -55,6 +63,8 @@ export default function FollowUnitCamera({
   onToggleMinimize,
   followPath = '/trackvelnew/seguirUnidad',
   keyless = false,
+  pinned = false,
+  onTogglePin,
 }: FollowUnitCameraProps) {
   const [internalMinimized, setInternalMinimized] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -186,6 +196,26 @@ export default function FollowUnitCamera({
         <span className="mx-0.5 h-[18px] w-px flex-shrink-0 bg-slate-200" />
 
         <div className="flex flex-shrink-0 items-center gap-0.5">
+          {onTogglePin && (
+            <button
+              type="button"
+              onClick={onTogglePin}
+              aria-pressed={pinned}
+              title={
+                pinned
+                  ? 'Fijado: sigue abierto aunque cierres el popup. Clic para desfijar'
+                  : 'Fijar visor: que no se cierre al cerrar el popup'
+              }
+              className={
+                pinned
+                  ? 'flex h-[26px] w-[26px] items-center justify-center rounded-[5px] bg-[#113EB9] text-white transition-colors hover:bg-[#0d3196]'
+                  : headerBtn
+              }
+            >
+              <Pin size={14} className={pinned ? 'fill-current' : ''} />
+            </button>
+          )}
+
           {!isMinimized && (
             <button
               type="button"

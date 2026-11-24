@@ -24,6 +24,7 @@ import { OVERSPEED_NOTIFY_WINDOW_MS } from '@/app/trackvelnew/geocercas/useGeofe
 import { isCurrentlyQuietHours } from '@/app/components/settings/mockData';
 import { useMarkerClustering } from '@/app/components/settings/useMarkerClustering';
 import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
+import { isSinglePopupMode } from '@/app/components/settings/localPrefs';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
@@ -174,6 +175,24 @@ const formatOdometerKm = (km?: number | null) => {
   return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('es-PE') : '—';
 };
 
+/**
+ * "Un solo popup abierto" (Configuración → Preferencias, guardado en este navegador):
+ * antes de abrir el popup de una unidad se cierran los de las demás.
+ */
+function closeOtherDetailPopups(
+  markers: Record<string, { popup2: { getMap(): unknown; setMap(m: null): void } }>,
+  keepDeviceId: string,
+  onClosed?: (deviceId: string) => void,
+) {
+  if (!isSinglePopupMode()) return;
+  Object.entries(markers).forEach(([id, m]) => {
+    if (id !== keepDeviceId && m.popup2.getMap()) {
+      m.popup2.setMap(null);
+      onClosed?.(id);
+    }
+  });
+}
+
 interface DeviceList {
   deviceId: string;
   lastValidLatitude: number;
@@ -296,6 +315,13 @@ export default function RequestPage() {
   const [markersLoaded, setMarkersLoaded] = useState(false);
   const [followedDeviceId, setFollowedDeviceId] = useState<string | null>(null);
   const [isCameraMinimized, setIsCameraMinimized] = useState(false);
+  // Visor fijado: no se cierra al cerrar el popup de la unidad. Es un modo: se mantiene
+  // al cambiar de unidad o cerrar el visor, hasta que el usuario lo desactive.
+  const [cameraPinned, setCameraPinned] = useState(false);
+  const cameraPinnedRef = useRef(false);
+  cameraPinnedRef.current = cameraPinned;
+  /** Al cerrarse el popup de una unidad: si es la del visor y no está fijado, se cierra el visor */
+  const onDetailPopupClosedRef = useRef<(deviceId: string) => void>(() => {});
   const followedDeviceIdRef = useRef<string | null>(null);
   followedDeviceIdRef.current = followedDeviceId;
   const followPreferenceRef = useRef<boolean>(true);
@@ -319,6 +345,14 @@ export default function RequestPage() {
       `;
     });
   }, []);
+
+  onDetailPopupClosedRef.current = (deviceId: string) => {
+    if (followedDeviceIdRef.current !== deviceId || cameraPinnedRef.current) return;
+    followedDeviceIdRef.current = null;
+    setFollowedDeviceId(null);
+    updateCameraButtonStates(null);
+  };
+
 
   const clickListenerAttached = useRef<boolean>(false);
   const soundHandleRef = useRef<SoundHandle | null>(null);
@@ -1235,6 +1269,7 @@ export default function RequestPage() {
         }
         const willOpen = !popup2.getMap();
         if (willOpen) {
+          closeOtherDetailPopups(markersDataRef.current, device.deviceId, (id) => onDetailPopupClosedRef.current(id));
           popup2.setMap(map);
           if (followPreferenceRef.current) {
             followedDeviceIdRef.current = device.deviceId;
@@ -1247,6 +1282,7 @@ export default function RequestPage() {
           }
         } else {
           popup2.setMap(null);
+          onDetailPopupClosedRef.current(device.deviceId);
         }
       });
 
@@ -1256,6 +1292,7 @@ export default function RequestPage() {
       if (closeButton) {
         closeButton.addEventListener('click', () => {
           popup2.setMap(null);
+          onDetailPopupClosedRef.current(device.deviceId);
         });
       }
 
@@ -1380,6 +1417,7 @@ export default function RequestPage() {
           if (closeButton) {
             closeButton.addEventListener('click', () => {
               markerData.popup2.setMap(null);
+              onDetailPopupClosedRef.current(device.deviceId);
             });
           }
 
@@ -1632,6 +1670,7 @@ export default function RequestPage() {
 
         if (deviceID) {
           if (markersDataRef.current[deviceID]) {
+            closeOtherDetailPopups(markersDataRef.current, deviceID, (id) => onDetailPopupClosedRef.current(id));
             markersDataRef.current[deviceID].popup2.setMap(mapRef.current);
           }
 
@@ -1727,6 +1766,8 @@ export default function RequestPage() {
           device={followedDevice}
           isMinimized={isCameraMinimized}
           onToggleMinimize={() => setIsCameraMinimized((prev) => !prev)}
+          pinned={cameraPinned}
+          onTogglePin={() => setCameraPinned((prev) => !prev)}
           onClose={() => {
             followedDeviceIdRef.current = null;
             setFollowedDeviceId(null);
