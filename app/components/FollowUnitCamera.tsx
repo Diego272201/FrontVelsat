@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Camera,
   ChevronDown,
@@ -168,6 +168,27 @@ export default function FollowUnitCamera({
 
   const speed = Math.round(device.lastValidSpeed || 0);
 
+  // Avisa dónde está el visor (al abrir, cambiar de tamaño o cerrar) para que
+  // otros elementos flotantes de la esquina, como el botón de Novedades, se acomoden al instante.
+  const asideRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const el = asideRef.current;
+    if (!el) return;
+    const emit = () =>
+      window.dispatchEvent(
+        new CustomEvent('trackvel:camera-viewer', { detail: { top: el.getBoundingClientRect().top } }),
+      );
+    emit();
+    const ro = new ResizeObserver(emit);
+    ro.observe(el);
+    window.addEventListener('resize', emit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', emit);
+      window.dispatchEvent(new CustomEvent('trackvel:camera-viewer', { detail: null }));
+    };
+  }, []);
+
   const handleOpenFullFollow = () => {
     const url = `${followPath}?deviceId=${device.deviceId}`;
     window.open(url, '_blank');
@@ -178,6 +199,7 @@ export default function FollowUnitCamera({
 
   return (
     <aside
+      ref={asideRef}
       aria-label="Cámara fija de unidad"
       className={`fixed bottom-4 right-4 z-[990] select-none overflow-hidden rounded-lg bg-white shadow-[0_2px_6px_rgba(15,23,42,0.12),0_12px_28px_rgba(15,23,42,0.18)] transition-[width] duration-200 max-w-[calc(100vw-32px)] ${
         isExpanded ? 'w-[560px]' : 'w-[340px]'

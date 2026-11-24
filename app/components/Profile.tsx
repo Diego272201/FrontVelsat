@@ -7,6 +7,8 @@ import { FaUserTie } from 'react-icons/fa';
 import { FiSettings } from 'react-icons/fi';
 import Image from 'next/image';
 import SettingsModal from './settings/SettingsModal';
+import type { SettingsSectionId } from './settings/types';
+import NewsAnnouncer from './announcements/NewsAnnouncer';
 
 // Opción "Configuración" oculta temporalmente para producción.
 // Para volver a mostrarla, cambiar a true (el modal y su código siguen intactos).
@@ -19,6 +21,12 @@ interface Props {
 export default function ProfileDropdown({ toggleFullScreen }: Props) {
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>('cuenta');
+
+  const openSettings = (section: SettingsSectionId) => {
+    setSettingsSection(section);
+    setSettingsOpen(true);
+  };
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
@@ -91,7 +99,7 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
             <button
               onClick={() => {
                 setOpen(false);
-                setSettingsOpen(true);
+                openSettings('cuenta');
               }}
               className="group flex w-full items-center gap-3 border-l-4 border-transparent px-4 py-3 text-left transition-all duration-200 hover:border-blue-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 hover:text-blue-700"
             >
@@ -200,7 +208,15 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
         </div>
       )}
 
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        isOpen={settingsOpen}
+        initialSection={settingsSection}
+        onClose={() => setSettingsOpen(false)}
+      />
+
+      {SHOW_SETTINGS_OPTION && (
+        <NewsAnnouncer onOpenSettings={openSettings} settingsOpen={settingsOpen} />
+      )}
     </div>
   );
 }
