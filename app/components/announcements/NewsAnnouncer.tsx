@@ -8,7 +8,7 @@ import { plexSans } from '@/app/components/settings/fonts';
 import { getCurrentUser, loadSettings } from '@/app/components/settings/useUserSettings';
 import type { SettingsSectionId } from '@/app/components/settings/types';
 import TrackvelAvatar from './TrackvelAvatar';
-import { ANNOUNCEMENTS, type AnnouncementIcon } from './announcements';
+import { getActiveAnnouncements, type AnnouncementIcon } from './announcements';
 
 const ICONS: Record<AnnouncementIcon, React.ElementType> = {
   car: CarFront,
@@ -18,6 +18,9 @@ const ICONS: Record<AnnouncementIcon, React.ElementType> = {
   sliders: SlidersHorizontal,
   sparkles: Sparkles,
 };
+
+/** Al entrar, la tarjeta se recoge sola en el botón pasado este tiempo */
+const AUTO_CLOSE_SECONDS = 13;
 
 /** Separación del botón respecto al borde y al visor de cámara fija */
 const EDGE = 20;
@@ -76,8 +79,12 @@ function useIsAnnouncerOwner(): boolean {
  */
 export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
   const isOwner = useIsAnnouncerOwner();
+  // Solo las novedades que no han vencido (se evalúa al entrar a la página)
+  const [announcements] = useState(() => getActiveAnnouncements());
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<Mode>('hidden');
+  /** true = apareció sola al entrar: se recoge a los 13 s (si la abre el usuario, no) */
+  const [autoClose, setAutoClose] = useState(false);
   const [index, setIndex] = useState(0);
   const [name, setName] = useState('');
   const [launcherBottom, setLauncherBottom] = useState(EDGE);
@@ -89,10 +96,11 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
   // Al entrar: la tarjeta aparece de inmediato, junto con el mapa
   // (si la Configuración ya estuviera abierta, queda solo el botón)
   useEffect(() => {
-    if (!isOwner || ANNOUNCEMENTS.length === 0) return;
+    if (!isOwner || announcements.length === 0) return;
     setIndex(0);
+    setAutoClose(true);
     setMode(settingsOpenRef.current ? 'launcher' : 'card');
-  }, [isOwner]);
+  }, [isOwner, announcements.length]);
 
   // Si se abre la Configuración por otro lado, la tarjeta se recoge
   useEffect(() => {
@@ -133,7 +141,7 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
 
   const collapse = useCallback(() => setMode('launcher'), []);
 
-  const current = ANNOUNCEMENTS[index];
+  const current = announcements[index];
 
   const showMe = useCallback(() => {
     setMode('launcher');
@@ -159,6 +167,7 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
         type="button"
         onClick={() => {
           setIndex(0);
+          setAutoClose(false);
           setMode('card');
         }}
         title="Novedades de Trackvel"
@@ -205,7 +214,7 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
   }
 
   // ---------- Tarjeta con el avatar ----------
-  const total = ANNOUNCEMENTS.length;
+  const total = announcements.length;
 
   return createPortal(
     <div
@@ -219,7 +228,17 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
       </div>
 
       {/* Tarjeta a 15 px del borde inferior, con las 4 esquinas redondeadas */}
-      <div className="relative mb-[15px] w-[340px] max-w-full overflow-hidden rounded-[12px] border border-[#e2e8f0] bg-white text-[#0f172a] shadow-[0_4px_10px_rgba(15,23,42,0.08),0_18px_40px_rgba(15,23,42,0.18)]">
+      <div className="tva-card relative mb-[15px] w-[340px] max-w-full overflow-hidden rounded-[12px] border border-[#e2e8f0] bg-white text-[#0f172a] shadow-[0_4px_10px_rgba(15,23,42,0.08),0_18px_40px_rgba(15,23,42,0.18)]">
+        {/* Cuenta regresiva: la barra se vacía en 13 s y la tarjeta se recoge sola.
+            Se pausa mientras el mouse está encima, para poder leer con calma. */}
+        {autoClose && (
+          <div
+            className="tva-timer absolute inset-x-0 bottom-0 h-[3px] bg-[#113EB9]"
+            style={{ animationDuration: `${AUTO_CLOSE_SECONDS}s` }}
+            onAnimationEnd={collapse}
+            aria-hidden
+          />
+        )}
         <button
           type="button"
           onClick={collapse}
@@ -308,6 +327,14 @@ export default function NewsAnnouncer({ onOpenSettings, settingsOpen }: Props) {
 
       <style>{`
         .tva-enter { animation: tva-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+        .tva-timer {
+          transform-origin: left center;
+          animation-name: tva-timer;
+          animation-timing-function: linear;
+          animation-fill-mode: forwards;
+        }
+        .tva-card:hover .tva-timer { animation-play-state: paused; }
+        @keyframes tva-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
         @keyframes tva-enter {
           from { opacity: 0; transform: translateY(16px) scale(0.98); }
           to { opacity: 1; transform: none; }
