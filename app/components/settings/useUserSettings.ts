@@ -139,6 +139,14 @@ function emitSettingsUpdated(key: keyof UserSettings, value: unknown) {
   window.dispatchEvent(new CustomEvent('trackvel:settings-updated', { detail: { key, value } }));
 }
 
+/**
+ * Versiones anteriores inventaban un correo `<usuario>@empresa.com` y lo guardaban en la caché
+ * del navegador. Se descarta para que nunca se muestre como si fuera real.
+ */
+function sanitizeAccount(account: AccountSettings): AccountSettings {
+  return /@empresa\.com$/i.test(account.email) ? { ...account, email: '' } : account;
+}
+
 export function loadSettings(user: string): UserSettings {
   const defaults = buildDefaultSettings(user);
   try {
@@ -152,7 +160,7 @@ export function loadSettings(user: string): UserSettings {
     return {
       ...defaults,
       ...saved,
-      account: { ...defaults.account, ...saved.account },
+      account: sanitizeAccount({ ...defaults.account, ...saved.account }),
       icons: normalizeIcons(saved.icons),
       alerts: {
         ...defaults.alerts,

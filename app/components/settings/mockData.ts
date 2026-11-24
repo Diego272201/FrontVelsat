@@ -109,12 +109,14 @@ export function isCurrentlyQuietHours(quiet?: QuietHoursSettings): boolean {
 
 export function buildDefaultSettings(username: string): UserSettings {
   return {
+    // Los datos reales (nombre, correo, teléfono, empresa) vienen del perfil del backend
+    // (ver applyPerfil en useUserSettings.ts): aquí no se inventa ninguno.
     account: {
       username,
-      displayName: username ? username.toUpperCase() : 'Usuario',
-      email: `${username || 'usuario'}@empresa.com`,
+      displayName: '',
+      email: '',
       phone: '',
-      company: username ? username.toUpperCase() : '',
+      company: '',
     },
     icons: {
       byUnit: {},

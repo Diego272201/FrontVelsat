@@ -77,7 +77,8 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
 
   const renderSection = () => {
     // Las pestañas que vienen de la API esperan a que responda el servidor
-    const fromApi = section === 'iconos' || section === 'velocidad' || section === 'alertas' || section === 'preferencias';
+    // "Mi cuenta" también espera al servidor: así no se ven datos provisionales antes de los reales
+    const fromApi = section === 'cuenta' || section === 'iconos' || section === 'velocidad' || section === 'alertas' || section === 'preferencias';
     if (!settings || (fromApi && (syncStatus === 'loading' || syncStatus === 'idle'))) {
       return (
         <div className="flex h-64 items-center justify-center text-slate-400">
