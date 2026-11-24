@@ -157,9 +157,61 @@ export interface PlantillaForm {
   activo: boolean;
 }
 
-/** Configuración de la generación automática: cada cuántos minutos revisa y desde qué hora crea los de mañana. */
+/** Configuración de la generación automática: desde qué hora se crean los servicios de mañana. */
 export interface ConfigPlantillas {
-  intervaloMin: number;
   /** HH:mm (hora de Perú). */
   horaGeneracion: string;
+}
+
+/* ---------------- Notificaciones del conductor ---------------- */
+
+export type CategoriaNotificacion = 'SUGERENCIA' | 'ALERTA' | 'INCIDENCIA' | 'INFO';
+export type EstadoNotificacion = 'PENDIENTE' | 'ACEPTADA' | 'RECHAZADA';
+
+/** Mensaje predefinido que el conductor ve en la app (catálogo administrable). */
+export interface NotificacionTipo {
+  id: number;
+  codigo: string;
+  categoria: CategoriaNotificacion;
+  titulo: string;
+  descripcion: string | null;
+  requiereParadero: boolean;
+  requiereComentario: boolean;
+  activo: boolean;
+  orden: number;
+}
+
+export interface Notificacion {
+  id: number;
+  tipoCodigo: string;
+  categoria: CategoriaNotificacion;
+  titulo: string;
+  comentario: string | null;
+  servicioId: number | null;
+  rutaId: number | null;
+  rutaNombre: string | null;
+  rutaParaderoId: number | null;
+  paraderoNombre: string | null;
+  deviceID: string | null;
+  conductorBrevete: string | null;
+  conductorNombre: string | null;
+  latitud: number;
+  longitud: number;
+  fechaEvento: string | null;
+  createdAt: string;
+  leida: boolean;
+  leidaAt: string | null;
+  estado: EstadoNotificacion;
+  respuesta: string | null;
+  gestionadoPor: string | null;
+  gestionadoAt: string | null;
+}
+
+export interface FiltroNotificaciones {
+  /** dd/MM/yyyy */
+  desde?: string;
+  hasta?: string;
+  estado?: EstadoNotificacion | '';
+  tipo?: string;
+  soloNoLeidas?: boolean;
 }

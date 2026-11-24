@@ -166,3 +166,10 @@ export function conSegundos(hora: string | null | undefined): string {
   if (!hora) return '—';
   return /^\d{1,2}:\d{2}$/.test(hora) ? `${hora}:00` : hora;
 }
+
+/** Fecha/hora "2026-11-17T10:05:00" -> "17/11/2026 10:05" (la hora ya viene en hora de Perú). */
+export function formatoFechaHora(valor: string | null | undefined): string {
+  if (!valor) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(valor);
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : valor;
+}

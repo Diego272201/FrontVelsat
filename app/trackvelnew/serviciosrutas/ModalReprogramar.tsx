@@ -5,6 +5,7 @@ import { CalendarClock } from 'lucide-react';
 import BaseModal from '@/app/components/ui/BaseModal';
 import { Servicio } from './types';
 import { ddMmYyyyToIso } from './utils';
+import Hora24 from './Hora24';
 
 export interface ReprogramarForm {
   fechaIso: string;
@@ -81,12 +82,7 @@ const ModalReprogramar: React.FC<ModalReprogramarProps> = ({
           </div>
           <div>
             <label className={labelClase}>Nueva hora de salida</label>
-            <input
-              type="time"
-              className={inputClase}
-              value={form.hora}
-              onChange={(e) => setForm((p) => ({ ...p, hora: e.target.value }))}
-            />
+            <Hora24 value={form.hora} onChange={(v) => setForm((p) => ({ ...p, hora: v }))} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelClase}>Motivo (opcional)</label>

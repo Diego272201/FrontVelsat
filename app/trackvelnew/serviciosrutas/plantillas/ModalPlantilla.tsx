@@ -6,6 +6,7 @@ import BaseModal from '@/app/components/ui/BaseModal';
 import { useUsername } from '@/hooks/useUsername';
 import { Conductor, SelectConductorBuscable } from '../../serviciosturismo/SelectBuscable';
 import { Plantilla, PlantillaForm, Ruta } from '../types';
+import Hora24 from '../Hora24';
 
 export const DIAS_SEMANA: { valor: number; corto: string }[] = [
   { valor: 1, corto: 'Lun' },
@@ -155,12 +156,7 @@ const ModalPlantilla: React.FC<ModalPlantillaProps> = ({
 
         <div>
           <label className={labelClase}>Hora de salida</label>
-          <input
-            type="time"
-            className={inputClase}
-            value={form.hora}
-            onChange={(e) => set('hora', e.target.value)}
-          />
+          <Hora24 value={form.hora} onChange={(v) => set('hora', v)} />
         </div>
 
         <div className="sm:col-span-2">
@@ -206,7 +202,7 @@ const ModalPlantilla: React.FC<ModalPlantillaProps> = ({
           <label className={labelClase}>Conductor</label>
           <SelectConductorBuscable
             fondoBlanco
-            enFlujo
+            flotante
             value={form.conductorNombre}
             conductores={conductores}
             onSeleccionar={seleccionarConductor}

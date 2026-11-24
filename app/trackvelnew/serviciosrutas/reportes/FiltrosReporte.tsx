@@ -4,8 +4,8 @@ import React from 'react';
 import {
   CalendarDays,
   Search,
+  ClipboardList,
   FileSpreadsheet,
-  FileText,
   RotateCcw,
   X,
 } from 'lucide-react';
@@ -29,9 +29,8 @@ interface FiltrosReporteProps {
   busqueda: string;
   onBusquedaChange: (b: string) => void;
   onExportarExcel: () => void;
-  onExportarPdf: () => void;
+  onAbrirReporteServicios: () => void;
   exportandoExcel: boolean;
-  exportandoPdf: boolean;
   onLimpiarFiltros?: () => void;
 }
 
@@ -49,9 +48,8 @@ const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
   busqueda,
   onBusquedaChange,
   onExportarExcel,
-  onExportarPdf,
+  onAbrirReporteServicios,
   exportandoExcel,
-  exportandoPdf,
   onLimpiarFiltros,
 }) => {
   const hoyIso = getIsoToday();
@@ -265,13 +263,12 @@ const FiltrosReporte: React.FC<FiltrosReporteProps> = ({
 
           <button
             type="button"
-            onClick={onExportarPdf}
-            disabled={exportandoPdf}
-            className="flex h-7 items-center gap-1.5 rounded-md border border-rose-300 bg-rose-50 px-3 text-[11.5px] font-bold text-rose-800 transition-colors hover:bg-rose-100 disabled:opacity-50"
-            title="Descargar en formato PDF"
+            onClick={onAbrirReporteServicios}
+            className="flex h-7 items-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 px-3 text-[11.5px] font-bold text-[#113EB9] transition-colors hover:bg-blue-100"
+            title="Reporte de servicios con kilometraje (solo descarga en Excel)"
           >
-            <FileText className="h-3.5 w-3.5 text-[#E11D48]" />
-            <span>PDF</span>
+            <ClipboardList className="h-3.5 w-3.5" />
+            <span>Reporte de servicios</span>
           </button>
         </div>
       </div>

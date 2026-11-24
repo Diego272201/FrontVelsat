@@ -82,6 +82,7 @@ export interface ReporteParaderoApi {
   diferenciaMin: number | null;
   diferenciaSeg: number | null;
   estado: EstadoPuntualidad;
+  observaciones?: string | null;
 }
 
 export interface ReporteServicioApi {

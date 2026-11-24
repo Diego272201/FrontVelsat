@@ -12,7 +12,8 @@ import {
 import { mensajeError, useServiciosRutasApi } from '../api';
 import { EstadoPuntualidad, ReporteServicio } from './types';
 import { aReporteServicios, calcularKpis } from './construirReporte';
-import { exportarExcelReporte, exportarPdfReporte } from './exportUtils';
+import { exportarExcelReporte } from './exportUtils';
+import ModalReporteServicios from './ModalReporteServicios';
 import FiltrosReporte, { FiltroEstadoServicio } from './FiltrosReporte';
 import ResumenKpis from './ResumenKpis';
 import TablaReporteParadas from './TablaReporteParadas';
@@ -42,7 +43,7 @@ const ReportesView: React.FC = () => {
   const [rutasCuenta, setRutasCuenta] = useState<{ id: number; codigo: string; nombre: string; grupo: string }[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [exportandoExcel, setExportandoExcel] = useState<boolean>(false);
-  const [exportandoPdf, setExportandoPdf] = useState<boolean>(false);
+  const [modalReporteServicios, setModalReporteServicios] = useState<boolean>(false);
 
   const cambiarRango = (desde: string, hasta: string) => {
     setDesdeIso(desde);
@@ -227,22 +228,6 @@ const ReportesView: React.FC = () => {
     }
   };
 
-  const handleExportarPdf = async () => {
-    if (servicios.length === 0) {
-      toast.warning('No hay datos disponibles para exportar');
-      return;
-    }
-    setExportandoPdf(true);
-    try {
-      await exportarPdfReporte(servicios, fechaTexto, filtroTexto, kpis);
-      toast.success('Reporte PDF descargado correctamente');
-    } catch {
-      toast.error('Error al generar el archivo PDF');
-    } finally {
-      setExportandoPdf(false);
-    }
-  };
-
   return (
     // h-screen overflow-y-auto asegura que el scroll vertical funcione sin restricciones
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-100/80">
@@ -324,11 +309,12 @@ const ReportesView: React.FC = () => {
         busqueda={busqueda}
         onBusquedaChange={setBusqueda}
         onExportarExcel={handleExportarExcel}
-        onExportarPdf={handleExportarPdf}
+        onAbrirReporteServicios={() => setModalReporteServicios(true)}
         exportandoExcel={exportandoExcel}
-        exportandoPdf={exportandoPdf}
         onLimpiarFiltros={handleLimpiarFiltros}
       />
+
+      <ModalReporteServicios isOpen={modalReporteServicios} onClose={() => setModalReporteServicios(false)} />
 
       {/* 3. Tarjetas de Resumen y KPIs (Tira compacta a todo el ancho) */}
       <ResumenKpis kpis={kpis} toleranciaMin={toleranciaMin} />

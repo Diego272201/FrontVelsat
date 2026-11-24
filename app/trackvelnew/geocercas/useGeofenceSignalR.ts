@@ -663,11 +663,9 @@ export function useGeofenceSignalR({
             return;
           }
           setStatus('connected');
-          console.log('Conectado a SignalR');
 
-          // ⚠️ Llamar a JoinAccountGroup con la cuenta activa
+          // ⚠️ PUNTO CRÍTICO 2: Llamar a JoinAccountGroup con la cuenta activa
           await connection.invoke('JoinAccountGroup', targetAccount);
-          console.log(`[SignalR] Unido al grupo: ${targetAccount}`);
         }
       } catch (err) {
         if (!isCancelled) {
