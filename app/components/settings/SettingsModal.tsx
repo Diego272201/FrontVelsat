@@ -4,14 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   X,
   User,
   Lock,
   Gauge,
-  Route,
-  Car,
-  BellRing,
+  CircleGauge,
+  CarFront,
+  Bell,
   SlidersHorizontal,
   Loader2,
   CloudOff,
@@ -21,6 +20,7 @@ import type { SettingsSectionId } from './types';
 import { useUserSettings } from './useUserSettings';
 import { SettingsFooterContext } from './ui';
 import { SettingsToaster } from './settingsToast';
+import { plexSans } from './fonts';
 import AccountSection from './sections/AccountSection';
 import SecuritySection from './sections/SecuritySection';
 import OdometerSection from './sections/OdometerSection';
@@ -32,10 +32,10 @@ import PreferencesSection from './sections/PreferencesSection';
 const NAV: { id: SettingsSectionId; label: string; icon: React.ElementType }[] = [
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
   { id: 'seguridad', label: 'Seguridad', icon: Lock },
-  { id: 'odometro', label: 'Odómetro', icon: Route },
-  { id: 'iconos', label: 'Íconos', icon: Car },
-  { id: 'velocidad', label: 'Límites de velocidad', icon: Gauge },
-  { id: 'alertas', label: 'Alertas y sonidos', icon: BellRing },
+  { id: 'odometro', label: 'Odómetro', icon: Gauge },
+  { id: 'iconos', label: 'Íconos', icon: CarFront },
+  { id: 'velocidad', label: 'Límites de velocidad', icon: CircleGauge },
+  { id: 'alertas', label: 'Alertas y sonidos', icon: Bell },
   { id: 'preferencias', label: 'Preferencias', icon: SlidersHorizontal },
 ];
 
@@ -146,42 +146,32 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[740px] lg:max-w-[820px] xl:max-w-[880px] flex-col bg-white shadow-2xl border-l border-gray-200 overflow-hidden pointer-events-auto"
+            className={`${plexSans.className} fixed inset-y-0 right-0 z-50 flex w-full max-w-[740px] lg:max-w-[820px] xl:max-w-[880px] flex-col bg-white text-[#0f172a] shadow-2xl border-l border-gray-200 overflow-hidden pointer-events-auto`}
           >
-            {/* Cabecera estilo drawer con botón regresar y título */}
-            <div className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 sm:px-6 bg-white">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  title="Regresar"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition active:scale-95"
-                >
-                  <ArrowLeft size={20} className="stroke-[2.2]" />
-                </button>
-                <div>
-                  <h2 className="text-[15px] font-bold text-gray-900 leading-tight">
-                    Configuración del sistema
-                  </h2>
-                  <p className="text-[11px] text-gray-500 leading-normal">
-                    Personaliza tu cuenta, unidades, alertas y preferencias
-                  </p>
-                </div>
+            {/* Cabecera: título y cerrar */}
+            <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#e2e8f0] bg-white pl-6 pr-4">
+              <div className="min-w-0">
+                <h2 className="text-[16px] font-bold leading-tight text-[#0f172a]">
+                  Configuración del sistema
+                </h2>
+                <p className="mt-0.5 text-[12px] leading-normal text-[#64748b]">
+                  Cuenta, unidades, alertas y preferencias
+                </p>
               </div>
 
               <button
                 type="button"
                 onClick={onClose}
                 title="Cerrar (Esc)"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+                className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#64748b] transition hover:bg-[#f1f5f9] hover:text-[#0f172a]"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Pestañas de navegación superiores estilo segmented bar */}
-            <div
-              className="flex shrink-0 items-center gap-1.5 border-b border-gray-200 bg-slate-50/70 px-4 sm:px-6 py-2 overflow-x-auto"
+            {/* Pestañas: texto con ícono y subrayado en la activa */}
+            <nav
+              className="flex shrink-0 items-stretch gap-1 overflow-x-auto border-b border-[#e2e8f0] bg-white px-3.5"
               style={{ scrollbarWidth: 'none' }}
             >
               {NAV.map((n) => {
@@ -192,18 +182,19 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
                     key={n.id}
                     type="button"
                     onClick={() => setSection(n.id)}
-                    className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${
+                    aria-current={active ? 'page' : undefined}
+                    className={`-mb-px flex h-11 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-[13px] font-semibold transition ${
                       active
-                        ? 'bg-[#113EB9] text-white shadow-xs'
-                        : 'text-slate-600 hover:bg-white hover:text-slate-900 border border-transparent hover:border-slate-200'
+                        ? 'border-[#113EB9] text-[#113EB9]'
+                        : 'border-transparent text-[#334155] hover:text-[#0f172a]'
                     }`}
                   >
-                    <Icon size={14} />
+                    <Icon size={15} strokeWidth={2} className={active ? '' : 'text-[#475569]'} />
                     {n.label}
                   </button>
                 );
               })}
-            </div>
+            </nav>
 
             {/* Contenido scrolleable de la sección activa */}
             <main className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
