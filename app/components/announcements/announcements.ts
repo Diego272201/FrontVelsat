@@ -45,7 +45,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
       { icon: 'route', text: 'Odómetro de cada unidad y preferencias del mapa' },
     ],
     whereToFind: 'Lo encuentras en tu usuario (arriba a la derecha) → Configuración.',
-    cta: { label: 'Muéstrame', openSettings: 'cuenta' },
+    cta: { label: 'Muéstrame', openSettings: 'preferencias' },
   },
 ];
 
