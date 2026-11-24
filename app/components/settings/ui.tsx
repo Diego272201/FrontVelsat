@@ -3,7 +3,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, Check } from 'lucide-react';
-import { toast } from 'sonner';
+import { settingsToast } from './settingsToast';
 
 export function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -154,12 +154,13 @@ export function useDraft<T>(initial: T, onSave: (v: T) => Promise<void>) {
     setSaving(true);
     try {
       await onSave(draft);
+      settingsToast.success('Cambios guardados');
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       // Los cambios quedan en pantalla (sin guardar) para volver a intentarlo
       console.error('[Configuración] No se pudo guardar:', err);
-      toast.error('No se pudieron guardar los cambios', {
+      settingsToast.error('No se pudieron guardar los cambios', {
         description:
           err instanceof Error && err.message
             ? `El servidor respondió: ${err.message}`

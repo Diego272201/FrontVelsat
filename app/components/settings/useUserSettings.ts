@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { settingsToast } from './settingsToast';
 import type {
   AccountSettings,
   AlertSoundConfig,
@@ -29,6 +29,12 @@ import {
   putPreferencias,
   speedLimitsToApi,
 } from './settingsApi';
+import {
+  fetchPerfil,
+  putPerfil,
+  solicitarResetPassword,
+  type PerfilCuentaDto,
+} from './accountApi';
 
 const VALID_ICON_IDS = new Set<VehicleIconId>(['auto', 'cisterna', 'van']);
 
@@ -54,7 +60,8 @@ function normalizeIcons(raw: unknown): UserSettings['icons'] {
  * La fuente de verdad es la API de configuración por cuenta (settingsApi.ts). Lo último
  * que respondió se guarda también en localStorage para leerlo al instante y de forma
  * síncrona (mapa, sidebar, alertas) y para seguir funcionando si el servidor no responde.
- * La pestaña "Mi cuenta" no está en esa API y se guarda solo en este navegador.
+ * La pestaña "Mi cuenta" viene del perfil del usuario en el backend de su servidor
+ * (GET/PUT /api/Configuracion/perfil, ver accountApi.ts).
  */
 
 const storageKey = (user: string) => `trackvel_settings_v3_${user || 'default'}`;
@@ -97,7 +104,7 @@ function writeCache(user: string, settings: UserSettings) {
 function notifyTraccarSync(sync: TraccarSpeedLimitSync | null | undefined) {
   if (!sync) return;
   if (!sync.habilitado) {
-    toast.info('Límites guardados', {
+    settingsToast.info('Límites guardados', {
       description: sync.mensaje || 'La sincronización con el GPS no está habilitada para esta cuenta.',
     });
     return;
@@ -105,13 +112,27 @@ function notifyTraccarSync(sync: TraccarSpeedLimitSync | null | undefined) {
   const errores = countSyncErrors(sync);
   const detalle = `${sync.actualizadas} actualizadas · ${sync.sinCambios} sin cambios · ${sync.totalUnidadesCuenta} unidades en la cuenta`;
   if (errores > 0) {
-    toast.warning(`Límites guardados, pero ${errores} unidad${errores === 1 ? '' : 'es'} no se pudo actualizar en el GPS`, {
+    settingsToast.warning(`Límites guardados, pero ${errores} unidad${errores === 1 ? '' : 'es'} no se pudo actualizar en el GPS`, {
       description: sync.mensaje ? `${sync.mensaje} (${detalle})` : detalle,
       duration: 10000,
     });
   } else {
-    toast.success('Límites aplicados en el GPS', { description: detalle });
+    settingsToast.success('Límites aplicados en el GPS', { description: detalle });
   }
+}
+
+/** Pasa los datos del perfil del backend a la pestaña "Mi cuenta". El usuario de login no cambia. */
+function applyPerfil(prev: UserSettings, perfil: PerfilCuentaDto): UserSettings {
+  return {
+    ...prev,
+    account: {
+      ...prev.account,
+      displayName: perfil.displayName ?? '',
+      email: perfil.contactEmail ?? '',
+      phone: perfil.contactPhone ?? '',
+      company: perfil.description ?? prev.account.company,
+    },
+  };
 }
 
 function emitSettingsUpdated(key: keyof UserSettings, value: unknown) {
@@ -224,15 +245,28 @@ export function useUserSettings() {
     const u = getCurrentUser();
     setUser(u);
     setSyncStatus('loading');
+
+    let next: UserSettings;
+    let status: SettingsSyncStatus;
     try {
-      const next = await syncSettingsFromApi(u, { force: true });
-      setSettings(next);
-      setSyncStatus('ready');
+      next = await syncSettingsFromApi(u, { force: true });
+      status = 'ready';
     } catch (err) {
       console.warn('[Configuración] No se pudo leer la configuración del servidor:', err);
-      setSettings(loadSettings(u));
-      setSyncStatus('offline');
+      next = loadSettings(u);
+      status = 'offline';
     }
+
+    // Perfil de la cuenta (Mi cuenta): va aparte de la configuración, en el backend de la sesión
+    try {
+      next = applyPerfil(next, await fetchPerfil());
+      writeCache(u, next);
+    } catch (err) {
+      console.warn('[Configuración] No se pudo leer el perfil de la cuenta:', err);
+    }
+
+    setSettings(next);
+    setSyncStatus(status);
   }, []);
 
   const saveSection = useCallback(
@@ -242,10 +276,29 @@ export function useUserSettings() {
       let next: UserSettings;
 
       switch (key) {
-        case 'account':
-          // Sin endpoint: queda en este navegador
-          next = { ...prev, account: value as AccountSettings };
+        case 'account': {
+          const account = value as AccountSettings;
+          const email = account.email.trim();
+          const phone = account.phone.trim();
+          await putPerfil({
+            displayName: account.displayName.trim(),
+            contactEmail: email || null,
+            contactPhone: phone || null,
+          });
+          // El usuario de login y la empresa no se editan desde aquí
+          next = {
+            ...prev,
+            account: {
+              ...account,
+              displayName: account.displayName.trim(),
+              email,
+              phone,
+              username: prev.account.username,
+              company: prev.account.company,
+            },
+          };
           break;
+        }
         case 'icons': {
           const iconos = iconsToApi(value as UnitIconsSettings);
           // Sin personalizaciones = "Restablecer todas a Auto"
@@ -288,16 +341,10 @@ export function useUserSettings() {
     [user],
   );
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    // TODO(API): POST /api/usuarios/{user}/cambiar-password
-    await new Promise((r) => setTimeout(r, 600));
-    if (!currentPassword || !newPassword) {
-      throw new Error('Datos incompletos');
-    }
-    return true;
-  }, []);
+  /** Envía al correo de la cuenta el enlace para cambiar la contraseña (la página /reset-password lo completa). */
+  const requestPasswordReset = useCallback(() => solicitarResetPassword(), []);
 
-  return { user, settings, syncStatus, reload, saveSection, changePassword };
+  return { user, settings, syncStatus, reload, saveSection, requestPasswordReset };
 }
 
 /**

@@ -20,6 +20,7 @@ import {
 import type { SettingsSectionId } from './types';
 import { useUserSettings } from './useUserSettings';
 import { SettingsFooterContext } from './ui';
+import { SettingsToaster } from './settingsToast';
 import AccountSection from './sections/AccountSection';
 import SecuritySection from './sections/SecuritySection';
 import OdometerSection from './sections/OdometerSection';
@@ -47,7 +48,7 @@ interface Props {
 export default function SettingsModal({ isOpen, onClose, initialSection = 'cuenta' }: Props) {
   const [section, setSection] = useState<SettingsSectionId>(initialSection);
   const [mounted, setMounted] = useState(false);
-  const { settings, syncStatus, reload, saveSection, changePassword } = useUserSettings();
+  const { settings, syncStatus, reload, saveSection, requestPasswordReset } = useUserSettings();
   const [footerEl, setFooterEl] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
       case 'cuenta':
         return <AccountSection value={settings.account} onSave={(v) => saveSection('account', v)} />;
       case 'seguridad':
-        return <SecuritySection onChangePassword={changePassword} />;
+        return <SecuritySection onRequestPasswordReset={requestPasswordReset} />;
       case 'odometro':
         // Se lee y ajusta directamente en Traccar, no en la configuración local
         return <OdometerSection />;
@@ -120,6 +121,9 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
   };
 
   return createPortal(
+    <>
+    {/* Avisos por encima del panel (los de sonner de la página quedarían detrás) */}
+    <SettingsToaster />
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[10000] overflow-hidden pointer-events-none">
@@ -232,7 +236,8 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
           </motion.div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+    </>,
     document.body,
   );
 }
