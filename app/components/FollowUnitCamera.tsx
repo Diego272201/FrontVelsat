@@ -4,7 +4,6 @@ import {
   Camera,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   Maximize,
   Minimize,
   Pin,
@@ -34,7 +33,10 @@ interface FollowUnitCameraProps {
   onClose: () => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
-  /** Ruta de seguimiento a abrir en nueva pestaña (subtrackvelnew usa la suya). */
+  /**
+   * Ya no se usa: el botón "abrir seguimiento en nueva pestaña" se quitó del visor
+   * (sigue disponible en el popup de la unidad). Se conserva para no romper llamadas.
+   */
   followPath?: string;
   /**
    * Usa el embed público de Google ("Compartir > Insertar mapa"), que no
@@ -61,7 +63,6 @@ export default function FollowUnitCamera({
   onClose,
   isMinimized: controlledMinimized,
   onToggleMinimize,
-  followPath = '/trackvelnew/seguirUnidad',
   keyless = false,
   pinned = false,
   onTogglePin,
@@ -189,35 +190,31 @@ export default function FollowUnitCamera({
     };
   }, []);
 
-  const handleOpenFullFollow = () => {
-    const url = `${followPath}?deviceId=${device.deviceId}`;
-    window.open(url, '_blank');
-  };
-
+  // Cabecera en el azul del sistema (barra superior y sidebar)
   const headerBtn =
-    'flex h-[26px] w-[26px] items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-slate-200 hover:text-slate-900';
+    'flex h-6 w-6 items-center justify-center rounded-[5px] text-white/85 transition-colors hover:bg-white/15 hover:text-white';
 
   return (
     <aside
       ref={asideRef}
       aria-label="Cámara fija de unidad"
       className={`fixed bottom-4 right-4 z-[990] select-none overflow-hidden rounded-lg bg-white shadow-[0_2px_6px_rgba(15,23,42,0.12),0_12px_28px_rgba(15,23,42,0.18)] transition-[width] duration-200 max-w-[calc(100vw-32px)] ${
-        isExpanded ? 'w-[560px]' : 'w-[340px]'
+        isExpanded ? 'w-[560px]' : 'w-[310px]'
       }`}
       style={{ fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif" }}
     >
-      <div className="flex h-[36px] items-center gap-2 border-b border-slate-200 bg-slate-50 pl-3 pr-1.5">
-        <span className="flex-1 truncate text-[13px] font-semibold tracking-[0.01em] text-slate-900">
+      <div className="flex h-8 items-center gap-1.5 bg-[#113EB9] pl-3 pr-1">
+        <span className="flex-1 truncate text-[13px] font-semibold tracking-[0.01em] text-white">
           {device.deviceId.toUpperCase()}
         </span>
 
-        <span className="flex-shrink-0 text-[12px] tabular-nums text-slate-500">
-          <span className="font-semibold text-slate-900">{speed}</span> km/h
+        <span className="flex-shrink-0 text-[12px] tabular-nums text-white/70">
+          <span className="font-semibold text-white">{speed}</span> km/h
         </span>
 
-        <span className="mx-0.5 h-[18px] w-px flex-shrink-0 bg-slate-200" />
+        <span className="mx-0.5 h-4 w-px flex-shrink-0 bg-white/25" />
 
-        <div className="flex flex-shrink-0 items-center gap-0.5">
+        <div className="flex flex-shrink-0 items-center">
           {onTogglePin && (
             <button
               type="button"
@@ -230,7 +227,7 @@ export default function FollowUnitCamera({
               }
               className={
                 pinned
-                  ? 'flex h-[26px] w-[26px] items-center justify-center rounded-[5px] bg-[#113EB9] text-white transition-colors hover:bg-[#0d3196]'
+                  ? 'flex h-6 w-6 items-center justify-center rounded-[5px] bg-white text-[#113EB9] transition-colors hover:bg-white/90'
                   : headerBtn
               }
             >
@@ -243,20 +240,11 @@ export default function FollowUnitCamera({
               type="button"
               onClick={() => setIsExpanded((prev) => !prev)}
               title={isExpanded ? 'Tamaño normal' : 'Agrandar visor'}
-              className={`${headerBtn} ${isExpanded ? 'bg-slate-200 text-slate-900' : ''}`}
+              className={`${headerBtn} ${isExpanded ? 'bg-white/15 text-white' : ''}`}
             >
               {isExpanded ? <Minimize size={14} /> : <Maximize size={14} />}
             </button>
           )}
-
-          <button
-            type="button"
-            onClick={handleOpenFullFollow}
-            title="Abrir seguimiento en nueva pestaña"
-            className={headerBtn}
-          >
-            <ExternalLink size={14} />
-          </button>
 
           <button
             type="button"
@@ -271,7 +259,7 @@ export default function FollowUnitCamera({
             type="button"
             onClick={onClose}
             title="Detener cámara fija y cerrar"
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[5px] text-slate-600 transition-colors hover:bg-red-600 hover:text-white"
+            className="flex h-6 w-6 items-center justify-center rounded-[5px] text-white/85 transition-colors hover:bg-red-600 hover:text-white"
           >
             <X size={15} />
           </button>
@@ -283,7 +271,7 @@ export default function FollowUnitCamera({
           {/* overflow hidden recorta la tarjeta de dirección, los controles laterales y la franja inferior del embed */}
           <div
             className={`relative w-full bg-neutral-900 overflow-hidden transition-[height] duration-200 ${
-              isExpanded ? 'h-[320px]' : 'h-[200px]'
+              isExpanded ? 'h-[320px]' : 'h-[180px]'
             }`}
           >
             {/* Iframe actual (permanece visible mientras el nuevo carga para evitar pantalla negra) */}
