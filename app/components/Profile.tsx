@@ -10,7 +10,7 @@ import SettingsModal from './settings/SettingsModal';
 
 // Opción "Configuración" oculta temporalmente para producción.
 // Para volver a mostrarla, cambiar a true (el modal y su código siguen intactos).
-const SHOW_SETTINGS_OPTION = false;
+const SHOW_SETTINGS_OPTION = true;
 
 interface Props {
   toggleFullScreen?: () => void;

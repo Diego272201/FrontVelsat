@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TbPointFilled } from 'react-icons/tb';
 import '@/app/styles/unidad.css';
 import Image from 'next/image';
+import { getVehicleSidebarImage } from './settings/vehicleIcons';
 
 interface UnidadProps {
   codigoUnidad: string;
@@ -96,13 +97,19 @@ const Unidad: React.FC<UnidadProps> = ({
       </div>
 
       <div className="img-listacarro">
-        <Image
-          src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
-          alt="carrito"
-          width={55}
-          height={30}
-          className="object-contain"
-        />
+        {(() => {
+          // Ícono del tipo de la unidad en perfil (dguevara conserva su imagen propia)
+          const src = getVehicleSidebarImage(
+            codigoUnidad,
+            username === 'dguevara' ? '/dguevara.webp' : undefined,
+          );
+          return src.startsWith('data:') ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={src} alt="" width={55} height={28} className="object-contain" />
+          ) : (
+            <Image src={src} alt="carrito" width={55} height={30} className="object-contain" />
+          );
+        })()}
       </div>
 
       <div className="codigo-carro">

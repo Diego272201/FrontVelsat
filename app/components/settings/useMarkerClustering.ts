@@ -33,23 +33,25 @@ const CLUSTER_RADIUS_PX = 80;
 const createAlgorithm = () =>
   new SuperClusterAlgorithm({ radius: CLUSTER_RADIUS_PX, maxZoom: CLUSTER_MAX_ZOOM });
 
-/**
- * Color naranja corporativo del sistema (definido en tailwind.config como `customOrange: #FB7B0F`).
- */
-const CLUSTER_COLOR = '#FB7B0F';
+/** Azul del sistema (barra superior y botones principales). */
+const CLUSTER_COLOR = '#113EB9';
 
 /**
- * Burbuja de agrupación estilizada con el color naranja del sistema (#FB7B0F).
- * El número de unidades se incluye en el SVG vectorial para máxima nitidez en cualquier pantalla.
+ * Burbuja de agrupación: círculo azul sólido con el número en blanco y un halo
+ * azul translúcido alrededor (dos capas), que crece con la cantidad de unidades.
+ * Va como SVG para que se vea nítido en cualquier pantalla.
  */
 const trackvelRenderer: Renderer = {
   render({ count, position }) {
-    const size = count < 10 ? 44 : count < 50 ? 50 : 58;
-    const half = size / 2;
-    const fontSize = count > 99 ? 11 : count > 9 ? 12 : 13;
+    const core = count < 10 ? 13 : count < 100 ? 15 : 19; // radio del círculo sólido
+    const halo = count < 10 ? 6 : count < 100 ? 8 : 12; // ancho total del halo
+    const half = core + halo;
+    const size = half * 2;
+    const fontSize = count > 99 ? 13 : count > 9 ? 13 : 14;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <circle cx="${half}" cy="${half}" r="${half - 1}" fill="${CLUSTER_COLOR}" fill-opacity="0.28"/>
-      <circle cx="${half}" cy="${half}" r="${half - 5}" fill="${CLUSTER_COLOR}" stroke="#ffffff" stroke-width="2.5"/>
+      <circle cx="${half}" cy="${half}" r="${half}" fill="${CLUSTER_COLOR}" fill-opacity="0.16"/>
+      <circle cx="${half}" cy="${half}" r="${core + halo * 0.5}" fill="${CLUSTER_COLOR}" fill-opacity="0.28"/>
+      <circle cx="${half}" cy="${half}" r="${core}" fill="${CLUSTER_COLOR}"/>
       <text x="${half}" y="${half}" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-size="${fontSize}px" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700">${count}</text>
     </svg>`;
 

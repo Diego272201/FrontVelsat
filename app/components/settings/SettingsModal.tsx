@@ -9,25 +9,31 @@ import {
   User,
   Lock,
   Gauge,
+  Route,
   Car,
   BellRing,
   SlidersHorizontal,
   Loader2,
+  CloudOff,
+  RefreshCw,
 } from 'lucide-react';
 import type { SettingsSectionId } from './types';
 import { useUserSettings } from './useUserSettings';
+import { SettingsFooterContext } from './ui';
 import AccountSection from './sections/AccountSection';
 import SecuritySection from './sections/SecuritySection';
 import OdometerSection from './sections/OdometerSection';
 import UnitIconsSection from './sections/UnitIconsSection';
 import AlertsSoundSection from './sections/AlertsSoundSection';
+import SpeedLimitsSection from './sections/SpeedLimitsSection';
 import PreferencesSection from './sections/PreferencesSection';
 
 const NAV: { id: SettingsSectionId; label: string; icon: React.ElementType }[] = [
   { id: 'cuenta', label: 'Mi cuenta', icon: User },
   { id: 'seguridad', label: 'Seguridad', icon: Lock },
-  { id: 'odometro', label: 'Odómetro', icon: Gauge },
+  { id: 'odometro', label: 'Odómetro', icon: Route },
   { id: 'iconos', label: 'Íconos', icon: Car },
+  { id: 'velocidad', label: 'Límites de velocidad', icon: Gauge },
   { id: 'alertas', label: 'Alertas y sonidos', icon: BellRing },
   { id: 'preferencias', label: 'Preferencias', icon: SlidersHorizontal },
 ];
@@ -41,7 +47,8 @@ interface Props {
 export default function SettingsModal({ isOpen, onClose, initialSection = 'cuenta' }: Props) {
   const [section, setSection] = useState<SettingsSectionId>(initialSection);
   const [mounted, setMounted] = useState(false);
-  const { settings, saveSection, changePassword } = useUserSettings();
+  const { settings, syncStatus, reload, saveSection, changePassword } = useUserSettings();
+  const [footerEl, setFooterEl] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -50,6 +57,11 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
   useEffect(() => {
     if (isOpen) setSection(initialSection);
   }, [isOpen, initialSection]);
+
+  // Al abrir, traer la configuración vigente de la cuenta desde el servidor
+  useEffect(() => {
+    if (isOpen) reload();
+  }, [isOpen, reload]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -63,7 +75,9 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
   if (!mounted) return null;
 
   const renderSection = () => {
-    if (!settings) {
+    // Las pestañas que vienen de la API esperan a que responda el servidor
+    const fromApi = section === 'iconos' || section === 'velocidad' || section === 'alertas' || section === 'preferencias';
+    if (!settings || (fromApi && (syncStatus === 'loading' || syncStatus === 'idle'))) {
       return (
         <div className="flex h-64 items-center justify-center text-slate-400">
           <Loader2 className="animate-spin" size={24} />
@@ -76,14 +90,24 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
       case 'seguridad':
         return <SecuritySection onChangePassword={changePassword} />;
       case 'odometro':
-        return (
-          <OdometerSection value={settings.odometers} onSave={(v) => saveSection('odometers', v)} />
-        );
+        // Se lee y ajusta directamente en Traccar, no en la configuración local
+        return <OdometerSection />;
       case 'iconos':
         return <UnitIconsSection value={settings.icons} onSave={(v) => saveSection('icons', v)} />;
+      // Los límites viven dentro de `alerts`: cada pestaña guarda solo su parte
+      case 'velocidad':
+        return (
+          <SpeedLimitsSection
+            value={settings.alerts.speedLimits}
+            onSave={(v) => saveSection('speedLimits', v)}
+          />
+        );
       case 'alertas':
         return (
-          <AlertsSoundSection value={settings.alerts} onSave={(v) => saveSection('alerts', v)} />
+          <AlertsSoundSection
+            value={settings.alerts}
+            onSave={(v) => saveSection('alerts', v)}
+          />
         );
       case 'preferencias':
         return (
@@ -178,8 +202,33 @@ export default function SettingsModal({ isOpen, onClose, initialSection = 'cuent
 
             {/* Contenido scrolleable de la sección activa */}
             <main className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-              {renderSection()}
+              {syncStatus === 'offline' && ['iconos', 'velocidad', 'alertas', 'preferencias'].includes(section) && (
+                <div className="mb-4 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11.5px] text-amber-800">
+                  <CloudOff size={16} className="shrink-0" />
+                  <span className="flex-1">
+                    No se pudo conectar con el servidor de configuración. Se muestran los últimos datos
+                    guardados en este navegador.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={reload}
+                    className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-300 bg-white px-2 py-1 font-semibold hover:bg-amber-100"
+                  >
+                    <RefreshCw size={12} /> Reintentar
+                  </button>
+                </div>
+              )}
+              <SettingsFooterContext.Provider value={footerEl}>
+                {renderSection()}
+              </SettingsFooterContext.Provider>
             </main>
+
+            {/* Pie fijo al fondo del panel: aquí se dibujan Descartar / Guardar cambios.
+                Se oculta en pestañas sin botones de guardar (p. ej. Seguridad). */}
+            <footer
+              ref={setFooterEl}
+              className="shrink-0 border-t border-slate-200 bg-white px-5 py-3 empty:hidden sm:px-6"
+            />
           </motion.div>
         </div>
       )}

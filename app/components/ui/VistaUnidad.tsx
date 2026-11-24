@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+import { getVehicleSidebarImage } from '@/app/components/settings/vehicleIcons';
 
 interface Props {
   item: number;
@@ -35,11 +35,13 @@ export default function VistaUnidad({
       </div>
 
       <div className="my-3.5 flex h-28 w-full items-center justify-center rounded-xl bg-slate-100/70 p-2">
-        <Image
-          src="/UnidadK.webp"
+        {/* Ícono del tipo de la unidad (auto / van / cisterna) en perfil */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={getVehicleSidebarImage(deviceId)}
           alt={deviceId}
-          width={120}
-          height={85}
+          width={176}
+          height={88}
           className="max-h-24 w-auto object-contain"
         />
       </div>

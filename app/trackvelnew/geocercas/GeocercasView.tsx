@@ -1,5 +1,6 @@
 'use client';
 
+import { getVehicleSidebarImage } from '@/app/components/settings/vehicleIcons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
@@ -291,6 +292,7 @@ export default function GeocercasPage() {
     enabled: Boolean(effectiveUsername),
     baseUrl: effectiveBaseUrl,
     isDrawerOpen: alertsDrawerOpen,
+    geofenceOnly: true,
   });
 
   const alertMarkerRef = useRef<L.Marker | null>(null);
@@ -332,7 +334,7 @@ export default function GeocercasPage() {
     setActiveAlertOnMap(null);
   }, []);
 
-  // Centrar mapa en alerta en tiempo real con icono de auto (/UnidadK.webp) y popup detallado
+  // Centrar mapa en alerta en tiempo real con el ícono del tipo de la unidad y popup detallado
   const handleLocateAlert = useCallback(
     (
       alertOrLat: RealtimeGeofenceAlert | number,
@@ -401,7 +403,7 @@ export default function GeocercasPage() {
 
       const marker = L.marker([lat, lng], {
         title: `${deviceID} (${isEnter ? 'Entrada' : 'Salida'})`,
-        icon: imageIcon('/UnidadK.webp', 60, 34),
+        icon: imageIcon(getVehicleSidebarImage(deviceID), 60, 30),
       }).addTo(map);
 
       alertMarkerRef.current = marker;
@@ -657,7 +659,7 @@ export default function GeocercasPage() {
     return 'En curso';
   }
 
-  // Marcar puntos de entrada y salida de visita en el mapa con auto (/UnidadK.webp), tarjetas y cápsula de distancia/duración
+  // Marcar puntos de entrada y salida de visita en el mapa con el ícono de la unidad, tarjetas y cápsula de distancia/duración
   const handleViewVisitOnMap = useCallback((visit: VisitaItem) => {
     setReportsModalOpen(false);
     const map = mapRef.current;
@@ -678,10 +680,10 @@ export default function GeocercasPage() {
       // Halo verde detrás del auto
       visitMarkersRef.current.push(visitHalo(map, posEntrada, '#10B981', '#059669'));
 
-      // Icono del auto (/UnidadK.webp) igual que en alertas
+      // Ícono del tipo de la unidad (perfil), igual que en alertas
       const entryMarker = L.marker(posEntrada, {
         title: `Entrada: ${visit.deviceID} en ${visit.geofenceName || 'Geocerca'}`,
-        icon: imageIcon('/UnidadK.webp', 56, 32),
+        icon: imageIcon(getVehicleSidebarImage(visit.deviceID), 56, 28),
       }).addTo(map);
       entryMarker.on('contextmenu', clearVisitFromMap);
       visitMarkersRef.current.push(entryMarker);
@@ -803,12 +805,12 @@ export default function GeocercasPage() {
       // Halo detrás del auto (rojo = salida, gris = quitada de la geocerca)
       visitMarkersRef.current.push(visitHalo(map, posSalida, exitTheme.fill, exitTheme.stroke));
 
-      // Icono del auto (/UnidadK.webp) igual que en alertas
+      // Ícono del tipo de la unidad (perfil), igual que en alertas
       const exitMarker = L.marker(posSalida, {
         title: unlinked
           ? `${visit.deviceID} quitada de ${visit.geofenceName || 'Geocerca'} (no salió, estaba adentro)`
           : `Salida: ${visit.deviceID} de ${visit.geofenceName || 'Geocerca'}`,
-        icon: imageIcon('/UnidadK.webp', 56, 32),
+        icon: imageIcon(getVehicleSidebarImage(visit.deviceID), 56, 28),
       }).addTo(map);
       exitMarker.on('contextmenu', clearVisitFromMap);
       visitMarkersRef.current.push(exitMarker);

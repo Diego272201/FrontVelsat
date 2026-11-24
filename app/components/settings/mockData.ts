@@ -1,22 +1,14 @@
-// Datos estáticos de ejemplo. Reemplazar por llamadas a la API más adelante.
+// Valores por defecto y opciones fijas de Configuración.
+import { getAlertCatalogItem } from './alertCatalog';
+import { soundFromApi } from './settingsApi';
 import type {
+  AlertSoundConfig,
   AlertTypeId,
   QuietHoursSettings,
   SoundId,
   UserSettings,
   VehicleIconId,
 } from './types';
-
-export const ALERT_LABELS: Record<AlertTypeId, { title: string; description: string }> = {
-  geofenceEnter: { title: 'Entrada a geocerca', description: 'Cuando una unidad ingresa a una geocerca' },
-  geofenceExit: { title: 'Salida de geocerca', description: 'Cuando una unidad sale de una geocerca' },
-  overspeed: { title: 'Exceso de velocidad', description: 'Cuando una unidad supera el límite de velocidad configurado' },
-  ignitionOn: { title: 'Encendido de motor', description: 'Cuando la unidad enciende el motor' },
-  ignitionOff: { title: 'Apagado de motor', description: 'Cuando la unidad apaga el motor' },
-  panic: { title: 'Botón de pánico', description: 'Cuando el conductor presiona el botón SOS' },
-  lowBattery: { title: 'Batería baja', description: 'Cuando el GPS reporta batería baja' },
-  disconnect: { title: 'Desconexión de GPS', description: 'Cuando la unidad deja de reportar' },
-};
 
 export const SOUND_OPTIONS: { id: SoundId; label: string }[] = [
   { id: 'none', label: 'Sin sonido' },
@@ -29,29 +21,39 @@ export const SOUND_OPTIONS: { id: SoundId; label: string }[] = [
   { id: 'siren', label: 'Sirena' },
 ];
 
-export const VEHICLE_ICON_LABELS: Record<VehicleIconId, string> = {
-  car: 'Auto / Sedán',
-  pickup: 'Camioneta / Pickup',
-  van: 'Van / Minivan',
-  bus: 'Bus / Microbús',
-  truck: 'Camión / Carga',
-  moto: 'Motocicleta',
-  taxi: 'Taxi',
-  ambulance: 'Ambulancia / Emergencia',
-};
+export interface VehicleIconMeta {
+  id: VehicleIconId;
+  label: string;
+  description: string;
+  preview: string;
+}
 
-export const ICON_COLORS = [
-  '#113EB9',
-  '#0EA5E9',
-  '#10B981',
-  '#84CC16',
-  '#F59E0B',
-  '#FB7B0F',
-  '#EF4444',
-  '#EC4899',
-  '#8B5CF6',
-  '#334155',
+export const VEHICLE_ICON_OPTIONS: VehicleIconMeta[] = [
+  {
+    id: 'auto',
+    label: 'Auto',
+    description: 'Sedán / Vehículo liviano',
+    preview: '/auto/downright.webp',
+  },
+  {
+    id: 'cisterna',
+    label: 'Cisterna',
+    description: 'Camión cisterna',
+    preview: '/cisterna/cisterna_sureste.webp',
+  },
+  {
+    id: 'van',
+    label: 'Van',
+    description: 'Sprinter / Furgón',
+    preview: '/sprinter/van_sureste.webp',
+  },
 ];
+
+export const VEHICLE_ICON_LABELS: Record<VehicleIconId, string> = {
+  auto: 'Auto',
+  cisterna: 'Cisterna',
+  van: 'Van',
+};
 
 const UNITS = [
   { deviceId: 'ABC-123', placa: 'ABC-123', descripcion: 'Toyota Hiace' },
@@ -64,27 +66,25 @@ const UNITS = [
   { deviceId: 'HJK-852', placa: 'HJK-852', descripcion: 'Scania Irizar' },
 ];
 
-const DEFAULT_ICON: Record<string, VehicleIconId> = {
-  'ABC-123': 'van',
-  'BXR-456': 'van',
-  'C7K-789': 'bus',
-  'D2M-321': 'truck',
-  'EFG-654': 'pickup',
-  'F9P-987': 'moto',
-  'GHT-741': 'car',
-  'HJK-852': 'bus',
-};
+/** Notificaciones con las que arranca la cuenta mientras no llegue su configuración del servidor. */
+export const DEFAULT_ALERT_TYPES: AlertTypeId[] = ['geofenceEnter', 'geofenceExit', 'deviceOverspeed'];
 
-export const ALERT_TYPES_ORDER: AlertTypeId[] = [
-  'geofenceEnter',
-  'geofenceExit',
-  'overspeed',
-  'ignitionOn',
-  'ignitionOff',
-  'panic',
-  'lowBattery',
-  'disconnect',
-];
+/** Configuración con la que se agrega una notificación nueva a "Mis notificaciones". */
+export function defaultAlertConfig(type: AlertTypeId): AlertSoundConfig {
+  const item = getAlertCatalogItem(type);
+  const isOverspeed = type === 'deviceOverspeed';
+  const critical = item?.severidad === 'critical';
+  return {
+    type,
+    enabled: true,
+    sound: soundFromApi(item?.sonidoDefault, 'beep'),
+    // Exceso de velocidad: 40% = volumen que tenía antes
+    volume: isOverspeed ? 40 : critical ? 100 : 80,
+    popup: true,
+    loop: isOverspeed || critical,
+    available: true,
+  };
+}
 
 /** Determina si una hora dada está dentro del horario de silencio configurado */
 export function isCurrentlyQuietHours(quiet?: QuietHoursSettings): boolean {
@@ -116,18 +116,9 @@ export function buildDefaultSettings(username: string): UserSettings {
       phone: '',
       company: username ? username.toUpperCase() : '',
     },
-    odometers: UNITS.map((u, i) => ({
-      ...u,
-      odometroActual: 45230 + i * 12873.4,
-      odometroInicial: null,
-      fechaAjuste: null,
-    })),
-    icons: UNITS.map((u) => ({
-      deviceId: u.deviceId,
-      placa: u.placa,
-      icon: DEFAULT_ICON[u.deviceId] ?? 'car',
-      color: '#113EB9',
-    })),
+    icons: {
+      byUnit: {},
+    },
     alerts: {
       muteAll: false,
       masterVolume: 100,
@@ -139,48 +130,13 @@ export function buildDefaultSettings(username: string): UserSettings {
       speedLimits: {
         mode: 'general',
         generalLimit: 90,
-        byType: {
-          car: 90,
-          pickup: 85,
-          van: 90,
-          bus: 85,
-          truck: 70,
-          moto: 60,
-          taxi: 80,
-          ambulance: 100,
-        },
+        byUnit: {},
       },
-      items: ALERT_TYPES_ORDER.map((type) => {
-        const isGeofence = type === 'geofenceEnter' || type === 'geofenceExit';
-        const isOverspeed = type === 'overspeed';
-        return {
-          type,
-          enabled: isGeofence || isOverspeed,
-          sound:
-            type === 'geofenceEnter'
-              ? 'ding'
-              : type === 'geofenceExit'
-                ? 'chime'
-                : type === 'panic'
-                  ? 'siren'
-                  : isOverspeed
-                    ? 'classic' // mismo /alert.mp3 que se usaba antes
-                    : 'beep',
-          // Exceso de velocidad: 40% = volumen que tenía antes
-          volume: isOverspeed ? 40 : 80,
-          popup: true,
-          loop: isOverspeed,
-          // Alertas activas hoy en el sistema (requieren soporte en telemetría de backend)
-          available: isGeofence || isOverspeed,
-        };
-      }),
+      // Hasta que responda el servidor (luego manda lo que tenga guardado la cuenta)
+      items: DEFAULT_ALERT_TYPES.map(defaultAlertConfig),
     },
     preferences: {
       mapType: 'roadmap',
-      distanceUnit: 'km',
-      refreshSeconds: 10,
-      timezone: 'America/Lima',
-      dateFormat: 'DD-MM-YYYY',
       showPlateLabels: true,
       clusterMarkers: false,
       followSelectedUnit: true,

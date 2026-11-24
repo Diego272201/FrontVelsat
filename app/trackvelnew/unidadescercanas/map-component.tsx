@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, useMap, Marker, Popup, Circle } from "react-le
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import { useUsername } from "@/hooks/useUsername"
+import { getVehicleSidebarImage } from "@/app/components/settings/vehicleIcons"
 import {
   Layers,
   Globe,
@@ -121,7 +122,7 @@ const getUrlParams = () => {
   }
 }
 
-// Icono personalizado usando /UnidadK.webp directamente sin fondo ni circulo
+// Ícono del tipo de cada unidad (auto / van / cisterna) en perfil, sin fondo ni círculo
 const createCustomIcon = (isBase: boolean, codunidad: string) => {
   const iconHtml = isBase
     ? `<div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
@@ -143,7 +144,7 @@ const createCustomIcon = (isBase: boolean, codunidad: string) => {
           <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span>${codunidad}</span>
         </div>
-        <img src="/UnidadK.webp" style="width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.3));" alt="${codunidad}" />
+        <img src="${getVehicleSidebarImage(codunidad)}" style="width: 56px; height: 28px; object-fit: contain; filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.3));" alt="${codunidad}" />
       </div>`
     : `<div style="position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
         <div style="
@@ -160,7 +161,7 @@ const createCustomIcon = (isBase: boolean, codunidad: string) => {
         ">
           ${codunidad}
         </div>
-        <img src="/UnidadK.webp" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.25));" alt="${codunidad}" />
+        <img src="${getVehicleSidebarImage(codunidad)}" style="width: 48px; height: 24px; object-fit: contain; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.25));" alt="${codunidad}" />
       </div>`
 
   return L.divIcon({
@@ -378,9 +379,9 @@ const Sidebar = ({
                     <div className="flex items-center justify-between gap-1 text-[11px]">
                       <div className="flex items-center gap-1.5">
                         <img
-                          src="/UnidadK.webp"
-                          alt="Car"
-                          className="h-4 w-4 shrink-0 object-contain"
+                          src={getVehicleSidebarImage(unidad.codunidad)}
+                          alt=""
+                          className="h-4 w-8 shrink-0 object-contain"
                         />
                         <span className={`font-bold ${unidad.esUnidadBase ? "text-red-600" : "text-[#113EB9]"}`}>
                           {unidad.codunidad}
@@ -635,7 +636,7 @@ export default function MapComponent() {
             />
           )}
 
-          {/* Marcadores con /UnidadK.webp */}
+          {/* Marcadores con el ícono del tipo de cada unidad */}
           {unidades.map((unidad) => (
             <Marker
               key={unidad.codunidad}
@@ -657,7 +658,7 @@ export default function MapComponent() {
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <img src="/UnidadK.webp" alt="Car" className="h-4 w-4 object-contain filter brightness-0 invert" />
+                      <img src={getVehicleSidebarImage(unidad.codunidad)} alt="" className="h-4 w-8 object-contain filter brightness-0 invert" />
                       <span className="font-bold text-[13px] tracking-wide">{unidad.codunidad}</span>
                     </div>
                     <span className="rounded bg-white/20 px-1.5 py-0.5 text-[9px] font-extrabold uppercase">

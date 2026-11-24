@@ -13,6 +13,7 @@ import { useApi } from '@/context/ApiContext';
 import DocumentosPorVencer from '../components/ExpirySubAlerts';
 import FollowUnitCamera from '../components/FollowUnitCamera';
 import LeafletMapControls, { MAP_MAX_ZOOM } from './LeafletMapControls';
+import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
 
 /*
  * Mapa principal de /subtrackvelnew. REGLA: aquí no se usa ninguna API key
@@ -211,34 +212,28 @@ export default function RequestPage() {
     };
   }, [username, baseUrl]);
 
-  const getMarkerIcon = useCallback((heading: number) => {
-    const cacheKey = Math.floor(heading / 45) * 45;
-    if (iconCache.current[cacheKey]) return iconCache.current[cacheKey];
+  const [iconsVersion, setIconsVersion] = useState(0);
 
-    const directions: { range: [number, number]; url: string; size: [number, number] }[] = [
-      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] },
-      { range: [22.51, 67.5], url: '/auto/topright.webp', size: [42, 25] },
-      { range: [67.51, 112.5], url: '/auto/right.webp', size: [42, 25] },
-      { range: [112.51, 157.5], url: '/auto/downright.webp', size: [42, 25] },
-      { range: [157.51, 202.5], url: '/auto/down.webp', size: [25, 35] },
-      { range: [202.51, 247.5], url: '/auto/downleft.webp', size: [42, 25] },
-      { range: [247.51, 292.5], url: '/auto/left.webp', size: [42, 25] },
-      { range: [292.51, 337.5], url: '/auto/topleft.webp', size: [42, 25] },
-      { range: [337.51, 360.0], url: '/auto/up.webp', size: [25, 35] },
-    ];
+  useEffect(() => {
+    const onSettings = (e: Event) => {
+      if ((e as CustomEvent)?.detail?.key === 'icons') {
+        setIconsVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener('trackvel:settings-updated', onSettings);
+    return () => window.removeEventListener('trackvel:settings-updated', onSettings);
+  }, []);
 
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-    const url = direction?.url ?? '/unknown.png';
-    const size = direction?.size ?? [42, 25];
+  const getMarkerIcon = useCallback((heading: number, deviceId?: string) => {
+    const spec = resolveVehicleMarkerSpec(heading, deviceId);
+    if (iconCache.current[spec.cacheKey]) return iconCache.current[spec.cacheKey];
 
     const icon = L.icon({
-      iconUrl: url,
-      iconSize: size,
-      iconAnchor: [size[0] / 2, size[1] / 2],
+      iconUrl: spec.url,
+      iconSize: spec.size,
+      iconAnchor: spec.anchor ?? [spec.size[0] / 2, spec.size[1] / 2],
     });
-    iconCache.current[cacheKey] = icon;
+    iconCache.current[spec.cacheKey] = icon;
     return icon;
   }, []);
 
@@ -416,7 +411,7 @@ export default function RequestPage() {
       const safeId = sanitize(deviceId).toUpperCase();
 
       const marker = L.marker(position, {
-        icon: getMarkerIcon(device.lastValidHeading),
+        icon: getMarkerIcon(device.lastValidHeading, device.deviceId),
       }).addTo(map);
 
       // Placa sobre el vehículo (mismo estilo que trackvelnew)
@@ -530,7 +525,7 @@ export default function RequestPage() {
         existing.label.setLatLng(position);
         existing.popup.setLatLng(position);
       }
-      existing.marker.setIcon(getMarkerIcon(device.lastValidHeading));
+      existing.marker.setIcon(getMarkerIcon(device.lastValidHeading, device.deviceId));
       updatePopupContent(device, existing.content);
     });
   }, [
@@ -541,6 +536,7 @@ export default function RequestPage() {
     removeMarker,
     getMarkerIcon,
     updatePopupContent,
+    iconsVersion,
   ]);
 
   const centerMap = useCallback(() => {

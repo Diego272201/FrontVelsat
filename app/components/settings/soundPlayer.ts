@@ -67,14 +67,45 @@ function ensureClassicDecoded(): Promise<AudioBuffer | null> {
   }
 }
 
-// Iniciar pre-decodificación en el cliente en cuanto haya cualquier interacción
+// El navegador deja el audio suspendido hasta que el usuario interactúa con la
+// página. En cada interacción (no solo la primera) se reactiva si hace falta,
+// y de paso se pre-decodifica el sonido clásico.
 if (typeof window !== 'undefined') {
-  const triggerPredecode = () => {
+  const unlockAudio = () => {
     const ac = getCtx();
     if (ac) void ensureClassicDecoded();
   };
-  window.addEventListener('click', triggerPredecode, { once: true, passive: true });
-  window.addEventListener('keydown', triggerPredecode, { once: true, passive: true });
+  ['pointerdown', 'keydown', 'touchstart'].forEach((evt) =>
+    window.addEventListener(evt, unlockAudio, { passive: true }),
+  );
+}
+
+/** true si el navegador todavía no permite reproducir audio (sin interacción en la página). */
+export function isAudioBlocked(): boolean {
+  if (typeof window === 'undefined') return false;
+  const activation = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } })
+    .userActivation;
+  if (activation) return !activation.hasBeenActive;
+  return ctx?.state === 'suspended';
+}
+
+/**
+ * Ejecuta `fn` con el AudioContext activo. Si está suspendido espera a que se
+ * reactive; antes las notas se programaban sobre un contexto detenido y se
+ * perdían sin error (por eso "Ding" y "Campana" a veces no sonaban).
+ */
+function withRunningContext(fn: (ac: AudioContext) => void) {
+  const ac = getCtx();
+  if (!ac) return;
+  if (ac.state === 'running') {
+    fn(ac);
+    return;
+  }
+  ac.resume()
+    .then(() => {
+      if (ac.state === 'running') fn(ac);
+    })
+    .catch((err) => console.warn('[Alertas] El navegador bloqueó el audio:', err));
 }
 
 type Note = { freq: number; start: number; dur: number; type?: OscillatorType; slideTo?: number };
@@ -109,8 +140,11 @@ function effectiveVolume(volume: number, master: number) {
 }
 
 function playPattern(sound: SynthSound, vol: number) {
-  const ac = getCtx();
-  if (!ac || vol <= 0) return;
+  if (vol <= 0) return;
+  withRunningContext((ac) => schedulePattern(ac, sound, vol));
+}
+
+function schedulePattern(ac: AudioContext, sound: SynthSound, vol: number) {
   const gainValue = vol * 0.35;
   const now = ac.currentTime;
   for (const n of PATTERNS[sound]) {

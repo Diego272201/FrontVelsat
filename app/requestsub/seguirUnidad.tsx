@@ -9,6 +9,7 @@ import '@/app/styles/popup.css';
 
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
 
 const initialCenter: [number, number] = [
   -12.046591525826495, -77.04689047482863,
@@ -224,66 +225,13 @@ useEffect(() => {
     return 'Desconocido';
   }, []);
 
-  const getMarkerIcon = useCallback((heading: number) => {
-    const directions = [
-      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] as [number, number] },
-      {
-        range: [22.51, 67.5],
-        url: '/auto/topright.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [67.51, 112.5],
-        url: '/auto/right.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [112.51, 157.5],
-        url: '/auto/downright.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [157.51, 202.5],
-        url: '/auto/down.webp',
-        size: [25, 35] as [number, number],
-      },
-      {
-        range: [202.51, 247.5],
-        url: '/auto/downleft.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [247.51, 292.5],
-        url: '/auto/left.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [292.51, 337.5],
-        url: '/auto/topleft.webp',
-        size: [42, 25] as [number, number],
-      },
-      {
-        range: [337.51, 360.0],
-        url: '/auto/up.webp',
-        size: [25, 35] as [number, number],
-      },
-    ];
-
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-
-    return direction
-      ? L.icon({
-          iconUrl: direction.url,
-          iconSize: direction.size,
-          iconAnchor: [direction.size[0] / 2, direction.size[1] / 2],
-        })
-      : L.icon({
-          iconUrl: '/unknown.png',
-          iconSize: [42, 25],
-          iconAnchor: [21, 12.5],
-        });
+  const getMarkerIcon = useCallback((heading: number, deviceId?: string) => {
+    const spec = resolveVehicleMarkerSpec(heading, deviceId);
+    return L.icon({
+      iconUrl: spec.url,
+      iconSize: spec.size,
+      iconAnchor: [spec.size[0] / 2, spec.size[1] / 2],
+    });
   }, []);
 
   const getEstado = useCallback((speed: number) => {
@@ -328,7 +276,7 @@ useEffect(() => {
         markerData.marker.setLatLng(position);
 
         // Actualizar icono
-        const newIcon = getMarkerIcon(device.lastValidHeading);
+        const newIcon = getMarkerIcon(device.lastValidHeading, device.deviceId);
         markerData.marker.setIcon(newIcon);
 
         // Actualizar contenido del popup2
@@ -372,7 +320,7 @@ useEffect(() => {
           className: 'custom-popup-2 transparent-popup',
         }).setContent(getPopupContent(device));
 
-        const icon = getMarkerIcon(device.lastValidHeading);
+        const icon = getMarkerIcon(device.lastValidHeading, device.deviceId);
         const marker = L.marker(position, { icon }).addTo(map);
 
         // Abrir popup1 por defecto

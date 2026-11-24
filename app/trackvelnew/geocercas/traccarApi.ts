@@ -16,6 +16,18 @@ export interface TraccarDevice {
   uniqueId: string;
   status?: string;
   disabled?: boolean;
+  /** Id de la última posición recibida (0 / null si nunca reportó) */
+  positionId?: number | null;
+  lastUpdate?: string | null;
+  attributes?: Record<string, any>;
+}
+
+export interface TraccarPosition {
+  id: number;
+  deviceId: number;
+  fixTime?: string;
+  serverTime?: string;
+  /** totalDistance (metros) y hours (ms) son los acumuladores que suma Traccar */
   attributes?: Record<string, any>;
 }
 
@@ -450,6 +462,54 @@ export function resolveAccountTraccarServer(
   fallbackBaseUrl?: string,
 ): string {
   return getTraccarServerForUrl(fallbackBaseUrl);
+}
+
+/**
+ * Última posición de cada dispositivo del servidor: GET /api/positions (sin parámetros).
+ * No se consulta por ?id=: si algún dispositivo apunta a una posición ya depurada,
+ * Traccar responde 400 a todo el lote. Cruzar el resultado por `deviceId`, no por
+ * `device.positionId`, que puede estar desfasado.
+ */
+export async function getTraccarLatestPositions(
+  baseUrl: string,
+  authHeader?: string,
+): Promise<TraccarPosition[]> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) throw new Error('Credenciales no configuradas en el entorno');
+
+  const response = await axios.get<TraccarPosition[]>(`${cleanTraccarUrl(baseUrl)}/positions`, {
+    headers: { Authorization: auth },
+    timeout: 20000,
+  });
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+/**
+ * Ajusta los acumuladores de un dispositivo: PUT /api/devices/{id}/accumulators
+ * totalDistance va en METROS. Traccar solo lo permite si el dispositivo ya tiene
+ * al menos una posición; desde ahí sigue sumando la distancia recorrida.
+ */
+export async function updateTraccarAccumulators(
+  baseUrl: string,
+  deviceId: number,
+  totalDistanceMeters: number,
+  hoursMs?: number | null,
+  authHeader?: string,
+): Promise<void> {
+  const auth = authHeader || getTraccarAuthHeader();
+  if (!auth) throw new Error('Credenciales no configuradas en el entorno');
+
+  const body: Record<string, number> = {
+    deviceId,
+    totalDistance: Math.round(totalDistanceMeters),
+  };
+  // Se reenvía el valor actual de horas para no reiniciarlo en versiones que no aceptan null
+  if (hoursMs != null && Number.isFinite(Number(hoursMs))) body.hours = Number(hoursMs);
+
+  await axios.put(`${cleanTraccarUrl(baseUrl)}/devices/${deviceId}/accumulators`, body, {
+    headers: { Authorization: auth, 'Content-Type': 'application/json' },
+    timeout: 12000,
+  });
 }
 
 /**

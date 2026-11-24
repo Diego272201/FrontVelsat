@@ -17,6 +17,11 @@ import { toast, Toaster } from 'sonner';
 import { useApi } from '@/context/ApiContext';
 import Loader from '@/app/components/Loader';
 import { useUsername } from '@/hooks/useUsername';
+import {
+  getVehicleSidebarImage,
+  resolveVehicleMarkerSpec,
+} from '@/app/components/settings/vehicleIcons';
+import { computeTrackHeadings, headingLabel } from '@/app/components/settings/vehicleHeading';
 
 import {
   Play,
@@ -43,6 +48,9 @@ interface UnidadDetalleRecorrido {
   date: string;
   time: string;
   speed: number;
+  /** Rumbo enviado por el backend (si existe); si no, se calcula con el movimiento */
+  heading?: number;
+  course?: number;
 }
 
 type SpeedCategory = 'stopped' | 'slow' | 'normal' | 'fast';
@@ -323,6 +331,8 @@ const StartEndMarkersLayer = memo(function StartEndMarkersLayer({
 // 3. Marcador dinámico del Vehículo animado
 interface VehicleMarkerLayerProps {
   point: UnidadDetalleRecorrido | null;
+  /** Rumbo del punto actual (grados, 0 = Norte) */
+  heading: number;
   deviceId: string | null;
   show: boolean;
   isOpen: boolean;
@@ -332,20 +342,24 @@ interface VehicleMarkerLayerProps {
 
 const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
   point,
+  heading,
   deviceId,
   show,
   isOpen,
   onToggle,
   onClose,
 }: VehicleMarkerLayerProps) {
+  const isMoving = (point?.speed ?? 0) > 0;
+  // Ícono del tipo de la unidad (auto / van / cisterna) orientado al rumbo del punto
   const vehicleIcon = useMemo(() => {
     if (!isMapsApiReady()) return undefined;
+    const spec = resolveVehicleMarkerSpec(heading, deviceId ?? undefined, { isMoving });
     return {
-      url: '/UnidadK.webp',
-      scaledSize: new window.google.maps.Size(38, 38),
-      anchor: new window.google.maps.Point(19, 19),
+      url: spec.url,
+      scaledSize: new window.google.maps.Size(spec.size[0], spec.size[1]),
+      anchor: new window.google.maps.Point(spec.size[0] / 2, spec.size[1] / 2),
     };
-  }, []);
+  }, [heading, deviceId, isMoving]);
 
   if (!show || !point) return null;
 
@@ -371,12 +385,13 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
               )} px-3 py-2 flex items-center justify-between font-bold tracking-wide text-xs transition-colors duration-300`}
             >
               <div className="flex items-center gap-1.5">
-                <Image
-                  src="/UnidadK.webp"
-                  alt="Car"
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 object-contain filter brightness-0 invert"
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getVehicleSidebarImage(deviceId || '')}
+                  alt=""
+                  width={28}
+                  height={14}
+                  className="h-3.5 w-7 object-contain filter brightness-0 invert"
                 />
                 <span>{(deviceId || 'Unidad').toUpperCase()}</span>
               </div>
@@ -414,6 +429,17 @@ const VehicleMarkerLayer = memo(function VehicleMarkerLayer({
                   {point.speed.toFixed(1)} km/h
                 </span>
               </div>
+
+              <div className="flex items-center justify-between rounded-md bg-slate-50 p-2 border border-slate-100 text-[11.5px]">
+                <span className="text-gray-600 font-medium">Rumbo:</span>
+                <span className="flex items-center gap-1 font-bold text-gray-800">
+                  <Navigation
+                    className="h-3 w-3 text-[#113EB9]"
+                    style={{ transform: `rotate(${heading - 45}deg)` }}
+                  />
+                  {headingLabel(heading)}
+                </span>
+              </div>
             </div>
           </div>
         </InfoWindowF>
@@ -429,33 +455,47 @@ const COLOR_MAP: Record<SpeedCategory, string> = {
   fast: '#113EB9',
 };
 
-const getPointPinIcon = (category: SpeedCategory, num: number) => {
+/**
+ * Pin numerado del punto con una insignia de rumbo: flecha que apunta hacia donde
+ * se movía la unidad en ese punto (0° = Norte).
+ */
+const getPointPinIcon = (category: SpeedCategory, num: number, heading: number) => {
   const color = COLOR_MAP[category] || '#113EB9';
   const fontSize = num > 999 ? '9.5' : num > 99 ? '10.5' : '11.5';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42">
+  const angle = Math.round(heading);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="44" viewBox="0 0 42 44">
   <filter id="p-shadow" x="-20%" y="-20%" width="140%" height="140%">
     <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.35"/>
   </filter>
-  <path d="M 17 39 C 11 29 3 24 3 15 A 14 14 0 1 1 31 15 C 31 24 23 29 17 39 Z" fill="${color}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" filter="url(#p-shadow)"/>
-  <text x="17" y="15" fill="#ffffff" font-size="${fontSize}" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">${num}</text>
+  <path d="M 17 41 C 11 31 3 26 3 17 A 14 14 0 1 1 31 17 C 31 26 23 31 17 41 Z" fill="${color}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round" filter="url(#p-shadow)"/>
+  <text x="17" y="17" fill="#ffffff" font-size="${fontSize}" font-family="system-ui, -apple-system, sans-serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">${num}</text>
+  <g filter="url(#p-shadow)">
+    <circle cx="33" cy="9" r="7.5" fill="#ffffff"/>
+    <g transform="rotate(${angle} 33 9)">
+      <path d="M33 3.4 L37.2 12.6 L33 10.6 L28.8 12.6 Z" fill="${color}"/>
+    </g>
+  </g>
 </svg>`;
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new window.google.maps.Size(34, 42),
-    anchor: new window.google.maps.Point(17, 39),
+    scaledSize: new window.google.maps.Size(42, 44),
+    anchor: new window.google.maps.Point(17, 41),
   };
 };
 
 // 4. Capa agrupada de Puntos GPS (MarkerClusterer de alto rendimiento sin sobrecarga de React)
 interface GPSPointsClusterLayerProps {
   markersData: UnidadDetalleRecorrido[];
+  /** Rumbo de cada punto (mismo orden que markersData) */
+  headings: number[];
   show: boolean;
   onSelectPoint: (point: UnidadDetalleRecorrido, index: number) => void;
 }
 
 const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
   markersData,
+  headings,
   show,
   onSelectPoint,
 }: GPSPointsClusterLayerProps) {
@@ -467,6 +507,8 @@ const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
   showRef.current = show;
   const onSelectPointRef = useRef(onSelectPoint);
   onSelectPointRef.current = onSelectPoint;
+  const headingsRef = useRef(headings);
+  headingsRef.current = headings;
 
   // Desacopla los marcadores del mapa Y del clusterer.
   // Vaciar la lista interna del clusterer es lo que garantiza que ningún
@@ -512,7 +554,7 @@ const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
     for (let i = 0; i < dataList.length; i++) {
       const data = dataList[i];
       const category = getSpeedCategory(data.speed);
-      const icon = getPointPinIcon(category, i + 1);
+      const icon = getPointPinIcon(category, i + 1, headingsRef.current[i] ?? 0);
 
       const marker = new google.maps.Marker({
         position: { lat: data.latitude, lng: data.longitude },
@@ -582,17 +624,20 @@ const GPSPointsClusterLayer = memo(function GPSPointsClusterLayer({
 // 5. InfoWindow Global Único para el punto seleccionado
 interface SelectedPointInfoWindowProps {
   selected: { point: UnidadDetalleRecorrido; index: number } | null;
+  headings: number[];
   onClose: () => void;
   onJumpToPoint: (index: number) => void;
 }
 
 const SelectedPointInfoWindow = memo(function SelectedPointInfoWindow({
   selected,
+  headings,
   onClose,
   onJumpToPoint,
 }: SelectedPointInfoWindowProps) {
   if (!selected) return null;
   const { point, index } = selected;
+  const heading = headings[index] ?? 0;
 
   return (
     <InfoWindowF
@@ -640,6 +685,17 @@ const SelectedPointInfoWindow = memo(function SelectedPointInfoWindow({
               }`}
             >
               {point.speed.toFixed(1)} km/h
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between rounded-md bg-slate-50 p-2 border border-slate-100 text-[11.5px]">
+            <span className="text-gray-600 font-medium">Rumbo:</span>
+            <span className="flex items-center gap-1 font-bold text-gray-800">
+              <Navigation
+                className="h-3 w-3 text-[#113EB9]"
+                style={{ transform: `rotate(${heading - 45}deg)` }}
+              />
+              {headingLabel(heading)}
             </span>
           </div>
 
@@ -936,6 +992,9 @@ const MapContent = () => {
   }, [currentIndex, hasUserStarted, followVehicle, map, markersData]);
 
   const currentPoint = markersData[currentIndex] || markersData[0] || null;
+  // Rumbo de cada punto: el del backend si viene, o calculado por el movimiento
+  const headings = useMemo(() => computeTrackHeadings(markersData), [markersData]);
+  const currentHeading = headings[markersData[currentIndex] ? currentIndex : 0] ?? 0;
 
   // Handlers para interactuar con marcadores
   const handleSelectPoint = useCallback(
@@ -997,6 +1056,7 @@ const MapContent = () => {
             {/* Marcador animado del Vehículo */}
             <VehicleMarkerLayer
               point={currentPoint}
+              heading={currentHeading}
               deviceId={deviceId}
               show={showVehicle}
               isOpen={isVehicleInfoOpen}
@@ -1007,6 +1067,7 @@ const MapContent = () => {
             {/* Capa de Puntos GPS con Clustering de alto rendimiento */}
             <GPSPointsClusterLayer
               markersData={markersData}
+              headings={headings}
               show={showAllPoints}
               onSelectPoint={handleSelectPoint}
             />
@@ -1014,6 +1075,7 @@ const MapContent = () => {
             {/* InfoWindow Global Único para el punto seleccionado */}
             <SelectedPointInfoWindow
               selected={selectedPoint}
+              headings={headings}
               onClose={handleCloseSelectedPoint}
               onJumpToPoint={handleJumpToPoint}
             />

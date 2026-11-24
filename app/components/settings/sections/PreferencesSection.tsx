@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { PreferenceSettings } from '../types';
-import { Field, SaveBar, SectionHeader, Toggle, inputClass, useDraft } from '../ui';
+import { SaveBar, SectionHeader, Toggle, useDraft } from '../ui';
 
 interface Props {
   value: PreferenceSettings;
@@ -49,56 +49,7 @@ export default function PreferencesSection({ value, onSave }: Props) {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Unidad de distancia">
-          <select
-            className={inputClass}
-            value={draft.distanceUnit}
-            onChange={(e) => set('distanceUnit', e.target.value as PreferenceSettings['distanceUnit'])}
-          >
-            <option value="km">Kilómetros (km)</option>
-            <option value="mi">Millas (mi)</option>
-          </select>
-        </Field>
-        <Field label="Actualización del mapa" hint="Cada cuánto se refrescan las posiciones">
-          <select
-            className={inputClass}
-            value={draft.refreshSeconds}
-            onChange={(e) => set('refreshSeconds', Number(e.target.value))}
-          >
-            {[5, 10, 15, 30, 60].map((s) => (
-              <option key={s} value={s}>
-                Cada {s} segundos
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Zona horaria">
-          <select
-            className={inputClass}
-            value={draft.timezone}
-            onChange={(e) => set('timezone', e.target.value)}
-          >
-            <option value="America/Lima">Lima (GMT-5)</option>
-            <option value="America/Bogota">Bogotá (GMT-5)</option>
-            <option value="America/Santiago">Santiago (GMT-4/-3)</option>
-            <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
-          </select>
-        </Field>
-        <Field label="Formato de fecha">
-          <select
-            className={inputClass}
-            value={draft.dateFormat}
-            onChange={(e) => set('dateFormat', e.target.value as PreferenceSettings['dateFormat'])}
-          >
-            <option value="DD-MM-YYYY">DD-MM-AAAA</option>
-            <option value="MM-DD-YYYY">MM-DD-AAAA</option>
-            <option value="YYYY-MM-DD">AAAA-MM-DD</option>
-          </select>
-        </Field>
-      </div>
-
-      <div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">
+      <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
         {switches.map((s) => (
           <div key={s.key} className="flex items-center justify-between gap-3 px-3 py-2.5">
             <div>

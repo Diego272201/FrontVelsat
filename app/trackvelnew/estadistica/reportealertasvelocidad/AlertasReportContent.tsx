@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { getCurrentUser, loadSettings } from '@/app/components/settings/useUserSettings';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import AlertasVelocidadTable, { DataStatsAlertas } from '@/app/components/table/AlertasVelocidadTable';
@@ -21,6 +22,20 @@ export default function AlertasVelocidadReportContent() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [dataStats, setDataStats] = useState<DataStatsAlertas | null>(null);
+  // Umbral configurado en Configuración > Límites de velocidad (se lee en el cliente)
+  const [umbral, setUmbral] = useState('');
+  useEffect(() => {
+    try {
+      const { speedLimits } = loadSettings(getCurrentUser()).alerts;
+      setUmbral(
+        speedLimits.mode === 'general'
+          ? `≥ ${speedLimits.generalLimit} km/h`
+          : 'Según cada vehículo',
+      );
+    } catch {
+      setUmbral('');
+    }
+  }, []);
 
   const handleDataStats = useCallback((stats: DataStatsAlertas) => {
     setDataStats(stats);
@@ -96,7 +111,7 @@ export default function AlertasVelocidadReportContent() {
         deviceId="TODAS LAS UNIDADES"
         startDate={startDate ?? ''}
         endDate={endDate ?? ''}
-        umbral="> 90 km/h"
+        umbral={umbral || undefined}
         periodo={periodoText}
         formatDate={formatDisplayDate}
         registros={dataStats ? dataStats.total : 0}

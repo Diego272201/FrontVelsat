@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import L from 'leaflet';
+import { getVehicleSidebarImage } from '@/app/components/settings/vehicleIcons';
 import { X, Maximize2, Map, MapPin, Calendar, Clock, Gauge, Zap } from 'lucide-react';
 
 const MapContainer = dynamic(
@@ -68,10 +69,11 @@ export default function Momento({
 
   const center: [number, number] = [latitude, longitude];
 
+  // Ícono del tipo de la unidad (auto / van / cisterna) en perfil
   const customIcon = L.icon({
-    iconUrl: '/UnidadK.webp',
-    iconSize: [50, 30],
-    iconAnchor: [25, 15],
+    iconUrl: getVehicleSidebarImage(deviceId),
+    iconSize: [56, 28],
+    iconAnchor: [28, 14],
     popupAnchor: [0, -15],
   });
 

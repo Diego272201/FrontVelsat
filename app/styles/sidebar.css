@@ -13,7 +13,10 @@
   height: calc(100vh - 20%);
 }
 
-label {
+/* Solo las pestañitas que abren/cierran el panel: un 'label' suelto afectaba a
+   todas las etiquetas de la página (p. ej. las de Configuración del sistema) */
+label[for='muestra'],
+label[for='oculta'] {
   position: absolute;
   top: 0%;
   cursor: pointer;

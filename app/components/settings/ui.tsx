@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2, Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
@@ -71,6 +73,13 @@ export function Toggle({
   );
 }
 
+/**
+ * Contenedor del pie del panel de Configuración (fuera de la zona con scroll).
+ * Si existe, SaveBar se dibuja ahí: así queda siempre abajo del todo, aunque
+ * la pestaña tenga poco contenido.
+ */
+export const SettingsFooterContext = React.createContext<HTMLElement | null>(null);
+
 export function SaveBar({
   dirty,
   saving,
@@ -86,8 +95,10 @@ export function SaveBar({
   onCancel?: () => void;
   saveLabel?: string;
 }) {
-  return (
-    <div className="sticky bottom-0 -mx-5 mt-6 flex items-center justify-end gap-2 border-t border-slate-100 bg-white/95 px-5 py-3 backdrop-blur">
+  const footer = React.useContext(SettingsFooterContext);
+
+  const bar = (
+    <div className="flex items-center justify-end gap-2">
       {saved && !dirty && (
         <span className="mr-auto flex items-center gap-1 text-xs font-medium text-emerald-600">
           <Check size={14} /> Cambios guardados
@@ -117,6 +128,11 @@ export function SaveBar({
       </button>
     </div>
   );
+
+  if (footer) return createPortal(bar, footer);
+
+  // Sin panel (uso suelto): barra al final del contenido
+  return <div className="mt-6 border-t border-slate-200 pt-3">{bar}</div>;
 }
 
 /** Hook genérico de borrador para cada sección (estado local + dirty + guardar). */
@@ -140,6 +156,15 @@ export function useDraft<T>(initial: T, onSave: (v: T) => Promise<void>) {
       await onSave(draft);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      // Los cambios quedan en pantalla (sin guardar) para volver a intentarlo
+      console.error('[Configuración] No se pudo guardar:', err);
+      toast.error('No se pudieron guardar los cambios', {
+        description:
+          err instanceof Error && err.message
+            ? `El servidor respondió: ${err.message}`
+            : 'Revisa tu conexión e inténtalo de nuevo.',
+      });
     } finally {
       setSaving(false);
     }

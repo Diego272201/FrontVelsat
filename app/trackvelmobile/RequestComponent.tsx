@@ -12,6 +12,7 @@ import { useMapInstance } from '@/hooks/useMapInstance';
 import { useGoogleMaps } from '@/context/GoogleMapsContext';
 import SidebarMobile from './SidebarMobile';
 import FollowUnitCamera from '../components/FollowUnitCamera';
+import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
@@ -389,41 +390,24 @@ export default function RequestPage() {
     return direction ? direction[2] : 'Desconocido';
   }, []);
 
-  const getMarkerIcon = useCallback((heading: number) => {
-    if (typeof window === 'undefined') return null;
+  const getMarkerIcon = useCallback((heading: number, deviceId?: string) => {
+    if (typeof window === 'undefined' || !window.google?.maps) return null;
 
-    const cacheKey = Math.floor(heading / 45) * 45;
+    const spec = resolveVehicleMarkerSpec(heading, deviceId);
 
-    if (iconCache.current[cacheKey]) {
-      return iconCache.current[cacheKey];
+    if (iconCache.current[spec.cacheKey]) {
+      return iconCache.current[spec.cacheKey];
     }
 
-    const directions = [
-      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] },
-      { range: [22.51, 67.5], url: '/auto/topright.webp', size: [42, 25] },
-      { range: [67.51, 112.5], url: '/auto/right.webp', size: [42, 25] },
-      { range: [112.51, 157.5], url: '/auto/downright.webp', size: [42, 25] },
-      { range: [157.51, 202.5], url: '/auto/down.webp', size: [25, 35] },
-      { range: [202.51, 247.5], url: '/auto/downleft.webp', size: [42, 25] },
-      { range: [247.51, 292.5], url: '/auto/left.webp', size: [42, 25] },
-      { range: [292.51, 337.5], url: '/auto/topleft.webp', size: [42, 25] },
-      { range: [337.51, 360.0], url: '/auto/up.webp', size: [25, 35] },
-    ];
+    const icon: google.maps.Icon = {
+      url: spec.url,
+      scaledSize: new google.maps.Size(spec.size[0], spec.size[1]),
+      ...(spec.anchor
+        ? { anchor: new google.maps.Point(spec.anchor[0], spec.anchor[1]) }
+        : {}),
+    };
 
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-    const icon = direction
-      ? {
-          url: direction.url,
-          scaledSize: new google.maps.Size(
-            direction.size[0],
-            direction.size[1],
-          ),
-        }
-      : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-
-    iconCache.current[cacheKey] = icon;
+    iconCache.current[spec.cacheKey] = icon;
     return icon;
   }, []);
 
@@ -594,7 +578,7 @@ export default function RequestPage() {
             existingMarkerData.popup2.position = position;
           }
 
-          const newIcon = getMarkerIcon(device.lastValidHeading);
+          const newIcon = getMarkerIcon(device.lastValidHeading, device.deviceId);
           if (newIcon && existingMarkerData.marker.getIcon() !== newIcon) {
             existingMarkerData.marker.setIcon(newIcon);
           }
@@ -877,7 +861,7 @@ export default function RequestPage() {
       popup2.setMap(null);
 
       // Crear marcador
-      const icon = getMarkerIcon(device.lastValidHeading);
+      const icon = getMarkerIcon(device.lastValidHeading, device.deviceId);
       const marker = new google.maps.Marker({
         position,
         map,

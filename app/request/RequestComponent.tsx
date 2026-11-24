@@ -19,8 +19,11 @@ import {
   getAlertSoundConfig,
   getSpeedLimitForUnit,
 } from '@/app/components/settings/useUserSettings';
+import { claimOnce } from '@/app/components/settings/alertNotifier';
+import { OVERSPEED_NOTIFY_WINDOW_MS } from '@/app/trackvelnew/geocercas/useGeofenceSignalR';
 import { isCurrentlyQuietHours } from '@/app/components/settings/mockData';
 import { useMarkerClustering } from '@/app/components/settings/useMarkerClustering';
+import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons';
 
 function sanitize(value: string): string {
   const el = document.createElement('div');
@@ -181,6 +184,9 @@ interface MarkerData {
   marker: google.maps.Marker;
   popup1: any;
   popup2: any;
+  lastHeading?: number;
+  lastSpeed?: number;
+  rotAnimFrame?: number;
 }
 
 export default function RequestPage() {
@@ -260,7 +266,7 @@ export default function RequestPage() {
   const playSpeedAlert = useCallback(() => {
     stopSpeedAlert();
     try {
-      const cfg = getAlertSoundConfig('overspeed');
+      const cfg = getAlertSoundConfig('deviceOverspeed');
       if (!cfg.enabled || cfg.muteAll || cfg.sound === 'none') return;
       soundHandleRef.current = startSound(
         cfg.sound,
@@ -281,6 +287,30 @@ export default function RequestPage() {
         const isQuiet = alerts?.quietHours && isCurrentlyQuietHours(alerts.quietHours);
         if (alerts?.muteAll || isQuiet) {
           stopSpeedAlert();
+        }
+      } else if (detail?.key === 'icons') {
+        if (typeof window !== 'undefined' && window.google?.maps) {
+          Object.entries(markersDataRef.current).forEach(([deviceId, data]) => {
+            if (data.rotAnimFrame) {
+              cancelAnimationFrame(data.rotAnimFrame);
+              data.rotAnimFrame = undefined;
+            }
+            const spec = resolveVehicleMarkerSpec(data.lastHeading ?? 0, deviceId, {
+              isMoving: (data.lastSpeed ?? 0) >= 1,
+            });
+            let icon = iconCache.current[spec.cacheKey];
+            if (!icon) {
+              icon = {
+                url: spec.url,
+                scaledSize: new google.maps.Size(spec.size[0], spec.size[1]),
+                ...(spec.anchor
+                  ? { anchor: new google.maps.Point(spec.anchor[0], spec.anchor[1]) }
+                  : {}),
+              };
+              iconCache.current[spec.cacheKey] = icon;
+            }
+            data.marker.setIcon(icon);
+          });
         }
       } else if (detail?.key === 'preferences') {
         const prefs = detail.value;
@@ -473,12 +503,17 @@ export default function RequestPage() {
                 );
               }
 
-              const alertCfg = getAlertSoundConfig('overspeed');
-              if (alertCfg.enabled && !alertCfg.muteAll) {
+              // Un solo aviso por unidad: el servidor también puede mandarlo por SignalR
+              const alertCfg = getAlertSoundConfig('deviceOverspeed');
+              const firstNotice =
+                alertCfg.enabled &&
+                claimOnce(`overspeed|${device.deviceId.toUpperCase()}`, OVERSPEED_NOTIFY_WINDOW_MS);
+              if (firstNotice && !alertCfg.muteAll) {
                 playSpeedAlert();
               }
 
-              if (alertCfg.popup) {
+              // Con la alerta desactivada en Configuración no hay aviso en pantalla
+              if (firstNotice && alertCfg.popup) {
                 const peruTime = new Date(
                   device.lastGPSTimestamp * 1000,
                 ).toLocaleString('es-PE', {
@@ -597,43 +632,29 @@ export default function RequestPage() {
     return direction ? direction[2] : 'Desconocido';
   }, []);
 
-  const getMarkerIcon = useCallback((heading: number) => {
-    if (typeof window === 'undefined') return null;
+  const getMarkerIcon = useCallback(
+    (heading: number, deviceId?: string, isMoving?: boolean) => {
+      if (typeof window === 'undefined' || !window.google?.maps) return null;
 
-    const cacheKey = Math.floor(heading / 45) * 45;
+      const spec = resolveVehicleMarkerSpec(heading, deviceId, { isMoving });
 
-    if (iconCache.current[cacheKey]) {
-      return iconCache.current[cacheKey];
-    }
+      if (iconCache.current[spec.cacheKey]) {
+        return iconCache.current[spec.cacheKey];
+      }
 
-    const directions = [
-      { range: [0, 22.5], url: '/auto/up.webp', size: [25, 35] },
-      { range: [22.51, 67.5], url: '/auto/topright.webp', size: [42, 25] },
-      { range: [67.51, 112.5], url: '/auto/right.webp', size: [42, 25] },
-      { range: [112.51, 157.5], url: '/auto/downright.webp', size: [42, 25] },
-      { range: [157.51, 202.5], url: '/auto/down.webp', size: [25, 35] },
-      { range: [202.51, 247.5], url: '/auto/downleft.webp', size: [42, 25] },
-      { range: [247.51, 292.5], url: '/auto/left.webp', size: [42, 25] },
-      { range: [292.51, 337.5], url: '/auto/topleft.webp', size: [42, 25] },
-      { range: [337.51, 360.0], url: '/auto/up.webp', size: [25, 35] },
-    ];
+      const icon: google.maps.Icon = {
+        url: spec.url,
+        scaledSize: new google.maps.Size(spec.size[0], spec.size[1]),
+        ...(spec.anchor
+          ? { anchor: new google.maps.Point(spec.anchor[0], spec.anchor[1]) }
+          : {}),
+      };
 
-    const direction = directions.find(
-      (d) => heading >= d.range[0] && heading <= d.range[1],
-    );
-    const icon = direction
-      ? {
-          url: direction.url,
-          scaledSize: new google.maps.Size(
-            direction.size[0],
-            direction.size[1],
-          ),
-        }
-      : { url: '/unknown.png', scaledSize: new google.maps.Size(42, 25) };
-
-    iconCache.current[cacheKey] = icon;
-    return icon;
-  }, []);
+      iconCache.current[spec.cacheKey] = icon;
+      return icon;
+    },
+    [],
+  );
 
   const getEstado = useCallback(
     (speed: number) => (speed < 10 ? 'Estacionado' : 'Movimiento'),
@@ -848,9 +869,44 @@ export default function RequestPage() {
             existingMarkerData.popup2.position = position;
           }
 
-          const newIcon = getMarkerIcon(device.lastValidHeading);
-          if (newIcon && existingMarkerData.marker.getIcon() !== newIcon) {
-            existingMarkerData.marker.setIcon(newIcon);
+          const isMoving = device.lastValidSpeed >= 1;
+          const prevHeading = existingMarkerData.lastHeading;
+          const nextHeading = device.lastValidHeading;
+          existingMarkerData.lastHeading = nextHeading;
+          existingMarkerData.lastSpeed = device.lastValidSpeed;
+
+          const targetSpec = resolveVehicleMarkerSpec(nextHeading, device.deviceId, { isMoving });
+          const angleDiff =
+            prevHeading !== undefined
+              ? ((((nextHeading - prevHeading) % 360) + 540) % 360) - 180
+              : 0;
+
+          // Todos los tipos son SVG 360°: el giro se anima de forma suave
+          if (Math.abs(angleDiff) >= 3) {
+            if (existingMarkerData.rotAnimFrame) {
+              cancelAnimationFrame(existingMarkerData.rotAnimFrame);
+            }
+            const startAngle = prevHeading!;
+            const startTime = performance.now();
+            const duration = 360;
+            const step = (now: number) => {
+              const t = Math.min(1, (now - startTime) / duration);
+              const eased = 1 - Math.pow(1 - t, 3);
+              const currentAngle = startAngle + angleDiff * eased;
+              const frameIcon = getMarkerIcon(currentAngle, device.deviceId, isMoving);
+              if (frameIcon) existingMarkerData.marker.setIcon(frameIcon);
+              if (t < 1) {
+                existingMarkerData.rotAnimFrame = requestAnimationFrame(step);
+              } else {
+                existingMarkerData.rotAnimFrame = undefined;
+              }
+            };
+            existingMarkerData.rotAnimFrame = requestAnimationFrame(step);
+          } else {
+            const newIcon = getMarkerIcon(nextHeading, device.deviceId, isMoving);
+            if (newIcon && existingMarkerData.marker.getIcon() !== newIcon) {
+              existingMarkerData.marker.setIcon(newIcon);
+            }
           }
 
 
@@ -1062,7 +1118,11 @@ export default function RequestPage() {
       }
       popup2.setMap(null);
 
-      const icon = getMarkerIcon(device.lastValidHeading);
+      const icon = getMarkerIcon(
+        device.lastValidHeading,
+        device.deviceId,
+        device.lastValidSpeed >= 1,
+      );
       const marker = new google.maps.Marker({
         position,
         map,
@@ -1103,6 +1163,8 @@ export default function RequestPage() {
         marker,
         popup1,
         popup2,
+        lastHeading: device.lastValidHeading,
+        lastSpeed: device.lastValidSpeed,
       };
 
       // Si "Agrupar unidades cercanas" está activo, el agrupador decide su visibilidad

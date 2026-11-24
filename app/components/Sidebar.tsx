@@ -10,6 +10,7 @@ import { useSession } from 'next-auth/react';
 import { Spinner } from '@nextui-org/react';
 import { useApi } from '@/context/ApiContext';
 import SelectSidebar from './selectUI/SelectSidebar';
+import { getVehicleSidebarImage } from './settings/vehicleIcons';
 
 interface SidebarProps {
   centerMap: () => void;
@@ -47,6 +48,17 @@ export default function Sidebar({ centerMap, centerUnit, onFilteredIdsChange, sh
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [filteredDeviceIds, setFilteredDeviceIds] = useState<string[] | null>(null);
   const [filtroMovimiento, setFiltroMovimiento] = useState<'todos' | 'movimiento' | 'detenidas'>('todos');
+  const [, setIconsVersion] = useState(0);
+
+  useEffect(() => {
+    const onSettings = (e: Event) => {
+      if ((e as CustomEvent)?.detail?.key === 'icons') {
+        setIconsVersion((v) => v + 1);
+      }
+    };
+    window.addEventListener('trackvel:settings-updated', onSettings);
+    return () => window.removeEventListener('trackvel:settings-updated', onSettings);
+  }, []);
 
   // Estados para el polling de API
   const [connectionStatus, setConnectionStatus] = useState<'Connecting' | 'Connected' | 'Disconnected'>('Disconnected');
@@ -381,13 +393,29 @@ const filteredUnidades = useMemo(() => {
                       className="sb2-dot"
                       style={{ backgroundColor: getColorBySpeed(unidad.lastValidSpeed) }}
                     />
-                    <Image
-                      src={username === 'dguevara' ? '/dguevara.webp' : '/UnidadK.webp'}
-                      alt=""
-                      width={44}
-                      height={24}
-                      className="sb2-car"
-                    />
+                    {(() => {
+                      const imgSrc = getVehicleSidebarImage(
+                        codigo,
+                        username === 'dguevara' ? '/dguevara.webp' : undefined,
+                      );
+                      return imgSrc.startsWith('data:') ? (
+                        <img
+                          src={imgSrc}
+                          alt=""
+                          width={44}
+                          height={24}
+                          className="sb2-car object-contain"
+                        />
+                      ) : (
+                        <Image
+                          src={imgSrc}
+                          alt=""
+                          width={44}
+                          height={24}
+                          className="sb2-car object-contain"
+                        />
+                      );
+                    })()}
                     <span className="sb2-plate">{codigo}</span>
                     <span className={`sb2-speed ${speed >= 1 ? 'sb2-speed-moving' : ''}`}>
                       {speed}km/h
