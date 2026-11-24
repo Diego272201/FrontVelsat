@@ -168,6 +168,12 @@ function getPopupClass() {
   return PopupClass!;
 }
 
+/** Kilometraje del popup (lastOdometerKM de DeviceList): "51,014" km, o "—" si no viene */
+const formatOdometerKm = (km?: number | null) => {
+  const n = Number(km);
+  return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('es-PE') : '—';
+};
+
 interface DeviceList {
   deviceId: string;
   lastValidLatitude: number;
@@ -1099,6 +1105,10 @@ export default function RequestPage() {
                       <span class="pv2-stat-label">Estado</span>
                       <span class="pv2-stat-value state-value">${getEstado(device.lastValidSpeed)}</span>
                     </div>
+                    <div class="pv2-stat">
+                      <span class="pv2-stat-label">Kilometraje</span>
+                      <span class="pv2-stat-value"><span class="odometer-value">${formatOdometerKm(device.lastOdometerKM)}</span><span class="pv2-stat-unit">km</span></span>
+                    </div>
                   </div>
 
                   <div class="pv2-report">
@@ -1405,6 +1415,9 @@ export default function RequestPage() {
           speedElement.textContent = `${Math.round(device.lastValidSpeed)}`;
         if (stateElement)
           stateElement.textContent = getEstado(device.lastValidSpeed);
+        const odometerElement = popupElement.querySelector('.odometer-value');
+        if (odometerElement)
+          odometerElement.textContent = formatOdometerKm(device.lastOdometerKM);
         if (directionElement)
           directionElement.textContent = getDireccion(device.lastValidHeading);
         if (locationElement) locationElement.textContent = device.direccion;

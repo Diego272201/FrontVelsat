@@ -22,6 +22,12 @@ import { resolveVehicleMarkerSpec } from '@/app/components/settings/vehicleIcons
  * Street View (FollowUnitCamera con `keyless`).
  */
 
+/** Kilometraje del popup (lastOdometerKM de DeviceList): "51,014" km, o "—" si no viene */
+const formatOdometerKm = (km?: number | null) => {
+  const n = Number(km);
+  return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('es-PE') : '—';
+};
+
 interface DeviceList {
   deviceId: string;
   lastValidLatitude: number;
@@ -30,6 +36,7 @@ interface DeviceList {
   direccion: string;
   lastValidHeading: number;
   lastGPSTimestamp: number;
+  lastOdometerKM?: number;
   rutaact: string;
 }
 
@@ -331,6 +338,10 @@ export default function RequestPage() {
                   <span class="pv2-stat-label">Estado</span>
                   <span class="pv2-stat-value state-value">${getEstado(device.lastValidSpeed)}</span>
                 </div>
+                <div class="pv2-stat">
+                  <span class="pv2-stat-label">Kilometraje</span>
+                  <span class="pv2-stat-value"><span class="odometer-value">${formatOdometerKm(device.lastOdometerKM)}</span><span class="pv2-stat-unit">km</span></span>
+                </div>
               </div>
 
               <div class="pv2-report">
@@ -383,6 +394,7 @@ export default function RequestPage() {
       };
       set('.speed-value', `${Math.round(device.lastValidSpeed)}`);
       set('.state-value', getEstado(device.lastValidSpeed));
+      set('.odometer-value', formatOdometerKm(device.lastOdometerKM));
       set('.direction-value', getDireccion(device.lastValidHeading));
       set('.location-value', device.direccion);
       if (useGpsTime) set('.fecha-value', reportDateText(device));
