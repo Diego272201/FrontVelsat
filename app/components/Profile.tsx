@@ -14,6 +14,14 @@ import NewsAnnouncer from './announcements/NewsAnnouncer';
 // Para volver a mostrarla, cambiar a true (el modal y su código siguen intactos).
 const SHOW_SETTINGS_OPTION = true;
 
+/**
+ * Otras partes de la app piden abrir la Configuración con el evento
+ * "trackvel:open-settings" ({ section }). El menú se monta dos veces en la barra
+ * (móvil oculto + escritorio): solo la primera instancia lo atiende, para no abrir dos paneles.
+ */
+let openSettingsOwner: number | null = null;
+let nextProfileId = 1;
+
 interface Props {
   toggleFullScreen?: () => void;
 }
@@ -27,6 +35,24 @@ export default function ProfileDropdown({ toggleFullScreen }: Props) {
     setSettingsSection(section);
     setSettingsOpen(true);
   };
+
+  const profileIdRef = useRef(0);
+  if (profileIdRef.current === 0) profileIdRef.current = nextProfileId++;
+  useEffect(() => {
+    const id = profileIdRef.current;
+    if (openSettingsOwner === null) openSettingsOwner = id;
+    const onOpen = (e: Event) => {
+      if (openSettingsOwner !== id) return;
+      const section = (e as CustomEvent<{ section?: SettingsSectionId }>).detail?.section ?? 'cuenta';
+      setSettingsSection(section);
+      setSettingsOpen(true);
+    };
+    window.addEventListener('trackvel:open-settings', onOpen);
+    return () => {
+      window.removeEventListener('trackvel:open-settings', onOpen);
+      if (openSettingsOwner === id) openSettingsOwner = null;
+    };
+  }, []);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 

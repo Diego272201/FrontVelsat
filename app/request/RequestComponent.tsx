@@ -1541,9 +1541,17 @@ export default function RequestPage() {
         updateCameraButtonStates(null);
       } else {
         if (!followPreferenceRef.current) {
-          toast.info(
-            'Para fijar la cámara, activa "Seguir unidad seleccionada" en Configuración > Preferencias.',
-          );
+          toast.info('La cámara fija está desactivada', {
+            description: 'Actívala con "Seguir unidad seleccionada (cámara fija)" en Configuración → Preferencias.',
+            duration: 8000,
+            action: {
+              label: 'Abrir Preferencias',
+              onClick: () =>
+                window.dispatchEvent(
+                  new CustomEvent('trackvel:open-settings', { detail: { section: 'preferencias' } }),
+                ),
+            },
+          });
           return;
         }
 

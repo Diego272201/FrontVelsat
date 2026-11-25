@@ -27,7 +27,11 @@ export default function PreferencesSection({ value, onSave }: Props) {
   const switches: { key: keyof PreferenceSettings; title: string; desc: string }[] = [
     { key: 'showPlateLabels', title: 'Mostrar placas en el mapa', desc: 'Etiqueta con la placa sobre cada unidad' },
     { key: 'clusterMarkers', title: 'Agrupar unidades cercanas', desc: 'Agrupa marcadores al alejar el mapa' },
-    { key: 'followSelectedUnit', title: 'Seguir unidad seleccionada', desc: 'Centra el mapa en la unidad al moverse' },
+    {
+      key: 'followSelectedUnit',
+      title: 'Seguir unidad seleccionada (cámara fija)',
+      desc: 'Centra el mapa en la unidad al moverse y muestra su vista de calle abajo a la derecha',
+    },
   ];
 
   return (
