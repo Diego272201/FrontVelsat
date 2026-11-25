@@ -213,6 +213,7 @@ interface DeviceList {
     numero?: string;
     empresa?: string;
     tipo?: string;
+    fecha?: string;
   } | null;
 }
 
@@ -225,6 +226,8 @@ interface ServicioActual {
   tipo?: string | null;
   empresa?: string | null;
   conductor?: string | null;
+  // dd/MM/yyyy HH:mm
+  fecha?: string | null;
 }
 
 // El polling de posiciones ya no trae el servicio (device.servicio en la base local queda
@@ -247,6 +250,7 @@ function aplicarServiciosActuales(
         numero: s.numero ?? undefined,
         empresa: s.empresa ?? undefined,
         tipo: s.tipo ?? undefined,
+        fecha: s.fecha ?? undefined,
       },
     };
   });
@@ -256,7 +260,7 @@ function aplicarServiciosActuales(
 // de conductor cuando no hay conductor, en lugar de "Sin asignar".
 function textosServicio(device: DeviceList, ocultarSinAsignar: boolean) {
   const u = device.ultimoServicio;
-  if (!u) return { conductor: null, servicioCompleto: null };
+  if (!u) return { conductor: null, servicioCompleto: null, fecha: null };
   const conductorRaw = u.conductor?.apepate || '';
   const conductor = conductorRaw || (ocultarSinAsignar ? '' : 'Sin asignar');
   const numero = u.numero || '';
@@ -264,7 +268,11 @@ function textosServicio(device: DeviceList, ocultarSinAsignar: boolean) {
   const tipo = u.tipo === 'I' ? 'INGRESO' : 'SALIDA';
   const servicioCompleto =
     numero && empresa ? `${numero} ${empresa} (${tipo})` : null;
-  return { conductor: conductor || null, servicioCompleto };
+  return {
+    conductor: conductor || null,
+    servicioCompleto,
+    fecha: u.fecha || null,
+  };
 }
 
 interface MarkerData {
@@ -1090,6 +1098,7 @@ export default function RequestPage() {
       const servicioCompleto = textos.servicioCompleto
         ? sanitize(textos.servicioCompleto)
         : null;
+      const fechaServicio = textos.fecha ? sanitize(textos.fecha) : null;
 
       const safeDeviceId = sanitize(device.deviceId);
       const safeDireccion = sanitize(device.direccion);
@@ -1124,10 +1133,11 @@ export default function RequestPage() {
                 </div>
 
                 <div class="pv2-body">
-                  ${conductor || servicioCompleto ? `
+                  ${conductor || servicioCompleto || fechaServicio ? `
                   <div class="pv2-meta">
                     ${conductor ? `<p class="pv2-meta-row"><span class="pv2-meta-label">Conductor</span><span class="pv2-meta-value conductor-value">${conductor}</span></p>` : ''}
                     ${servicioCompleto ? `<p class="pv2-meta-row"><span class="pv2-meta-label">Servicio Actual</span><span class="pv2-meta-value servicio-value">${servicioCompleto}</span></p>` : ''}
+                    ${fechaServicio ? `<p class="pv2-meta-row"><span class="pv2-meta-label">Fecha y hora</span><span class="pv2-meta-value fecha-servicio-value">${fechaServicio}</span></p>` : ''}
                   </div>` : ''}
 
                   <div class="pv2-stats">
@@ -1382,10 +1392,12 @@ export default function RequestPage() {
       if (popupElement) {
         const conductorElement = popupElement.querySelector('.conductor-value');
         const servicioElement = popupElement.querySelector('.servicio-value');
+        const fechaElement = popupElement.querySelector('.fecha-servicio-value');
         const textos = textosServicio(device, isMovilbusUser);
         const needsRegeneration =
           !!textos.conductor !== !!conductorElement ||
-          !!textos.servicioCompleto !== !!servicioElement;
+          !!textos.servicioCompleto !== !!servicioElement ||
+          !!textos.fecha !== !!fechaElement;
 
         if (needsRegeneration) {
           const newContent = getOptimizedPopupContent(device);
@@ -1475,6 +1487,10 @@ export default function RequestPage() {
         }
         if (servicioElementFinal && textos.servicioCompleto) {
           servicioElementFinal.textContent = textos.servicioCompleto;
+        }
+        const fechaElementFinal = popupElement.querySelector('.fecha-servicio-value');
+        if (fechaElementFinal && textos.fecha) {
+          fechaElementFinal.textContent = textos.fecha;
         }
       }
     },
