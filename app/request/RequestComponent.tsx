@@ -633,6 +633,13 @@ export default function RequestPage() {
         if (!isComponentMounted) return;
 
         const datos = data.datosDevice;
+        // TEMPORAL: ver lo que trae el polling para una placa. Quitar después.
+        console.log(
+          'DEBUG 834-d6y950:',
+          datos.find(
+            (d: DeviceList) => d.deviceId.toLowerCase() === '834-d6y950',
+          ),
+        );
         setMarkersLoaded(true);
         setDeviceList(
           username === 'movilbus'
